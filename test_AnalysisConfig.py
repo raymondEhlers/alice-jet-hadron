@@ -9,7 +9,6 @@
 
 import pytest
 import ruamel.yaml
-import sys
 import logging
 # Setup logger
 logger = logging.getLogger(__name__)
