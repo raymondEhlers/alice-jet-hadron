@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Tests for the JetH configuration functionality defined in the JetHParams module.
+# Tests for the JetH configuration functionality defined in the JetHConfig module.
 #
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
@@ -11,7 +11,7 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import JetHParams
+import JetHConfig
 
 # Set logging level as a global variable to simplify configuration.
 # This is not ideal, but fine for simple tests.
@@ -76,7 +76,7 @@ def overrideOptions(basicConfig, selectedOptions = None):
         logger.debug("Before override:")
         yaml.dump(basicConfig, None, transform = logYAMLDump)
 
-    basicConfig = JetHParams.overrideOptions(basicConfig, selectedOptions)
+    basicConfig = JetHConfig.overrideOptions(basicConfig, selectedOptions)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
