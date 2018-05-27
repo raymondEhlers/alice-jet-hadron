@@ -7,6 +7,10 @@ test cases. These tests are developed with `pytest`. To conform to their standar
 The tests can be executed via `pytest -l testName.py` and all tests can be run via `pytests -l tests/`. Note
 that `-l` is also known as `--showlocals` and will print the local variables when a test fails.
 
+## Testing with coverage
+
+Using the `coverage` package to better code coverage, run the test with `pytest -l --cov=JetHAnalysis tests/`.
+
 ## Developing tests
 
 A few things to keep in mind when developing tests:
