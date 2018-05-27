@@ -32,7 +32,7 @@ def testIterateOverTrackPtBins(caplog):
     """
     caplog.set_level(loggingLevel)
     assert len(JetHParams.trackPtBins) == 10
-    assert list(JetHParams.iterateOverTrackPtBins()) == getRangeFromBinArray(JetHParams.trackPtBins)
+    assert list(JetHParams.iterateOverTrackPtBins()) == list(getRangeFromBinArray(JetHParams.trackPtBins))
 
 def testIterateOverTrackPtBinsWithConfig(caplog):
     """ Test the track pt bins generator with some bins skipped.
@@ -56,7 +56,7 @@ def testIterateOverJetPtBins(caplog):
     # Ensure that we have the expected number of jet pt bins
     assert len(JetHParams.jetPtBins) == 5
     # Then test the actual iterable.
-    assert list(JetHParams.iterateOverJetPtBins()) == getRangeFromBinArray(JetHParams.jetPtBins)
+    assert list(JetHParams.iterateOverJetPtBins()) == list(getRangeFromBinArray(JetHParams.jetPtBins))
 
 def testIterateOverJetPtBinsWithConfig(caplog):
     """ Test the jet pt bins generator with some bins skipped.
