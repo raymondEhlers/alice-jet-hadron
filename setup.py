@@ -74,10 +74,20 @@ setup(
         "numpy",
         "matplotlib",
         "seaborn",
+        "uproot", # Not strictly required at the moment, but hopefully for the future.
         "rootpy",
-        "root_numpy"
+        "root_numpy",
+        "iminuit",
+        "probfit",
+        "numdifftools"
     ],
 
     # Include additional files
-    include_package_data=True
+    include_package_data=True,
+
+    # Test packages
+    tests_require = [
+        "pytest",
+        "pytest-cov"
+    ]
   )
