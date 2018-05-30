@@ -54,7 +54,7 @@ override:
 
     return data
 
-def overrideOptions(basicConfig, selectedOptions = None):
+def overrideOptionsHelper(basicConfig, selectedOptions = None):
     """ Helper function to override the configuration.
 
     It can print the configuration before and after overridding the options if enabled.
@@ -87,7 +87,7 @@ def overrideOptions(basicConfig, selectedOptions = None):
 def testBasicSelectedOverrides(caplog, basicConfig):
     """ Test that override works for the selected options. """
     caplog.set_level(loggingLevel)
-    config = overrideOptions(basicConfig)
+    config = overrideOptionsHelper(basicConfig)
 
     assert config["responseTaskName"] == "jetHPerformance"
     assert config["intVal"] == 2
@@ -100,7 +100,7 @@ def testIgnoreUnselectedOptions(caplog, basicConfig):
     # Thus, the configuration values should not change!
     del basicConfig["override"][2.76]["central"]
 
-    config = overrideOptions(basicConfig)
+    config = overrideOptionsHelper(basicConfig)
 
     # NOTE: It should be compared against "baseName" because it also converts single entry
     #       lists to just the single entry.
