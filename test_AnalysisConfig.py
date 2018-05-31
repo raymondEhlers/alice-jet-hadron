@@ -266,20 +266,19 @@ dict2:
     dict:
         str: "do nothing"
         format: "{c}"
+latexLike: $latex_{like \mathrm{x}}$
 """
     yaml = ruamel.yaml.YAML()
     config = yaml.load(config)
 
     formatting = {"a" : "b", "c": 1}
 
-    return (config, formatting)
+    return AnalysisConfig.applyFormattingDict(config, formatting)
 
 def testApplyFormattingToBasicTypes(caplog, formattingConfig):
     """ Test applying formatting to basic types. """
     caplog.set_level(loggingLevel)
-
-    config, formatting = formattingConfig
-    config = AnalysisConfig.applyFormattingDict(config, formatting)
+    config = formattingConfig
 
     assert config["int"] == 3
     assert config["float"] == 3.14
@@ -290,10 +289,15 @@ def testApplyFormattingToBasicTypes(caplog, formattingConfig):
 def testApplyFormattingToIterableTypes(caplog, formattingConfig):
     """ Test applying formatting to iterable types. """
     caplog.set_level(loggingLevel)
-
-    config, formatting = formattingConfig
-    config = AnalysisConfig.applyFormattingDict(config, formatting)
+    config = formattingConfig
 
     assert config["list"] == ["noFormat", 2, "b1"]
     assert config["dict"] == {"noFormat" : "hello", "format" : "b1"}
     assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : "1" }
+
+def testApplyFormattingSkipLatex(caplog, formattingConfig):
+    """ Test skipping the application of the formatting to strings which look like latex. """
+    caplog.set_level(loggingLevel)
+    config = formattingConfig
+
+    assert config["latexLike"] == "$latex_{like \mathrm{x}}$"
