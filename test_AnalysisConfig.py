@@ -247,3 +247,51 @@ def testDictDataSimplification(caplog, dataSimplificationConfig):
     assert config["singleEntryDict"] == {"hello" : "world"}
     assert config["multiEntryDict"] == {"hello" : "world", "foo" : "bar"}
 
+@pytest.fixture
+def formattingConfig():
+    config = """
+int: 3
+float: 3.14
+noFormat: "test"
+format: "{a}"
+list:
+    - "noFormat"
+    - 2
+    - "{a}{c}"
+dict:
+    noFormat: "hello"
+    format: "{a}{c}"
+    dict2:
+        str: "do nothing"
+        format: "{c}"
+"""
+    yaml = ruamel.yaml.YAML()
+    config = yaml.load(config)
+
+    formatting = {"a" : "b", "c": 1}
+
+    return (config, formatting)
+
+def testApplyFormattingToBasicTypes(caplog, formattingConfig):
+    """ Test applying formatting to basic types. """
+    caplog.set_level(loggingLevel)
+
+    config, formatting = formattingConfig
+    config = AnalysisConfig.applyFormattingDict(config, formatting)
+
+    assert config["int"] == 3
+    assert config["float"] == 3.14
+    assert config["noFormat"] == "test"
+    assert config["format"] == "b"
+
+def testApplyFormattingToIterableTypes(caplog, formattingConfig):
+    """ Test applying formatting to iterable types. """
+    caplog.set_level(loggingLevel)
+
+    config, formatting = formattingConfig
+    config = AnalysisConfig.applyFormattingDict(config, formatting)
+
+    assert config["list"] == ["noFormat", 2, "b1"]
+    assert config["dict"] == {"noFormat" : "hello", "format" : "b1"}
+    assert config["dict"]["dict2"] == { "str" : "doNothing", "format" : "1" }
+    assert False
