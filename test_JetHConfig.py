@@ -11,6 +11,7 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
+import JetHParams
 import JetHConfig
 
 # Set logging level as a global variable to simplify configuration.
@@ -40,8 +41,10 @@ def basicConfig():
     testYaml = """
 responseTaskName: &responseTaskName ["baseName"]
 intVal: 1
+halfwayValue: 3.1
 override:
     2.76:
+        halfwayValue: 3.14
         central:
             responseTaskName: "jetHPerformance"
             intVal: 2
@@ -69,7 +72,10 @@ def overrideOptionsHelper(basicConfig, selectedOptions = None):
         CommentedMap: dict-like object containing the overridden configuration
     """
     if selectedOptions is None:
-        selectedOptions = (2.76, "PbPb", "central", "track")
+        selectedOptions = (JetHParams.collisionEnergy.twoSevenSix,
+                           JetHParams.collisionSystem.PbPb,
+                           JetHParams.eventActivity.central,
+                           JetHParams.leadingHadronBiasType.track)
 
     yaml = ruamel.yaml.YAML()
     if logger.isEnabledFor(logging.DEBUG):
@@ -91,6 +97,7 @@ def testBasicSelectedOverrides(caplog, basicConfig):
 
     assert config["responseTaskName"] == "jetHPerformance"
     assert config["intVal"] == 2
+    assert config["halfwayValue"] == 3.14
 
 def testIgnoreUnselectedOptions(caplog, basicConfig):
     """ Test ignoring unselected values. """
