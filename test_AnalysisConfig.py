@@ -254,6 +254,7 @@ int: 3
 float: 3.14
 noFormat: "test"
 format: "{a}"
+noFormatBecauseNoFormatter: "{noFormatHere}"
 list:
     - "noFormat"
     - 2
@@ -261,7 +262,8 @@ list:
 dict:
     noFormat: "hello"
     format: "{a}{c}"
-    dict2:
+dict2:
+    dict:
         str: "do nothing"
         format: "{c}"
 """
@@ -283,6 +285,7 @@ def testApplyFormattingToBasicTypes(caplog, formattingConfig):
     assert config["float"] == 3.14
     assert config["noFormat"] == "test"
     assert config["format"] == "b"
+    assert config["noFormatBecauseNoFormatter"] == "{noFormatHere}"
 
 def testApplyFormattingToIterableTypes(caplog, formattingConfig):
     """ Test applying formatting to iterable types. """
@@ -293,5 +296,4 @@ def testApplyFormattingToIterableTypes(caplog, formattingConfig):
 
     assert config["list"] == ["noFormat", 2, "b1"]
     assert config["dict"] == {"noFormat" : "hello", "format" : "b1"}
-    assert config["dict"]["dict2"] == { "str" : "doNothing", "format" : "1" }
-    assert False
+    assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : "1" }
