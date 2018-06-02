@@ -58,7 +58,8 @@ setup(
         "console_scripts" : [
             "jetHAnalysis = JetHAnalysis:runFromTerminal",
             "jetHResponse = JetHResponse:runFromTerminal",
-            "plotEMCalCorrections = EMCalCorrections:runFromTerminal",
+            "plotEMCalCorrections = EMCalAnalysisTasks:runCorrectionsFromTerminal",
+            "plotEMCalEmbedding = EMCalAnalysisTasks:runEmbeddingFromTerminal",
             "plotRPFRegions = PlotRPFRegions:runFromTerminal"
             ],
         },
