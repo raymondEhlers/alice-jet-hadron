@@ -19,7 +19,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name="aliceJetHadronCorrelations",
+    name="aliceJetHCorrelations",
     version="0.8",
 
     description="ALICE jet-hadron correlations analysis",
