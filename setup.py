@@ -56,11 +56,11 @@ setup(
     # See: https://stackoverflow.com/a/8506532
     entry_points = {
         "console_scripts" : [
-            "jetHAnalysis = JetHAnalysis:runFromTerminal",
-            "jetHResponse = JetHResponse:runFromTerminal",
-            "plotEMCalCorrections = EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
-            "plotEMCalEmbedding = EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
-            "plotRPFRegions = PlotRPFRegions:runFromTerminal"
+            "jetHAnalysis = jetH.analysis.correlations:runFromTerminal",
+            "jetHResponse = jetH.analysis.responseMatrix:runFromTerminal",
+            "plotEMCalCorrections = jetH.analysis.EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
+            "plotEMCalEmbedding = jetH.analysis.EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
+            "plotRPFRegions = jetH.plot.highlightRPF:runFromTerminal"
             ],
         },
 
