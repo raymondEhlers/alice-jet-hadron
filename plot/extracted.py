@@ -10,10 +10,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
-import PlotBase
-
-import JetHParams
-import JetHUtils
+import jetH.base.params as params
+import jetH.plot.base as plotBase
 
 # Import plotting packages
 # Use matplotlib in some cases
@@ -44,23 +42,23 @@ def createTGraphsFromExtractedValues(jetH, values):
     Returns: (OrderedDict): One TGraph filled with the corresponding values per jet pt bin.
     """
     graphs = collections.OrderedDict()
-    for jetPtBin in JetHParams.iterateOverJetPtBins():
+    for jetPtBin in params.iterateOverJetPtBins():
         # TODO: Improve fits and remove this temporary condition!
         # TEMP
         #if jetPtBin != 1:
         #    continue
         # ENDTEMP
 
-        graphs[jetPtBin] = ROOT.TGraphErrors(len(JetHUtils.trackPtBins)-1)
+        graphs[jetPtBin] = ROOT.TGraphErrors(len(params.trackPtBins)-1)
         # Disable title
         graphs[jetPtBin].SetTitle("")
 
     for observable in values.itervalues():
         # Center points in the bin
         trackPtBin = observable.trackPtBin
-        halfBinWidth = (JetHUtils.trackPtBins[trackPtBin+1] - JetHUtils.trackPtBins[trackPtBin])/2.0
+        halfBinWidth = (params.trackPtBins[trackPtBin+1] - params.trackPtBins[trackPtBin])/2.0
         offset = 0.07*observable.jetPtBin
-        binCenterPoint = JetHUtils.trackPtBins[trackPtBin] + halfBinWidth + offset
+        binCenterPoint = params.trackPtBins[trackPtBin] + halfBinWidth + offset
         logger.debug("binCenterPoint: {}".format(binCenterPoint))
 
         # TODO: Improve fits and remove this temporary condition!
@@ -124,12 +122,12 @@ def plotExtractedValues(jetH, values, parameters):
             graph.Draw("P")
 
         # Add legend entry
-        legend.AddEntry(graph, JetHParams.generateJetPtRangeString(i), "LEP")
+        legend.AddEntry(graph, params.generateJetPtRangeString(i), "LEP")
 
     legend.Draw("same")
 
     # Save plot
-    PlotBase.saveCanvas(jetH, canvas, tag)
+    plotBase.saveCanvas(jetH, canvas, tag)
 
 def createExtractedValuesLegend(collisionSystem, tag):
     """ Create legends for extracted value plots. """
@@ -140,7 +138,7 @@ def createExtractedValuesLegend(collisionSystem, tag):
     leg.SetFillColorAlpha(0, 0)
     leg.SetBorderSize(0)
     leg.SetTextSize(0.03)
-    leg.AddEntry("", "{0} #sqrt{{s_{{NN}}}} = 2.76 TeV{1}".format("Pb--Pb" if collisionSystem == JetHUtils.CollisionSystem.kPbPb else "pp #otimes Pb--Pb", ", 0-10%" if collisionSystem == JetHUtils.CollisionSystem.kPbPb else ""), "")
+    leg.AddEntry("", "{0} #sqrt{{s_{{NN}}}} = 2.76 TeV{1}".format("Pb--Pb" if collisionSystem == params.CollisionSystem.kPbPb else "pp #otimes Pb--Pb", ", 0-10%" if collisionSystem == params.CollisionSystem.kPbPb else ""), "")
     leg.AddEntry("", "Anti-k_{T} full jets, R=0.2", "")
 
     # TODO: Add extraction ranges
@@ -161,8 +159,8 @@ def PlotWidthsNew(jetH, widths):
             if trackPtBin == 0:
                 continue
 
-            halfBinWidth = (JetHParams.trackPtBins[trackPtBin+1] - JetHParams.trackPtBins[trackPtBin])/2.0
-            binCenterPoint = JetHParams.trackPtBins[trackPtBin] + halfBinWidth
+            halfBinWidth = (params.trackPtBins[trackPtBin+1] - params.trackPtBins[trackPtBin])/2.0
+            binCenterPoint = params.trackPtBins[trackPtBin] + halfBinWidth
 
             logger.debug("location: {}, jetPtBin: {}, trackPtBin: {}, X: {}, width: {}, error: {}".format(location.upper(),
                     jetPtBin,
@@ -189,7 +187,7 @@ def PlotWidthsNew(jetH, widths):
 
         # Save plot
         # TODO: Define this name in the class!
-        PlotBase.savePlot(jetH, fig, "widths{}RPF".format(location.upper()))
+        plotBase.savePlot(jetH, fig, "widths{}RPF".format(location.upper()))
 
         # Cleanup
         plt.close(fig)

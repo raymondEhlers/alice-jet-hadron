@@ -15,10 +15,9 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-import PlotBase
-
-import JetHParams
-import JetHUtils
+import jetH.base.params as params
+import jetH.base.analysisObjects as analysisObjects
+import jetH.plot.base as plotBase
 
 # Import plotting packages
 # Use matplotlib in some cases
@@ -57,7 +56,7 @@ def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
     fig.tight_layout()
 
     # Save plot
-    PlotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Minuit"))
+    plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Minuit"))
     # Cleanup
     plt.close(fig)
 
@@ -67,16 +66,16 @@ def PlotRPF(epFitObj):
     colors = sns.color_palette()
 
     colorIter = iter(colors)
-    colorsMap = { (JetHUtils.JetHCorrelationType.signalDominated, "Fit") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.signalDominated, "Data") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
-    zOrder = { (JetHUtils.JetHCorrelationType.signalDominated, "Fit") : 10,
-        (JetHUtils.JetHCorrelationType.signalDominated, "FitErrorBars") : 9,
-        (JetHUtils.JetHCorrelationType.signalDominated, "Data") : 6,
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Fit") : 8,
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "FitErrorBars") : 7,
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Data") : 5 }
+    colorsMap = { (analysisObjects.JetHCorrelationType.signalDominated, "Fit") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.signalDominated, "Data") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
+    zOrder = { (analysisObjects.JetHCorrelationType.signalDominated, "Fit") : 10,
+        (analysisObjects.JetHCorrelationType.signalDominated, "FitErrorBars") : 9,
+        (analysisObjects.JetHCorrelationType.signalDominated, "Data") : 6,
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Fit") : 8,
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "FitErrorBars") : 7,
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Data") : 5 }
 
     for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.iteritems():
         # Define axes for plot
@@ -92,12 +91,12 @@ def PlotRPF(epFitObj):
         labelsResidual = []
 
         # Store the all angles data generated from the other angles
-        allAnglesSummedFromFit = {JetHUtils.JetHCorrelationType.backgroundDominated : None,
-                                  JetHUtils.JetHCorrelationType.signalDominated : None}
+        allAnglesSummedFromFit = {analysisObjects.JetHCorrelationType.backgroundDominated : None,
+                                  analysisObjects.JetHCorrelationType.signalDominated : None}
 
         # Put the all angles at the end for consistnecy
-        epAngles = [angle for angle in JetHUtils.EventPlaneAngle]
-        epAngles.append(epAngles.pop(epAngles.index(JetHUtils.EventPlaneAngle.kAll)))
+        epAngles = [angle for angle in analysisObjects.EventPlaneAngle]
+        epAngles.append(epAngles.pop(epAngles.index(analysisObjects.EventPlaneAngle.kAll)))
 
         for i, (epAngle, ax, axResidual) in enumerate(zip(epAngles, axes, axesResidual)):
             # Main analysis object
@@ -111,11 +110,11 @@ def PlotRPF(epFitObj):
             ax.set_xlabel(r"$\Delta\varphi$", fontsize = 17)
 
             # Set y label
-            (jetFinding, constituentCuts, leadingHadron, jetPt) = JetHParams.jetPropertiesLabel(jetPtBin)
+            (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
             if i == 0:
                 ax.set_ylabel(r"1/$\mathrm{N}_{\mathrm{trig}}$dN/d$\Delta\varphi$", fontsize = 17)
                 text = ""
-                text += JetHParams.generateTrackPtRangeString(trackPtBin) + "\n"
+                text += params.generateTrackPtRangeString(trackPtBin) + "\n"
                 text += constituentCuts + "\n"
                 text += leadingHadron
                 ax.text(0.5, 0.9, text, horizontalalignment='center',
@@ -127,7 +126,7 @@ def PlotRPF(epFitObj):
 
             if i == 1:
                 text = ""
-                text += JetHParams.systemLabel(jetH.collisionSystem.str()) + "\n"
+                text += params.systemLabel(jetH.collisionSystem.str()) + "\n"
                 text += jetPt + "\n"
                 text += jetFinding
                 ax.text(0.5, 0.9, text, horizontalalignment='center',
@@ -138,14 +137,14 @@ def PlotRPF(epFitObj):
                 #anchorText = AnchoredText(text, loc=9, frameon=False)
                 #ax.add_artist(anchorText)
                 #anchorText = """Background: $0.8<|\Delta\eta|<1.2$\nSignal + Background: $|\Delta\eta|<0.6$\n"""
-                #anchorText += """{jetPtString}\n{trackPtString}""".format(jetPtString = JetHParams.generateJetPtRangeString(jetPtBin),
-                #        trackPtString = JetHParams.generateTrackPtRangeString(trackPtBin))
+                #anchorText += """{jetPtString}\n{trackPtString}""".format(jetPtString = params.generateJetPtRangeString(jetPtBin),
+                #        trackPtString = params.generateTrackPtRangeString(trackPtBin))
                 #fig.text(0.34, 0.78, anchorText, fontsize = 10, transform=ax.transAxes)
                 #ax.text(0.34, 0.78, anchorText, transform=ax.transAxes)
 
             if i == 2:
                 text = ""
-                text += JetHParams.aliceLabel(JetHParams.aliceLabelType.workInProgress) + "\n"
+                text += params.aliceLabel(params.aliceLabelType.workInProgress) + "\n"
                 text += "Background: $0.8<|\Delta\eta|<1.2$\n"
                 text += "Signal + Background: $|\Delta\eta|<0.6$"
                 ax.text(0.5, 0.9, text, horizontalalignment='center',
@@ -156,15 +155,15 @@ def PlotRPF(epFitObj):
                 #anchorText = AnchoredText(text, loc=9, frameon=False)
                 #ax.add_artist(anchorText)
 
-            for correlationType, correlationDict in [(JetHUtils.JetHCorrelationType.signalDominated, jetH.dPhiArray),
-                                                     (JetHUtils.JetHCorrelationType.backgroundDominated, jetH.dPhiSideBandArray)]:
+            for correlationType, correlationDict in [(analysisObjects.JetHCorrelationType.signalDominated, jetH.dPhiArray),
+                                                     (analysisObjects.JetHCorrelationType.backgroundDominated, jetH.dPhiSideBandArray)]:
                 # Observable name
                 observableName = jetH.histNameFormatDPhiArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = correlationType)
                 observable = correlationDict[observableName]
 
                 # Plot data
                 # Plot S+B, B for all angles, but only B for EP angles
-                if correlationType == JetHUtils.JetHCorrelationType.backgroundDominated or (correlationType == JetHUtils.JetHCorrelationType.signalDominated and epAngle == JetHUtils.EventPlaneAngle.kAll):
+                if correlationType == analysisObjects.JetHCorrelationType.backgroundDominated or (correlationType == analysisObjects.JetHCorrelationType.signalDominated and epAngle == analysisObjects.EventPlaneAngle.kAll):
                     x = observable.hist.x
                     y = observable.hist.array
                     errors = observable.hist.errors
@@ -175,7 +174,7 @@ def PlotRPF(epFitObj):
                 if retVal == False:
                     # Also plot the fit in the case of background dominated in all angles
                     # Although need to clarify that we didn't actually fit - this is just showing that component
-                    if not (correlationType == JetHUtils.JetHCorrelationType.backgroundDominated and epAngle == JetHUtils.EventPlaneAngle.kAll):
+                    if not (correlationType == analysisObjects.JetHCorrelationType.backgroundDominated and epAngle == analysisObjects.EventPlaneAngle.kAll):
                         continue
                     else:
                         plotLabel = "Background (Simultaneous Fit)"
@@ -215,7 +214,7 @@ def PlotRPF(epFitObj):
 
                 # Build up event plane fit to get all angles as a cross check
                 # TODO: This should probably be refactored back to JetHFitting
-                if epAngle != JetHUtils.EventPlaneAngle.kAll:
+                if epAngle != analysisObjects.EventPlaneAngle.kAll:
                     if allAnglesSummedFromFit[correlationType] is None:
                         allAnglesSummedFromFit[correlationType] = np.zeros(len(fit))
                     #loger.debug("fit: {}, len(fit): {}, allAnglesSummedFromFit[correlationType]: {}, len(allAnglesSummedFromFit[correlationType]): {}".format(fit, len(fit), allAnglesSummedFromFit[correlationType], len(allAnglesSummedFromFit[correlationType])))
@@ -265,7 +264,7 @@ def PlotRPF(epFitObj):
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        PlotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
+        plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
 
         # Cleanup
         plt.close(fig)
@@ -283,7 +282,7 @@ def PlotRPF(epFitObj):
         axesResidual[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        PlotBase.savePlot(epFitObj, figResidual, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Residual"))
+        plotBase.savePlot(epFitObj, figResidual, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Residual"))
 
         # Cleanup
         plt.close(figResidual)
@@ -295,10 +294,10 @@ def PlotSubtractedEPHists(epFitObj):
 
     # TODO: Use the color map defined in PlotRPF (it's the same, just copied here)
     colorIter = iter(colors)
-    colorsMap = { (JetHUtils.JetHCorrelationType.signalDominated, "Fit") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.signalDominated, "Data") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
-        (JetHUtils.JetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
+    colorsMap = { (analysisObjects.JetHCorrelationType.signalDominated, "Fit") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.signalDominated, "Data") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
+        (analysisObjects.JetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
 
     # Iterate over the data and subtract the hists
     for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.iteritems():
@@ -314,8 +313,8 @@ def PlotSubtractedEPHists(epFitObj):
         labels = []
 
         # Put the all angles at the end for consistnecy
-        epAngles = [angle for angle in JetHUtils.EventPlaneAngle]
-        epAngles.append(epAngles.pop(epAngles.index(JetHUtils.EventPlaneAngle.kAll)))
+        epAngles = [angle for angle in analysisObjects.EventPlaneAngle]
+        epAngles.append(epAngles.pop(epAngles.index(analysisObjects.EventPlaneAngle.kAll)))
 
         for i, (epAngle, ax) in enumerate(zip(epAngles, axes)):
             # Set labels in individual panels
@@ -330,7 +329,7 @@ def PlotSubtractedEPHists(epFitObj):
             # Main analysis object
             jetH = epFitObj.analyses[epAngle]
 
-            observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = JetHUtils.JetHCorrelationType.signalDominated)
+            observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysisObjects.JetHCorrelationType.signalDominated)
             logger.debug("Processing observable {}".format(observableName))
             logger.debug("Subtracted hist arrays: {}".format(jetH.dPhiSubtractedArray))
             observable = jetH.dPhiSubtractedArray[observableName]
@@ -341,11 +340,11 @@ def PlotSubtractedEPHists(epFitObj):
             xForFitFunc = observable.hist.binCenters
 
             # Retrieve fit data
-            #fit = epFitObj.EvaluateFit(epAngle = epAngle, fitType = JetHUtils.JetHCorrelationType.backgroundDominated, xValue = xForFitFunc, fitContainer = fitCont)
+            #fit = epFitObj.EvaluateFit(epAngle = epAngle, fitType = analysisObjects.JetHCorrelationType.backgroundDominated, xValue = xForFitFunc, fitContainer = fitCont)
             # We want to subtract the background function for each EP angle, so we need the errors from the background dominated fit params
             #logger.debug("fitCont.errors: {}".format(fitCont.errors))
             # TODO: Is it right to be retrieving the background errors here?? I'm not so certain for the all angles case that this is right...
-            fitErrors = fitCont.errors[(epAngle.str(), JetHUtils.JetHCorrelationType.backgroundDominated.str())]
+            fitErrors = fitCont.errors[(epAngle.str(), analysisObjects.JetHCorrelationType.backgroundDominated.str())]
 
             plot = ax.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + " Subtracted")
             # Following Joel's example, plot the fit error on the same points as the correlation error
@@ -359,7 +358,7 @@ def PlotSubtractedEPHists(epFitObj):
             handles += h
             labels += l
 
-            if epAngle == JetHUtils.EventPlaneAngle.kAll:
+            if epAngle == analysisObjects.EventPlaneAngle.kAll:
                 # TODO: Include all angles in label
                 axisAll.set_title(epAngle.displayStr(), fontsize = 17)
                 # Axis labels
@@ -370,14 +369,14 @@ def PlotSubtractedEPHists(epFitObj):
                 # Add labels
                 # NOTE: Cannot end in "\n". It will cause an crash.
                 # TODO: Add to other subtracted plots
-                (jetFinding, constituentCuts, leadingHadron, jetPt) = JetHParams.jetPropertiesLabel(jetPtBin)
+                (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
                 text = ""
-                text += JetHParams.systemLabel(jetH.collisionSystem.str())
+                text += params.systemLabel(jetH.collisionSystem.str())
                 text += "\n" + jetFinding + constituentCuts
                 text += "\n" + jetPt + ", " + leadingHadron
-                text += "\n" + JetHParams.generateTrackPtRangeString(trackPtBin) + ", " + "$|\Delta\eta|<0.6$"
+                text += "\n" + params.generateTrackPtRangeString(trackPtBin) + ", " + "$|\Delta\eta|<0.6$"
                 text += "\nScale uncertainty: 6\%"
-                text += "\n" + JetHParams.aliceLabel(JetHParams.aliceLabelType.workInProgress)
+                text += "\n" + params.aliceLabel(params.aliceLabelType.workInProgress)
                 #logger.debug("text: {}".format(text))
                 axisAll.text(0.5, 0.82, text, horizontalalignment='center',
                         verticalalignment='center',
@@ -407,7 +406,7 @@ def PlotSubtractedEPHists(epFitObj):
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        PlotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "_subtracted"))
+        plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "_subtracted"))
 
         # Cleanup
         plt.close(fig)
@@ -421,7 +420,7 @@ def PlotSubtractedEPHists(epFitObj):
         axisAll.legend(loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        PlotBase.savePlot(epFitObj, figAll, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "AllAngles_subtracted"))
+        plotBase.savePlot(epFitObj, figAll, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "AllAngles_subtracted"))
 
         # Cleanup
         plt.close(figAll)
@@ -448,33 +447,33 @@ def CompareToJoel(epFitObj):
         # Define axes for plot
         fig, ax = plt.subplots()
 
-        jetPtString = JetHParams.generateJetPtRangeString(jetPtBin)
-        trackPtString = JetHParams.generateTrackPtRangeString(trackPtBin)
+        jetPtString = params.generateJetPtRangeString(jetPtBin)
+        trackPtString = params.generateTrackPtRangeString(trackPtBin)
         formatStr = """{jetPtString}\n{trackPtString}""".format(jetPtString = jetPtString, trackPtString = trackPtString)
         ax.set_title(r"$\Delta\varphi$ subtracted correlations " + " for {}".format(formatStr))
         # Axis labels
         ax.set_xlabel(r"$\Delta\varphi$")
         ax.set_ylabel(r"dN/d$\Delta\varphi$")
 
-        epAngle = JetHUtils.EventPlaneAngle.kAll
-        #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][JetHUtils.JetHCorrelationType.signalDominated]
+        epAngle = analysisObjects.EventPlaneAngle.kAll
+        #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysisObjects.JetHCorrelationType.signalDominated]
         jetH = epFitObj.analyses[epAngle]
-        observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = JetHUtils.JetHCorrelationType.signalDominated)
+        observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysisObjects.JetHCorrelationType.signalDominated)
         observable = jetH.dPhiSubtractedArray[observableName]
 
         # Plot my dada
         myDataPlot = ax.errorbar(observable.hist.binCenters, observable.hist.array, yerr = observable.hist.errors, label = "This analysis")
         myDataPlotColor = myDataPlot[0].get_color()
-        fitErrors = fitCont.errors[(epAngle.str(), JetHUtils.JetHCorrelationType.signalDominated.str())]
+        fitErrors = fitCont.errors[(epAngle.str(), analysisObjects.JetHCorrelationType.signalDominated.str())]
         ax.fill_between(observable.hist.binCenters, observable.hist.array - fitErrors, observable.hist.array + fitErrors, facecolor = myDataPlotColor, zorder = 10, alpha = 0.8)
 
         # Plot joel data
-        joelData = JetHUtils.getArrayFromHist(joelAllAngles)
+        joelData = analysisObjects.getArrayFromHist(joelAllAngles)
         joelDataPlot = ax.errorbar(joelData["binCenters"], joelData["y"], yerr = joelData["errors"], label = "Joel")
         joelDataPlotColor = joelDataPlot[0].get_color()
-        joelErrorMin = JetHUtils.getArrayFromHist(joelAllAnglesErrorMin)
+        joelErrorMin = analysisObjects.getArrayFromHist(joelAllAnglesErrorMin)
         ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMin["y"], facecolor = joelDataPlotColor)
-        joelErrorMax = JetHUtils.getArrayFromHist(joelAllAnglesErrorMax)
+        joelErrorMax = analysisObjects.getArrayFromHist(joelAllAnglesErrorMax)
         ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMax["y"], facecolor = joelDataPlotColor)
 
         # Tight the plotting up
@@ -491,7 +490,7 @@ def CompareToJoel(epFitObj):
 
         # Save plot
         # TODO: Define this name in the class!
-        PlotBase.savePlot(epFitObj, fig, "joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}_subtracted".format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
+        plotBase.savePlot(epFitObj, fig, "joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}_subtracted".format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
 
         # Cleanup
         plt.close(fig)

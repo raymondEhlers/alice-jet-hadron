@@ -8,9 +8,8 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import PlotBase
-
-import JetHParams
+import jetH.base.params as params
+import jetH.plot.base as plotBase
 
 import matplotlib.pyplot as plt
 import matplotlib.colors
@@ -176,12 +175,12 @@ class HistPlotter(object):
         """
         if self.textLabel is not None:
             text = ""
-            text += JetHParams.aliceLabel(obj.aliceLabelType)
+            text += params.aliceLabel(obj.aliceLabelType)
             if obj.taskDescription != "":
                 # We don't want a new line here - we just want to continue it
                 text += " " + obj.taskDescription
 
-            text += "\n" + JetHParams.systemLabel(obj.collisionSystem.str())
+            text += "\n" + params.systemLabel(obj.collisionSystem.str())
             propertyLabels = []
             if self.textLabel.get("cellLabel", False):
                 # Handled separately because it is long enough that it has to be
@@ -245,7 +244,7 @@ class HistPlotter(object):
             kwargs["norm"] = normalizationFunction(vmin = np.nanmin(histArray), vmax = np.nanmax(histArray))
             logger.debug("min: {}, max: {}".format(np.nanmin(histArray), np.nanmax(histArray)))
             # Colormap is the default from sns.heatmap
-            kwargs["cmap"] = PlotBase.prepareColormap(sns.cm.rocket)
+            kwargs["cmap"] = plotBase.prepareColormap(sns.cm.rocket)
             # Label is included so we could use a legend if we want
             kwargs["label"] = self.getFirstHist().GetTitle()
 
@@ -390,6 +389,6 @@ class HistPlotter(object):
             sys.exit(1)
 
         # Save and close the figure
-        PlotBase.savePlot(obj, fig, outputName)
+        plotBase.savePlot(obj, fig, outputName)
         plt.close(fig)
 

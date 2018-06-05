@@ -6,11 +6,11 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-import PlotBase
-import PlotRPFRegions
+import jetH.base.params as params
+import jetH.base.utils as utils
 
-import JetHParams
-import JetHUtils
+import jetH.plot.base as plotBase
+import jetH.plot.highlightRPF as highlightRPF
 
 # Import plotting packages
 # Use matplotlib in some cases
@@ -73,10 +73,10 @@ def plot2DCorrelations(jetH):
             # Add labels
             # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
             # Instead, print to EPS and then convert to PDF
-            aliceLabel = JetHParams.aliceLabel(JetHParams.aliceLabelType.workInProgress)
-            systemLabel = JetHParams.systemLabel(jetH.collisionSystem.str())
-            (jetFinding, constituentCuts, leadingHadron, jetPt) = JetHParams.jetPropertiesLabel(observable.jetPtBin)
-            assocPt = JetHParams.generateTrackPtRangeString(observable.trackPtBin)
+            aliceLabel = params.aliceLabel(params.aliceLabelType.workInProgress)
+            systemLabel = params.systemLabel(jetH.collisionSystem.str())
+            (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
+            assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
             #logger.debug("label: {}, systemLabel: {}, constituentCuts: {}, leadingHadron: {}, jetPt: {}, assocPt: {}".format(aliceLabel, systemLabel, constituentCuts, leadingHadron, jetPt, assocPt))
 
             tex = ROOT.TLatex()
@@ -104,11 +104,11 @@ def plot2DCorrelations(jetH):
             #text.DrawLatexNDC(.1, .7, "\mathrm{test}")
 
             # Save plot
-            PlotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
 
             # Draw as colz to view more precisely
             hist.Draw("colz")
-            PlotBase.saveCanvas(jetH, canvas, observable.hist.GetName() + "colz")
+            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName() + "colz")
 
             canvas.Clear()
 
@@ -120,7 +120,7 @@ def plot1DCorrelations(jetH):
             # Draw the 1D histogram.
             # NOTE: that we don't want to scale the histogram here by the bin width because we've already done that!
             observable.hist.Draw("")
-            PlotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
 
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
@@ -133,7 +133,7 @@ def plot1DCorrelationsWithFits(jetH):
             # Create scaled hist and plot it
             observable.hist.Draw("")
             fit.Draw("same")
-            PlotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
 
 def mixedEventNormalization(jetH, 
         # For labeling purposes
@@ -203,7 +203,7 @@ def mixedEventNormalization(jetH,
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    PlotBase.savePlot(jetH, fig, histName)
+    plotBase.savePlot(jetH, fig, histName)
     # Close the figure
     plt.close(fig)
 
@@ -229,7 +229,7 @@ def defineHighlightRegions():
     # NOTE: Blue really doesn't look good with ROOT_kBird, so for that case, the
     #       signal fit color, seaborn green, should be used.
     signalColor = palette[0] + (1.0,)
-    signalRegion = PlotRPFRegions.highlightRegion("Signal dom. region,\n$|\Delta\eta|<0.6$", signalColor)
+    signalRegion = highlightRPF.highlightRegion("Signal dom. region,\n$|\Delta\eta|<0.6$", signalColor)
     signalRegion.addHighlightRegion((-np.pi/2, 3.0*np.pi/2), (-0.6, 0.6))
     highlightRegions.append(signalRegion)
 
@@ -237,7 +237,7 @@ def defineHighlightRegions():
     # Red used for background data color
     backgroundColor = palette[2] + (1.0,)
     backgroundPhiRange = (-np.pi/2, np.pi/2)
-    backgroundRegion = PlotRPFRegions.highlightRegion("Background dom. region,\n$0.8<|\Delta\eta|<1.2$", backgroundColor)
+    backgroundRegion = highlightRPF.highlightRegion("Background dom. region,\n$0.8<|\Delta\eta|<1.2$", backgroundColor)
     backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
     backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))
     highlightRegions.append(backgroundRegion)
@@ -260,7 +260,7 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
         # TODO: Determmine if color overlays are better here!
-        (fig, ax) = PlotRPFRegions.plotRPFFitRegions(JetHUtils.getArrayFromHist2D(observable.hist.hist),
+        (fig, ax) = highlightRPF.plotRPFFitRegions(utils.getArrayFromHist2D(observable.hist.hist),
                 highlightRegions = defineHighlightRegions(),
                 useColorOverlay = False)
 
@@ -276,10 +276,10 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
         ax.yaxis.labelpad = 15
         ax.zaxis.labelpad = 12
         # Overall
-        aliceLabel = JetHParams.aliceLabel(JetHParams.aliceLabelType.workInProgress)
-        systemLabel = JetHParams.systemLabel(jetH.collisionSystem.str())
-        (jetFinding, constituentCuts, leadingHadron, jetPt) = JetHParams.jetPropertiesLabel(observable.jetPtBin)
-        assocPt = JetHParams.generateTrackPtRangeString(observable.trackPtBin)
+        aliceLabel = params.aliceLabel(params.aliceLabelType.workInProgress)
+        systemLabel = params.systemLabel(jetH.collisionSystem.str())
+        (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
+        assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
 
         # Upper left side
         upperLeftText = ""
@@ -307,6 +307,6 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
                 transform = ax.transAxes)
 
         # Finish up
-        PlotBase.savePlot(jetH, fig, "highlightRPFRegions")
+        plotBase.savePlot(jetH, fig, "highlightRPFRegions")
         plt.close(fig)
 

@@ -6,7 +6,7 @@
 # Contains brief plotting functions which don't belong elsewhere
 ######################
 
-import PlotBase
+import jetH.plot.base as plotBase
 
 # Use matplitlib for some plots
 import matplotlib.pyplot as plt
@@ -37,7 +37,7 @@ def drawAndSaveGeneralHist(jetH, canvas, hists, drawOpt = ""):
                 resetLog = True
 
             hist.Draw(drawOpt)
-            PlotBase.saveCanvas(jetH, canvas, name)
+            plotBase.saveCanvas(jetH, canvas, name)
 
             if resetLog:
                 canvas.SetLogy(False)
@@ -55,5 +55,5 @@ def plotTriggerJetSpectra(jetH):
         canvas = ROOT.TCanvas("canvas", "canvas")
         canvas.SetLogy(True)
         jetH.triggerJetPt[jetH.histNameFormatTrigger].hist.Draw()
-        PlotBase.saveCanvas(jetH, canvas, jetH.histNameFormatTrigger)
+        plotBase.saveCanvas(jetH, canvas, jetH.histNameFormatTrigger)
 

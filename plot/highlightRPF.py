@@ -29,7 +29,8 @@ thisModule = sys.modules[__name__]
 
 import numpy as np
 
-import PlotBase
+import jetH.base.utils as utils
+import jetH.plot.base as plotBase
 
 # Import plotting packages
 import matplotlib
@@ -44,8 +45,6 @@ import rootpy.ROOT as ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 import rootpy
 import rootpy.io
-
-import JetHUtils
 
 ##########
 # Plotting
@@ -283,7 +282,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
     if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
     # Set bad values to white with not transparency
-    colormap = PlotBase.prepareColormap(colormap)
+    colormap = plotBase.prepareColormap(colormap)
 
     # Plot surface(s)
     surf = surfacePlotForHighlighting(ax, X, Y, histArray, colormap = colormap)
@@ -408,7 +407,7 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
         #highlightArgs = {"useColorScreen" : True}
         highlightArgs = {}
         # Call plotting functions
-        (fig, ax) = plotRPFFitRegions(JetHUtils.getArrayFromHist2D(hist),
+        (fig, ax) = plotRPFFitRegions(utils.getArrayFromHist2D(hist),
                 highlightRegions = defineHighlightRegions(),
                 colormap = "ROOT_kBird",
                 **highlightArgs)
@@ -426,8 +425,8 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
 
         # Save and finish up
         # The figure will be saved at outputPrefix/outputPath.printingExtension
-        outputWrapeer = PlotBase.plottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
-        PlotBase.savePlot(outputWrapeer, fig, outputPath = "highlightRPFRegions")
+        outputWrapeer = plotBase.plottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
+        plotBase.savePlot(outputWrapeer, fig, outputPath = "highlightRPFRegions")
         plt.close(fig)
 
 def parseArguments():
