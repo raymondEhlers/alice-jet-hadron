@@ -15,6 +15,11 @@ import rootpy
 import rootpy.io
 import rootpy.ROOT as ROOT
 
+# Small value - epsilon
+# For use to offset from bin edges when finding bins for use with SetRange()
+# NOTE: sys.float_info.epsilon is too small in some cases and thus should be avoided
+epsilon = 1e-5
+
 ###################
 # Utility functions
 ###################

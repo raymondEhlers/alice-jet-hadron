@@ -19,16 +19,7 @@ logger = logging.getLogger(__name__)
 
 import rootpy.ROOT as ROOT
 
-import utils
-
-# Small value - epsilon
-# For use to offset from bin edges when finding bins for use with SetRange()
-# NOTE: sys.float_info.epsilon is too small in some cases and thus should be avoided
-epsilon = 1e-5
-
-# From: https://arxiv.org/pdf/1405.4632v2.pdf
-v2Cent00_05Values = [0.0125, 0.03, 0.04, 0.07, 0.07, 0.07, 0.06]
-v2Cent05_10Values = [ 0.015, 0.04, 0.075, 0.1, 0.101, 0.101, 0.101]
+import jetH.base.utils as utils
 
 ##############
 # Enumerations

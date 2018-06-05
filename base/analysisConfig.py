@@ -15,8 +15,8 @@ import enum
 import logging
 logger = logging.getLogger(__name__)
 
-import AnalysisConfig
-import JetHParams
+import jetH.base.genericConfig as genericConfig
+import jetH.base.params as params
 
 def overrideOptions(config, selectedOptions, configContainingOverride = None):
     """ Override options for the jet-hadron analysis.
@@ -33,14 +33,14 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
     Returns:
         dict: The updated configuration
     """
-    setOfPossibleOptions = (JetHParams.collisionEnergy,
-            JetHParams.collisionSystem,
-            JetHParams.eventActivity,
-            JetHParams.leadingHadronBiasType)
+    setOfPossibleOptions = (params.collisionEnergy,
+            params.collisionSystem,
+            params.eventActivity,
+            params.leadingHadronBiasType)
 
-    config = AnalysisConfig.overrideOptions(config, selectedOptions, setOfPossibleOptions,
+    config = genericConfig.overrideOptions(config, selectedOptions, setOfPossibleOptions,
             configContainingOverride = configContainingOverride)
-    config = AnalysisConfig.simplifyDataRepresentations(config)
+    config = genericConfig.simplifyDataRepresentations(config)
 
     return config
 
@@ -91,7 +91,7 @@ def determineSelectedOptionsFromKwargs(description = "Jet-hadron {taskName}", ad
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
-    selectedAnalysisOptions = JetHParams.selectedAnalysisOptions(energy = args.energy,
+    selectedAnalysisOptions = params.selectedAnalysisOptions(energy = args.energy,
             collisionSystem = args.collisionSystem,
             eventActivity = args.eventActivity,
             leadingHadronBiasType = args.biasType)
@@ -101,7 +101,7 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     """ Validate arguments passed to the analysis task.
 
     Args:
-        selectedArgs (JetHParams.selectedAnalysisOptions): Selected analysis options from args or otherwise.
+        selectedArgs (params.selectedAnalysisOptions): Selected analysis options from args or otherwise.
         validateExtraArgsFunc (func): Function to validate additional args that were added using addOptionsFunction().
             It should be a closure with the args returned from initial parsing and return a dict containing
             the validated args.
@@ -112,23 +112,23 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     # Energy. Default: 2.76
     energy = selectedArgs.energy if selectedArgs.energy else 2.76
     # Retrieves the enum by value
-    energy = JetHParams.collisionEnergy(energy)
+    energy = params.collisionEnergy(energy)
     # Collision system. Default: PbPb
     collisionSystem = selectedArgs.collisionSystem if selectedArgs.collisionSystem else "PbPb"
-    collisionSystem = JetHParams.collisionSystem[collisionSystem]
+    collisionSystem = params.collisionSystem[collisionSystem]
     # Event activity. Default: central
     eventActivity = selectedArgs.eventActivity if selectedArgs.eventActivity else "central"
-    eventActivity = JetHParams.eventActivity[eventActivity]
+    eventActivity = params.eventActivity[eventActivity]
     # Leading hadron bias type. Default: track
     leadingHadronBiasType = selectedArgs.leadingHadronBiasType if selectedArgs.leadingHadronBiasType else "track"
-    leadingHadronBiasType = JetHParams.leadingHadronBiasType[leadingHadronBiasType]
+    leadingHadronBiasType = params.leadingHadronBiasType[leadingHadronBiasType]
 
     # Handle additional arguments
     additionalValidatedArgs = {}
     if validateExtraArgsFunc:
         additionalValidatedArgs.update(validateExtraArgsFunc())
 
-    selectedAnalysisOptions = JetHParams.selectedAnalysisOptions(energy =energy,
+    selectedAnalysisOptions = params.selectedAnalysisOptions(energy =energy,
             collisionSystem = collisionSystem,
             eventActivity = eventActivity,
             leadingHadronBiasType = leadingHadronBiasType)
@@ -140,7 +140,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     Args:
         taskName (str): Name of the analysis task.
         configFilename (str): Filename of the yaml config.
-        selectedAnalysisOptions (JetHParams.selectedAnalysisOptions): Selected analysis options.
+        selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
         obj (object): The object to be constructed.
         additionalIterators (dict): Additional iterators to use when creating the objects, in the
             form of "name" : list(values). Default: None.
@@ -153,7 +153,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     (selectedAnalysisOptions, additionalValidatedArgs) = validateArguments(selectedAnalysisOptions)
 
     # Load configuration
-    config = AnalysisConfig.loadConfiguration(configFilename)
+    config = genericConfig.loadConfiguration(configFilename)
     config = overrideOptions(config, selectedAnalysisOptions,
             configContainingOverride = config[taskName])
     # We (re)define the task config here after we have overridden the relevant values.
@@ -167,15 +167,15 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     iterators = collections.OrderedDict()
     if iteratorsConfig.get("eventPlaneDependentAnalysis", False):
         # Explicitly call list to ensure that the possible values are enumerated.
-        eventPlaneIterator = list(JetHParams.eventPlaneAngle)
+        eventPlaneIterator = list(params.eventPlaneAngle)
     else:
-        eventPlaneIterator = [JetHParams.eventPlaneAngle.kAll]
+        eventPlaneIterator = [params.eventPlaneAngle.kAll]
     iterators["eventPlaneAngle"] = eventPlaneIterator
     if iteratorsConfig.get("qVectorDependentAnalysis", False):
         # Explicitly call list to ensure that the possible values are enumerated.
-        qVectorIterator = list(JetHParams.qVector)
+        qVectorIterator = list(params.qVector)
     else:
-        qVectorIterator = [JetHParams.qVector.all]
+        qVectorIterator = [params.qVector.all]
     iterators["qVector"] = qVectorIterator
     # Additional iterators defined in the configuration. Note that these should
     additionalIteratorsInConfig = iteratorsConfig.get("additional", {})
@@ -217,7 +217,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
                 tempDict = tempDict.setdefault(val, collections.OrderedDict())
             else:
                 # Apply formatting options
-                objectArgs = AnalysisConfig.applyFormattingDict(args, formattingOptions)
+                objectArgs = genericConfig.applyFormattingDict(args, formattingOptions)
                 # Skip printing the config because it is quite long
                 printArgs = {k : v for k, v in iteritems(objectArgs) if k != "config"}
                 printArgs["config"] = "..."
@@ -244,11 +244,11 @@ class JetHBase(object):
             fully configured and overridden.
         taskConfig (dict-like object): Contains the task specific configuration. Note that it must already be
             fully configured and overridden. Also note that by convention it is also available at `config[taskName]`.
-        energy (JetHParams.collisionEnergy): Selected collision energy.
-        collisionSystem (JetHParams.collisionSystem): Selected collision system.
-        eventActivity (JetHParams.eventActivity): Selected event activity.
-        leadingHadronBiasType (JetHParams.leadingHadronBiasType): Selected leading hadron bias.
-        eventPlaneAngle (JetHParams.eventPlaneAngle): Selected event plane angle.
+        energy (params.collisionEnergy): Selected collision energy.
+        collisionSystem (params.collisionSystem): Selected collision system.
+        eventActivity (params.eventActivity): Selected event activity.
+        leadingHadronBiasType (params.leadingHadronBiasType): Selected leading hadron bias.
+        eventPlaneAngle (params.eventPlaneAngle): Selected event plane angle.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
