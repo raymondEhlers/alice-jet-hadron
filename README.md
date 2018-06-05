@@ -9,7 +9,8 @@ that `-l` is also known as `--showlocals` and will print the local variables whe
 
 ## Testing with coverage
 
-Using the `coverage` package to better code coverage, run the test with `pytest -l --cov=JetHAnalysis tests/`.
+Using the `coverage` package to better code coverage, run the test with `pytest -l --cov-report html
+--cov=jetH tests/`.
 
 ## Developing tests
 
