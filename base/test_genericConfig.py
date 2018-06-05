@@ -112,7 +112,7 @@ def overrideData(config):
 def testOverrideRetrieveUnrelatedValue(caplog, basicConfig):
     """ Test retrieving a basic value unrelated to the overridden data. """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
 
     valueName = "test1"
     valueBeforeOverride = basicConfig[valueName]
@@ -124,7 +124,7 @@ def testOverrideWithBasicConfig(caplog, basicConfig):
     """ Test override with the basic config.
     """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden directly
@@ -136,7 +136,7 @@ def testBasicAnchorOverride(caplog, basicConfig):
     When an anchor refernce is overridden, we expect that the anchor value is updated.
     """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
  
     # The two conditions below are redundant, but each are useful for visualizing
@@ -150,7 +150,7 @@ def testAdvancedAnchorOverride(caplog, basicConfig):
     When an override value is using an anchor value, we expect that value to propagate fully.
     """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden indirectly, from another referenced value.
@@ -162,7 +162,7 @@ def testForUnmatchedKeys(caplog, basicConfig):
     Such an unmatched key should cause a `KeyError` exception, which we catch.
     """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
     # Add entry that will cause the exception.
     basicConfig = basicConfigException(basicConfig)
 
@@ -184,27 +184,42 @@ def testComplexObjectOverride(caplog, basicConfig):
     In particular, test with lists, dicts.
     """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     assert basicConfig["testList"] == [3, 4]
     assert basicConfig["testDict"] == {3: 4}
 
 def testLoadConfiguration(caplog, basicConfig):
-    """ Test that loading yaml goes according to expectations. This may be somewhat trivial, but it is important to
-    check in case ruamel.yaml changes APIs or defaults. """
+    """ Test that loading yaml goes according to expectations. This may be somewhat trivial, but it
+    is still important to check in case ruamel.yaml changes APIs or defaults.
+
+    NOTE: We can only compare at the YAML level because the dumped string does not preserve anchors that
+          are not actually referenced, as well as some trivial variation in quote types and other similarly
+          trivial formatting issues.
+    """
     caplog.set_level(loggingLevel)
-    (basicConfig, testYaml) = basicConfig
+    (basicConfig, yamlString) = basicConfig
 
     import tempfile
     with tempfile.NamedTemporaryFile() as f:
         # Write and move back to the start of the file
-        f.write(testYaml.encode())
+        f.write(yamlString.encode())
         f.seek(0)
         # Then get the config from the file
         retrievedConfig = genericConfig.loadConfiguration(f.name)
 
     assert retrievedConfig == basicConfig
+
+    # NOTE: Not utilized due to the note above
+    # Use yaml.dump() to dump the configuration to a string.
+    #yaml = ruamel.yaml.YAML(typ = "rt")
+    #with tempfile.NamedTemporaryFile() as f:
+    #    yaml.dump(retrievedConfig, f)
+    #    f.seek(0)
+    #    # Save as a standard string. Need to decode from bytes
+    #    retrievedString = f.read().decode()
+    #assert retrievedString == yamlString
 
 @pytest.fixture
 def dataSimplificationConfig():
