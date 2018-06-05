@@ -198,6 +198,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     # Determine task arguments
     args = collections.OrderedDict()
     args.update(formattingOptions)
+    args["configFilename"] = configFilename
     args["config"] = config
     args["taskConfig"] = taskConfig
 
@@ -240,6 +241,7 @@ class JetHBase(object):
 
     Args:
         taskName (str): Name of the task.
+        configFilename (str): Filename of the YAML configuration.
         config (dict-like object): Contains the analysis configuration. Note that it must already be
             fully configured and overridden.
         taskConfig (dict-like object): Contains the task specific configuration. Note that it must already be
@@ -252,9 +254,10 @@ class JetHBase(object):
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
-    def __init__(self, taskName, config, taskConfig, energy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, *args, **kwargs):
+    def __init__(self, taskName, configFilename, config, taskConfig, energy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, *args, **kwargs):
         # Store the configuration
         self.taskName = taskName
+        self.configFilename = configFilename
         self.config = config
         self.taskConfig = taskConfig
         self.energy = energy
@@ -267,30 +270,15 @@ class JetHBase(object):
         # If in kwargs, use that value (which inherited class may use to override the config)
         # otherwise, use the value from the value from the config
         self.inputFilename = config["inputFilename"]
-        ## TODO: "outputListName" -> "inputListName"
         self.inputListName = config["inputListName"]
         self.outputPrefix = config["outputPrefix"]
         self.outputFilename = config["outputFilename"]
-        #self.inputFilename = getValueFromConfigIfNotPassed("inputFilename", config, kwargs)
-        ## TODO: "outputListName" -> "inputListName"
-        #self.inputListName = getValueFromConfigIfNotPassed("inputListName", config, kwargs)
-        #self.outputPrefix = getValueFromConfigIfNotPassed("outputPrefix", config, kwargs)
-        #self.outputFilename = getValueFromConfigIfNotPassed("outputFilename", config, kwargs)
-
         # Setup output area
-        # TODO: Uncomment
-        #if not os.path.exists(outputPrefix):
-        #    os.makedirs(outputPrefix)
+        if not os.path.exists(outputPrefix):
+            os.makedirs(outputPrefix)
 
         self.printingExtensions = config["printingExtensions"]
         self.aliceLabelType = config["aliceLabelType"]
-
-    #@staticmethod
-    #def getValueFromConfigIfNotPassed(name, config, kwargs):
-    #    if name in kwargs:
-    #        return kwargs[name]
-    #    else:
-    #        return config[name]
 
 def createFromTerminal(obj, taskName, additionalIterators = None):
     """ Main function to create an object from the terminal

@@ -7,9 +7,9 @@
 
 # This must be at the start
 from __future__ import print_function
-
 # From the future package
 from builtins import super
+
 import os
 import sys
 import ctypes
@@ -42,6 +42,7 @@ from jetH.base.utils import epsilon
 import jetH.base.analysisObjects as analysisObjects
 import jetH.base.projectors as projectors
 from jetH.base.projectors import HistAxisRange
+import jetH.base.analysisConfig as analysisConfig
 
 # TODO: These must go first so we can quiet down matplotlib?
 import jetH.plot.general as plotGeneral
@@ -145,7 +146,7 @@ class JetHCorrelationProjector(projectors.HistProjector):
                 hist = analysisObjects.HistContainer(outputHist))
         return outputObservable
 
-class JetHAnalysis(object):
+class JetHAnalysis(analysisConfig.JetHBase):
     """ Main jet-hadron analysis task. """
 
     # Properties
@@ -168,21 +169,10 @@ class JetHAnalysis(object):
     histNameFormatTrigger = "jetHTriggerPt"
     fitNameFormat = histNameFormat % {"label" : "Fit"}
 
-    def __init__(self, collisionSystem, inputFilename, outputPrefix, outputListName, outputFilename, printingExtensions, configFilename, eventPlaneSelection = None):
+    def __init__(self, *args, **kwargs):
         """ """
-        self.inputFilename = inputFilename
-        self.collisionSystem = collisionSystem
-        self.eventPlaneSelection = eventPlaneSelection
-        self.outputPrefix = outputPrefix
-        self.outputListName = outputListName
-        self.outputFilename = outputFilename
-        self.printingExtensions = printingExtensions
-        self.configFilename = configFilename
-        self.loadConfiguration()
-
-        # Setup output area
-        if not os.path.exists(outputPrefix):
-            os.makedirs(outputPrefix)
+        # Initialize the base class
+        super().__init__(*args, **kwargs)
 
         # Bookkeeping
         self.ranProjections = False
@@ -272,7 +262,7 @@ class JetHAnalysis(object):
     def retrieveInputHists(self):
         """ Run general setup tasks. """
         # Retrieve all histograms
-        self.inputHists = JetHUtils.getHistogramsInList(self.inputFilename, self.outputListName)
+        self.inputHists = JetHUtils.getHistogramsInList(self.inputFilename, self.inputListName)
 
     def assignGeneralHistsFromDict(self, histDict, outputDict):
         """ Simple helper to assign hists named in a dict to an output dict. """
@@ -1251,12 +1241,6 @@ class JetHAnalysis(object):
         with open(os.path.join(self.outputPrefix, "resultsCombined.tex"), "wb") as f:
             f.write(outputText)
 
-    def loadConfiguration(self):
-        """ Load the YAML configuration from a file """
-        # Load processing options from configuration
-        with open(self.configFilename, "r") as f:
-            self.config = yaml.safe_load(f)
-
     @staticmethod
     def postProjectionProcessing2DCorrelation(observable, normalizationFactor, titleLabel, jetPtBin, trackPtBin):
         """ Basic post processing tasks for a new 2D correlation observable. """
@@ -1326,11 +1310,11 @@ class JetHAnalysis(object):
         formattingVariables = {"trainNumber" : trainNumber, "collisionSystem" : str(collisionSystem) , "biasType" : str(leadingHadronBiasType), "biasTypeTag" : biasTag}
 
         # Set the JetH AnalysisResults.root output list name
-        outputListName = config.get("jetHTaskNameBase", "AliAnalysisTaskJetH_tracks_caloClusters_")
+        inputListName = config.get("jetHTaskNameBase", "AliAnalysisTaskJetH_tracks_caloClusters_")
         outputListSuffix = config.get("jetHTaskNameSuffix", "clusbias5R2GA")
         # Append suffix to task name
-        outputListName += outputListSuffix
-        outputListName = outputListName.format(**formattingVariables)
+        inputListName += outputListSuffix
+        inputListName = inputListName.format(**formattingVariables)
 
         # I/O
         # Set base output prefix
@@ -1344,7 +1328,7 @@ class JetHAnalysis(object):
         JetHAnalysis.printProperty("inputFilename", inputFilename)
         JetHAnalysis.printProperty("collisionSystem", collisionSystem.str())
         JetHAnalysis.printProperty("leadingHadronBiasType", leadingHadronBiasType.str())
-        JetHAnalysis.printProperty("outputListName", outputListName)
+        JetHAnalysis.printProperty("inputListName", inputListName)
         JetHAnalysis.printProperty("outputPrefix", outputPrefix)
         JetHAnalysis.printProperty("printingExtensions", printingExtensions)
         JetHAnalysis.printProperty("eventPlaneDependentAnalysis", eventPlaneDependentAnalysis)
@@ -1355,7 +1339,7 @@ class JetHAnalysis(object):
         jetHArgs = {"collisionSystem" : collisionSystem,
                     "inputFilename" : inputFilename,
                     "outputPrefix" : outputPrefix,
-                    "outputListName" : outputListName,
+                    "inputListName" : inputListName,
                     "outputFilename" : outputFilename,
                     "printingExtensions" : printingExtensions,
                     "configFilename" : configFilename}
