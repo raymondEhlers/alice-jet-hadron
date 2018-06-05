@@ -6,8 +6,9 @@
 
 from builtins import range
 
-import math
 import enum
+import math
+import re
 import collections
 import logging
 logger = logging.getLogger(__name__)
@@ -131,15 +132,16 @@ def systemLabel(collisionSystem, eventActivity = None, energy = 2.76):
     Returns:
         str: Label for the entire system, combining the avaialble information.
     """
-    # Use as proxy of CollisionSystem so we don't need to import JetHUtils
+    # TODO: Update fully to use enums, which are now in this module
     # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
-    systems = {"pp" : "pp",
-               "PbPb" : r"Pb\mbox{-}Pb"}
+    systems = {collisionSystem.pp.value : "pp",
+               collisionSystem.PbPb.value : r"Pb\mbox{-}Pb"}
     if eventActivity is None:
         eventActivity = collisionSystem
-    eventActivities = {"inclusive" : "",
-                     "central" : r",\:0\mbox{-}10\mbox{\%}",
-                     "semiCentral" : r",\:30\mbox{-}50\mbox{\%}"}
+    eventActivityFormat = r",\:%(min)s\mbox{-}%(max)s\mbox{\%}"
+    eventActivities = {eventActivity.inclusive : "",
+                     eventActivity.central : eventActivityFormat.format(eventActivity.getRange()),
+                     eventActivity.semiCentral : eventActivityFormat}
     # Adding for backwards compatibility
     # TODO: Remove this values
     eventActivities["pp"] = eventActivities["inclusive"]
@@ -148,7 +150,7 @@ def systemLabel(collisionSystem, eventActivity = None, energy = 2.76):
 
     systemLabel = r"$\mathrm{%(system)s}\:\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}%(eventActivity)s$" % {"energy" : energy,
             "eventActivity" : eventActivities[eventActivity],
-            "system" : systems[collisionSystem]}
+            "system" : systems[collisionSystem.value]}
 
     logger.debug("systemLabel: {}".format(systemLabel))
 
@@ -268,6 +270,7 @@ class eventActivity(enum.Enum):
         self.index = index
         self.activityRange = activityRange
 
+    # TODO: Fully implement helper functions
     def getRange(self):
         """ """
         return self.activityRange
@@ -315,36 +318,44 @@ selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["en
             "eventActivity",
             "leadingHadronBiasType"])
 
+def uppercaseFirstLetter(s):
+    """ Convert the first letter to uppercase.
+
+    NOTE: Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
+
+    Args:
+        s (str): String to be convert
+    Returns:
+        str: String with first letter converted to uppercase.
+    """
+    return s[:1].upper() + s[1:]
+
 class eventPlaneAngle(enum.Enum):
     """ Selects the event plane angle in the sparse. """
-    kAll = 0
-    kInPlane = 1
-    kMidPlane = 2
-    kOutOfPlane = 3
-
-    def baseString(self):
-        """ Turns kOutOfPlane into "OutOfPlane" """
-        return self.name.replace("k", "", 1)
+    all = 0
+    inPlane = 1
+    midPlane = 2
+    outOfPlane = 3
 
     def __str__(self):
-        """ Turns kOutOfPlane into "outOfPlane" """
-        tempStr = self.filenameStr()
-        tempStr = tempStr[:1].lower() + tempStr[1:]
-        return tempStr
+        """ Returns the event plane angle name, as is. """
+        return self.name
 
     def str(self):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
 
     def filenameStr(self):
-        """ Turns kOutOfPlane into "eventPlaneOutOfPlane" """
-        return "eventPlane{}".format(self.baseString())
+        """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
+        return "eventPlane{}".format(uppercaseFirstLetter(self.str()))
 
     def displayStr(self):
-        """ Turns kOutOfPlane into "Out Of Plane". """
-        tempStr = self.filenameStr()
-        tempList = re.findall('[A-Z][^A-Z]*', tempStr)
-        return " ".join(tempList)
+        """ For example, turns outOfPlane into "Out-of-plane".
+
+        NOTE: We want the capitalize call to lowercase all other letters."""
+        # See: https://stackoverflow.com/a/2277363
+        tempList = re.findall("[a-zA-Z][^A-Z]*", self.str())
+        return "-".join(tempList).capitalize()
 
 class qVector(enum.Enum):
     """ Selection based on the Q vector. """
@@ -362,4 +373,14 @@ class qVector(enum.Enum):
 
     def filenameStr(self):
         """ Helper class that returns a filename self value. """
-        return "qVector{}".format(self.str().capitalize())
+        return "qVector{}".format(uppercaseFirstLetter(self.str()))
+
+    def displayStr(self):
+        """ Turns "bottom10" into "Bottom 10%". """
+        # This also works for "all" -> "All"
+        tempList = re.match("([a-z]*)([0-9]*)", self.name).groups()
+        retVal = uppercaseFirstLetter(" ".join(tempList))
+        if self.name != "all":
+            retVal += "%"
+        # Remove entra space after "All". Doesn't matter for the other values.
+        return retVal.rstrip(" ")
