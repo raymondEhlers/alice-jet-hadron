@@ -24,9 +24,9 @@ thisModule = sys.modules[__name__]
 
 import IPython
 
-import AnalysisTaskHists
-import JetHParams
-import JetHConfig
+import jetH.base.params as params
+import jetH.base.analysisConfig as analysisConfig
+import jetH.analysis.genericHists as genereicHists
 
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
@@ -56,7 +56,7 @@ class EMCalCorrectionsLabels(aenum.Enum):
         """ Return the name to be used for the output path. """
         return self.name
 
-class PlotEMCalCorrections(AnalysisTaskHists.PlotTaskHists):
+class PlotEMCalCorrections(genericHists.PlotTaskHists):
     """
 
     """
@@ -113,7 +113,7 @@ class PlotEMCalCorrections(AnalysisTaskHists.PlotTaskHists):
     @staticmethod
     def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
         """ Helper function to construct EMCal corrections plotting objects. """
-        return JetHConfig.constructFromConfigurationFile(taskName = "EMCalCorrections",
+        return analysisConfig.constructFromConfigurationFile(taskName = "EMCalCorrections",
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
                 obj = PlotEMCalCorrections,
@@ -153,7 +153,7 @@ def etaPhiMatchHistNames(histOptionsName, options):
                     # Determine label
                     # NOTE: Can't use generateTrackPtRangeString because it includes "assoc" in
                     # the pt label. Instead, handle more directly.
-                    ptBinLabel = JetHParams.generatePtRangeString(arr = ptBinRanges,
+                    ptBinLabel = params.generatePtRangeString(arr = ptBinRanges,
                             binVal = trackPtBin,
                             lowerLabel = r"\mathrm{T}",
                             upperLabel = r"")
@@ -186,7 +186,7 @@ def determineAngleLabel(angle):
 #    """ Determine the pt bin label based on the selected bin.
 #
 #    TODO: Can we update this?
-#    Could try to use the JetHParams functions to create the pt bin string, but it
+#    Could try to use the params functions to create the pt bin string, but it
 #    would require modification, so we will just handle it here for simplicity.
 #    """
 #    #logger.debug("ptBin: {}, ptBins: {}".format(ptBin, ptBins))
@@ -236,13 +236,13 @@ def runEMCalCorrectionsHistsFromTerminal():
     """
 
     """
-    (configFilename, terminalArgs, additionalArgs) = JetHConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
     analyses = PlotEMCalCorrections.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 
     return analyses
 
-class PlotEMCalEmbedding(AnalysisTaskHists.PlotTaskHists):
+class PlotEMCalEmbedding(genericHists.PlotTaskHists):
     """
 
     """
@@ -253,7 +253,7 @@ class PlotEMCalEmbedding(AnalysisTaskHists.PlotTaskHists):
     @staticmethod
     def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
         """ Helper function to construct EMCal embedding plotting objects. """
-        return JetHConfig.constructFromConfigurationFile(taskName = "EMCalEmbedding",
+        return analysisConfig.constructFromConfigurationFile(taskName = "EMCalEmbedding",
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
                 obj = PlotEMCalEmbedding,
@@ -263,7 +263,7 @@ def runEMCalEmbeddingHistsFromTerminal():
     """
 
     """
-    (configFilename, terminalArgs, additionalArgs) = JetHConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
     analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 

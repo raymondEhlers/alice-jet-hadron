@@ -21,12 +21,11 @@ logger = logging.getLogger(__name__)
 import IPython
 import pprint
 
-import PlotGenericHist
+import jetH.base.utils as utils
+import jetH.base.analysisConfig as analysisConfig
+import jetH.plot.genericHist as plotGenericHist
 
-import JetHConfig
-import JetHUtils
-
-class PlotTaskHists(JetHConfig.JetHBase):
+class PlotTaskHists(analysisConfig.JetHBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -46,10 +45,8 @@ class PlotTaskHists(JetHConfig.JetHBase):
         self.hists = {}
 
     def getHistsFromInputFile(self):
-        """ Retrieve hists corresponding to the task name.
-
-        We already depend on JetHUtils, so we may as well take advantage of them here."""
-        self.hists = JetHUtils.getHistogramsInList(self.inputFilename, self.inputListName)
+        """ Retrieve hists corresponding to the task name.  """
+        self.hists = utils.getHistogramsInList(self.inputFilename, self.inputListName)
 
         # Don't process this line unless we are debugging because pprint may be slow
         # see: https://stackoverflow.com/a/11093247
@@ -98,7 +95,7 @@ class PlotTaskHists(JetHConfig.JetHBase):
             histOptions = self.histOptionsSpecificProcessing(histOptionsName, histOptions)
             logger.debug("Post processing: hist options name: {}, histOptions: {}".format(histOptionsName, histOptions))
 
-            histsConfigurationOptions[histOptionsName] = PlotGenericHist.HistPlotter(**histOptions)
+            histsConfigurationOptions[histOptionsName] = plotGenericHist.HistPlotter(**histOptions)
 
         return (histsConfigurationOptions, plotAdditional)
 
@@ -175,7 +172,7 @@ class PlotTaskHists(JetHConfig.JetHBase):
             if not foundMatch:
                 if plotAdditional:
                     logger.debug("No hist config options match found. Using default options...")
-                    componentHists[hist.GetName()] = PlotGenericHist.HistPlotter(hist = hist)
+                    componentHists[hist.GetName()] = plotGenericHist.HistPlotter(hist = hist)
                 else:
                     logger.debug("No match found and not plotting additional, so hist {} will not be plotted.".format(hist.GetName()))
 
@@ -230,7 +227,7 @@ class PlotTaskHists(JetHConfig.JetHBase):
 
         # Run the analysis
         logger.info("About to process")
-        for keys, task in JetHConfig.unrollNestedDict(tasks):
+        for keys, task in analysisConfig.unrollNestedDict(tasks):
             opts = ["{name}: {value}".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
             logger.info("Processing plotting task {} with options: {}".format(task.taskName, ", ".join(opts)))
 

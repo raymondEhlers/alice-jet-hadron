@@ -28,6 +28,10 @@ thisModule = sys.modules[__name__]
 
 import IPython
 
+import jetH.base.projectors as projectors
+from jetH.base.projectors import HistAxisRange
+import jetH.base.analysisObjects as analysisObjects
+
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
@@ -35,14 +39,10 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 import rootpy
 from rootpy.io import root_open
 
+# TODO: Remove this dependence.
 from aliceYaleDevUtils import plottingUtils
 # Setup color schemes
 plottingUtils.colorSchemes.init(ROOT)
-
-import JetHProjectors
-from JetHProjectors import HistAxisRange
-import JetHUtils
-from JetHUtils import EventPlaneAngle
 
 # Configure ROOT
 # Run in batch mode
@@ -109,7 +109,7 @@ class RMNormalizationType(enum.Enum):
         tempStr = tempStr[:1].lower() + tempStr[1:] + "Normalization"
         return str(tempStr)
 
-class JetHResponseMatrixProjector(JetHProjectors.HistProjector):
+class JetHResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse. """
     def __init__(self, observableList, observableToProjectFrom, projectionNameFormat):
         super(JetHResponseMatrixProjector, self).__init__(observableList, observableToProjectFrom, projectionNameFormat)
@@ -146,10 +146,10 @@ class JetHResponseMatrix(object):
         self.productionRootFile = productionRootFile
 
         if collisionSystem == None:
-            collisionSystem = self.config.get("collisionSystem", str(JetHUtils.CollisionSystem.kNA))
+            collisionSystem = self.config.get("collisionSystem", str(analysisObjects.CollisionSystem.kNA))
         if collisionSystem[:1] != "k":
             collisionSystem = "k" + collisionSystem
-        self.collisionSystem = JetHUtils.CollisionSystem[collisionSystem]
+        self.collisionSystem = analysisObjects.CollisionSystem[collisionSystem]
 
         if useFloatHists == None:
             useFloatHists = self.config.get("useFloatHists", False)
@@ -319,7 +319,7 @@ class JetHResponseMatrix(object):
         unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(observableList = self.hists["unmatchedJetSpectraDetLevelPtHard"],
                                                    observableToProjectFrom = self.hists["unmatchedDetLevelJetsPtHardSparse"],
                                                    projectionNameFormat = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}")
-        unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == JetHUtils.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
+        unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysisObjects.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
                 axisRangeName = "unmatchedDetLevelLeadingParticle",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.clusterBias),
                 maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
@@ -434,12 +434,12 @@ class JetHResponseMatrix(object):
         partSpectraProjector = JetHResponseMatrixProjector(observableList = outputDict,
                                                     observableToProjectFrom = inputDict,
                                                     projectionNameFormat = "partSpectraProjection")
-        partSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetHProjectors.TH1AxisType.xAxis,
+        partSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = projectors.TH1AxisType.xAxis,
                 axisRangeName = "partSpectraProjectionDetLimits",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20),
                 maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 40)) )
         partSpectraProjector.projectionDependentCutAxes.append([])
-        partSpectraProjector.projectionAxes.append(HistAxisRange(axisType = JetHProjectors.TH1AxisType.yAxis,
+        partSpectraProjector.projectionAxes.append(HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
                 axisRangeName = "partSpectraProjection",
                 minVal = HistAxisRange.ApplyFuncToFindBin(None, 1),
                 maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
@@ -705,15 +705,15 @@ class JetHResponseMatrix(object):
             pythiaInfoTaskName = taskConfiguration.get("pythiaInfoTaskName", None)
             if pythiaInfoTaskName:
                 logger.info("Pythia task name: {0}".format(pythiaInfoTaskName))
-                pythiaInfo = JetHUtils.getHistogramsInList(filename, pythiaInfoTaskName)
-                pythiaInfoAfterEventSelection = JetHUtils.getHistogramsInList(filename, taskConfiguration["pythiaInfoAfterEventSelectionTaskName"])
+                pythiaInfo = analysisObjects.getHistogramsInList(filename, pythiaInfoTaskName)
+                pythiaInfoAfterEventSelection = analysisObjects.getHistogramsInList(filename, taskConfiguration["pythiaInfoAfterEventSelectionTaskName"])
             # Get the response maker
-            responseMakerHists = JetHUtils.getHistogramsInList(filename, taskConfiguration["responseMakerTaskName"])
+            responseMakerHists = analysisObjects.getHistogramsInList(filename, taskConfiguration["responseMakerTaskName"])
             # Get the particle level sample task (to check the jet spectra independently)
-            sampleTaskParticleLevel = JetHUtils.getHistogramsInList(filename, taskConfiguration["sampleTaskParticleLevelTaskName"])
+            sampleTaskParticleLevel = analysisObjects.getHistogramsInList(filename, taskConfiguration["sampleTaskParticleLevelTaskName"])
             sampleTaskParticleLevelJetsName = taskConfiguration.get("sampleTaskParticleLevelJetsName", "truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme")
             # Get the sample task (to check the jet spectra independently)
-            sampleTaskDetLevel = JetHUtils.getHistogramsInList(filename, taskConfiguration["sampleTaskDetLevelTaskName"])
+            sampleTaskDetLevel = analysisObjects.getHistogramsInList(filename, taskConfiguration["sampleTaskDetLevelTaskName"])
 
             if pythiaInfoTaskName:
                 # Get N events
@@ -778,7 +778,7 @@ class JetHResponseMatrix(object):
             # Specially handle pt hard bin 9 in pp, where it spills over into pt hard bin 10 due to the default binning.
             # Thus, we need to merge the two values together. It is easiest to do it here.
             # (Note that pt hard bin 10 in LHC15g1a doens't matched up to the LHC12a15e_fix pt hard binning)
-            if self.collisionSystem == JetHUtils.CollisionSystem.kpp and ptHardBin == "9":
+            if self.collisionSystem == analysisObjects.CollisionSystem.kpp and ptHardBin == "9":
                 logger.warning("Handling special case for pt hard bin 9 in LHC15g1a! Careful if this isn't expected!")
                 # To merge cross sections, they need to be averaged
                 xSec = (xSecHist.GetBinContent(int(ptHardBin) + 1) + xSecHist.GetBinContent(int(ptHardBin) + 2))/2. * xSecHist.GetEntries()
@@ -915,7 +915,7 @@ class JetHResponseMatrix(object):
                         logger.error("Bin content < bin error. bin content: {0}, bin error: {1}, ({2}, {3})".format(responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x,y), x, y))
                     fillValue = fillValue/responseMatrix.GetBinContent(x, y)
                 else:
-                    if responseMatrix.GetBinError(x, y) > JetHUtils.epsilon:
+                    if responseMatrix.GetBinError(x, y) > analysisObjects.epsilon:
                         logger.warning("No bin content, but associated error is non-zero. Content: {0}, error: {1}".format(responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x, y)))
                 if fillValue > 1:
                     logger.error("Error > 1 after scaling: {0}, bin content: {1}, bin error: {2}, ({3}, {4})".format(fillValue, responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x,y), x, y))
@@ -1906,7 +1906,7 @@ def validateArguments(args):
     if args.get("collisionSystem", False):
         try:
             # Needs the additional "k" to find the enumeration
-            args["collisionSystem"] = JetHUtils.CollisionSystem["k" + args["collisionSystem"]]
+            args["collisionSystem"] = analysisObjects.CollisionSystem["k" + args["collisionSystem"]]
         except KeyError:
             logger.critical("Could not find collision system \"{0}\"".format(args["collisionSystem"]))
             sys.exit(1)
