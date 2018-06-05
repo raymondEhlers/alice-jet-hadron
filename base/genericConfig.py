@@ -208,7 +208,8 @@ def applyFormattingDict(obj, formatting):
         # Skip over this, as there is nothing to be done - we just keep the value.
         pass
     else:
-        logger.critical("Unrecognized type {} of obj {}".format(type(obj), obj))
+        # This may or may not be expected, depending on the particular value.
+        logger.info("NOTE: Unrecognized type {} of obj {}".format(type(obj), obj))
 
     return obj
 
