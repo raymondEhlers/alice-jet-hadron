@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Tests for the JetHUtils. Developed to work with pytest.
+# Tests for the analysisObjects module. Developed to work with pytest.
 #
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
@@ -10,7 +10,7 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import JetHUtils
+import jetH.base.analysisObjects as analysisObjects
 
 @pytest.fixture
 def testHist():
@@ -35,7 +35,7 @@ def testHistContainer(testHist):
     """ Test the hist container class """
 
     # Create the container
-    cont = JetHUtils.HistContainer(testHist)
+    cont = analysisObjects.HistContainer(testHist)
     # Test the basic properties
     assert "test" == cont.GetName()
     assert "testFunc" == cont.testFunc()

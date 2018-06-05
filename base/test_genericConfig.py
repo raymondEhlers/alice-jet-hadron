@@ -13,7 +13,7 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import AnalysisConfig
+import jetH.base.genericConfig as genericConfig
 
 # Set logging level as a global variable to simplify configuration.
 # This is not ideal, but fine for simple tests.
@@ -100,8 +100,8 @@ def overrideData(basicConfig):
         yaml.dump(basicConfig, None, transform = logYAMLDump)
 
     # Override and simplify the values
-    basicConfig = AnalysisConfig.overrideOptions(basicConfig, (), ())
-    basicConfig = AnalysisConfig.simplifyDataRepresentations(basicConfig)
+    basicConfig = genericConfig.overrideOptions(basicConfig, (), ())
+    basicConfig = genericConfig.simplifyDataRepresentations(basicConfig)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
@@ -185,7 +185,7 @@ def testComplexObjectOverride(caplog, basicConfig):
 
 @pytest.fixture
 def dataSimplificationConfig():
-    """ Simple YAML config to test the data simplification functionality of the AnalysisConfig module.
+    """ Simple YAML config to test the data simplification functionality of the genericConfig module.
     
     It povides example configurations entries for numbers, str, list, and dict.
 
@@ -218,7 +218,7 @@ def testDataSimplificationOnBaseTypes(caplog, dataSimplificationConfig):
     Here we tests int, float, and str.  They should always stay the same.
     """
     caplog.set_level(loggingLevel)
-    config = AnalysisConfig.simplifyDataRepresentations(dataSimplificationConfig)
+    config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["int"] == 3
     assert config["float"] == 3.14
@@ -231,7 +231,7 @@ def testDataSimplificationOnLists(caplog, dataSimplificationConfig):
     preserved as is.
     """
     caplog.set_level(loggingLevel)
-    config = AnalysisConfig.simplifyDataRepresentations(dataSimplificationConfig)
+    config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["singleEntryList"] == "hello"
     assert config["multiEntryList"] == ["hello", "world"]
@@ -242,7 +242,7 @@ def testDictDataSimplification(caplog, dataSimplificationConfig):
     Dicts should always maintain their structure.
     """
     caplog.set_level(loggingLevel)
-    config = AnalysisConfig.simplifyDataRepresentations(dataSimplificationConfig)
+    config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["singleEntryDict"] == {"hello" : "world"}
     assert config["multiEntryDict"] == {"hello" : "world", "foo" : "bar"}
@@ -273,7 +273,7 @@ latexLike: $latex_{like \mathrm{x}}$
 
     formatting = {"a" : "b", "c": 1}
 
-    return AnalysisConfig.applyFormattingDict(config, formatting)
+    return genericConfig.applyFormattingDict(config, formatting)
 
 def testApplyFormattingToBasicTypes(caplog, formattingConfig):
     """ Test applying formatting to basic types. """

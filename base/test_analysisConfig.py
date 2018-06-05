@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Tests for the JetH configuration functionality defined in the JetHConfig module.
+# Tests for the JetH configuration functionality defined in the analysisConfig module.
 #
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
@@ -11,8 +11,8 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import JetHParams
-import JetHConfig
+import jetH.base.params as params
+import jetH.base.analysisConfig as analysisConfig
 
 # Set logging level as a global variable to simplify configuration.
 # This is not ideal, but fine for simple tests.
@@ -72,17 +72,17 @@ def overrideOptionsHelper(basicConfig, selectedOptions = None):
         CommentedMap: dict-like object containing the overridden configuration
     """
     if selectedOptions is None:
-        selectedOptions = (JetHParams.collisionEnergy.twoSevenSix,
-                           JetHParams.collisionSystem.PbPb,
-                           JetHParams.eventActivity.central,
-                           JetHParams.leadingHadronBiasType.track)
+        selectedOptions = (params.collisionEnergy.twoSevenSix,
+                           params.collisionSystem.PbPb,
+                           params.eventActivity.central,
+                           params.leadingHadronBiasType.track)
 
     yaml = ruamel.yaml.YAML()
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("Before override:")
         yaml.dump(basicConfig, None, transform = logYAMLDump)
 
-    basicConfig = JetHConfig.overrideOptions(basicConfig, selectedOptions)
+    basicConfig = analysisConfig.overrideOptions(basicConfig, selectedOptions)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
