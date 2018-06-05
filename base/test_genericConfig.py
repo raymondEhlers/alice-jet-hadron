@@ -36,9 +36,9 @@ def basicConfig():
     Args:
         None
     Returns:
-        CommentedMap: dict-like object from ruamel.yaml containing the configuration.
+        tuple: (dict-like CommentedMap object from ruamel.yaml containing the configuration, str containing
+            a string representation of the YAML configuration)
     """
-
     testYaml = """
 responseTasks: &responseTasks
     responseMaker: &responseMakerTaskName "AliJetResponseMaker_{cent}histos"
@@ -67,7 +67,7 @@ override:
     yaml = ruamel.yaml.YAML()
     data = yaml.load(testYaml)
 
-    return data
+    return (data, testYaml)
 
 def basicConfigException(data):
     """ Add an unmatched key (ie does not exist in the main config) to the override
@@ -83,13 +83,13 @@ def basicConfigException(data):
     data["override"]["testException"] = "value"
     return data
 
-def overrideData(basicConfig):
+def overrideData(config):
     """ Helper function to override the configuration.
 
     It can print the configuration before and after overridding the options if enabled.
 
     Args:
-        basicConfig (CommentedMap): dict-like object containing the configuration to be overridden.
+        config (CommentedMap): dict-like object containing the configuration to be overridden.
     Returns:
         CommentedMap: dict-like object containing the overridden configuration
     """
@@ -97,21 +97,23 @@ def overrideData(basicConfig):
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("Before override:")
-        yaml.dump(basicConfig, None, transform = logYAMLDump)
+        yaml.dump(config, None, transform = logYAMLDump)
 
     # Override and simplify the values
-    basicConfig = genericConfig.overrideOptions(basicConfig, (), ())
-    basicConfig = genericConfig.simplifyDataRepresentations(basicConfig)
+    config = genericConfig.overrideOptions(config, (), ())
+    config = genericConfig.simplifyDataRepresentations(config)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
-        yaml.dump(basicConfig, None, transform = logYAMLDump)
+        yaml.dump(config, None, transform = logYAMLDump)
 
-    return basicConfig
+    return config
 
 def testOverrideRetrieveUnrelatedValue(caplog, basicConfig):
     """ Test retrieving a basic value unrelated to the overridden data. """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
+
     valueName = "test1"
     valueBeforeOverride = basicConfig[valueName]
     basicConfig = overrideData(basicConfig)
@@ -122,6 +124,7 @@ def testOverrideWithBasicConfig(caplog, basicConfig):
     """ Test override with the basic config.
     """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden directly
@@ -133,6 +136,7 @@ def testBasicAnchorOverride(caplog, basicConfig):
     When an anchor refernce is overridden, we expect that the anchor value is updated.
     """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
     basicConfig = overrideData(basicConfig)
  
     # The two conditions below are redundant, but each are useful for visualizing
@@ -146,6 +150,7 @@ def testAdvancedAnchorOverride(caplog, basicConfig):
     When an override value is using an anchor value, we expect that value to propagate fully.
     """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden indirectly, from another referenced value.
@@ -157,6 +162,7 @@ def testForUnmatchedKeys(caplog, basicConfig):
     Such an unmatched key should cause a `KeyError` exception, which we catch.
     """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
     # Add entry that will cause the exception.
     basicConfig = basicConfigException(basicConfig)
 
@@ -178,10 +184,27 @@ def testComplexObjectOverride(caplog, basicConfig):
     In particular, test with lists, dicts.
     """
     caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     assert basicConfig["testList"] == [3, 4]
     assert basicConfig["testDict"] == {3: 4}
+
+def testLoadConfiguration(caplog, basicConfig):
+    """ Test that loading yaml goes according to expectations. This may be somewhat trivial, but it is important to
+    check in case ruamel.yaml changes APIs or defaults. """
+    caplog.set_level(loggingLevel)
+    (basicConfig, testYaml) = basicConfig
+
+    import tempfile
+    with tempfile.NamedTemporaryFile() as f:
+        # Write and move back to the start of the file
+        f.write(testYaml.encode())
+        f.seek(0)
+        # Then get the config from the file
+        retrievedConfig = genericConfig.loadConfiguration(f.name)
+
+    assert retrievedConfig == basicConfig
 
 @pytest.fixture
 def dataSimplificationConfig():
@@ -267,6 +290,7 @@ dict2:
         str: "do nothing"
         format: "{c}"
 latexLike: $latex_{like \mathrm{x}}$
+noneExample: null
 """
     yaml = ruamel.yaml.YAML()
     config = yaml.load(config)
@@ -301,3 +325,5 @@ def testApplyFormattingSkipLatex(caplog, formattingConfig):
     config = formattingConfig
 
     assert config["latexLike"] == "$latex_{like \mathrm{x}}$"
+
+
