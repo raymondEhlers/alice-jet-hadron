@@ -6,9 +6,10 @@
 
 from builtins import range
 
-import aenum
 import math
+import numbers
 import re
+import aenum
 import collections
 import logging
 logger = logging.getLogger(__name__)
@@ -81,6 +82,18 @@ def useLabelWithRoot(label):
     # Remove "$" and map "\" -> "#""
     return label.replace("$", "").replace("\\", "#")
 
+def uppercaseFirstLetter(s):
+    """ Convert the first letter to uppercase.
+
+    NOTE: Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
+
+    Args:
+        s (str): String to be convert
+    Returns:
+        str: String with first letter converted to uppercase.
+    """
+    return s[:1].upper() + s[1:]
+
 #########
 # Parameter information (access and display)
 #########
@@ -102,35 +115,37 @@ class aliceLabel(aenum.Enum):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
 
-def systemLabel(collisionSystem, eventActivity = None, energy = 2.76):
+def systemLabel(energy, system, activity):
     """ Generates the collision system, event activity, and energy label.
 
     Args:
-        collisionSystem (JetHParams.collisionSystem): The collision system.
-        eventActivity (JetHParams.eventActivity): The event activity selection.
-        energy (float): The collision energy
+        energy (float or collisionEnergy): The collision energy
+        system (str or collisionSystem): The collision system.
+        activity (str or eventActivity): The event activity selection.
     Returns:
         str: Label for the entire system, combining the avaialble information.
     """
-    # TODO: Update fully to use enums, which are now in this module
-    # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
-    systems = {collisionSystem.pp.value : "pp",
-               collisionSystem.PbPb.value : r"Pb\mbox{-}Pb"}
-    if eventActivity is None:
-        eventActivity = collisionSystem
-    eventActivityFormat = r",\:%(min)s\mbox{-}%(max)s\mbox{\%}"
-    eventActivities = {eventActivity.inclusive : "",
-                     eventActivity.central : eventActivityFormat.format(eventActivity.getRange()),
-                     eventActivity.semiCentral : eventActivityFormat}
-    # Adding for backwards compatibility
-    # TODO: Remove this values
-    eventActivities["pp"] = eventActivities["inclusive"]
-    eventActivities["PbPb"] = eventActivities["central"]
-    logger.debug("eventActivity: {}".format(eventActivities[eventActivity]))
+    # Handle energy
+    if isinstance(energy, numbers.Number):
+        energy = collisionEnergy(energy)
+    elif isinstance(energy, str):
+        try:
+            e = float(energy)
+            energy = collisionEnergy(e)
+        except ValueError:
+            energy = collisionEnergy[energy]
 
-    systemLabel = r"$\mathrm{%(system)s}\:\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}%(eventActivity)s$" % {"energy" : energy,
-            "eventActivity" : eventActivities[eventActivity],
-            "system" : systems[collisionSystem.value]}
+    # Handle collision system
+    if isinstance(system, str):
+        system = collisionSystem[system]
+
+    # Handle event activity
+    if isinstance(activity, str):
+        activity = eventActivity[activity]
+
+    systemLabel = r"$\mathrm{%(system)s}\:%(energy)s%(eventActivity)s$" % {"energy" : energy.displayStr(),
+            "eventActivity" : activity.displayStr(),
+            "system" : system.displayStr()}
 
     logger.debug("systemLabel: {}".format(systemLabel))
 
@@ -199,6 +214,15 @@ def jetPropertiesLabel(jetPtBin):
     jetPt = generateJetPtRangeString(jetPtBin)
     return (jetFinding, constituentCuts, leadingHadron, jetPt)
 
+##############
+# Named tuples
+##############
+selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
+            "collisionSystem",
+            "eventActivity",
+            "leadingHadronBiasType"])
+selectedRange = collections.namedtuple("selectedRange", ["min", "max"])
+
 class collisionEnergy(aenum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
@@ -212,28 +236,37 @@ class collisionEnergy(aenum.Enum):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
 
+    def displayStr(self):
+        """ Return a formatted string for display in plots, etc. Includes latex formatting. """
+        return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy" : self.value}
+
+# NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
+PbPbLatexLabel = r"Pb\mbox{-}Pb"
+
 class collisionSystem(aenum.Enum):
     """ Define the collision system """
-    NA = -1
-    pp = 0
-    # We want to alias this value, but also it should generally be treated the same as pp
-    embedPP = 0
-    pPb = 1
-    PbPb = 2
+    NA = "Invalid collision system"
+    pp = "pp"
+    pythia = "PYTHIA"
+    embedPP = r"pp \bigotimes %(PbPb)s" % {"PbPb" : PbPbLatexLabel}
+    embedPythia = r"PYTHIA \bigotimes %(PbPb)s" % {"PbPb" : PbPbLatexLabel}
+    pPb = r"pPb"
+    PbPb = "%(PbPb)s" % {"PbPb" : PbPbLatexLabel}
 
     #def __str__(self):
     #    """ Return the name of the value without the appended "k". This is just a convenience function """
     #    return str(self.name.replace("k", "", 1))
     def __str__(self):
+        """ Return a string of the name of the system. """
         return self.name
 
     def str(self):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
 
-    def filenameStr(self):
-        """ """
-        return self.name
+    def displayStr(self):
+        """ Return a formatted string for display in plots, etc. Includes latex formatting. """
+        return self.value
 
 class eventActivity(aenum.Enum):
     """ Define the event activity.
@@ -242,26 +275,34 @@ class eventActivity(aenum.Enum):
     enumeration index, and cent{low,high} define the low and high values of the centrality.
     -1 is defined as the full range!
     """
-    inclusive = (0, (-1, -1))
-    central = (1, (0, 10))
-    semiCentral = (2, (30, 50))
+    inclusive = selectedRange(min = -1, max = -1)
+    central = selectedRange(min = 0, max = 10)
+    semiCentral = selectedRange(min = 30, max = 50)
 
-    def __init__(self, index, activityRange):
-        self.index = index
-        self.activityRange = activityRange
+    def range(self):
+        """ Return the event activity range.
 
-    # TODO: Fully implement helper functions
-    def getRange(self):
-        """ """
-        return self.activityRange
+        Returns:
+            selectedRange : namedtuple containing the mix and max of the range.
+        """
+        return self.value
 
     def __str__(self):
-        """ """
+        """ Name of the event activity range. """
         return str(self.name)
 
     def str(self):
-        """ Helper function to return str by calling explicitly """
+        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
+
+    def displayStr(self):
+        """ Get the event activity range as a formatted string. Includes latex formatting. """
+        retVal = ""
+        # For inclusive, we want to return an empty string.
+        if self != eventActivity.inclusive:
+            logger.debug("asdict: {}".format(self.range()._asdict()))
+            retVal = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % self.range()._asdict()
+        return retVal
 
 class leadingHadronBiasType(aenum.Enum):
     """ Leading hadron bias type """
@@ -293,23 +334,6 @@ class leadingHadronBias(aenum.Enum):
     def get(name, collisionEnergy, eventActivity):
         pass
 
-selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
-            "collisionSystem",
-            "eventActivity",
-            "leadingHadronBiasType"])
-
-def uppercaseFirstLetter(s):
-    """ Convert the first letter to uppercase.
-
-    NOTE: Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
-
-    Args:
-        s (str): String to be convert
-    Returns:
-        str: String with first letter converted to uppercase.
-    """
-    return s[:1].upper() + s[1:]
-
 class eventPlaneAngle(aenum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
@@ -339,12 +363,20 @@ class eventPlaneAngle(aenum.Enum):
 
 class qVector(aenum.Enum):
     """ Selection based on the Q vector. """
-    all = 0
-    top10 = 1
-    bottom10 = 2
+    all = selectedRange(min = 0, max = 100)
+    bottom10 = selectedRange(min = 0, max = 10)
+    top10 = selectedRange(min = 90, max = 100)
+
+    def range(self):
+        """ Return the q vector range.
+
+        Returns:
+            selectedRange : namedtuple containing the mix and max of the range.
+        """
+        return self.value
 
     def __str__(self):
-        """ TODO: Returns the selection range. """
+        """ Returns the name of the selection range. """
         return self.name
 
     def str(self):

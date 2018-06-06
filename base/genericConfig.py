@@ -105,6 +105,8 @@ def simplifyDataRepresentations(config):
     This step is necessary because anchors are not kept for scalar values - just for lists and dicts.
     Now that we are done with all of our anchor refernces, we can convert these single entry lists to
     just the scalar entry, which is more usable.
+
+    Some notes on anchors in rumael.yaml are here: https://stackoverflow.com/a/48559644
     
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be simplified.
