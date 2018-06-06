@@ -341,4 +341,3 @@ def testApplyFormattingSkipLatex(caplog, formattingConfig):
 
     assert config["latexLike"] == "$latex_{like \mathrm{x}}$"
 
-
