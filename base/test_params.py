@@ -119,8 +119,30 @@ def testOutOfRangeSkipBin(caplog):
     assert exceptionValue == skipBins[1]
 
 #############
-# Latex tests
+# Label tests
 #############
+def testRootLatexConversion(caplog):
+    """ Test converting latex to ROOT compatiable latex. """
+    caplog.set_level(loggingLevel)
+
+    assert params.useLabelWithRoot(r"\textbf{test}") == r"#textbf{test}"
+    assert params.useLabelWithRoot(r"$\mathrm{test}$") == r"#mathrm{test}"
+
+def testAliceLabel(caplog):
+    """ Tests for ALICE labeling. """
+    caplog.set_level(loggingLevel)
+
+    testParams = [
+            ("workInProgress", {"str" : "ALICE Work in Progress"}),
+            ("preliminary", {"str" : "ALICE Preliminary"}),
+            ("final", {"str" : "ALICE"}),
+            ("thesis", {"str" : "This thesis"})
+        ]
+
+    for label, expected in testParams:
+        aliceLabel = params.aliceLabel[label]
+        assert aliceLabel.str() == expected["str"]
+
 def testTrackPtStrings(caplog):
     """ Test the track pt string generation functions. Each bin is tested.  """
     caplog.set_level(loggingLevel)
@@ -199,6 +221,55 @@ def testJetPropertiesLabels(caplog):
     assert constituentCuts == constituentCutsExpected
     assert leadingHadron == leadingHadronExpected
     assert jetPt == jetPtExpected
+
+def testCollisionEnergy(caplog):
+    """ Test collision energy values. """
+    caplog.set_level(loggingLevel)
+
+    output276 = {"str" : "2.76", "value" : 2.76}
+    output502 = {"str" : "5.02", "value" : 5.02}
+    testParams = [
+            # Default test
+            (params.collisionEnergy(2.76), output276),
+            # Test alternative initialization
+            (params.collisionEnergy["twoSevenSix"], output276),
+            # Test different energy
+            (params.collisionEnergy(5.02), output502)
+            ]
+
+    for energy, expected in testParams:
+        assert str(energy) == expected["str"]
+        assert energy.str() == expected["str"]
+        assert energy.value == expected["value"]
+
+def testCollisionSystem(caplog):
+    """ Test collision system values. """
+    caplog.set_level(loggingLevel)
+
+    testParams = [
+            # Default tests
+            (params.collisionSystem["pp"], {"str" : "pp", "filenameStr" : "pp", "value" : 0}),
+            (params.collisionSystem["PbPb"], {"str" : "PbPb", "filenameStr" : "PbPb", "value" : 2}),
+            # Alias to pp
+            (params.collisionSystem["embedPP"], {"str" : "embedPP", "filenameStr" : "embedPP", "value" : params.collisionSystem.pp.value})
+            ]
+    for system, expected in testParams:
+        assert str(system) == expected["str"]
+        assert system.str() == expected["str"]
+        assert system.filenameStr() == expected["filenameStr"]
+        assert system.value == expected["value"]
+
+def testEventActivity(caplog):
+    """ Test event activity values. """
+    caplog.set_level(loggingLevel)
+
+    assert False
+
+def testLeadingHadron(caplog):
+    """ Test determining the leading hadron bias. """
+    caplog.set_level(loggingLevel)
+
+    assert False
 
 def testEventPlaneAngleStrings(caplog):
     """ Test event plane angle strings. """
