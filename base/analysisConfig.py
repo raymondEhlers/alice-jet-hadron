@@ -181,6 +181,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     Returns:
         OrderedDict: Arguments which can be used to construct the analysis task.
     """
+    # TODO: Refactor what is possible here
     if additionalIterators is None:
         additionalIterators = {}
     # Validate arguments
@@ -329,4 +330,13 @@ def createFromTerminal(obj, taskName, additionalIterators = None):
             selectedAnalysisOptions = terminalArgs,
             obj = obj,
             additionalIterators = additionalIterators)
+
+# TODO: Create a list of pt hard objects based on the YAML config.
+#       Loop over that list to create objects.
+#       Implement the various string functions to match up with the enums
+#       However, where is the list going to be stored? It's not really
+#       natural in an analysis task...
+class ptHard(object):
+    def __init__(self):
+        pass
 

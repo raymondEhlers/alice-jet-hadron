@@ -84,7 +84,7 @@ def useLabelWithRoot(label):
 #########
 # Parameter information (access and display)
 #########
-class aliceLabelType(enum.Enum):
+class aliceLabel(enum.Enum):
     """ ALICE label types. """
     workInProgress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -101,26 +101,6 @@ class aliceLabelType(enum.Enum):
     def str(self):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
-
-def aliceLabel(labelType):
-    """ Determine the ALICE label based on the label type.
-
-    Args:
-        labelType (JetHParams.aliceLabelType): The type of ALICE label desired.
-    Returns:
-        str: The ALICE label.
-    """
-    # Convert if necessary
-    if isinstance(labelType, str):
-        labelType = aliceLabelType[labelType]
-
-    # Determine label
-    labels = {aliceLabelType.workInProgress : "ALICE Work in Progress",
-              aliceLabelType.preliminary : "ALICE Preliminary",
-              aliceLabelType.final : "ALICE",
-              aliceLabelType.thesis : "This thesis"}
-
-    return labels[labelType]
 
 def systemLabel(collisionSystem, eventActivity = None, energy = 2.76):
     """ Generates the collision system, event activity, and energy label.
