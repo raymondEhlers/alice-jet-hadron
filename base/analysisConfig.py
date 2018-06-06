@@ -271,6 +271,8 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
 
     return (names, objects)
 
+leadingHadronBias = collections.namedtuple("leadingHadronBias", ["type", "value"])
+
 class JetHBase(object):
     """ Base class for shared jet-hadron configuration values.
 
@@ -281,7 +283,7 @@ class JetHBase(object):
             fully configured and overridden.
         taskConfig (dict-like object): Contains the task specific configuration. Note that it must already be
             fully configured and overridden. Also note that by convention it is also available at `config[taskName]`.
-        energy (params.collisionEnergy): Selected collision energy.
+        collisionEnergy (params.collisionEnergy): Selected collision energy.
         collisionSystem (params.collisionSystem): Selected collision system.
         eventActivity (params.eventActivity): Selected event activity.
         leadingHadronBiasType (params.leadingHadronBiasType): Selected leading hadron bias.
@@ -291,17 +293,20 @@ class JetHBase(object):
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
-    def __init__(self, taskName, configFilename, config, taskConfig, energy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, createOutputFolder = True, *args, **kwargs):
+    def __init__(self, taskName, configFilename, config, taskConfig, collisionEnergy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, createOutputFolder = True, *args, **kwargs):
         # Store the configuration
         self.taskName = taskName
         self.configFilename = configFilename
         self.config = config
         self.taskConfig = taskConfig
-        self.energy = energy
+        self.collisionEnergy = collisionEnergy
         self.collisionSystem = collisionSystem
         self.eventActivity = eventActivity
         self.leadingHadronBiasType = leadingHadronBiasType
         self.eventPlaneAngle = eventPlaneAngle
+
+        # Determine the leading hadron value
+        self.leadingHadron = leadingHadronBias(type = self.leadingHadronBiasType, value = GetLeadingHadronValue(self.energy, self.collisionSystem, self.eventActivity, self.leadingHadronBiasType))
 
         # File I/O
         # If in kwargs, use that value (which inherited class may use to override the config)
