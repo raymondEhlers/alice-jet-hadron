@@ -77,13 +77,14 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
 
     return config
 
-def determineSelectedOptionsFromKwargs(description = "Jet-hadron {taskName}", addOptionsFunction = None, **kwargs):
+def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {taskName}", addOptionsFunction = None, **kwargs):
     """ Determine the selected analysis options from the command line arguments.
 
     Defaults are equivalent to None or False so values can be added in the validation
     function if argument values are not specified.
 
     Args:
+        args (list): Arguments to parse. Default: None (which will then use sys.argv)
         description (str): Help description for arguments
         addOptionsFunction (func): Function which takes the ArgumentParser() object, adds
             arguments, and returns the object.
@@ -120,7 +121,7 @@ def determineSelectedOptionsFromKwargs(description = "Jet-hadron {taskName}", ad
         args = addOptionsFunction(parser)
 
     # Parse arguments
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
