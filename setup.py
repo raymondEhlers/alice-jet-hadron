@@ -3,9 +3,6 @@
 # Setup Jet-H analysis
 # Derived from the setup.py in aliBuild and Overwatch
 # and based on: https://python-packaging.readthedocs.io/en/latest/index.html
-#
-# NOTE: We use the current directory instead of putting the modules into a folder
-#       to avoid additional distruption. This could be modified in the future.
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
