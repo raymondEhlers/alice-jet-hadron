@@ -137,8 +137,42 @@ def testIgnoreUnselectedOptions(caplog, basicConfig):
     #       lists to just the single entry.
     assert config["responseTaskName"] == "baseName"
 
+def testArgumentParsing():
+    """
+
+    """
+    testArgs = ["-c", "analysisConfigArg.yaml",
+                "-e", "5.02",
+                "-s", "embedPP",
+                "-a", "semiCentral",
+                "-b", "track"]
+    reversedIterator = iter(reversed(testArgs))
+    reversedTestArgs = []
+    # Need to reverse by twos
+    for x in reversedIterator:
+        reversedTestArgs.extend([next(reversedIterator), x])
+
+    # Test both in the defined order and in a different order (just for completeness).
+    for args in [testArgs, reversedTestArgs]:
+        (configFilename, selectedAnalysisOptions, returnedArgs) = analysisConfig.determineSelectedOptionsFromKwargs(args = args)
+
+        assert configFilename == "analysisConfigArg.yaml"
+        assert selectedAnalysisOptions.collisionEnergy == 5.02
+        assert selectedAnalysisOptions.collisionSystem == "embedPP"
+        assert selectedAnalysisOptions.eventActivity == "semiCentral"
+        assert selectedAnalysisOptions.leadingHadronBiasType == "track"
+
+        # Strictly speaking, this is adding some complication, but it will consistently be used with this option,
+        # so it's worth doing the integration test.
+        validatedAnalysisOptions, _ = analysisConfig.validateArguments(selectedAnalysisOptions)
+
+        assert validatedAnalysisOptions.collisionEnergy == params.collisionEnergy.fiveZeroTwo
+        assert validatedAnalysisOptions.collisionSystem == params.collisionSystem.embedPP
+        assert validatedAnalysisOptions.eventActivity == params.eventActivity.semiCentral
+        assert validatedAnalysisOptions.leadingHadronBiasType == params.leadingHadronBiasType.track
+
 def testValidateArguments(caplog):
-    """ """
+    """ Test argument validation. """
     standardArgs  = (params.collisionEnergy.twoSevenSix,
              params.collisionSystem.PbPb,
              params.eventActivity.central,
@@ -165,7 +199,7 @@ def testValidateArguments(caplog):
 
     for opts, expected in testParams:
         opts = params.selectedAnalysisOptions(*opts)
-        opts,_ = analysisConfig.validateArguments(opts)
+        opts, _ = analysisConfig.validateArguments(opts)
         expected = params.selectedAnalysisOptions(*expected)
         assert opts.collisionEnergy == expected.collisionEnergy
         assert opts.collisionSystem == expected.collisionSystem
