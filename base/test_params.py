@@ -172,38 +172,37 @@ def testJetPtStringForLastPtBin(caplog):
     ptBin = len(params.jetPtBins) - 2
     assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin]}
 
-def testPPSystemLabel(caplog):
-    """ Test the pp system label. """
+def testSystemLabel(caplog):
+    """ Test system labels. """
     caplog.set_level(loggingLevel)
 
-    assert params.systemLabel(collisionSystem = "pp", eventActivity = "inclusive", energy = 2.76) == r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"
-
-def testPbPbCentralSystemLabel(caplog):
-    """ Test the PbPb Central system label"""
-    caplog.set_level(loggingLevel)
-
-    assert params.systemLabel(collisionSystem = "PbPb", eventActivity = "central", energy = 2.76) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-
-def testPbPbSemiCentralSystemLabel(caplog):
-    """ Test the PbPb semi-central system label"""
-    caplog.set_level(loggingLevel)
-
-    assert params.systemLabel(collisionSystem = "PbPb", eventActivity = "semiCentral", energy = 2.76) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"
-
-def testWithoutEventActivityForBackwardsCompatability(caplog):
-    """ Test the backwards compatiable functionality where the event activity is not specified.
-    In that case, it depends on the collision system.
-    """
-    caplog.set_level(loggingLevel)
-
-    assert params.systemLabel(collisionSystem = "pp", energy = 2.76) == r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"
-    assert params.systemLabel(collisionSystem = "PbPb", energy = 2.76) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-
-def testDifferentEnergySystemLabel(caplog):
-    """ Test the system label for a different energy. """
-    caplog.set_level(loggingLevel)
-
-    assert params.systemLabel(collisionSystem = "PbPb", energy = 5.02) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    # Inclusive pp
+    assert params.systemLabel(energy = 2.76,
+            system = "pp",
+            activity = "inclusive") == r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"
+    # Central PbPb
+    assert params.systemLabel(energy = 2.76,
+            system = "PbPb",
+            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    # SemiCentral PbPb
+    assert params.systemLabel(energy = 2.76,
+            system = "PbPb",
+            activity = "semiCentral") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"
+    # Central PbPb at 5.02
+    assert params.systemLabel(energy = 5.02,
+            system = "PbPb",
+            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    # Energy as str
+    assert params.systemLabel(energy = "fiveZeroTwo",
+            system = "PbPb",
+            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    assert params.systemLabel(energy = "5.02",
+            system = "PbPb",
+            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    # Using enums directly
+    assert params.systemLabel(energy = params.collisionEnergy.fiveZeroTwo,
+            system = params.collisionSystem.PbPb,
+            activity = params.eventActivity.central) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
 
 def testJetPropertiesLabels(caplog):
     """ Test the jet properties labels. """
@@ -226,8 +225,8 @@ def testCollisionEnergy(caplog):
     """ Test collision energy values. """
     caplog.set_level(loggingLevel)
 
-    output276 = {"str" : "2.76", "value" : 2.76}
-    output502 = {"str" : "5.02", "value" : 5.02}
+    output276 = {"str" : "2.76", "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}", "value" : 2.76}
+    output502 = {"str" : "5.02", "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV}", "value" : 5.02}
     testParams = [
             # Default test
             (params.collisionEnergy(2.76), output276),
@@ -235,11 +234,12 @@ def testCollisionEnergy(caplog):
             (params.collisionEnergy["twoSevenSix"], output276),
             # Test different energy
             (params.collisionEnergy(5.02), output502)
-            ]
+        ]
 
     for energy, expected in testParams:
         assert str(energy) == expected["str"]
         assert energy.str() == expected["str"]
+        assert energy.displayStr() == expected["displayStr"]
         assert energy.value == expected["value"]
 
 def testCollisionSystem(caplog):
@@ -248,22 +248,45 @@ def testCollisionSystem(caplog):
 
     testParams = [
             # Default tests
-            (params.collisionSystem["pp"], {"str" : "pp", "filenameStr" : "pp", "value" : 0}),
-            (params.collisionSystem["PbPb"], {"str" : "PbPb", "filenameStr" : "PbPb", "value" : 2}),
-            # Alias to pp
-            (params.collisionSystem["embedPP"], {"str" : "embedPP", "filenameStr" : "embedPP", "value" : params.collisionSystem.pp.value})
-            ]
+            (params.collisionSystem["pp"], {"str" : "pp", "displayStr" : "pp"}),
+            (params.collisionSystem["pythia"], {"str" : "pythia", "displayStr" : "PYTHIA"}),
+            (params.collisionSystem["PbPb"], {"str" : "PbPb", "displayStr" : params.PbPbLatexLabel}),
+            # Test embedded system
+            (params.collisionSystem["embedPP"], {"str" : "embedPP", "displayStr" : r"pp \bigotimes %(PbPb)s" % {"PbPb" : params.PbPbLatexLabel}})
+        ]
+
     for system, expected in testParams:
         assert str(system) == expected["str"]
         assert system.str() == expected["str"]
-        assert system.filenameStr() == expected["filenameStr"]
-        assert system.value == expected["value"]
+        assert system.displayStr() == expected["displayStr"]
 
 def testEventActivity(caplog):
     """ Test event activity values. """
     caplog.set_level(loggingLevel)
 
-    assert False
+    testParams = [
+            (params.eventActivity["inclusive"], {
+                    "str" : "inclusive",
+                    "displayStr" : "",
+                    "range" : params.selectedRange(min = -1, max = -1)
+                }),
+            (params.eventActivity["central"], {
+                    "str" : "central",
+                    "displayStr" : r",\:0\mbox{-}10\mbox{\%}",
+                    "range" : params.selectedRange(min = 0, max = 10)
+                }),
+            (params.eventActivity["semiCentral"], {
+                    "str" : "semiCentral",
+                    "displayStr" : r",\:30\mbox{-}50\mbox{\%}",
+                    "range" : params.selectedRange(min = 30, max = 50)
+                })
+            ]
+
+    for activity, expected in testParams:
+        assert str(activity) == expected["str"]
+        assert activity.str() == expected["str"]
+        assert activity.displayStr() == expected["displayStr"]
+        assert activity.range() == expected["range"]
 
 def testLeadingHadron(caplog):
     """ Test determining the leading hadron bias. """
@@ -302,16 +325,19 @@ def testQVectorStrings(caplog):
         (params.qVector.all,
             {"str" : "all",
              "filenameStr" : "qVectorAll",
-             "displayStr" : "All"}),
+             "displayStr" : "All",
+             "range" : params.selectedRange(min = 0, max = 100)}),
         (params.qVector.bottom10,
             {"str" : "bottom10",
              "filenameStr" : "qVectorBottom10",
-             "displayStr" : "Bottom 10%"})
+             "displayStr" : "Bottom 10%",
+             "range" : params.selectedRange(min = 0, max = 10)})
         ]
 
-    for angle, testValues in tests:
-        assert str(angle) == testValues["str"]
-        assert angle.str() == testValues["str"]
-        assert angle.filenameStr() == testValues["filenameStr"]
-        assert angle.displayStr() == testValues["displayStr"]
+    for qVec, testValues in tests:
+        assert str(qVec) == testValues["str"]
+        assert qVec.str() == testValues["str"]
+        assert qVec.filenameStr() == testValues["filenameStr"]
+        assert qVec.displayStr() == testValues["displayStr"]
+        assert qVec.range() == testValues["range"]
 
