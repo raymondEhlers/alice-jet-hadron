@@ -2,7 +2,7 @@
 
 # Contains class to handle generic TH1 and THn projections
 
-import enum
+import aenum
 import copy
 import sys
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 import rootpy.ROOT as ROOT
 
-class TH1AxisType(enum.Enum):
+class TH1AxisType(aenum.Enum):
     xAxis = 0
     yAxis = 1
     zAxis = 2
@@ -26,7 +26,7 @@ class HistAxisRange(object):
 
     Args:
         axisRangeName (str): Name of the axis range. Usually some combination of the axis name and some sort of description of the range
-        axisType (enum.Enum): Enumeration corresponding to the axis to be restricted. The numerical value of the enum should be axis number (for a THnBase)
+        axisType (aenum.Enum): Enumeration corresponding to the axis to be restricted. The numerical value of the enum should be axis number (for a THnBase)
         minVal (float or function): Minimum range value for the axis
         minVal (float or function): Maximum range value for the axis
     """

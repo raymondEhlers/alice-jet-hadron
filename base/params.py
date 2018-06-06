@@ -6,7 +6,7 @@
 
 from builtins import range
 
-import enum
+import aenum
 import math
 import re
 import collections
@@ -84,7 +84,7 @@ def useLabelWithRoot(label):
 #########
 # Parameter information (access and display)
 #########
-class aliceLabel(enum.Enum):
+class aliceLabel(aenum.Enum):
     """ ALICE label types. """
     workInProgress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -199,7 +199,7 @@ def jetPropertiesLabel(jetPtBin):
     jetPt = generateJetPtRangeString(jetPtBin)
     return (jetFinding, constituentCuts, leadingHadron, jetPt)
 
-class collisionEnergy(enum.Enum):
+class collisionEnergy(aenum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
     fiveZeroTwo = 5.02
@@ -212,7 +212,7 @@ class collisionEnergy(enum.Enum):
         """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
         return self.__str__()
 
-class collisionSystem(enum.Enum):
+class collisionSystem(aenum.Enum):
     """ Define the collision system """
     NA = -1
     pp = 0
@@ -235,7 +235,7 @@ class collisionSystem(enum.Enum):
         """ """
         return self.name
 
-class eventActivity(enum.Enum):
+class eventActivity(aenum.Enum):
     """ Define the event activity.
 
     Object value are of the form (index, (centLow, centHigh)), where index is the expected
@@ -263,7 +263,7 @@ class eventActivity(enum.Enum):
         """ Helper function to return str by calling explicitly """
         return self.__str__()
 
-class leadingHadronBiasType(enum.Enum):
+class leadingHadronBiasType(aenum.Enum):
     """ Leading hadron bias type """
     NA = -1
     track = 0
@@ -282,7 +282,7 @@ class leadingHadronBiasType(enum.Enum):
         """ Helper function to return str by calling explicitly """
         return self.__str__()
 
-class leadingHadronBias(enum.Enum):
+class leadingHadronBias(aenum.Enum):
     NA = -1
     track = 5
     clusterSemiCentral = 6
@@ -310,7 +310,7 @@ def uppercaseFirstLetter(s):
     """
     return s[:1].upper() + s[1:]
 
-class eventPlaneAngle(enum.Enum):
+class eventPlaneAngle(aenum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1
@@ -337,7 +337,7 @@ class eventPlaneAngle(enum.Enum):
         tempList = re.findall("[a-zA-Z][^A-Z]*", self.str())
         return "-".join(tempList).capitalize()
 
-class qVector(enum.Enum):
+class qVector(aenum.Enum):
     """ Selection based on the Q vector. """
     all = 0
     top10 = 1

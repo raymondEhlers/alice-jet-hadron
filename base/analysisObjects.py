@@ -9,7 +9,7 @@
 from builtins import super
 
 import os
-import enum
+import aenum
 import copy
 import re
 import ruamel.yaml as yaml
@@ -24,7 +24,7 @@ import jetH.base.utils as utils
 ##############
 # Enumerations
 ##############
-class TriggerClass(enum.Enum):
+class TriggerClass(aenum.Enum):
     """ Define the possible trigger classes """
     kMB = 0
     kGA = 1
@@ -38,7 +38,7 @@ class TriggerClass(enum.Enum):
         """ Return the name of the value with the appended "k". This is just a convenience function """
         return str(self.name.replace("k", "", 1))
 
-class JetHCorrelationType(enum.Enum):
+class JetHCorrelationType(aenum.Enum):
     """ 1D correlation projection type """
     fullRange = 0
     # dPhi specialized

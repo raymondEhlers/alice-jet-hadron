@@ -18,7 +18,7 @@ import copy
 import itertools
 import collections
 import ruamel.yaml as yaml
-import enum
+import aenum
 import argparse
 import logging
 # Setup logger
@@ -63,7 +63,7 @@ import root_numpy
 # Run in batch mode
 ROOT.gROOT.SetBatch(True)
 
-class JetHCorrelationSparse(enum.Enum):
+class JetHCorrelationSparse(aenum.Enum):
     """ Defines the axes in the Jet-Hadron THn Sparses. """
     kCentrality = 0
     kJetPt = 1
@@ -74,13 +74,13 @@ class JetHCorrelationSparse(enum.Enum):
     kJetHadronDeltaR = 6
     kEventPlaneAngle = 7
 
-class JetHTriggerSparse(enum.Enum):
+class JetHTriggerSparse(aenum.Enum):
     """ Define the axes in the Jet-Hadron Trigger Sparse. """
     kCentrality = 0
     kJetPt = 1
     kEventPlaneAngle = 2
 
-class JetHCorrelationAxis(enum.Enum):
+class JetHCorrelationAxis(aenum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
     kDeltaPhi = projectors.TH1AxisType.xAxis
     kDeltaEta = projectors.TH1AxisType.yAxis

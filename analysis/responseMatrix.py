@@ -15,7 +15,7 @@ import argparse
 import collections
 import itertools
 import ruamel.yaml as yaml
-import enum
+import aenum
 import re
 import pprint
 import logging
@@ -50,7 +50,7 @@ ROOT.gROOT.SetBatch(True)
 # Disable stats box
 ROOT.gStyle.SetOptStat(False)
 
-class JetResponseMakerMatchingSparse(enum.Enum):
+class JetResponseMakerMatchingSparse(aenum.Enum):
     """ Defines the axes in the AliJetResponseMaker fMatching THnSparse. """
     kDetLevelJetPt = 0
     kPartLevelJetPt = 1
@@ -60,7 +60,7 @@ class JetResponseMakerMatchingSparse(enum.Enum):
     kDetLevelEventPlaneAngle = 9
     kPartLevelEventPlaneAngle = 10
 
-class JetResponseMakerJetsSparse(enum.Enum):
+class JetResponseMakerJetsSparse(aenum.Enum):
     """ Defines the axes in the AliJetResponseMaker fJets THnSparse """
     kPhi = 0
     kEta = 1
@@ -71,7 +71,7 @@ class JetResponseMakerJetsSparse(enum.Enum):
     kLeadingParticlePP = 4
     kLeadingParticlePbPb = 5
 
-class EventActivity(enum.Enum):
+class EventActivity(aenum.Enum):
     kUndefined = -1
     kCentral = 0
     kSemiCentral = 2
@@ -94,7 +94,7 @@ class EventActivity(enum.Enum):
         tempList = re.findall('[A-Z][^A-Z]*', tempStr)
         return "-".join(tempList)
 
-class RMNormalizationType(enum.Enum):
+class RMNormalizationType(aenum.Enum):
     """ Selects the type of normalization to apply to the RM """
     kNone = 0
     kNormalizeEachDetectorBin = 1
