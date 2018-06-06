@@ -6,6 +6,7 @@
 # date: 8 May 2018
 
 import pytest
+import os
 import ruamel.yaml
 import logging
 # Setup logger
@@ -233,30 +234,34 @@ override:
     data = yaml.load(testYaml)
     return data
 
-def testJetHBaseObjectConstruction(caplog, objectConfig):
+def testJetHBaseObjectConstruction(caplog, objectConfig, monkeypatch):
     """ Test construction of the JetHBase object. """
     (config, selectedAnalysisOptions) = overrideOptionsHelper(objectConfig)
 
-    taskName = "taskName"
-    configFilename = "configFilename"
-    taskConfig = config[taskName]
-    eventPlaneAngle = params.eventPlaneAngle.all
-    configBase = analysisConfig.JetHBase(taskName = taskName,
-            configFilename = configFilename,
-            config = config,
-            taskConfig = taskConfig,
-            energy = selectedAnalysisOptions.collisionEnergy,
-            collisionSystem = selectedAnalysisOptions.collisionSystem,
-            eventActivity = selectedAnalysisOptions.eventActivity,
-            leadingHadronBiasType = selectedAnalysisOptions.leadingHadronBiasType,
-            eventPlaneAngle = eventPlaneAngle,
-            createOutputFolder = False)
+    # Use a monkeypatch to avoid os.makedirs from actually making directories
+    with monkeypatch.context() as m:
+        m.setattr(os, "makedirs", lambda x: None)
+
+        taskName = "taskName"
+        configFilename = "configFilename"
+        taskConfig = config[taskName]
+        eventPlaneAngle = params.eventPlaneAngle.all
+        configBase = analysisConfig.JetHBase(taskName = taskName,
+                configFilename = configFilename,
+                config = config,
+                taskConfig = taskConfig,
+                collisionEnergy = selectedAnalysisOptions.collisionEnergy,
+                collisionSystem = selectedAnalysisOptions.collisionSystem,
+                eventActivity = selectedAnalysisOptions.eventActivity,
+                leadingHadronBiasType = selectedAnalysisOptions.leadingHadronBiasType,
+                eventPlaneAngle = eventPlaneAngle,
+                createOutputFolder = False)
 
     assert configBase.taskName == taskName
     assert configBase.configFilename == configFilename
     assert configBase.config == config
     assert configBase.taskConfig == taskConfig
-    assert configBase.energy == selectedAnalysisOptions.collisionEnergy
+    assert configBase.collisionEnergy == selectedAnalysisOptions.collisionEnergy
     assert configBase.collisionSystem == selectedAnalysisOptions.collisionSystem
     assert configBase.eventActivity == selectedAnalysisOptions.eventActivity
     assert configBase.leadingHadronBiasType == selectedAnalysisOptions.leadingHadronBiasType
