@@ -288,12 +288,10 @@ class JetHBase(object):
         eventActivity (params.eventActivity): Selected event activity.
         leadingHadronBiasType (params.leadingHadronBiasType): Selected leading hadron bias.
         eventPlaneAngle (params.eventPlaneAngle): Selected event plane angle.
-        createOutputFolder (bool): If false, the output folder will _not_ be created. Implemented for
-            use with testing. Default: True.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
-    def __init__(self, taskName, configFilename, config, taskConfig, collisionEnergy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, createOutputFolder = True, *args, **kwargs):
+    def __init__(self, taskName, configFilename, config, taskConfig, collisionEnergy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, *args, **kwargs):
         # Store the configuration
         self.taskName = taskName
         self.configFilename = configFilename
@@ -316,7 +314,7 @@ class JetHBase(object):
         self.outputPrefix = config["outputPrefix"]
         self.outputFilename = config["outputFilename"]
         # Setup output area
-        if not os.path.exists(self.outputPrefix) and createOutputFolder:
+        if not os.path.exists(self.outputPrefix):
             os.makedirs(self.outputPrefix)
 
         self.printingExtensions = config["printingExtensions"]
