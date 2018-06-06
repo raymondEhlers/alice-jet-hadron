@@ -18,6 +18,39 @@ logger = logging.getLogger(__name__)
 import jetH.base.genericConfig as genericConfig
 import jetH.base.params as params
 
+def unrollNestedDict(d, keys = None):
+    """ Unroll (flatten) an analysis object dictionary, yielding the keys
+    to get to the analysis object, as well as the object itself. Note that
+    this function is designed to be called recurisvely.
+
+    Args:
+        d (dict): Analysis dictionary to unroll (flatten)
+        keys (list): Keys navigated to get to the analysis object
+    Returns:
+        tuple: (list of keys to get to the object, the object)
+    """
+    if keys is None:
+        keys = []
+    #logger.debug("d: {}".format(d))
+    for k, v in iteritems(d):
+        #logger.debug("k: {}, v: {}".format(k, v))
+        #logger.debug("keys: {}".format(keys))
+        # We need a copy of keys before we append to ensure that we don't
+        # have the final keys build up (ie. first yield [a], next [a, b], then [a, b, c], etc...)
+        copyOfKeys = keys[:]
+        copyOfKeys.append(k)
+
+        if isinstance(v, dict):
+            #logger.debug("v is a dict!")
+            # Could be `yield from`, but then it wouldn't work in python 2.
+            # We take a small performance hit here, but it's fine.
+            # See: https://stackoverflow.com/a/38254338
+            for val in unrollNestedDict(d = v, keys = copyOfKeys):
+                yield val
+        else:
+            #logger.debug("Yielding {}".format(v))
+            yield (copyOfKeys, v)
+
 def overrideOptions(config, selectedOptions, configContainingOverride = None):
     """ Override options for the jet-hadron analysis.
 
@@ -91,14 +124,14 @@ def determineSelectedOptionsFromKwargs(description = "Jet-hadron {taskName}", ad
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
-    selectedAnalysisOptions = params.selectedAnalysisOptions(energy = args.energy,
+    selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = args.energy,
             collisionSystem = args.collisionSystem,
             eventActivity = args.eventActivity,
             leadingHadronBiasType = args.biasType)
     return (args.configFilename, selectedAnalysisOptions, args)
 
 def validateArguments(selectedArgs, validateExtraArgsFunc = None):
-    """ Validate arguments passed to the analysis task.
+    """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
 
     Args:
         selectedArgs (params.selectedAnalysisOptions): Selected analysis options from args or otherwise.
@@ -110,7 +143,7 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     """
 
     # Energy. Default: 2.76
-    energy = selectedArgs.energy if selectedArgs.energy else 2.76
+    energy = selectedArgs.collisionEnergy if selectedArgs.collisionEnergy else 2.76
     # Retrieves the enum by value
     energy = params.collisionEnergy(energy)
     # Collision system. Default: PbPb
@@ -128,7 +161,7 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     if validateExtraArgsFunc:
         additionalValidatedArgs.update(validateExtraArgsFunc())
 
-    selectedAnalysisOptions = params.selectedAnalysisOptions(energy =energy,
+    selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = energy,
             collisionSystem = collisionSystem,
             eventActivity = eventActivity,
             leadingHadronBiasType = leadingHadronBiasType)
@@ -251,10 +284,12 @@ class JetHBase(object):
         eventActivity (params.eventActivity): Selected event activity.
         leadingHadronBiasType (params.leadingHadronBiasType): Selected leading hadron bias.
         eventPlaneAngle (params.eventPlaneAngle): Selected event plane angle.
+        createOutputFolder (bool): If false, the output folder will _not_ be created. Implemented for
+            use with testing. Default: True.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
-    def __init__(self, taskName, configFilename, config, taskConfig, energy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, *args, **kwargs):
+    def __init__(self, taskName, configFilename, config, taskConfig, energy, collisionSystem, eventActivity, leadingHadronBiasType, eventPlaneAngle, createOutputFolder = True, *args, **kwargs):
         # Store the configuration
         self.taskName = taskName
         self.configFilename = configFilename
@@ -274,8 +309,8 @@ class JetHBase(object):
         self.outputPrefix = config["outputPrefix"]
         self.outputFilename = config["outputFilename"]
         # Setup output area
-        if not os.path.exists(outputPrefix):
-            os.makedirs(outputPrefix)
+        if not os.path.exists(self.outputPrefix) and createOutputFolder:
+            os.makedirs(self.outputPrefix)
 
         self.printingExtensions = config["printingExtensions"]
         self.aliceLabelType = config["aliceLabelType"]
@@ -293,33 +328,4 @@ def createFromTerminal(obj, taskName, additionalIterators = None):
             selectedAnalysisOptions = terminalArgs,
             obj = obj,
             additionalIterators = additionalIterators)
-
-def unrollNestedDict(d, keys = None):
-    """
-
-    Args:
-
-    Returns:
-    """
-    if keys is None:
-        keys = []
-    #logger.debug("d: {}".format(d))
-    for k, v in iteritems(d):
-        #logger.debug("k: {}, v: {}".format(k, v))
-        #logger.debug("keys: {}".format(keys))
-        if isinstance(v, dict):
-            keys.append(k)
-            #logger.debug("v is a dict!")
-            # Could be `yield from`, but then it wouldn't work in python 2.
-            # We take a small performance hit here, but it's fine.
-            # See: https://stackoverflow.com/a/38254338
-            for val in unrollNestedDict(d = v, keys = keys):
-                yield val
-        else:
-            # We need a copy of keys before we append to ensure that we don't
-            # have the final keys build up (ie. first yield [a], next [a, b], then [a, b, c], etc...)
-            copyOfKeys = keys[:]
-            copyOfKeys.append(k)
-            #logger.debug("Yielding {}".format(v))
-            yield (copyOfKeys, v)
 

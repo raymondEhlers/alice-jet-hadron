@@ -313,7 +313,7 @@ class leadingHadronBias(enum.Enum):
     def get(name, collisionEnergy, eventActivity):
         pass
 
-selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["energy",
+selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
             "collisionSystem",
             "eventActivity",
             "leadingHadronBiasType"])
