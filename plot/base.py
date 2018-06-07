@@ -5,6 +5,7 @@
 ######################
 
 import os
+import collections
 # Setup logger
 import logging
 logger = logging.getLogger(__name__)
@@ -34,34 +35,76 @@ class plottingOutputWrapper(object):
         self.printingExtensions = printingExtensions
 
 def saveCanvas(obj, canvas, outputPath):
-    """ Loop over all requested file extensions and save the canvas. """
-    saveCanvasImpl(canvas, obj.outputPrefix, outputPath, obj.printingExtensions)
+    """ Loop over all requested file extensions and save the canvas.
+
+    Args:
+        obj (plottingOutputWrapper or similar): Contains the outputPrefix and printingExtensions
+        canvas (ROOT.TCanvas): Canvas on which the plot was drawn.
+        outputPath (str): Filename under which the plot should be saved, but without the file extension.
+    Returns:
+        list: Filenames under which the plot was saved.
+    """
+    return saveCanvasImpl(canvas, obj.outputPrefix, outputPath, obj.printingExtensions)
 
 def savePlot(obj, figure, outputPath):
-    """ Save the current plot in matplotlib. """
-    savePlotImpl(figure, obj.outputPrefix, outputPath, obj.printingExtensions)
+    """ Save the current plot in matplotlib.
+
+    Args:
+        obj (plottingOutputWrapper or similar): Contains the outputPrefix and printingExtensions
+        figure (matplotlib.Figure): Figure on which the plot was drawn.
+        outputPath (str): Filename under which the plot should be saved, but without the file extension.
+    Returns:
+        list: Filenames under which the plot was saved.
+    """
+    return savePlotImpl(figure, obj.outputPrefix, outputPath, obj.printingExtensions)
 
 # Base functions
 def saveCanvasImpl(canvas, outputPrefix, outputPath, printingExtensions):
-    """ Implementation of generic save canvas function.
+    """ Implementation of generic save canvas function. It loops over all requested file
+    extensions and save the ROOT canvas.
+
     Cannot be named the same because python won't differeniate by number of arguments.
 
-    Loop over all requested file extensions and save the canvas. """
+    Args:
+        canvas (ROOT.TCanvas): Canvas on which the plot was drawn.
+        outputPrefix (str): File path to where files should be saved.
+        outputPath (str): Filename under which the plot should be saved, but without the file extension.
+        printingExtensions (list): List of file extensions under which plots should be saved. They should
+            not contain the dot!
+    Returns:
+        list: Filenames under which the plot was saved.
+    """
+    filenames = []
     for extension in printingExtensions:
         filename = os.path.join(outputPrefix, outputPath + "." + extension)
         # Probably don't want this log message since ROOT will also generate a message
         #logger.debug("Saving ROOT canvas to \"{}\"".format(filename))
         canvas.SaveAs(filename)
+        filenames.append(filename)
+    return filenames
 
 def savePlotImpl(fig, outputPrefix, outputPath, printingExtensions):
-    """ Implementation of generic save plot function.
+    """ Implementation of generic save plot function. It loops over all requested file
+    extensions and save the matplotlib fig.
+
     Cannot be named the same because python won't differeniate by number of arguments.
 
-    Loop over all requested file extensions and save the matplotlib fig. """
+    Args:
+        fig (matplotlib.figure): Figure on which the plot was drawn.
+        outputPrefix (str): File path to where files should be saved.
+        outputPath (str): Filename under which the plot should be saved, but without the file extension.
+        printingExtensions (list): List of file extensions under which plots should be saved. They should
+            not contain the dot!
+    Returns:
+        list: Filenames under which the plot was saved.
+    """
+    filenames = []
     for extension in printingExtensions:
         filename = os.path.join(outputPrefix, outputPath + "." + extension)
         logger.debug("Saving matplotlib figure to \"{}\"".format(filename))
         fig.savefig(filename)
+        filenames.append(filename)
+    return filenames
 
 # ROOT 6 default color scheme
 # Colors extracted from [TColor::SetPalette()](https://root.cern.ch/doc/master/TColor_8cxx_source.html#l02209):
@@ -86,11 +129,14 @@ plt.register_cmap(name = birdRoot.name, cmap = birdRoot)
 def prepareColormap(colormap):
     """ Apply fix to colormaps to remove the need for transparency.
 
-    Since transparency is not support EPS, we change "bad" values (such as nan) from (0,0,0,0)
-    (this value can be accessed via `cm._rgba_bad`) to white with alpha = 1 (no transparency)
+    Since transparency is not support EPS, we change "bad" values (such as NaN in a plot)
+    from (0,0,0,0) (this value can be accessed via `cm._rgba_bad`) to white with
+    alpha = 1 (no transparency).
 
     Args:
         colormap (matplotlib.colors colormap): Colormap used to map data to colors.
+    Returns:
+        colormap: The updated colormap.
     """
     # Set bad values to white instead of transparent because EPS doesn't support transparency
     colormap.set_bad("w",1)
