@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Tests for the params. Developed to work with pytest.
+# Tests for analysis params.
 #
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
@@ -91,8 +91,10 @@ def testIterateOverJetAndTrackPtBinsWithConfig(caplog):
     skipTrackPtBins = [2, 6]
     comparisonBins = [(x,y) for x in getRangeFromBinArray(params.jetPtBins) for y in getRangeFromBinArray(params.trackPtBins) if not x in skipJetPtBins and not y in skipTrackPtBins]
     config = {"skipPtBins": {"jet" : skipJetPtBins, "track" : skipTrackPtBins}}
-    assert list(params.iterateOverJetAndTrackPtBins(config = config)) == comparisonBins
+    # Check that the comparison bins are as expected.
     assert comparisonBins == [(1, 0), (1, 1), (1, 3), (1, 4), (1, 5), (1, 7), (1, 8), (2, 0), (2, 1), (2, 3), (2, 4), (2, 5), (2, 7), (2, 8)]
+    # Then check the actual output.
+    assert list(params.iterateOverJetAndTrackPtBins(config = config)) == comparisonBins
 
 def testOutOfRangeSkipBin(caplog):
     """ Test that an except is generated if a skip bin is out of range.
@@ -104,63 +106,56 @@ def testOutOfRangeSkipBin(caplog):
 
     skipBins = [2, 38]
     config = {"skipPtBins" : {"track" : skipBins}}
-    caughtExpectedException = False
-    exceptionValue = None
-    try:
+    with pytest.raises(ValueError) as exceptionInfo:
         list(params.iterateOverTrackPtBins(config = config))
-    except ValueError as e:
-        caughtExpectedException = True
-        # The first arg is the value which caused the ValueError.
-        exceptionValue = e.args[0]
-
-    # An exception should be thrown for the scond value, which is out of range.
-    assert caughtExpectedException == True
-    # The exception should have returned the value it failed on.
-    assert exceptionValue == skipBins[1]
+    # NOTE: ExecptionInfo is a wrapper around the exception. `.value` is the actual exectpion
+    #       and then we want to check the value of the first arg, which contains the value
+    #       that causes the exception.
+    assert exceptionInfo.value.args[0] == skipBins[1]
 
 #############
 # Label tests
 #############
-def testRootLatexConversion(caplog):
+@pytest.mark.parametrize("value, expected", [
+        (r"\textbf{test}", r"#textbf{test}"),
+        (r"$\mathrm{test}$", r"#mathrm{test}")
+    ], ids = ["just latex", "latex in math mode"])
+def testRootLatexConversion(value, expected, caplog):
     """ Test converting latex to ROOT compatiable latex. """
     caplog.set_level(loggingLevel)
 
-    assert params.useLabelWithRoot(r"\textbf{test}") == r"#textbf{test}"
-    assert params.useLabelWithRoot(r"$\mathrm{test}$") == r"#mathrm{test}"
+    assert params.useLabelWithRoot(value) == expected
 
-def testAliceLabel(caplog):
-    """ Tests for ALICE labeling. """
+@pytest.mark.parametrize("label, expected", [
+        ("workInProgress", {"str" : "ALICE Work in Progress"}),
+        ("preliminary", {"str" : "ALICE Preliminary"}),
+        ("final", {"str" : "ALICE"}),
+        ("thesis", {"str" : "This thesis"})
+    ], ids = ["workInProgress", "preliminary", "final", "thesis"])
+def testAliceLabel(label, expected, caplog):
+    """ Tests ALICE labeling. """
     caplog.set_level(loggingLevel)
 
-    testParams = [
-            ("workInProgress", {"str" : "ALICE Work in Progress"}),
-            ("preliminary", {"str" : "ALICE Preliminary"}),
-            ("final", {"str" : "ALICE"}),
-            ("thesis", {"str" : "This thesis"})
-        ]
+    aliceLabel = params.aliceLabel[label]
+    assert aliceLabel.str() == expected["str"]
 
-    for label, expected in testParams:
-        aliceLabel = params.aliceLabel[label]
-        assert aliceLabel.str() == expected["str"]
-
-def testTrackPtStrings(caplog):
+@pytest.mark.parametrize("ptBin", params.iterateOverTrackPtBins())
+def testTrackPtStrings(ptBin, caplog):
     """ Test the track pt string generation functions. Each bin is tested.  """
     caplog.set_level(loggingLevel)
 
-    for ptBin in params.iterateOverTrackPtBins():
-        print(ptBin)
-        assert params.generateTrackPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.trackPtBins[ptBin], "upper" : params.trackPtBins[ptBin+1]}
+    assert params.generateTrackPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.trackPtBins[ptBin], "upper" : params.trackPtBins[ptBin+1]}
 
-def testJetPtString(caplog):
+# We retrieve the generator as a list and cut off the last value because we need
+# to handle it separately in testJetPtStringForLastPtBin()
+@pytest.mark.parametrize("ptBin", list(params.iterateOverJetPtBins())[:-1])
+def testJetPtString(ptBin, caplog):
     """ Test the jet pt string generation functions. Each bin (except for the last) is tested.
     The last pt bin is left for a separate test because it is printed differently. (See testJetPtStringForLastPtBin())
     """
     caplog.set_level(loggingLevel)
 
-    # We retrieve the generator as a list and cut off the last value because we need
-    # to handle it separately in testJetPtStringForLastPtBin()
-    for ptBin in list(params.iterateOverJetPtBins())[:-1]:
-        assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin], "upper" : params.jetPtBins[ptBin+1]}
+    assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin], "upper" : params.jetPtBins[ptBin+1]}
 
 def testJetPtStringForLastPtBin(caplog):
     """ Test the jet pt string generation function for the last jet pt bin.
@@ -172,37 +167,20 @@ def testJetPtStringForLastPtBin(caplog):
     ptBin = len(params.jetPtBins) - 2
     assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin]}
 
-def testSystemLabel(caplog):
+@pytest.mark.parametrize("energy, system, activity, expected", [
+        (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
+        (2.76, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
+        (2.76, "PbPb", "semiCentral", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"),
+        (5.02, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
+        ("fiveZeroTwo", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
+        ("5.02", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
+        (params.collisionEnergy.fiveZeroTwo, params.collisionSystem.PbPb, params.eventActivity.central, r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$")
+    ], ids = ["Inclusive pp", "Central PbPb", "Semi-central PbPb", "Central PbPb at 5.02", "Energy as string fiveZeroTwo", "Energy as string \"5.02\"", "Using enums directly"])
+def testSystemLabel(energy, system, activity, expected, caplog):
     """ Test system labels. """
     caplog.set_level(loggingLevel)
 
-    # Inclusive pp
-    assert params.systemLabel(energy = 2.76,
-            system = "pp",
-            activity = "inclusive") == r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"
-    # Central PbPb
-    assert params.systemLabel(energy = 2.76,
-            system = "PbPb",
-            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-    # SemiCentral PbPb
-    assert params.systemLabel(energy = 2.76,
-            system = "PbPb",
-            activity = "semiCentral") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"
-    # Central PbPb at 5.02
-    assert params.systemLabel(energy = 5.02,
-            system = "PbPb",
-            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-    # Energy as str
-    assert params.systemLabel(energy = "fiveZeroTwo",
-            system = "PbPb",
-            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-    assert params.systemLabel(energy = "5.02",
-            system = "PbPb",
-            activity = "central") == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
-    # Using enums directly
-    assert params.systemLabel(energy = params.collisionEnergy.fiveZeroTwo,
-            system = params.collisionSystem.PbPb,
-            activity = params.eventActivity.central) == r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"
+    assert params.systemLabel(energy = energy, system = system, activity = activity) == expected
 
 def testJetPropertiesLabels(caplog):
     """ Test the jet properties labels. """
@@ -221,123 +199,147 @@ def testJetPropertiesLabels(caplog):
     assert leadingHadron == leadingHadronExpected
     assert jetPt == jetPtExpected
 
-def testCollisionEnergy(caplog):
+@pytest.mark.parametrize("energy, expected", [
+        (params.collisionEnergy(2.76),
+            {"str" : "2.76",
+                "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}",
+                "value" : 2.76}),
+        (params.collisionEnergy["twoSevenSix"],
+            {"str" : "2.76",
+                "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}",
+                "value" : 2.76}),
+        (params.collisionEnergy(5.02),
+            {"str" : "5.02",
+                "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV}",
+                "value" : 5.02})
+    ], ids = ["2.76 standard", "twoSevenSix alternative intialization", "5.02 standard"])
+def testCollisionEnergy(energy, expected, caplog):
     """ Test collision energy values. """
     caplog.set_level(loggingLevel)
 
-    output276 = {"str" : "2.76", "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}", "value" : 2.76}
-    output502 = {"str" : "5.02", "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV}", "value" : 5.02}
-    testParams = [
-            # Default test
-            (params.collisionEnergy(2.76), output276),
-            # Test alternative initialization
-            (params.collisionEnergy["twoSevenSix"], output276),
-            # Test different energy
-            (params.collisionEnergy(5.02), output502)
-        ]
+    assert str(energy) == expected["str"]
+    assert energy.str() == expected["str"]
+    assert energy.displayStr() == expected["displayStr"]
+    assert energy.value == expected["value"]
 
-    for energy, expected in testParams:
-        assert str(energy) == expected["str"]
-        assert energy.str() == expected["str"]
-        assert energy.displayStr() == expected["displayStr"]
-        assert energy.value == expected["value"]
-
-def testCollisionSystem(caplog):
+@pytest.mark.parametrize("system, expected", [
+        (params.collisionSystem["pp"],
+            {"str" : "pp",
+                "displayStr" : "pp"}),
+        (params.collisionSystem["pythia"],
+            {"str" : "pythia",
+                "displayStr" : "PYTHIA"}),
+        (params.collisionSystem["PbPb"],
+            {"str" : "PbPb",
+                "displayStr" : params.PbPbLatexLabel}),
+        (params.collisionSystem["embedPP"],
+            {"str" : "embedPP",
+                "displayStr" : r"pp \bigotimes %(PbPb)s" % {"PbPb" : params.PbPbLatexLabel}})
+    ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
+def testCollisionSystem(system, expected, caplog):
     """ Test collision system values. """
     caplog.set_level(loggingLevel)
 
-    testParams = [
-            # Default tests
-            (params.collisionSystem["pp"], {"str" : "pp", "displayStr" : "pp"}),
-            (params.collisionSystem["pythia"], {"str" : "pythia", "displayStr" : "PYTHIA"}),
-            (params.collisionSystem["PbPb"], {"str" : "PbPb", "displayStr" : params.PbPbLatexLabel}),
-            # Test embedded system
-            (params.collisionSystem["embedPP"], {"str" : "embedPP", "displayStr" : r"pp \bigotimes %(PbPb)s" % {"PbPb" : params.PbPbLatexLabel}})
-        ]
+    assert str(system) == expected["str"]
+    assert system.str() == expected["str"]
+    assert system.displayStr() == expected["displayStr"]
 
-    for system, expected in testParams:
-        assert str(system) == expected["str"]
-        assert system.str() == expected["str"]
-        assert system.displayStr() == expected["displayStr"]
-
-def testEventActivity(caplog):
+@pytest.mark.parametrize("activity, expected", [
+        (params.eventActivity["inclusive"],
+            { "str" : "inclusive",
+                "displayStr" : "",
+                "range" : params.selectedRange(min = -1, max = -1)}),
+        (params.eventActivity["central"],
+            { "str" : "central",
+                "displayStr" : r",\:0\mbox{-}10\mbox{\%}",
+                "range" : params.selectedRange(min = 0, max = 10)}),
+        (params.eventActivity["semiCentral"],
+            { "str" : "semiCentral",
+                "displayStr" : r",\:30\mbox{-}50\mbox{\%}",
+                "range" : params.selectedRange(min = 30, max = 50)})
+    ], ids = ["inclusive", "central", "semiCentral"])
+def testEventActivity(activity, expected, caplog):
     """ Test event activity values. """
     caplog.set_level(loggingLevel)
 
-    testParams = [
-            (params.eventActivity["inclusive"], {
-                    "str" : "inclusive",
-                    "displayStr" : "",
-                    "range" : params.selectedRange(min = -1, max = -1)
-                }),
-            (params.eventActivity["central"], {
-                    "str" : "central",
-                    "displayStr" : r",\:0\mbox{-}10\mbox{\%}",
-                    "range" : params.selectedRange(min = 0, max = 10)
-                }),
-            (params.eventActivity["semiCentral"], {
-                    "str" : "semiCentral",
-                    "displayStr" : r",\:30\mbox{-}50\mbox{\%}",
-                    "range" : params.selectedRange(min = 30, max = 50)
-                })
-            ]
+    assert str(activity) == expected["str"]
+    assert activity.str() == expected["str"]
+    assert activity.displayStr() == expected["displayStr"]
+    assert activity.range() == expected["range"]
 
-    for activity, expected in testParams:
-        assert str(activity) == expected["str"]
-        assert activity.str() == expected["str"]
-        assert activity.displayStr() == expected["displayStr"]
-        assert activity.range() == expected["range"]
-
-def testLeadingHadron(caplog):
-    """ Test determining the leading hadron bias. """
+@pytest.mark.parametrize("bias, expected", [
+        ("NA", {"str" : "NA"}),
+        ("track", {"str" : "track"}),
+        ("cluster", {"str" : "cluster"}),
+        ("both", {"str" : "both"})
+    ], ids = ["NA", "track", "cluster", "both"])
+def testLeadingHadronBiasType(bias, expected, caplog):
+    """ Test the leading hadron bias enum. """
     caplog.set_level(loggingLevel)
 
-    assert False
+    bias = params.leadingHadronBiasType[bias]
+    assert str(bias) == expected["str"]
+    assert bias.str() == expected["str"]
 
-def testEventPlaneAngleStrings(caplog):
+@pytest.mark.parametrize("type, value, expected", [
+        ("NA", 0, {"filenameStr" : "NA0"}),
+        ("NA", 5, {"value" : 0, "filenameStr" : "NA0"}),
+        ("track", 5, {"filenameStr" : "track5"}),
+        ("cluster", 6, {"filenameStr" : "cluster6"}),
+        ("both", 10, {"filenameStr" : "both10"})
+    ], ids = ["NA", "NAPassedWrongValue", "track", "cluster", "both"])
+def testLeadingHadronBias(type, value, expected, caplog):
+    """ Test the leading hadron bias class. """
+    caplog.set_level(loggingLevel)
+
+    type = params.leadingHadronBiasType[type]
+    bias = params.leadingHadronBias(type = type, value = value)
+    # Handle value with a bit of care in the case of "NAPassedWrongValue"
+    value = expected["value"] if "value" in expected else value
+    assert bias.type == type
+    assert bias.value == value
+    assert bias.filenameStr() == expected["filenameStr"]
+
+@pytest.mark.parametrize("epAngle, expected", [
+        ("all",
+            {"str" : "all",
+                "filenameStr" : "eventPlaneAll",
+                "displayStr" : "All"}),
+        ("outOfPlane",
+            {"str" : "outOfPlane",
+                "filenameStr" : "eventPlaneOutOfPlane",
+                "displayStr" : "Out-of-plane"})
+    ], ids = ["epAngleAll", "epAngleOutOfPlane"])
+def testEventPlaneAngleStrings(epAngle, expected, caplog):
     """ Test event plane angle strings. """
     caplog.set_level(loggingLevel)
 
-    # Also test out of plane, with args something like
-    tests = [
-        (params.eventPlaneAngle.all,
+    epAngle = params.eventPlaneAngle[epAngle]
+    assert str(epAngle) == expected["str"]
+    assert epAngle.str() == expected["str"]
+    assert epAngle.filenameStr() == expected["filenameStr"]
+    assert epAngle.displayStr() == expected["displayStr"]
+
+@pytest.mark.parametrize("qVector, expected", [
+        ("all",
             {"str" : "all",
-             "filenameStr" : "eventPlaneAll",
-             "displayStr" : "All"}),
-        (params.eventPlaneAngle.outOfPlane,
-            {"str" : "outOfPlane",
-             "filenameStr" : "eventPlaneOutOfPlane",
-             "displayStr" : "Out-of-plane"})
-        ]
-
-    for angle, testValues in tests:
-        assert str(angle) == testValues["str"]
-        assert angle.str() == testValues["str"]
-        assert angle.filenameStr() == testValues["filenameStr"]
-        assert angle.displayStr() == testValues["displayStr"]
-
-def testQVectorStrings(caplog):
+                "filenameStr" : "qVectorAll",
+                "displayStr" : "All",
+                "range" : params.selectedRange(min = 0, max = 100)}),
+        ("bottom10",
+            {"str" : "bottom10",
+                "filenameStr" : "qVectorBottom10",
+                "displayStr" : "Bottom 10%",
+                "range" : params.selectedRange(min = 0, max = 10)})
+    ], ids = ["qVectorAll", "qVectorBottom10"])
+def testQVectorStrings(qVector, expected, caplog):
     """ Test q vector strings. """
     caplog.set_level(loggingLevel)
 
-    # Also test out of plane, with args something like
-    tests = [
-        (params.qVector.all,
-            {"str" : "all",
-             "filenameStr" : "qVectorAll",
-             "displayStr" : "All",
-             "range" : params.selectedRange(min = 0, max = 100)}),
-        (params.qVector.bottom10,
-            {"str" : "bottom10",
-             "filenameStr" : "qVectorBottom10",
-             "displayStr" : "Bottom 10%",
-             "range" : params.selectedRange(min = 0, max = 10)})
-        ]
-
-    for qVec, testValues in tests:
-        assert str(qVec) == testValues["str"]
-        assert qVec.str() == testValues["str"]
-        assert qVec.filenameStr() == testValues["filenameStr"]
-        assert qVec.displayStr() == testValues["displayStr"]
-        assert qVec.range() == testValues["range"]
+    qVector = params.qVector[qVector]
+    assert str(qVector) == expected["str"]
+    assert qVector.str() == expected["str"]
+    assert qVector.filenameStr() == expected["filenameStr"]
+    assert qVector.displayStr() == expected["displayStr"]
+    assert qVector.range() == expected["range"]
 
