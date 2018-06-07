@@ -86,6 +86,7 @@ setup(
     # Test packages
     tests_require = [
         "pytest",
-        "pytest-cov"
+        "pytest-cov",
+        "pytest-mock"
     ]
   )
