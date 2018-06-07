@@ -214,15 +214,27 @@ def jetPropertiesLabel(jetPtBin):
     jetPt = generateJetPtRangeString(jetPtBin)
     return (jetFinding, constituentCuts, leadingHadron, jetPt)
 
-##############
-# Named tuples
-##############
+##################
+# Analysis Options
+##################
+# These options specify the base of what is necessary to
+# define an analysis.
+##################
+
+#########################
+## Helpers and containers
+#########################
+# NOTE: The leadingHadronBias field is often the leadingHadronBiasType enum, but it can also
+#       be the `leadingHadronBias` class
 selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
             "collisionSystem",
             "eventActivity",
-            "leadingHadronBiasType"])
+            "leadingHadronBias"])
 selectedRange = collections.namedtuple("selectedRange", ["min", "max"])
 
+#########
+# Classes
+#########
 class collisionEnergy(aenum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
@@ -253,9 +265,6 @@ class collisionSystem(aenum.Enum):
     pPb = r"pPb"
     PbPb = "%(PbPb)s" % {"PbPb" : PbPbLatexLabel}
 
-    #def __str__(self):
-    #    """ Return the name of the value without the appended "k". This is just a convenience function """
-    #    return str(self.name.replace("k", "", 1))
     def __str__(self):
         """ Return a string of the name of the system. """
         return self.name
@@ -311,29 +320,58 @@ class leadingHadronBiasType(aenum.Enum):
     cluster = 1
     both = 2
 
-    #def __str__(self):
-    #    """ Return the name of the value without the appended "k". This is just a convenience function """
-    #    return str(self.name.replace("k", "", 1))
-
     def __str__(self):
-        """ Return the type and value, such as "cluster6" or "track5". """
-        return "{name}{value}".format(name = self.name, value = self.value)
+        """ Return the name of the bias. It must be just the name for the config override to work properly. """
+        return self.name
 
     def str(self):
         """ Helper function to return str by calling explicitly """
         return self.__str__()
 
-class leadingHadronBias(aenum.Enum):
-    NA = -1
-    track = 5
-    clusterSemiCentral = 6
-    clusterCentral = 10
+# For use with overriding configuration values
+setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
+            collisionSystem,
+            eventActivity,
+            leadingHadronBiasType)
 
-    # TODO: Implement the value of the leading hadron bias, which depends
-    #       on the type, collision energy, and event activity
-    def get(name, collisionEnergy, eventActivity):
-        pass
+########################
+# Final anaylsis options
+########################
+# These classes are used for final analysis # specification, building
+# on the analysis specification objects specified above.
+########################
+class leadingHadronBias(object):
+    """ Full leading hadron bias class, which specifies both the type as well as the value.
+    The enum exists to be specified when creating an analysis object, and then the value is
+    determined by the selected analysis options (including that enum). This object then
+    supercedes the leadingHadronBiasType enum, storing both the type and value.
 
+    For determining the actual value, see anaylsisConfig.determineLeadingHadronBias(...)
+
+    Args:
+        type (params.leadingHadronBiasType): Type of leading hadron bias.
+        value (float): Value of the leading hadron bias.
+    """
+    def __init__(self, type, value):
+        self.type = type
+        # If the leadingHadronBias is disabled, then the value is irrelevant and
+        # should be set to 0.
+        if self.type == leadingHadronBiasType.NA:
+            value = 0
+        self.value = value
+
+    def filenameStr(self):
+        """ Return the type and value, such as "cluster6" or "track5". """
+        return "{type}{value}".format(type = self.type, value = self.value)
+
+##############################
+# Additional selection options
+##############################
+# These are distinct from the above because they do not need to be used
+# to specify a configuration. Thus, they don't need to be looped over.
+# Instead, they are stored in a particular analysis object and used as
+# analysis options.
+##############################
 class eventPlaneAngle(aenum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
@@ -394,5 +432,6 @@ class qVector(aenum.Enum):
         retVal = uppercaseFirstLetter(" ".join(tempList))
         if self.name != "all":
             retVal += "%"
-        # Remove entra space after "All". Doesn't matter for the other values.
+        # rstrip() is to remove entra space after "All". Doesn't matter for the other values.
         return retVal.rstrip(" ")
+
