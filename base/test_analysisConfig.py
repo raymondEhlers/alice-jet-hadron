@@ -234,28 +234,27 @@ override:
     data = yaml.load(testYaml)
     return data
 
-def testJetHBaseObjectConstruction(caplog, objectConfig, monkeypatch):
+def testJetHBaseObjectConstruction(caplog, objectConfig, mocker):
     """ Test construction of the JetHBase object. """
     (config, selectedAnalysisOptions) = overrideOptionsHelper(objectConfig)
 
-    # Use a monkeypatch to avoid os.makedirs from actually making directories
-    with monkeypatch.context() as m:
-        m.setattr(os, "makedirs", lambda x: None)
+    # Avoid os.makedirs actually making directories
+    mocker.patch("os.makedirs")
 
-        taskName = "taskName"
-        configFilename = "configFilename"
-        taskConfig = config[taskName]
-        eventPlaneAngle = params.eventPlaneAngle.all
-        configBase = analysisConfig.JetHBase(taskName = taskName,
-                configFilename = configFilename,
-                config = config,
-                taskConfig = taskConfig,
-                collisionEnergy = selectedAnalysisOptions.collisionEnergy,
-                collisionSystem = selectedAnalysisOptions.collisionSystem,
-                eventActivity = selectedAnalysisOptions.eventActivity,
-                leadingHadronBiasType = selectedAnalysisOptions.leadingHadronBiasType,
-                eventPlaneAngle = eventPlaneAngle,
-                createOutputFolder = False)
+    taskName = "taskName"
+    configFilename = "configFilename"
+    taskConfig = config[taskName]
+    eventPlaneAngle = params.eventPlaneAngle.all
+    configBase = analysisConfig.JetHBase(taskName = taskName,
+            configFilename = configFilename,
+            config = config,
+            taskConfig = taskConfig,
+            collisionEnergy = selectedAnalysisOptions.collisionEnergy,
+            collisionSystem = selectedAnalysisOptions.collisionSystem,
+            eventActivity = selectedAnalysisOptions.eventActivity,
+            leadingHadronBiasType = selectedAnalysisOptions.leadingHadronBiasType,
+            eventPlaneAngle = eventPlaneAngle,
+            createOutputFolder = False)
 
     assert configBase.taskName == taskName
     assert configBase.configFilename == configFilename
