@@ -57,8 +57,9 @@ def testSavePlot(caplog, setupSaveTests):
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.savePlot(obj, figure, filename)
-    expectedFilenames = [name.format(filename = filename) for name in expectedFilenames]
-    assert filenames == expectedFilenames
+    figure.savefig.assert_called()
+
+    assert filenames == [name.format(filename = filename) for name in expectedFilenames]
  
 def testSaveCanvas(caplog, setupSaveTests):
     """ Test the wrapper for saving a ROOT canvas. """
@@ -66,8 +67,9 @@ def testSaveCanvas(caplog, setupSaveTests):
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.saveCanvas(obj, canvas, filename)
-    expectedFilenames = [name.format(filename = filename) for name in expectedFilenames]
-    assert filenames == expectedFilenames
+    canvas.SaveAs.assert_called()
+
+    assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
 def testSavePlotImpl(caplog, setupSaveTests):
     """ Test the implementation for saving a matplotlib plot. """
@@ -75,8 +77,9 @@ def testSavePlotImpl(caplog, setupSaveTests):
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.savePlotImpl(figure, obj.outputPrefix, filename, obj.printingExtensions)
-    expectedFilenames = [name.format(filename = filename) for name in expectedFilenames]
-    assert filenames == expectedFilenames
+    figure.savefig.assert_called()
+
+    assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
 def testSaveCanvasImpl(caplog, mocker, setupSaveTests):
     """ Test the implementation for saving a ROOT canvas. """
@@ -84,8 +87,9 @@ def testSaveCanvasImpl(caplog, mocker, setupSaveTests):
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.saveCanvasImpl(canvas, obj.outputPrefix, filename, obj.printingExtensions)
-    expectedFilenames = [name.format(filename = filename) for name in expectedFilenames]
-    assert filenames == expectedFilenames
+    canvas.SaveAs.assert_called()
+
+    assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
 def testRegistrationOfKBirdColormap(caplog):
     """ Test to ensure that the ROOT kBird colormap is registered in matplotlib successfully. """
