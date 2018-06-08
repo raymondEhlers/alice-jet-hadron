@@ -121,8 +121,7 @@ def testOverrideRetrieveUnrelatedValue(caplog, basicConfig):
     assert basicConfig[valueName] == valueBeforeOverride
 
 def testOverrideWithBasicConfig(caplog, basicConfig):
-    """ Test override with the basic config.
-    """
+    """ Test override with the basic config.  """
     caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
@@ -166,17 +165,11 @@ def testForUnmatchedKeys(caplog, basicConfig):
     # Add entry that will cause the exception.
     basicConfig = basicConfigException(basicConfig)
 
-    # Process and note the exception
-    caughtExpectedException = False
-    exceptionValue = None
-    try:
+    # Will fail the test if it _doesn't_ throw an exception.
+    with pytest.raises(KeyError) as exceptionInfo:
         basicConfig = overrideData(basicConfig)
-    except KeyError as e:
-        caughtExpectedException = True
-        # The first arg is the key which caused the KeyError.
-        exceptionValue = e.args[0]
-
-    assert caughtExpectedException == True
+    # This is the value that we expected to fail.
+    assert exceptionInfo.value.args[0] == "testException"
 
 def testComplexObjectOverride(caplog, basicConfig):
     """ Test override with complex objects.
