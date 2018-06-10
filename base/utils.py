@@ -4,11 +4,14 @@
 
 # From the future package
 from builtins import range
+from future.utils import iteritems
 
 import collections
 import logging
 # Setup logger
 logger = logging.getLogger(__name__)
+
+import numpy as np
 
 import root_numpy
 import rootpy
@@ -23,23 +26,44 @@ epsilon = 1e-5
 ###################
 # Utility functions
 ###################
-def getHistogramsInList(filename, listTaskName = "AliAnalysisTaskJetH_tracks_caloClusters_clusbias5R2GA"):
-    """ Get histograms from the file and make them available in a dict """
-    hists = {}
+def getHistogramsInList(filename, listName = "AliAnalysisTaskJetH_tracks_caloClusters_clusbias5R2GA"):
+    """ Get histograms from the file and make them available in a dict. Lists are recusrively explored,
+    with all lists converted to dicts, such that the return dict only contains hists and dicts of hists
+    (ie there are no ROOT TCollection derived objects).
+
+    Args:
+        filename (str): Filename of the ROOT file containing the list.
+        listName (str): Name of the list to retrieve.
+    Returns:
+        dict: Contains hists with keys as their names. Lists are recurisvely added, mirroing
+            the structure under which the hists were stored.
+    """
+    hists = collections.OrderedDict()
     with rootpy.io.root_open(filename, "READ") as fIn:
-        taskOutputList = fIn.Get(listTaskName)
-        if not taskOutputList:
-            logger.critical("Could not find list \"{0}\" with name \"{1}\". Possible names include:".format(taskOutputList, listTaskName))
+        try:
+            histList = fIn.Get(listName)
+        except rootpy.io.file.DoesNotExist as e:
+            logger.critical("Could not find list with name \"{}\". Possible names include:".format(listName))
             fIn.ls()
             return None
 
-        for obj in taskOutputList:
+        for obj in histList:
             retrieveObject(hists, obj)
 
     return hists
 
 def retrieveObject(outputDict, obj):
-    """ Function to recusrively retrieve histograms from a list in a ROOT file. """
+    """ Function to recusrively retrieve histograms from a list in a ROOT file.
+    SetDirectory(0) is applied to TH1 derived hists and python is explicitly given
+    ownership of the retrieved objects.
+
+    Args:
+        outputDict (dict): Dict under which hists should be stored.
+        obj (ROOT.TObject derived): Object(s) to be stored. If it is a collection,
+            it will be recursed through.
+    Returns:
+        None: Changes in the dict are reflected in the outputDict which was passed.
+    """
     # Store TH1 or THn
     if obj.InheritsFrom(ROOT.TH1.Class()) or obj.InheritsFrom(ROOT.THnBase.Class()):
         # Ensure that it is not lost after the file is closed
@@ -62,9 +86,18 @@ def retrieveObject(outputDict, obj):
         for objTemp in list(obj):
             retrieveObject(outputDict[obj.GetName()], objTemp)
 
-# From: https://stackoverflow.com/a/14314054
-def movingAverage(a, n=3) :
-    ret = np.cumsum(a, dtype=float)
+def movingAverage(arr, n=3):
+    """ Calculate the moving overage over an array.
+
+    Algorithm from: https://stackoverflow.com/a/14314054
+
+    Args:
+        arr (np.ndarray): Array over which to calculate the moving average.
+        n (int): Number of elements over which to calculate the moving average. Default: 3
+    Returns:
+        np.ndarray: Moving average calculated over n.
+    """
+    ret = np.cumsum(arr, dtype=float)
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
@@ -90,7 +123,7 @@ def getArrayFromHist(observable):
     binCenters = np.array([xAxis.GetBinCenter(i) for i in xBins])
     return {"y" : arrayFromHist, "errors" : errors, "binCenters" : binCenters}
 
-def getArrayFromHist2D(hist):
+def getArrayFromHist2D(hist, setZeroToNaN = True):
     """ Extract the necessary data from the hist.
 
     Converts the histogram into a numpy array, and suitably processes it for a surface plot
@@ -100,9 +133,13 @@ def getArrayFromHist2D(hist):
     NOTE: This is a different format than the 1D version!
 
     Args:
-        hist (ROOT.TH2): Histogram to be highlighted.
+        hist (ROOT.TH2): Histogram to be converted.
+        setZeroToNaN (bool): If true, set 0 in the array to NaN. Useful with matplotlib so that
+            it will ignore the values when plotting. See comments in this function for more
+            details. Default: True.
     Returns:
-        tuple: Contains (x bin centers, y bin centers, numpy array of hist data)
+        tuple: Contains (x bin centers, y bin centers, numpy array of hist data) where X,Y
+            are values on a grid (from np.meshgrid)
     """
     # Process the hist into a suitable state
     (histArray, binEdges) = root_numpy.hist2array(hist, return_edges=True)
@@ -111,7 +148,8 @@ def getArrayFromHist2D(hist):
     # when the log is taken.
     # By setting to nan, matplotlib basically ignores them similar to ROOT
     # NOTE: This requires a few special functions later which ignore nan when calculating min and max.
-    histArray[histArray == 0] = np.nan
+    if setZeroToNaN:
+        histArray[histArray == 0] = np.nan
 
     # We want an array of bin centers
     xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins()+1)])
@@ -121,8 +159,17 @@ def getArrayFromHist2D(hist):
     return (X, Y, histArray)
 
 def getArrayForFit(observables, trackPtBin, jetPtBin):
-    """ Return array of data from histogram """
-    for name, observable in observables.iteritems():
+    """ Get an hist data as a np.ndarray based on selected bins. This is often used
+    to retrieve data for fitting.
+
+    Args:
+        observables (dict): The observables from which the hist should be retrieved.
+        trackPtBin (int): Track pt bin of the desired hist.
+        jetPtbin (int): Jet pt bin of the desired hist.
+    Returns:
+        dict: "y": hist data, "errors" : y errors, "binCenters" : x bin centers (Values from `getArrayFromHist()`).
+    """
+    for name, observable in iteritems(observables):
         if observable.trackPtBin == trackPtBin and observable.jetPtBin == jetPtBin:
             return getArrayFromHist(observable)
 
