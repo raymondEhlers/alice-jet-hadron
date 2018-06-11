@@ -6,6 +6,9 @@
 # Predominately related to RPF plots
 #######################
 
+# Py2/3
+from future.utils import iteritems
+
 import os
 import collections
 import itertools
@@ -77,7 +80,7 @@ def PlotRPF(epFitObj):
         (analysisObjects.JetHCorrelationType.backgroundDominated, "FitErrorBars") : 7,
         (analysisObjects.JetHCorrelationType.backgroundDominated, "Data") : 5 }
 
-    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.iteritems():
+    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
         # Define axes for plot
         fig, axes = plt.subplots(1, 4, sharey = True, sharex = True, figsize = (12,6))
         # TODO: Residual = data-fit/fit, not just data-fit
@@ -240,7 +243,7 @@ def PlotRPF(epFitObj):
 
         # Plot a possible cross check
         if epFitObj.plotSummedFitCrosscheck:
-            for correlationType, fit in allAnglesSummedFromFit.iteritems():
+            for correlationType, fit in iteritems(allAnglesSummedFromFit):
                 logger.debug("Fit: {}".format(fit))
                 if fit is not None:
                     # Fit can be None if, for example, we fit the all angles signal, such that the EP signal is not fit
@@ -300,7 +303,7 @@ def PlotSubtractedEPHists(epFitObj):
         (analysisObjects.JetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
 
     # Iterate over the data and subtract the hists
-    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.iteritems():
+    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
 
         # Define axes for plot
         fig, axes = plt.subplots(1, 4, sharey = True, sharex = True)
@@ -434,7 +437,7 @@ def CompareToJoel(epFitObj):
     joelAllAnglesErrorMaxName = "allReconstructedSignalwithErrorsMAX"
 
     # Iterate over the data and subtract the hists
-    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.iteritems():
+    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
         logger.info("Comparing with Joel's code for trackPtBin {}".format(trackPtBin))
 
         # TODO: Remove hard code

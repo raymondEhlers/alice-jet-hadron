@@ -6,6 +6,10 @@
 # Includes quantities such as widths and yields
 #######################
 
+# Py2/3
+from future.utils import iteritems
+from future.utils import itervalues
+
 # Setup logger
 import logging
 logger = logging.getLogger(__name__)
@@ -53,7 +57,7 @@ def createTGraphsFromExtractedValues(jetH, values):
         # Disable title
         graphs[jetPtBin].SetTitle("")
 
-    for observable in values.itervalues():
+    for observable in itervalues(values):
         # Center points in the bin
         trackPtBin = observable.trackPtBin
         halfBinWidth = (params.trackPtBins[trackPtBin+1] - params.trackPtBins[trackPtBin])/2.0
@@ -95,7 +99,7 @@ def plotExtractedValues(jetH, values, parameters):
 
     # NOTE: i is equivalent to the key of the graph dicts. Either is fine.
     firstDraw = False
-    for i, graph in enumerate(graphs.itervalues()):
+    for i, graph in enumerate(itervalues(graphs)):
         # TODO: Improve fits and remove this temporary condition!
         # TEMP
         if i != 1:
@@ -147,14 +151,14 @@ def createExtractedValuesLegend(collisionSystem, tag):
 
 # TODO: Merge and refactor with the above
 def PlotWidthsNew(jetH, widths):
-    for location, paramData in widths.iteritems():
+    for location, paramData in iteritems(widths):
         # Define axes for plot
         fig, ax = plt.subplots()
 
         tempX = []
         tempWidths = []
         tempErrors = []
-        for (jetPtBin, trackPtBin), observable in paramData.iteritems():
+        for (jetPtBin, trackPtBin), observable in iteritems(paramData):
             # Skip first bin, which is fit very poorly
             if trackPtBin == 0:
                 continue

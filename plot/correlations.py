@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Py2/3
+from future.utils import iteritems
+from future.utils import itervalues
+
 # Setup logger
 import logging
 logger = logging.getLogger(__name__)
@@ -26,7 +30,7 @@ def plot2DCorrelations(jetH):
 
     # Iterate over 2D hists
     for histCollection in jetH.hists2D:
-        for name, observable in histCollection.iteritems():
+        for name, observable in iteritems(histCollection):
             # Retrieve hist and plot
 
             # We don't want to scale the mixed event hist because we already determined the normalization
@@ -116,7 +120,7 @@ def plot1DCorrelations(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
 
     for histCollection in jetH.hists1D:
-        for name, observable in histCollection.iteritems():
+        for name, observable in iteritems(histCollection):
             # Draw the 1D histogram.
             # NOTE: that we don't want to scale the histogram here by the bin width because we've already done that!
             observable.hist.Draw("")
@@ -129,7 +133,7 @@ def plot1DCorrelationsWithFits(jetH):
                      [jetH.dEtaNS, jetH.dEtaNSFit], [jetH.dEtaNSSubtracted, jetH.dEtaNSSubtractedFit]]
 
     for histCollection, fitCollection in histsWithFits:
-        for (name, observable), fit in zip(histCollection.iteritems(), fitCollection.itervalues()):
+        for (name, observable), fit in zip(iteritems(histCollection), itervalues(fitCollection)):
             # Create scaled hist and plot it
             observable.hist.Draw("")
             fit.Draw("same")

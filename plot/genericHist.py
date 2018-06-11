@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+# Py2/3
 from builtins import range
+from future.utils import iteritems
 
 import sys
 import re
@@ -131,7 +133,7 @@ class HistPlotter(object):
         # Axis labels
         labelMap = {"x" : (self.xLabel, ROOT.TH1.GetXaxis, ax.set_xlabel),
                 "y" : (self.yLabel, ROOT.TH1.GetYaxis, ax.set_ylabel)}
-        for axisName, (val, axis, applyTitle) in labelMap.iteritems():
+        for axisName, (val, axis, applyTitle) in iteritems(labelMap):
             if val:
                 label = val
             else:

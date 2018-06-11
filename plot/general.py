@@ -6,6 +6,9 @@
 # Contains brief plotting functions which don't belong elsewhere
 ######################
 
+# Py2/3
+from future.utils import iteritems
+
 import jetH.plot.base as plotBase
 
 # Use matplitlib for some plots
@@ -26,7 +29,7 @@ def plotGeneralAnalysisHistograms(jetH):
 
 def drawAndSaveGeneralHist(jetH, canvas, hists, drawOpt = ""):
     """ Simple helper to draw a histogram and save it out. """
-    for name, hist in hists.iteritems():
+    for name, hist in iteritems(hists):
         logger.debug("name: {}, hist: {}".format(name, hist))
         if hist:
             logger.info("Drawing general hist {}".format(name))

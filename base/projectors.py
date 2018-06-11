@@ -2,6 +2,9 @@
 
 # Contains class to handle generic TH1 and THn projections
 
+# From the future package
+from future.utils import iteritems
+
 import aenum
 import copy
 import sys
@@ -230,7 +233,7 @@ class HistProjector(object):
 
     def Project(self, *args, **kwargs):
         """ Perform the requested projections. """
-        for key, inputObservable in self.observableToProjectFrom.iteritems():
+        for key, inputObservable in iteritems(self.observableToProjectFrom):
             # Retrieve histogram
             hist = self.GetHist(observable = inputObservable, *args, **kwargs)
 
