@@ -48,6 +48,10 @@ def overrideOptions(config, selectedOptions, setOfPossibleOptions, configContain
     activity or leading hadron bias. The order of this configuration is specified by the order of the
     selectedOptions passed. The above example configuration is from the jet-hadron analysis.
 
+    Since anchors aren't kept for scalar values, if you want to override an anchored value, you need to
+    specify it as a single value in a list (or dict, but list is easier). After the anchor values propagate,
+    single element lists can be converted into scalar values using `simplifyDataRepresentations()`.
+
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
         selectedOptions (tuple): The selected analysis options. They will be checked in the order with which
@@ -61,7 +65,7 @@ def overrideOptions(config, selectedOptions, setOfPossibleOptions, configContain
     if configContainingOverride is None:
         configContainingOverride = config
     overrideOptions = configContainingOverride.pop("override")
-    overrideDict = fillOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOptions)
+    overrideDict = determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOptions)
     logger.debug("overrideDict: {}".format(overrideDict))
 
     # Set the configuration values to those specified in the override options
@@ -120,7 +124,7 @@ def simplifyDataRepresentations(config):
 
     return config
 
-def fillOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOptions = ()):
+def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOptions = ()):
     """ Reusrively extract the dict described in overrideOptions().
 
     In particular, this searches for selected options in the overrideOptions dict.
@@ -138,7 +142,7 @@ def fillOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOptions =
         # We need to cast the option to a string to effectively compare to the selected option,
         # since only some of the options will already be strings
         if str(option) in list(map(lambda opt: opt.str(), selectedOptions)):
-            overrideDict.update(fillOverrideOptions(selectedOptions, overrideOptions[option], setOfPossibleOptions))
+            overrideDict.update(determineOverrideOptions(selectedOptions, overrideOptions[option], setOfPossibleOptions))
         else:
             logger.debug("overrideOptions: {}".format(overrideOptions))
             # Look for whether the key is one of the possible but unselected options.
