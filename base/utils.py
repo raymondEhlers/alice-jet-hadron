@@ -6,6 +6,7 @@
 from builtins import range
 from future.utils import iteritems
 
+import ruamel.yaml
 import collections
 import logging
 # Setup logger
@@ -85,6 +86,33 @@ def retrieveObject(outputDict, obj):
         outputDict[obj.GetName()] = collections.OrderedDict()
         for objTemp in list(obj):
             retrieveObject(outputDict[obj.GetName()], objTemp)
+
+def readYAML(filename, fileAccessMode = "r"):
+    """ Read the YAML file at filename. Uses the roundtrip mode.
+
+    Args:
+        filename (str): Filename of the YAML file to be read.
+        fileAccessMode (str): Mode under which the file should be opened
+    Returns:
+        dict-like: Dict containing the paramaters read from the YAML file.
+    """
+    parameters = None
+    with open(filename, fileAccessMode) as f:
+        yaml = ruamel.yaml.YAML(typ = "rt")
+        parameters = yaml.load(f)
+    return parameters
+
+def writeYAML(outputDict, filename, fileAccessMode = "wb"):
+    """ Write the given output dict to file using YAML. Uses the roundtrip mode.
+
+    Args:
+        outputDict (dict): Output to be written to the YAML file.
+        filename (str): Filename of the YAML file to write.
+        fileAccessMode (str): Mode under which the file should be opened
+    """
+    with open(filename, fileAccessMode) as f:
+        yaml = ruamel.yaml.YAML(typ = "rt")
+        yaml.dump(outputDict, f)
 
 def movingAverage(arr, n=3):
     """ Calculate the moving overage over an array.
