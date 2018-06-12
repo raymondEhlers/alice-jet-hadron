@@ -57,7 +57,7 @@ def retrieveRootList(testRootHists):
     l.Add(l2)
 
     # File for comparison.
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "comparison", "testOpeningList.root")
+    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "testFiles", "testOpeningList.root")
     # Create the file if needed.
     if not os.path.exists(filename):
         lCopy = l.Clone("tempMainList")
