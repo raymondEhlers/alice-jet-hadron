@@ -102,17 +102,17 @@ def readYAML(filename, fileAccessMode = "r"):
         parameters = yaml.load(f)
     return parameters
 
-def writeYAML(outputDict, filename, fileAccessMode = "wb"):
+def writeYAML(parameters, filename, fileAccessMode = "wb"):
     """ Write the given output dict to file using YAML. Uses the roundtrip mode.
 
     Args:
-        outputDict (dict): Output to be written to the YAML file.
+        parameters (dict): Output parameters to be written to the YAML file.
         filename (str): Filename of the YAML file to write.
         fileAccessMode (str): Mode under which the file should be opened
     """
     with open(filename, fileAccessMode) as f:
         yaml = ruamel.yaml.YAML(typ = "rt")
-        yaml.dump(outputDict, f)
+        yaml.dump(parameters, f)
 
 def movingAverage(arr, n=3):
     """ Calculate the moving overage over an array.

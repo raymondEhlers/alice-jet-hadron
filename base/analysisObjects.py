@@ -178,7 +178,141 @@ class histContainer(object):
 
         return finalScaleFactor
 
-class histArray(object):
+class yamlStorableObject(object):
+    """ Base class for objects which can be represented and stored in YAML. """
+    outputFilename = "yamlObject.yaml"
+    def __init__(self):
+        pass
+
+    @classmethod
+    def yamlFilename(cls, prefix, **kwargs):
+        """ Determinte the YAML filename given the parameters.
+
+        Args:
+            prefix (str): Path to the diretory in which the YAML file is stored.
+            kwargs (dict): Formatting dictionary for outputFilename.
+        Returns:
+            str: The filename of the YAML file which corresponds to the given parameters.
+        """
+        # Handle arguments
+        if isinstance(kwargs["objType"], str):
+            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+
+        # Convert to proper name for formatting the string
+        formattingArgs = {}
+        formattingArgs.update(kwargs)
+        formattingArgs["type"] = formattingArgs.pop("objType")
+
+        return os.path.join(prefix, cls.outputFilename.format(**formattingArgs))
+
+    @staticmethod
+    def initializeSpecificProcessing(parameters): # pragma: no cover
+        """ Initialization specific processing plugin. Applied to obj immediately after creation from YAML.
+
+        NOTE: This is called on `cls`, but we don't want to modify the object, so
+              we define it as a `staticmethod`.
+
+        Args:
+            parameters (dict): Parameters which will be used to construct the object.
+        Returns:
+            dict: Parameters with the initialization specific processing applied.
+        """
+        return parameters
+
+    @classmethod
+    def initFromYAML(cls, *args, **kwargs):
+        """ Initialize the object using information from a YAML file.
+
+        Args:
+            args (list): Positional arguments to use for intialization. They currently aren't used.
+            kwargs (dict): Named arguments to use for initialization. Must contain:
+                prefix (str): Path to the diretory in which the YAML file is stored.
+                objType (jetHCorrelationType or str): Type of the object.
+                jetPtBin (int): Bin of the jet pt of the object.
+                trackPtBin (int): Bin of the track pt of the object.
+        Returns:
+            obj: The object constructed from the YAML file.
+        """
+        # Handle arguments
+        if isinstance(kwargs["objType"], str):
+            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+
+        filename = cls.yamlFilename(**kwargs)
+
+        # Check for file.
+        if not os.path.exists(filename):
+            logger.warning("Requested {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename} does not exist! This container will not be initialized".format(objType = kwargs["objType"].str(),
+                className = type(cls).__name__,
+                jetPtBin = kwargs["jetPtBin"],
+                trackPtBin = kwargs["trackPtBin"],
+                filename = filename))
+            return None
+
+        logger.debug("Loading {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename}".format(objType = kwargs["objType"].str(),
+            className = type(cls).__name__,
+            jetPtBin = kwargs["jetPtBin"],
+            trackPtBin = kwargs["trackPtBin"],
+            filename = filename))
+        parameters = utils.readYAML(filename = filename)
+
+        # Handle custom data type conversion
+        parameters = cls.initializeSpecificProcessing(parameters)
+
+        obj = cls(**parameters)
+
+        return obj
+
+    @staticmethod
+    def saveSpecificProcessing(parameters): #pragma: no cover
+        """ Save specific processing plugin. Applied to obj immediately before saving to YAML.
+
+        NOTE: This is called on `self` since we don't have a `cls` instance, but
+              we don't want to modify the object, so we define it as a `staticmethod`.
+
+        Args:
+            parameters (dict): Parameters which will be saved to the YAML file.
+        Returns:
+            dict: Parameters with the save specific processing applied.
+        """
+        return parameters
+
+    def saveToYAML(self, fileAccessMode = "wb", *args, **kwargs):
+        """ Write the object properties to a YAML file.
+
+        Args:
+            fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
+            args (list): Positional arguments to use for intialization. They currently aren't used.
+            kwargs (dict): Named arguments to use for initialization. Must contain:
+                prefix (str): Path to the diretory in which the YAML file is stored.
+                objType (jetHCorrelationType or str): Type of the object.
+                jetPtBin (int): Bin of the jet pt of the object.
+                trackPtBin (int): Bin of the track pt of the object.
+        """
+        # Handle arguments
+        if isinstance(kwargs["objType"], str):
+            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+
+        # Determine filename
+        filename = self.yamlFilename(**kwargs)
+
+        # Use __dict__ so we don't have to explicitly define each field (which is easier to keep up to date!)
+        # TODO: This appears to be quite slow. Can we speed this up somehow?
+        parameters = copy.deepcopy(self.__dict__)
+
+        # Handle custom data type conversion
+        parameters = self.saveSpecificProcessing(parameters)
+
+        #logger.debug("parameters: {}".format(parameters))
+        logger.debug("Saving {objType} {className} ({jetPtBin}, {trackPtBin}) to file {filename}".format(objType = kwargs["objType"],
+            className = type(self).__name__,
+            jetPtBin = kwargs["jetPtBin"],
+            trackPtBin = kwargs["jetPtBin"],
+            filename = filename))
+        utils.writeYAML(filename = filename,
+                        fileAccessMode = fileAccessMode,
+                        parameters = parameters)
+
+class histArray(yamlStorableObject):
     """ Represents a histogram's binned data.
 
     Histograms stored in this class make a number of (soft) assumptions
@@ -196,8 +330,11 @@ class histArray(object):
         _errors (np.ndarray): The associated each of the value in each bin.
     """
     # Format of the filename used for storing the hist array.
-    outputFilename = "hist_{tag}_jetPt{jetPtBin}_trackPt{trackPtBin}.yaml"
+    outputFilename = "hist_{type}_jetPt{jetPtBin}_trackPt{trackPtBin}.yaml"
     def __init__(self, _binCenters, _array, _errors):
+        # Init base class
+        super().__init__()
+
         # Store elements
         self._binCenters = _binCenters
         self._array = _array
@@ -240,105 +377,42 @@ class histArray(object):
         """ Return array of the histogram errors. """
         return self._errors
 
-    @classmethod
-    def yamlFilename(cls, prefix, histType, jetPtBin, trackPtBin):
-        """ Determinte the YAML filename given the parameters.
+    @staticmethod
+    def initializeSpecificProcessing(parameters):
+        """ Converts all lists to numpy arrays.
 
         Args:
-            prefix (str): Path to the diretory in which the YAML file is stored.
-            histType (jetHCorrelationType): Histogram type.
-            jetPtBin (int): Bin of the jet pt.
-            trackPtBin (int): Bin of the track pt.
+            parameters (dict): Parameters which will be used to construct the object.
         Returns:
-            str: The filename of the YAML file which corresponds to the given parameters.
+            dict: Parameters with the initialization specific processing applied.
         """
-        # Handle arguments
-        if isinstance(histType, str):
-            histType = jetHCorrelationType[histType]
-        return os.path.join(prefix, cls.outputFilename.format(tag = histType.filenameStr(),
-                                                                    jetPtBin = jetPtBin,
-                                                                    trackPtBin = trackPtBin))
-
-    @classmethod
-    def initFromYAML(cls, inputPrefix, histType, jetPtBin, trackPtBin):
-        """ Initialize the hist information from a YAML file.
-
-        Args:
-            inputPrefix (str): Path to the directory where the hist is stored.
-            histType (jetHCorrelationType or str): Histogram type.
-            jetPtBin (int): Bin of the jet pt.
-            trackPtBin (int): Bin of the track pt.
-        Returns:
-            histArray: Hist array initialized from the YAML file.
-        """
-        # Handle arguments
-        if isinstance(histType, str):
-            histType = jetHCorrelationType[histType]
-
-        filename = cls.yamlFilename(prefix = inputPrefix,
-                histType = histType,
-                jetPtBin = jetPtBin,
-                trackPtBin = trackPtBin)
-
-        # Check for file.
-        if not os.path.exists(filename):
-            logger.warning("Requested {} hist ({}, {}) from file {} does not exist! This container will not be initialized".format(histType, jetPtBin, trackPtBin, filename))
-            return None
-
-        logger.debug("Loading {} hist ({}, {}) from file {}".format(histType.str(), jetPtBin, trackPtBin, filename))
-        parameters = utils.readYAML(filename = filename)
-
-        histArray = cls(**parameters)
-
-        # Handle custom data type conversion
-        # This must be performed after defining the object because we want to iterate over
-        # the __dict__ values, which is only meaningfully possible after object defiintion
         # Convert arrays to numpy arrays
-        for key, val in iteritems(histArray.__dict__):
+        for key, val in iteritems(parameters):
             if isinstance(val, list):
-                setattr(histArray, key, np.array(val))
+                parameters[key] = np.array(val)
 
-        return histArray
+        return parameters
 
-    def saveToYAML(self, outputPrefix, histType, jetPtBin, trackPtBin, fileAccessMode = "wb"):
-        """ Write the hist array properties to a YAML file.
+    @staticmethod
+    def saveSpecificProcessing(parameters):
+        """ Converts all numpy arrays to lists for saving to YAML.
 
         Args:
-            outputPrefix (str): Path to the directory where the hist should be stored.
-            histType (jetHCorrelationType or str): Histogram type.
-            jetPtBin (int): Bin of the jet pt.
-            trackPtBin (int): Bin of the track pt.
-            fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
+            parameters (dict): Parameters which will be saved to the YAML file.
+        Returns:
+            dict: Parameters with the save specific processing applied.
         """
-        # Handle arguments
-        if isinstance(histType, str):
-            histType = jetHCorrelationType[histType]
-
-        # Determine filename
-        filename = histArray.yamlFilename(prefix = outputPrefix,
-                histType = histType,
-                jetPtBin = jetPtBin,
-                trackPtBin = trackPtBin)
-
-        # Use __dict__ so we don't have to explicitly define each field (which is easier to keep up to date!)
-        outputDict = copy.deepcopy(self.__dict__)
-
-        # Handle custom data type conversion
         # Convert values for storage
-        for key, val in iteritems(outputDict):
+        for key, val in iteritems(parameters):
             # Handle numpy arrays to lists
             #logger.debug("Processing key {} with type {} and value {}".format(key, type(val), val))
             if isinstance(val, np.ndarray):
                 #logger.debug("Converting list {}".format(val))
-                outputDict[key] = val.tolist()
+                parameters[key] = val.tolist()
 
-        #logger.debug("outputDict: {}".format(outputDict))
-        logger.debug("Saving {} hist ({}, {}) to file {}".format(histType.str(), jetPtBin, trackPtBin, filename))
-        utils.writeYAML(filename = filename,
-                        fileAccessMode = fileAccessMode,
-                        outputDict = outputDict)
+        return parameters
 
-class fitContainer(object):
+class fitContainer(yamlStorableObject):
     """ Contains information about a particular fit.
 
     Fits should only be stored if they are valid!
@@ -358,9 +432,16 @@ class fitContainer(object):
     """
     # Format of the filename used for storing the fit container.
     # Make the filename accessible even if we don't have a class instance
-    outputFilename = "fit_{}_jetPt{}_trackPt{}.yaml"
+    outputFilename = "fit_{type}_jetPt{jetPtBin}_trackPt{trackPtBin}.yaml"
 
     def __init__(self, jetPtBin, trackPtBin, fitType, values, params, covarianceMatrix, errors = None):
+        # Init base class
+        super().__init__()
+
+        # Handle arguments
+        if isinstance(fitType, str):
+            fitType = jetHCorrelationType[fitType]
+
         # Store elements
         self.jetPtBin = jetPtBin
         self.trackPtBin = trackPtBin
@@ -373,105 +454,58 @@ class fitContainer(object):
         self.errors = errors
 
     @staticmethod
-    def yamlFilename(prefix, fitType, jetPtBin, trackPtBin):
-        """ Determinte the YAML filename given the parameters.
+    def initializeSpecificProcessing(parameters):
+        """ Converts lists in the errors dict into numpy arrays.
 
         Args:
-            prefix (str): Path to the diretory in which the YAML file is stored.
-            fitType (jetHCorrelationType): Fit type.
-            jetPtBin (int): Bin of the jet pt.
-            trackPtBin (int): Bin of the track pt.
+            parameters (dict): Parameters which will be used to construct the object.
         Returns:
-            str: The filename of the YAML file which corresponds to the given parameters.
+            dict: Parameters with the initialization specific processing applied.
         """
-        if isinstance(fitType, str):
-            fitType = jetHCorrelationType[fitType]
-        return os.path.join(prefix, fitContainer.outputFilename.format(fitType.filenameStr(), jetPtBin, trackPtBin))
-
-    @classmethod
-    def initFromYAML(cls, inputPrefix, fitType, jetPtBin, trackPtBin):
-        """ Initial the fit information from a YAML file.
-
-        Args:
-            inputPrefix (str): Path to the directory where the fit is stored.
-            fitType (jetHCorrelationType or str): fitType type.
-            jetPtBin (int): Bin of the jet pt.
-            trackPtBin (int): Bin of the track pt.
-        Returns:
-            fitContainer: Fit container initialized from the YAML file.
-        """
-        # Handle arguments
-        if isinstance(fitType, str):
-            fitType = jetHCorrelationType[fitType]
-
-        filename = fitContainer.yamlFilename(prefix = inputPrefix,
-                fitType = fitType,
-                jetPtBin = jetPtBin,
-                trackPtBin = trackPtBin)
-
-        # Check for file. It may not exist if the fit was not successful
-        if not os.path.exists(filename):
-            logger.warning("Requested fit container ({}, {}) from file {} does not exist! This container will not be initialized".format(jetPtBin, trackPtBin, filename))
-            return None
-
-        logger.debug("Loading fit container ({}, {}) from file {}".format(jetPtBin, trackPtBin, filename))
-        parameters = utils.readYAML(filename = filename)
-
-        # Handle custom data type conversion
-        # Convert errors to numpy array
         if "errors" in parameters:
             for k,v in iteritems(parameters["errors"]):
                 parameters["errors"][k] = np.array(v)
-        # Fit type to enum
-        parameters["fitType"] = jetHCorrelationType[parameters["fitType"]]
+        # NOTE: The enum will be converted in the constructor, so we don't need to handle it here.
 
-        #logger.debug("parameters[errors]: {}".format(parameters["errors"]))
+        return parameters
 
-        # NOTE: The limits in the params dict will be restored as a list instead of a tuple.
-        # However, this is fine, as the Minuit object interprets it properly anyway
-        return cls(**parameters)
+    @staticmethod
+    def saveSpecificProcessing(parameters):
+        """ Convert numpy arrays in the errors dict into lists.
 
-    def saveToYAML(self, outputPrefix, fileAccessMode = "wb", *args, **kwargs):
+        Args:
+            parameters (dict): Parameters which will be saved to the YAML file.
+        Returns:
+            dict: Parameters with the save specific processing applied.
+        """
+        for identifier, data in iteritems(parameters["errors"]):
+            if isinstance(data, np.ndarray):
+                # Convert to a normal list so it can be stored
+                parameters["errors"][identifier] = data.tolist()
+        # Fit type enum to str
+        parameters["fitType"] = parameters["fitType"].str()
+
+        return parameters
+
+    def saveToYAML(self, prefix, fileAccessMode = "wb", *args, **kwargs):
         """ Write the fit container properties to a YAML file.
 
         Args:
             outputPrefix (str): Path to the directory where the fit should be stored.
             fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
-            args (list): Additional arguments. They will be ignored. This is only so it can
-                called with the same API as the other saveToYAML()
-            kwargs (dict): Additional named arguments. They will be ignored.This is only so it can
-                called with the same API as the other saveToYAML()
+            args (list): Additional arguments. They will be forwarded to saveToYAML().
+            kwargs (dict): Additional named arguments. `objType`, `jetPtBin`, and `trackPtBin`
+                will be overwritten by values stored in the class.
         """
-        # Determine filename
-        filename = fitContainer.yamlFilename(prefix = outputPrefix,
-                fitType = self.fitType,
-                jetPtBin = self.jetPtBin,
-                trackPtBin = self.trackPtBin)
+        # Fill in the values from the object.
+        kwargs["objType"] = self.fitType
+        kwargs["jetPtBin"] = self.jetPtBin
+        kwargs["trackPtBin"] = self.trackPtBin
 
-        # Convert the np array as necessary
-        errors = {}
-        logger.debug("self.errors: {}".format(self.errors))
-        for identifier, data in iteritems(self.errors):
-            if isinstance(data, np.ndarray):
-                # Convert to a normal list so it can be stored
-                errors[identifier] = data.tolist()
-            else:
-                errors[identifier] = data
-        logger.debug("errors: {}".format(errors))
-        # Fit type enum to str
-        fitType = self.fitType.str()
-
-        # Use __dict__ so we don't have to explicitly define each field (which is easier to keep up to date!)
-        # TODO: This appears to be quite slow. Can we speed this up somehow?
-        outputDict = copy.deepcopy(self.__dict__)
-        # Reassign values based on the above
-        outputDict["errors"] = errors
-        outputDict["fitType"] = fitType
-
-        logger.debug("Saving fit container ({}, {}) to file {}".format(self.jetPtBin, self.trackPtBin, filename))
-        utils.writeYAML(filename = filename,
-                        fileAccessMode = fileAccessMode,
-                        outputDict = outputDict)
+        # Call the base class to handle the actual work.
+        super().saveToYAML(prefix = prefix,
+                fileAccessMode = fileAccessMode,
+                *args, **kwargs)
 
 ###############
 # Additional experimental code
