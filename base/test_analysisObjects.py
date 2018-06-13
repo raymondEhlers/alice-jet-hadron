@@ -194,11 +194,11 @@ def testFitContainer(caplog, createFitContainer):
         "signalDominated",
         analysisObjects.jetHCorrelationType.signalDominated
     ], ids = ["str obj type", "enum obj type"])
-@pytest.mark.parametrize("obj, objArgs, objTypeLabel", [
-    (analysisObjects.histArray, {"jetPtBin" : 1, "trackPtBin" : 3}, "histType"),
-    (analysisObjects.fitContainer, {"jetPtBin" : 1, "trackPtBin" : 4}, "fitType")
+@pytest.mark.parametrize("obj, objArgs", [
+    (analysisObjects.histArray, {"jetPtBin" : 1, "trackPtBin" : 3}),
+    (analysisObjects.fitContainer, {"jetPtBin" : 1, "trackPtBin" : 4})
     ], ids = ["histArray", "fitContainer"])
-def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objTypeLabel, objType, caplog, mocker):
+def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objType, caplog, mocker):
     """ Test initializing and writing objects to/from YAML files. Tests both histArray and fitContainer objects.
 
     NOTE: This test uses real files, which are opened through mocked open() objects. The mocking is
@@ -206,7 +206,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objTypeLabel, objType,
           for the test accurately represents real world usage.
     """
     objArgs["prefix"] = os.path.join(os.path.dirname(os.path.realpath(__file__)), "testFiles")
-    objArgs[objTypeLabel] = objType
+    objArgs["objType"] = objType
 
     # Make sure the file will be read
     mocker.patch("os.path.exists")
@@ -221,9 +221,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objTypeLabel, objType,
     # Read
     mRead = mocker.mock_open(read_data = inputData)
     mocker.patch("builtins.open", mRead)
-    initArgs = copy.deepcopy(objArgs)
-    initArgs["inputPrefix"] = initArgs.pop("prefix")
-    testObj = obj.initFromYAML(**initArgs)
+    testObj = obj.initFromYAML(**objArgs)
     calls = mRead.mock_calls
     mRead.assert_called_once_with(dataFilename, "r")
 
@@ -241,9 +239,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objTypeLabel, objType,
     # Write
     mWrite = mocker.mock_open(read_data = inputData)
     mocker.patch("builtins.open", mWrite)
-    writeArgs = copy.deepcopy(objArgs)
-    writeArgs["outputPrefix"] = writeArgs.pop("prefix")
-    testObj.saveToYAML(**writeArgs)
+    testObj.saveToYAML(**objArgs)
     mWrite.assert_called_with(dataFilename, "wb")
     calls = mWrite.mock_calls
     fileHandle = mWrite()
