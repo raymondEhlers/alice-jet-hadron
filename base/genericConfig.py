@@ -9,8 +9,9 @@ from future.utils import iteritems
 from future.utils import itervalues
 
 import string
+import collections
+import itertools
 import ruamel.yaml
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ def simplifyDataRepresentations(config):
     Now that we are done with all of our anchor refernces, we can convert these single entry lists to
     just the scalar entry, which is more usable.
 
-    Some notes on anchors in rumael.yaml are here: https://stackoverflow.com/a/48559644
+    Some notes on anchors in ruamel.yaml are here: https://stackoverflow.com/a/48559644
     
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be simplified.
@@ -169,6 +170,105 @@ def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOpti
                 logger.debug("Found option \"{}\" as possible option, so skipping!".format(option))
 
     return overrideDict
+
+def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
+    """ Determine iterable values to use to create objects for a given configuration.
+
+    All values of an iterable can be included be selecting only "includeAllValues".
+
+    Args:
+        config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
+        possibleIterables (collections.OrderedDict): Key value pairs of names of enumerations and their values.
+    Returns:
+        collections.OrderedDict: Iterables values that were requested in the config.
+    """
+    iterables = collections.OrderedDict()
+    requestedIterables = config["iterables"]
+    for k, v in iteritems(requestedIterables):
+        if not k in possibleIterables:
+            raise KeyError(k, "Cannot find requested iterable in possibleIterables: {possibleIterables}".format(possibleIterables = possibleIterables))
+        logger.debug("k: {}, v: {}".format(k, v))
+        additionalIterable = []
+        enum = possibleIterables[k]
+        # Allow the possibility to including all possible values in the enum.
+        if v == ["includeAllValues"]:
+            additionalIterable = list(enum)
+        else:
+            # Otherwise, only take the requested values.
+            for el in v:
+                additionalIterable.append(enum[el])
+        # Store for later
+        iterables[k] = additionalIterable
+
+    return iterables
+
+def createObjectsFromIterables(obj, args, iterables, formattingOptions):
+    """ Create objects for each set of values based on the given arguments. The values are available as
+    keys in a nested dictionary which store the objects. The values must be convertable to a str()
+    so they can be included in the formatting dictionary.
+
+    Each set of values is also included in the object args.
+
+    For example, for an iterables dict `{"a" : ["a1","a2"], "b" : ["b1", "b2"]}`, the function would return:
+
+    ```
+    (
+        ["a", "b"],
+        {
+            "a1" : {
+                "b1" : obj(a = "a1", b = "b1"),
+                "b2" : obj(a = "a1", b = "b2")
+            },
+            "a2" : {
+                "b1" : obj(a = "a2", b = "b1"),
+                "b2" : obj(a = "a2", b = "b2")
+            }
+        }
+    )
+    ```
+
+    Args:
+        obj (object): The object to be constructed.
+        args (collections.OrderedDict): Arguments to be passed to the object to create it.
+        iterables (collections.OrderedDict): Iterables to be used to create the objects, with entries of the form
+            "nameOfIterable" : iterable.
+        formattingOptions (dict): Values to apply to format strings in the arguments.
+    Returns:
+        (list, collections.OrderedDict): The list are the names of ther iterables used. The ordered dict entries are
+            of the form of a nested dict, with each object available at the iterable values used to constructed it.
+            For example, output["a"]["b"] == obj(a = "a", b = "b", ...). For a full example, see above.
+    """
+    objects = collections.OrderedDict()
+    names = list(iterables)
+    logger.debug("iterables: {iterables}".format(iterables = iterables))
+    for values in itertools.product(*itervalues(iterables)):
+        logger.debug("Values: {values}".format(values = values))
+        tempDict = objects
+        for i, val in enumerate(values):
+            args[names[i]] = val
+            logger.debug("i: {i}, val: {val}".format(i = i, val = val))
+            # TODO: Change from val.filenameStr() to -> str(val)
+            formattingOptions[names[i]] = str(val)
+            # We should construct the object once we get to the last value
+            if i != len(values) - 1:
+                tempDict = tempDict.setdefault(val, collections.OrderedDict())
+            else:
+                # Apply formatting options
+                objectArgs = applyFormattingDict(args, formattingOptions)
+                # Skip printing the config because it is quite long
+                printArgs = {k : v for k, v in iteritems(objectArgs) if k != "config"}
+                printArgs["config"] = "..."
+                logger.debug("Constructing obj \"{obj}\" with args: \"{printArgs}\"".format(obj = obj, printArgs = printArgs))
+
+                # Create and store the object
+                tempDict[val] = obj(**objectArgs)
+
+    # If nothing has been created at this point, then we are didn't iterating over anything and something
+    # has gone wrong.
+    if not objects:
+        raise ValueError(iterables, "There are appear to be no iterables to use in creating objects.")
+
+    return (names, objects)
 
 class formattingDict(dict):
     """ Dict to handle missing keys when formatting a string. It returns the missing key
