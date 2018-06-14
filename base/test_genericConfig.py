@@ -280,6 +280,11 @@ def testDictDataSimplification(caplog, dataSimplificationConfig):
 
 @pytest.fixture
 def formattingConfig():
+    """ Config for testing the formatting of strings after loading them.
+
+    Returns:
+        tuple: (Config with formatting applied, formatting dict)
+    """
     config = """
 int: 3
 float: 3.14
@@ -305,32 +310,33 @@ noneExample: null
 
     formatting = {"a" : "b", "c": 1}
 
-    return genericConfig.applyFormattingDict(config, formatting)
+    return (genericConfig.applyFormattingDict(config, formatting), formatting)
 
 def testApplyFormattingToBasicTypes(caplog, formattingConfig):
     """ Test applying formatting to basic types. """
     caplog.set_level(loggingLevel)
-    config = formattingConfig
+    config, formattingDict = formattingConfig
 
     assert config["int"] == 3
     assert config["float"] == 3.14
     assert config["noFormat"] == "test"
-    assert config["format"] == "b"
+    assert config["format"] == formattingDict["a"]
     assert config["noFormatBecauseNoFormatter"] == "{noFormatHere}"
 
 def testApplyFormattingToIterableTypes(caplog, formattingConfig):
     """ Test applying formatting to iterable types. """
     caplog.set_level(loggingLevel)
-    config = formattingConfig
+    config, formattingDict = formattingConfig
 
     assert config["list"] == ["noFormat", 2, "b1"]
-    assert config["dict"] == {"noFormat" : "hello", "format" : "b1"}
-    assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : "1" }
+    assert config["dict"] == {"noFormat" : "hello", "format" : "{}{}".format(formattingDict["a"], formattingDict["c"])}
+    # NOTE: The extra str() call is because the formated string needs to be compared against a str.
+    assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : str(formattingDict["c"])}
 
 def testApplyFormattingSkipLatex(caplog, formattingConfig):
     """ Test skipping the application of the formatting to strings which look like latex. """
     caplog.set_level(loggingLevel)
-    config = formattingConfig
+    config, formattingDict = formattingConfig
 
     assert config["latexLike"] == "$latex_{like \mathrm{x}}$"
 
