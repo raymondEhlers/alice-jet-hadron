@@ -287,8 +287,8 @@ iterables:
     eventPlaneAngle:
         - inPlane
         - midPlane
-    qVector:
-        - "includeAllValues"
+    qVector: "includeAllValues"
+    collisionEnergy: False
 """
     yaml = ruamel.yaml.YAML()
     config = yaml.load(config)
@@ -296,6 +296,7 @@ iterables:
     possibleIterables = collections.OrderedDict()
     possibleIterables["eventPlaneAngle"] = params.eventPlaneAngle
     possibleIterables["qVector"] = params.qVector
+    possibleIterables["collisionEnergy"] = params.collisionEnergy
 
     return (config, possibleIterables, ([params.eventPlaneAngle.inPlane, params.eventPlaneAngle.midPlane], list(params.qVector)))
 
@@ -308,6 +309,8 @@ def testDetermineSelectionOfIterableValuesFromConfig(caplog, objectCreationConfi
 
     assert iterables["eventPlaneAngle"] == eventPlaneAngles
     assert iterables["qVector"] == qVectors
+    # Collision Energy should _not_ be included!
+    assert len(iterables) == 2
 
 def testDetermineSelectionOfIterableValuesWithUndefinedIterable(caplog, objectCreationConfig):
     """ Test determining which values of an iterable to use when an iterable is not defined. """
@@ -350,7 +353,7 @@ def testCreateObjectsFromIterables(caplog, objectCreationConfig, objectAndCreati
             formattingOptions = formattingOptions)
 
     # Check the names of the iterables.
-    assert names == list(possibleIterables)
+    assert names == list(iterables)
     # Check the precise values passed to the object.
     for epAngle in eventPlaneAngles:
         for qVector in qVectors:
