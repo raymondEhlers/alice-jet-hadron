@@ -174,7 +174,8 @@ def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOpti
 def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
     """ Determine iterable values to use to create objects for a given configuration.
 
-    All values of an iterable can be included be selecting only "includeAllValues".
+    All values of an iterable can be included be setting the value to only "includeAllValues". (Not as a single value list,
+    but as the only value.). Alternatively, an iterator can be disabled by setting the value to "False".
 
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
@@ -190,8 +191,11 @@ def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
         logger.debug("k: {}, v: {}".format(k, v))
         additionalIterable = []
         enum = possibleIterables[k]
+        # Allow the possibility to skip
+        if v == False:
+            continue
         # Allow the possibility to including all possible values in the enum.
-        if v == ["includeAllValues"]:
+        if v == "includeAllValues":
             additionalIterable = list(enum)
         else:
             # Otherwise, only take the requested values.
