@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-# Tests for analysis configuration.
+# Tests for generic analysis configuration.
 #
-# NOTE: These are more like integration tests.
-# 
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
 
@@ -287,7 +285,7 @@ iterables:
     eventPlaneAngle:
         - inPlane
         - midPlane
-    qVector: "includeAllValues"
+    qVector: True
     collisionEnergy: False
 """
     yaml = ruamel.yaml.YAML()
@@ -309,7 +307,9 @@ def testDetermineSelectionOfIterableValuesFromConfig(caplog, objectCreationConfi
 
     assert iterables["eventPlaneAngle"] == eventPlaneAngles
     assert iterables["qVector"] == qVectors
-    # Collision Energy should _not_ be included!
+    # Collision Energy should _not_ be included! It was only a possible iterator.
+    # Check in two ways.
+    assert not "collisionEnergy" in iterables
     assert len(iterables) == 2
 
 def testDetermineSelectionOfIterableValuesWithUndefinedIterable(caplog, objectCreationConfig):
@@ -322,6 +322,17 @@ def testDetermineSelectionOfIterableValuesWithUndefinedIterable(caplog, objectCr
         iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
                 possibleIterables = possibleIterables)
     assert exceptionInfo.value.args[0] == "qVector"
+
+def testDetermineSelectionOfIterableValuesWithStringSelection(caplog, objectCreationConfig):
+    """ Test trying to determine values with a string. This is not allowed, so it should raise an exception. """
+    caplog.set_level(loggingLevel)
+    (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
+
+    config["iterables"]["qVector"] = "True"
+    with pytest.raises(TypeError) as exceptionInfo:
+        iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
+                possibleIterables = possibleIterables)
+    assert exceptionInfo.value.args[0] is str
 
 @pytest.fixture
 def objectAndCreationArgs():
