@@ -11,6 +11,7 @@ from future.utils import itervalues
 import string
 import collections
 import itertools
+import aenum
 import ruamel.yaml
 import logging
 logger = logging.getLogger(__name__)
@@ -174,8 +175,8 @@ def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOpti
 def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
     """ Determine iterable values to use to create objects for a given configuration.
 
-    All values of an iterable can be included be setting the value to only "includeAllValues". (Not as a single value list,
-    but as the only value.). Alternatively, an iterator can be disabled by setting the value to "False".
+    All values of an iterable can be included be setting the value to `True` (Not as a single value list,
+    but as the only value.). Alternatively, an iterator can be disabled by setting the value to `False`.
 
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
@@ -191,11 +192,14 @@ def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
         logger.debug("k: {}, v: {}".format(k, v))
         additionalIterable = []
         enum = possibleIterables[k]
+        # Check for a string. This is wrong, and the user should be notified.
+        if isinstance(v, future.utils.string_types):
+            raise TypeError(type(v), "Passed string {v} when must be either bool or list".format(v = v))
         # Allow the possibility to skip
         if v == False:
             continue
         # Allow the possibility to including all possible values in the enum.
-        if v == "includeAllValues":
+        elif v == True:
             additionalIterable = list(enum)
         else:
             # Otherwise, only take the requested values.
@@ -238,9 +242,10 @@ def createObjectsFromIterables(obj, args, iterables, formattingOptions):
             "nameOfIterable" : iterable.
         formattingOptions (dict): Values to apply to format strings in the arguments.
     Returns:
-        (list, collections.OrderedDict): The list are the names of ther iterables used. The ordered dict entries are
-            of the form of a nested dict, with each object available at the iterable values used to constructed it.
-            For example, output["a"]["b"] == obj(a = "a", b = "b", ...). For a full example, see above.
+        (list, collections.OrderedDict): Roughly, (names, objects). Specifically, the list is the names
+            of the iterables used. The ordered dict entries are of the form of a nested dict, with each
+            object available at the iterable values used to constructed it. For example,
+            output["a"]["b"] == obj(a = "a", b = "b", ...). For a full example, see above.
     """
     objects = collections.OrderedDict()
     names = list(iterables)
@@ -250,7 +255,7 @@ def createObjectsFromIterables(obj, args, iterables, formattingOptions):
         tempDict = objects
         for i, val in enumerate(values):
             args[names[i]] = val
-            logger.debug("i: {i}, val: {val}".format(i = i, val = val))
+            logger.debug("i: {i}, val: {val}".format(i = i, val = repr(val)))
             # TODO: Change from val.filenameStr() to -> str(val)
             formattingOptions[names[i]] = str(val)
             # We should construct the object once we get to the last value
@@ -258,6 +263,7 @@ def createObjectsFromIterables(obj, args, iterables, formattingOptions):
                 tempDict = tempDict.setdefault(val, collections.OrderedDict())
             else:
                 # Apply formatting options
+                logger.debug("args pre format: {args}".format(args = args))
                 objectArgs = applyFormattingDict(args, formattingOptions)
                 # Skip printing the config because it is quite long
                 printArgs = {k : v for k, v in iteritems(objectArgs) if k != "config"}
@@ -316,6 +322,11 @@ def applyFormattingDict(obj, formatting):
             obj[i] = applyFormattingDict(el, formatting)
     elif isinstance(obj, int) or isinstance(obj, float):
         # Skip over this, as there is nothing to be done - we just keep the value.
+        pass
+    elif isinstance(obj, aenum.Enum):
+        # Skip over this, as there is nothing to be done - we just keep the value.
+        # This only occurs when formatting something that has already been transformed
+        # into an enuemration.
         pass
     else:
         # This may or may not be expected, depending on the particular value.
