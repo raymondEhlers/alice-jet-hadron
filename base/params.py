@@ -14,6 +14,8 @@ import collections
 import logging
 logger = logging.getLogger(__name__)
 
+import jetH.base.genericClass as genericClass
+
 # Bins
 # eta is absolute value!
 etaBins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
@@ -340,7 +342,7 @@ setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
 # These classes are used for final analysis # specification, building
 # on the analysis specification objects specified above.
 ########################
-class leadingHadronBias(object):
+class leadingHadronBias(genericClass.equalityMixin):
     """ Full leading hadron bias class, which specifies both the type as well as the value.
     The enum exists to be specified when creating an analysis object, and then the value is
     determined by the selected analysis options (including that enum). This object then
@@ -359,6 +361,10 @@ class leadingHadronBias(object):
         if self.type == leadingHadronBiasType.NA:
             value = 0
         self.value = value
+
+    def str(self):
+        """ Return a string representation. """
+        return self.filenameStr()
 
     def filenameStr(self):
         """ Return the type and value, such as "cluster6" or "track5". """
