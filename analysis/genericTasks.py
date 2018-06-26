@@ -26,6 +26,14 @@ import jetH.base.analysisConfig as analysisConfig
 import jetH.plot.genericHist as plotGenericHist
 
 class PlotTaskHists(analysisConfig.JetHBase):
+    """ Generic class to plot hists in analysis task.
+
+    Hists are selected and configured by a configuration file.
+
+    Args:
+        args (list): Additional arguments to pass along to the base config class.
+        kwargs (dict): Additional arguments to pass along to the base config class.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -45,7 +53,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
         self.hists = {}
 
     def getHistsFromInputFile(self):
-        """ Retrieve hists corresponding to the task name.  """
+        """ Retrieve hists corresponding to the task name. They are stored in the object. """
         self.hists = utils.getHistogramsInList(self.inputFilename, self.inputListName)
 
         # Don't process this line unless we are debugging because pprint may be slow
@@ -55,20 +63,40 @@ class PlotTaskHists(analysisConfig.JetHBase):
         #    logger.debug(pprint.pformat(self.hists))
 
     def histSpecificProcessing(self):
-        """
-        
+        """ Perform processing on specific histograms in the input hists.
+
+        Each component and histogram in the input hists are searched for particular histograms.
+        When they are found, particular functions are applied to those hists, which are then
+        stored in the input hists (depending on the function, it is sometimes saved as a
+        replacement of the existing hist and sometimes as an additional hist).
         """
         pass
 
     def histOptionsSpecificProcessing(self, histOptionsName, options):
-        """
+        """ Run a particular processing functions for some set of hist options.
 
+        It looks for a function name specified in the configuration, so a bit of care is
+        required to this safely.
+
+        Args:
+            histOptionsName (str): Name of the hist options.
+            options (dict): Associated set of hist options.
+        Returns:
+            dict: Updated set of hist options.
         """
         return options
 
     def definePlotObjectsForComponent(self, componentName, componentHistsOptions):
-        """ Define Hist Plotter options based on the provided YAML config. """
-        # Make the output directory
+        """ Define Hist Plotter options for a particular component based on the provided YAML config.
+
+        Args:
+            componentName (str): Name of the component.
+            componentHistsOptions (dict): Hist options for a particular component.
+        Returns:
+            (dict, bool): (Component hists configuration options contained in HistPlotter objects, whether
+                other hists in the component that are not configured by HistPlotter objects should also be plotted).
+        """
+        # Make the output directory for the component.
         componentOutputPath = os.path.join(self.outputPrefix, componentName)
         if not os.path.exists(componentOutputPath):
             os.makedirs(componentOutputPath)
@@ -79,7 +107,8 @@ class PlotTaskHists(analysisConfig.JetHBase):
             logger.info("Plotting additional histograms in component \"{}\"".format(componentName))
 
         # Create the defined component hists
-        histsConfigurationOptions = {}
+        # Each histogram in a component has a corresponding set of histOptions.
+        componentHistsConfigurationOptions = {}
         for histOptionsName, options in iteritems(componentHistsOptions):
             # Copy the options dict so we can add to it
             histOptions = {}
@@ -95,12 +124,20 @@ class PlotTaskHists(analysisConfig.JetHBase):
             histOptions = self.histOptionsSpecificProcessing(histOptionsName, histOptions)
             logger.debug("Post processing: hist options name: {}, histOptions: {}".format(histOptionsName, histOptions))
 
-            histsConfigurationOptions[histOptionsName] = plotGenericHist.HistPlotter(**histOptions)
+            componentHistsConfigurationOptions[histOptionsName] = plotGenericHist.HistPlotter(**histOptions)
 
-        return (histsConfigurationOptions, plotAdditional)
+        return (componentHistsConfigurationOptions, plotAdditional)
 
     def assignHistsToPlotObjects(self, componentHistsInFile, histsConfigurationOptions, plotAdditional):
-        """ Assign hists retreived from a file to the defined Hist Plotter configs. """
+        """ Assign input hists retreived from a file to the defined Hist Plotter configs.
+
+        Args:
+            componentHistsInFile (dict): Hists that are in a particular component. Keys are hist names
+            histsConfigurationOptions (dict): HistPlotter hist configuration objects for a particular component.
+            plotAdditional (bool): If true, plot additional histograms in the component that are not specified in the config.
+        Returns:
+            dict: HistPlotter configuration objects with input hists assigned to each object according to the configuration.
+        """
         componentHists = {}
         # First iterate over the available hists
         for hist in itervalues(componentHistsInFile):
@@ -179,11 +216,19 @@ class PlotTaskHists(analysisConfig.JetHBase):
         return componentHists
 
     def matchHistsToHistConfigurations(self):
-        """ Match retrieved histograms to components and their plotting options. """
+        """ Match retrieved histograms to components and their plotting options.
+
+        This method iterates over the available hists from the file and then over the
+        hist options defined in YAML to try to find a match. Once a match is found,
+        the options are iterated over to create HistPlotter objects. Then the hists are assigned
+        to those newly created objects.
+
+        The results are stored in the components dict of the class.
+        """
+        # componentNameInFile is the name of the componentHistsInFile to which we want to compare
         for componentNameInFile, componentHistsInFile in iteritems(self.hists):
-            # componentNameInFile is the name of the componentHistsInFile to which we want to compare
+            # componentHistsOptions are the config options for a component
             for componentName, componentHistsOptions in iteritems(self.componentsFromYAML):
-                # componentHistsOptions are the config options for a component
                 if componentName in componentNameInFile:
                     # We've now matched the component name and and can move on to dealing with
                     # the individual hists
@@ -207,7 +252,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
                         logger.debug("componentHist: {}, hists: {}, (first) hist name: {}".format(componentHist, componentHist.hists, componentHist.getFirstHist().GetName()))
 
     def plotHistograms(self):
-        """ """
+        """ Driver function to plotting the histograms contained in the object. """
         for componentName, componentHists in iteritems(self.components):
             logger.info("Plotting hists for component {}".format(componentName))
 
@@ -218,8 +263,15 @@ class PlotTaskHists(analysisConfig.JetHBase):
 
     @classmethod
     def run(cls, configFilename, selectedAnalysisOptions, runPlotting = True):
-        """
+        """ Main driver function to create, process, and plot task hists.
 
+        Args:
+            cls (object): Class to be constructed. Must be an instance of or inherit from PlotTaskHists.
+            configFilename (str): Filename of the yaml config.
+            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+            runPlotting (bool): If true, run plotting after the processing.
+        Returns:
+            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
         """
         # Construct tasks
         (selectedOptionNames, tasks) = cls.constructFromConfigurationFile(configFilename = configFilename,
@@ -228,9 +280,11 @@ class PlotTaskHists(analysisConfig.JetHBase):
         # Run the analysis
         logger.info("About to process")
         for keys, task in analysisConfig.unrollNestedDict(tasks):
+            # Print the task selected analysis options
             opts = ["{name}: {value}".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
             logger.info("Processing plotting task {} with options: {}".format(task.taskName, ", ".join(opts)))
 
+            # Setup and run the processing
             task.getHistsFromInputFile()
             task.histSpecificProcessing()
             task.matchHistsToHistConfigurations()
@@ -242,7 +296,17 @@ class PlotTaskHists(analysisConfig.JetHBase):
 
     @staticmethod
     def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
-        """ Helper function to construct plotting objects. """
-        raise NotImplemented("Need to implement the constructFromConfigurationFile.")
+        """ Helper function to construct plotting objects.
 
+        Must be implemented by the derived class. Usually, this is a simple wrapper around
+        analysisConfig.constructFromConfigurationFile(...) that is filled in with options
+        specific to the particular task.
+
+        Args:
+            configFilename (str): Filename of the yaml config.
+            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+        Returns:
+            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+        """
+        raise NotImplementedError("Need to implement the constructFromConfigurationFile.")
 

@@ -36,8 +36,10 @@ import rootpy
 import rootpy.io
 
 class EMCalCorrectionsLabels(aenum.Enum):
-    """
+    """ Label of possible EMCal correction tasks.
 
+    The standard case is not labeled, but this label is important for when multiple
+    correction tasks are ran during embedding.
     """
     standard = ""
     embed = "Embed"
@@ -45,7 +47,7 @@ class EMCalCorrectionsLabels(aenum.Enum):
     data = "Data"
 
     def __str__(self):
-        """ Return the label """
+        """ Return the label. """
         return self.value
 
     def str(self):
@@ -53,27 +55,37 @@ class EMCalCorrectionsLabels(aenum.Enum):
         return self.__str__()
 
     def filenameStr(self):
-        """ Return the name to be used for the output path. """
+        """ Filename safe string. Return the name of the label. """
         return self.name
 
 class PlotEMCalCorrections(genericHists.PlotTaskHists):
-    """
+    """ Task to steer plotting of EMCal embedding hists.
 
+    Args:
+        taskLabel (EMCalCorrectionsLabels): EMCal corrections label associated with thsi task.
+        args (list): Additional arguments to pass along to the base config class.
+        kwargs (dict): Additional arguments to pass along to the base config class.
     """
     def __init__(self, taskLabel, *args, **kwargs):
         self.taskLabel = taskLabel
         # Add the task label to the output prefix
         kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], self.taskLabel.filenameStr())
         # Need to add it as "_label" so it ends up as "name_label_histos"
-        # If it is the standard correction task, then we just put in an emptry string
-        correlationsLabel = "_{}".format(taskLabel.filenameStr()) if self.taskLabel != EMCalCorrectionsLabels.standard else EMCalCorrectionsLabels.standard.value
+        # If it is the standard correction task, then we just put in an emptry string (which is returned by .str())
+        correlationsLabel = "_{}".format(taskLabel.filenameStr()) if self.taskLabel != EMCalCorrectionsLabels.standard else self.taskLabel.str()
         kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(correctionsLabel = correlationsLabel)
 
         # Afterwards, we can initialize the base class
         super().__init__(*args, **kwargs)
 
     def histSpecificProcessing(self):
-        """ Perform histogram specific processing. """
+        """ Perform processing on specific histograms in the input hists.
+
+        Each component and histogram in the input hists are searched for particular histograms.
+        When they are found, particular functions are applied to those hists, which are then
+        stored in the input hists (depending on the function, it is sometimes saved as a
+        replacement of the existing hist and sometimes as an additional hist).
+        """
         # Loop over available components in the hists
         for componentName in self.hists:
             # Clusterizer
@@ -94,8 +106,14 @@ class PlotEMCalCorrections(genericHists.PlotTaskHists):
     def histOptionsSpecificProcessing(self, histOptionsName, options):
         """ Run a particular processing functions for some set of hist options.
 
-        It looks for a function named in the configuration, so a bit of care is
+        It looks for a function name specified in the configuration, so a bit of care is
         required to this safely.
+
+        Args:
+            histOptionsName (str): Name of the hist options.
+            options (dict): Associated set of hist options.
+        Returns:
+            dict: Updated set of hist options.
         """
         if "processing" in options:
             funcName = options["processing"]["funcName"]
@@ -105,14 +123,20 @@ class PlotEMCalCorrections(genericHists.PlotTaskHists):
                 options = func(histOptionsName, options)
                 logger.debug("Options after return: {}".format(options))
             else:
-                logger.critical("Requested funcName {} for hist options {}, but it doesn't exist!".format(funcName, histOptionsName))
-                sys.exit(1)
+                raise ValueError(funcName, "Requested function for hist options {} doesn't exist!".format(histOptionsName))
 
         return options
 
     @staticmethod
     def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
-        """ Helper function to construct EMCal corrections plotting objects. """
+        """ Helper function to construct EMCal corrections plotting objects.
+
+        Args:
+            configFilename (str): Filename of the yaml config.
+            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+        Returns:
+            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+        """
         return analysisConfig.constructFromConfigurationFile(taskName = "EMCalCorrections",
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
@@ -124,6 +148,16 @@ def etaPhiMatchHistNames(histOptionsName, options):
 
     This approach allows generating of hist config options using for loops
     while still being defined in YAML.
+
+    Note:
+        This function is called via histOptionsSpecificProcessing(...), so it is not
+        referenced directly in the source.
+
+    Args:
+        histOptionsName (str): Name of the hist options.
+        options (dict): Associated set of hist options.
+    Returns:
+        dict: Updated set of hist options.
     """
     # Pop this value so it won't cause issues when creating the hist plotter later.
     processingOptions = options.pop("processing")
@@ -152,7 +186,7 @@ def etaPhiMatchHistNames(histOptionsName, options):
                     name = histName.format(angle = angle, cent = centBin, ptBin = ptBin, etaDirection = etaDirection)
                     # Determine label
                     # NOTE: Can't use generateTrackPtRangeString because it includes "assoc" in
-                    # the pt label. Instead, handle more directly.
+                    # the pt label. Instead, we generate the string directly.
                     ptBinLabel = params.generatePtRangeString(arr = ptBinRanges,
                             binVal = trackPtBin,
                             lowerLabel = r"\mathrm{T}",
@@ -172,7 +206,13 @@ def etaPhiMatchHistNames(histOptionsName, options):
     return options
 
 def determineAngleLabel(angle):
-    """ Determine the angle label and return the corresponding latex. """
+    """ Determine the full angle label and return the corresponding latex.
+
+    Args:
+        angle (str): Angle to be used in the labe.
+    Returns:
+        str: Full angle label.
+    """
     returnValue = r"$\Delta"
     # Need to lower because the label in the hist name is upper
     angle = angle.lower()
@@ -181,22 +221,6 @@ def determineAngleLabel(angle):
         angle = "var" + angle
     returnValue += r"\%s$" % (angle)
     return returnValue
-
-#def determinePtBinLabel(ptBin, ptBins):
-#    """ Determine the pt bin label based on the selected bin.
-#
-#    TODO: Can we update this?
-#    Could try to use the params functions to create the pt bin string, but it
-#    would require modification, so we will just handle it here for simplicity.
-#    """
-#    #logger.debug("ptBin: {}, ptBins: {}".format(ptBin, ptBins))
-#    ptBinLabel = r"$%(lowerPtLabel)s p_{\mathrm{T}}%(upperPtLabel)s$"
-#    lowerPtLabel = "{} <".format(ptBins[ptBin])
-#    upperPtLabel = "< {}".format(ptBins[ptBin + 1])
-#    # Only show the lower value for the last pt bin
-#    if ptBin == (len(ptBins) - 2):
-#        upperPtLabel = ""
-#    return ptBinLabel % {"lowerPtLabel" : lowerPtLabel, "upperPtLabel" : upperPtLabel}
 
 def scaleCPUTime(hist):
     """ Time is only reported in increments of 10 ms.
@@ -225,6 +249,8 @@ def etaPhiRemoved(histName, beforeHist, afterHist):
         histName (str): Name of the new hist showing the removed clusters
         beforeHist (ROOT.TH2): Eta-Phi histogram before exotic clusters removal
         afterHist (ROOT.TH2): Eta-Phi histogram after exotic cluster removal
+    Returns:
+        ROOT.TH1 derived: A new hist showing the difference between the two input hists.
     """
     # Create a new hist and remove the after hist
     hist = beforeHist.Clone(histName)
@@ -233,8 +259,10 @@ def etaPhiRemoved(histName, beforeHist, afterHist):
     return hist
 
 def runEMCalCorrectionsHistsFromTerminal():
-    """
+    """ Create and run objects to plot EMCal Corrections hists from the terminal.
 
+    Returns:
+        nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
     (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
     analyses = PlotEMCalCorrections.run(configFilename = configFilename,
@@ -243,8 +271,11 @@ def runEMCalCorrectionsHistsFromTerminal():
     return analyses
 
 class PlotEMCalEmbedding(genericHists.PlotTaskHists):
-    """
+    """ Task to steer plotting of EMCal embedding hists.
 
+    Args:
+        args (list): Additional arguments to pass along to the base config class.
+        kwargs (dict): Additional arguments to pass along to the base config class.
     """
     def __init__(self, *args, **kwargs):
         # Afterwards, we can initialize the base class
@@ -252,7 +283,14 @@ class PlotEMCalEmbedding(genericHists.PlotTaskHists):
 
     @staticmethod
     def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
-        """ Helper function to construct EMCal embedding plotting objects. """
+        """ Helper function to construct EMCal embedding plotting objects.
+
+        Args:
+            configFilename (str): Filename of the yaml config.
+            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+        Returns:
+            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+        """
         return analysisConfig.constructFromConfigurationFile(taskName = "EMCalEmbedding",
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
@@ -260,8 +298,10 @@ class PlotEMCalEmbedding(genericHists.PlotTaskHists):
                 additionalIterators = {})
 
 def runEMCalEmbeddingHistsFromTerminal():
-    """
+    """ Create and run objects to plot EMCal Embedding hists from the terminal.
 
+    Returns:
+        nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
     (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
     analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
