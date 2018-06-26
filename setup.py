@@ -21,6 +21,7 @@ setup(
 
     description="ALICE jet-hadron correlations analysis",
     long_description=long_description,
+    long_description_content_type="text/markdown",
 
     author="Raymond Ehlers",
     author_email="raymond.ehlers@cern.ch",
@@ -36,7 +37,7 @@ setup(
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
