@@ -26,7 +26,7 @@ import IPython
 
 import jetH.base.params as params
 import jetH.base.analysisConfig as analysisConfig
-import jetH.analysis.genericHists as genereicHists
+import jetH.analysis.genericTasks as genericTasks
 
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
@@ -58,11 +58,11 @@ class EMCalCorrectionsLabels(aenum.Enum):
         """ Filename safe string. Return the name of the label. """
         return self.name
 
-class PlotEMCalCorrections(genericHists.PlotTaskHists):
+class PlotEMCalCorrections(genericTasks.PlotTaskHists):
     """ Task to steer plotting of EMCal embedding hists.
 
     Args:
-        taskLabel (EMCalCorrectionsLabels): EMCal corrections label associated with thsi task.
+        taskLabel (EMCalCorrectionsLabels): EMCal corrections label associated with this task.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
@@ -141,7 +141,7 @@ class PlotEMCalCorrections(genericHists.PlotTaskHists):
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
                 obj = PlotEMCalCorrections,
-                additionalIterators = {"taskLabel" : EMCalCorrectionsLabels})
+                additionalPossibleIterables = {"taskLabel" : EMCalCorrectionsLabels})
 
 def etaPhiMatchHistNames(histOptionsName, options):
     """ Generate hist names based on the available options.
@@ -188,7 +188,7 @@ def etaPhiMatchHistNames(histOptionsName, options):
                     # NOTE: Can't use generateTrackPtRangeString because it includes "assoc" in
                     # the pt label. Instead, we generate the string directly.
                     ptBinLabel = params.generatePtRangeString(arr = ptBinRanges,
-                            binVal = trackPtBin,
+                            binVal = ptBin,
                             lowerLabel = r"\mathrm{T}",
                             upperLabel = r"")
 
@@ -209,7 +209,7 @@ def determineAngleLabel(angle):
     """ Determine the full angle label and return the corresponding latex.
 
     Args:
-        angle (str): Angle to be used in the labe.
+        angle (str): Angle to be used in the label.
     Returns:
         str: Full angle label.
     """
@@ -230,7 +230,7 @@ def scaleCPUTime(hist):
     We can perform this scaling in place.
 
     NOTE: This scaling appears to be the same as one would usually do
-          for a rebin, but it is slightly more sublte, because it is
+          for a rebin, but it is slightly more subtle, because it is
           as if the data was already binned. That being said, the end
           result is effectively the same.
 
@@ -264,13 +264,13 @@ def runEMCalCorrectionsHistsFromTerminal():
     Returns:
         nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal Corrections")
     analyses = PlotEMCalCorrections.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 
     return analyses
 
-class PlotEMCalEmbedding(genericHists.PlotTaskHists):
+class PlotEMCalEmbedding(genericTasks.PlotTaskHists):
     """ Task to steer plotting of EMCal embedding hists.
 
     Args:
@@ -295,7 +295,7 @@ class PlotEMCalEmbedding(genericHists.PlotTaskHists):
                 configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions,
                 obj = PlotEMCalEmbedding,
-                additionalIterators = {})
+                additionalPossibleIterables = {})
 
 def runEMCalEmbeddingHistsFromTerminal():
     """ Create and run objects to plot EMCal Embedding hists from the terminal.
@@ -303,7 +303,7 @@ def runEMCalEmbeddingHistsFromTerminal():
     Returns:
         nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = taskName)
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal Embedding")
     analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 

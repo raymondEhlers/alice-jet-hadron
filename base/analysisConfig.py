@@ -25,7 +25,7 @@ import jetH.base.params as params
 def unrollNestedDict(d, keys = None):
     """ Unroll (flatten) an analysis object dictionary, yielding the keys
     to get to the analysis object, as well as the object itself. Note that
-    this function is designed to be called recurisvely.
+    this function is designed to be called recursively.
 
     As an example, consider the input:
 
@@ -136,7 +136,8 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
         description (str): Help description for arguments
         addOptionsFunction (func): Function which takes the ArgumentParser() object, adds
             arguments, and returns the object.
-        kwargs (dict): Additional arguments to format the description
+        kwargs (dict): Additional arguments to format the help description. Often contains "taskName" to specify
+            the task name.
     Returns:
         tuple: (configFilename, energy, collisionSystem, eventActivity, biasType, argparse.namespace). The args
             are return for handling custom arguments added with addOptionsFunction.
@@ -181,6 +182,9 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
 
 def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
+
+    Note:
+        If the selections are not specified, it will define to 2.76 TeV central PbPb collisions with a track bias!
 
     Args:
         selectedArgs (params.selectedAnalysisOptions): Selected analysis options from args or otherwise.
@@ -373,7 +377,7 @@ class JetHBase(genericClass.equalityMixin):
         # TODO: Implement writing this out
 
 def createFromTerminal(obj, taskName, additionalPossibleIterables = None):
-    """ Main function to create an object from the terminal
+    """ Main function to create an object from the terminal.
 
     Args:
         obj (object): Object to be created.

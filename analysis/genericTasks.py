@@ -15,8 +15,9 @@ import os
 import copy
 import collections
 import logging
-# Setup logger
 logger = logging.getLogger(__name__)
+# Quiet down the matplotlib logging
+logging.getLogger("matplotlib").setLevel(logging.INFO)
 
 import IPython
 import pprint
@@ -37,12 +38,6 @@ class PlotTaskHists(analysisConfig.JetHBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Both replaced by task label
-        #self.taskName = taskName
-        #self.taskDescription = taskDescription
-        # Unneeded
-        #self.componentBaseName = componentBaseName
-        #self.label = label
         # These are the objects for each component stored in the YAML config
         self.componentsFromYAML = self.taskConfig.get("componentsToPlot")
         if self.componentsFromYAML is None:
@@ -129,7 +124,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
         return (componentHistsConfigurationOptions, plotAdditional)
 
     def assignHistsToPlotObjects(self, componentHistsInFile, histsConfigurationOptions, plotAdditional):
-        """ Assign input hists retreived from a file to the defined Hist Plotter configs.
+        """ Assign input hists retrieved from a file to the defined Hist Plotters.
 
         Args:
             componentHistsInFile (dict): Hists that are in a particular component. Keys are hist names
@@ -186,7 +181,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
                                 obj.hists.append(hist)
                                 logger.debug("Hists after adding: {}".format(obj.hists))
                             else:
-                                logger.debug("Skipping hist because this object is only supposed to have one hist")
+                                logger.critical("Skipping hist because this object is only supposed to have one hist")
                                 continue
                         else:
                             # Create a copy to store this particular histogram if we haven't already created
@@ -273,6 +268,9 @@ class PlotTaskHists(analysisConfig.JetHBase):
         Returns:
             nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
         """
+        # Create logger
+        logging.basicConfig(level=logging.DEBUG)
+
         # Construct tasks
         (selectedOptionNames, tasks) = cls.constructFromConfigurationFile(configFilename = configFilename,
                 selectedAnalysisOptions = selectedAnalysisOptions)
