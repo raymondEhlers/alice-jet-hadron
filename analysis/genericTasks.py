@@ -32,12 +32,14 @@ class PlotTaskHists(analysisConfig.JetHBase):
     Hists are selected and configured by a configuration file.
 
     Args:
+        taskLabel (aenum.Enum): Enum which labels the task and can be converted into a string.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, taskLabel, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.taskLabel = taskLabel
         # These are the objects for each component stored in the YAML config
         self.componentsFromYAML = self.taskConfig.get("componentsToPlot")
         if self.componentsFromYAML is None:
@@ -220,6 +222,8 @@ class PlotTaskHists(analysisConfig.JetHBase):
 
         The results are stored in the components dict of the class.
         """
+        #if isinstance(next(iter(self.hists)), ROOT.TH1):
+
         # componentNameInFile is the name of the componentHistsInFile to which we want to compare
         for componentNameInFile, componentHistsInFile in iteritems(self.hists):
             # componentHistsOptions are the config options for a component
@@ -236,8 +240,6 @@ class PlotTaskHists(analysisConfig.JetHBase):
                             histsConfigurationOptions = histsConfigurationOptions,
                             plotAdditional = plotAdditional)
 
-                    self.components[componentName] = componentHists
-
                     logger.debug("componentHists: {}".format(pprint.pformat(componentHists)))
                     for componentHist in itervalues(componentHists):
                         # Even though the hist names could be defined in order in the configuration,
@@ -245,6 +247,8 @@ class PlotTaskHists(analysisConfig.JetHBase):
                         # the plot objects. So we sort them alphabetically here
                         componentHist.hists = sorted(componentHist.hists, key = lambda hist : hist.GetName())
                         logger.debug("componentHist: {}, hists: {}, (first) hist name: {}".format(componentHist, componentHist.hists, componentHist.getFirstHist().GetName()))
+
+                    self.components[componentName] = componentHists
 
     def plotHistograms(self):
         """ Driver function to plotting the histograms contained in the object. """

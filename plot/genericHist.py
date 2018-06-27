@@ -178,9 +178,9 @@ class HistPlotter(object):
         if self.textLabel is not None:
             text = ""
             text += params.aliceLabel[obj.aliceLabelType].str()
-            if obj.taskLabel.str() != "":
+            if str(obj.taskLabel) != "":
                 # We don't want a new line here - we just want to continue it
-                text += " " + obj.taskLabel.str()
+                text += " " + str(obj.taskLabel)
 
             text += "\n" + params.systemLabel(energy = obj.collisionEnergy,
                     system = obj.collisionSystem,

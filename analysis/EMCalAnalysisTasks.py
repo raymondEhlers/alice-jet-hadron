@@ -66,13 +66,14 @@ class PlotEMCalCorrections(genericTasks.PlotTaskHists):
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, taskLabel, *args, **kwargs):
-        self.taskLabel = taskLabel
+    def __init__(self, *args, **kwargs):
+        # Retrieve the task label to determine additional inputs.
+        taskLabel = kwargs["taskLabel"]
         # Add the task label to the output prefix
-        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], self.taskLabel.filenameStr())
+        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], taskLabel.filenameStr())
         # Need to add it as "_label" so it ends up as "name_label_histos"
         # If it is the standard correction task, then we just put in an emptry string (which is returned by .str())
-        correlationsLabel = "_{}".format(taskLabel.filenameStr()) if self.taskLabel != EMCalCorrectionsLabels.standard else self.taskLabel.str()
+        correlationsLabel = "_{}".format(taskLabel.filenameStr()) if taskLabel != EMCalCorrectionsLabels.standard else taskLabel.str()
         kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(correctionsLabel = correlationsLabel)
 
         # Afterwards, we can initialize the base class
