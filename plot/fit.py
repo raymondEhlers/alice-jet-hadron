@@ -106,6 +106,7 @@ def PlotRPF(epFitObj):
         for i, (epAngle, ax, axResidual) in enumerate(zip(epAngles, axes, axesResidual)):
             # Main analysis object
             _, jetH = next(analysisConfig.unrollNestedDict(epFitObj.analyses[epAngle]))
+            assert jetH.eventPlaneAngle == epAngle
 
             # Set labels in individual panels
             # NOTE: If text is attached to the figure (fig.text()), we can just plot it whenever

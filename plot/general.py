@@ -9,6 +9,9 @@
 # Py2/3
 from future.utils import iteritems
 
+import logging
+logger = logging.getLogger(__name__)
+
 import jetH.plot.base as plotBase
 
 # Use matplitlib for some plots

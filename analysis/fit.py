@@ -333,8 +333,9 @@ class JetHEPFit(object):
     def DefineFits(self):
         # Setup fit and cost functions
         # Define the fits
-        for _, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
             #for signalDominated, backgroundDominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
+            assert keys[0] == jetH.eventPlaneAngle
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
                 retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
                 if retVal == False:
@@ -492,7 +493,8 @@ class JetHEPFit(object):
 
     def DetermineFitErrors(self):
         # Perform error calculate
-        for _, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
+            assert keys[0] == jetH.eventPlaneAngle
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
                 retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
                 # Always calculate for all angles because we will subtract and we want the errors from the fit on that plot
@@ -615,7 +617,8 @@ class JetHEPFit(object):
         return errorVals
 
     def SubtractEPHists(self):
-        for _, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
+            assert keys[0] == jetH.eventPlaneAngle
             for observable in itervalues(jetH.dPhiArray):
                 #retVal = self.CheckIfFitIsEnabled(epAngle, observable.correlationType)
                 #if retVal == False:
