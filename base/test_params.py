@@ -282,11 +282,11 @@ def testLeadingHadronBiasType(bias, expected, caplog):
     assert bias.str() == expected["str"]
 
 @pytest.mark.parametrize("type, value, expected", [
-        ("NA", 0, {"filenameStr" : "NA0"}),
-        ("NA", 5, {"value" : 0, "filenameStr" : "NA0"}),
-        ("track", 5, {"filenameStr" : "track5"}),
-        ("cluster", 6, {"filenameStr" : "cluster6"}),
-        ("both", 10, {"filenameStr" : "both10"})
+        ("NA", 0, {"filenameStr" : "NA"}),
+        ("NA", 5, {"value" : 0, "filenameStr" : "NA"}),
+        ("track", 5, {"filenameStr" : "trackBias5"}),
+        ("cluster", 6, {"filenameStr" : "clusterBias6"}),
+        ("both", 10, {"filenameStr" : "bothBias10"})
     ], ids = ["NA", "NAPassedWrongValue", "track", "cluster", "both"])
 def testLeadingHadronBias(type, value, expected, caplog):
     """ Test the leading hadron bias class. """

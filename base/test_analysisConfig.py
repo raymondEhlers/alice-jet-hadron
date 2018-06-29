@@ -54,10 +54,10 @@ leadingHadronBiasValues:
         semiCentral:
             cluster:
                 value: 6
-aliceLabelType: "thesis"
+aliceLabel: "thesis"
 override:
     # Just need a trivial override value, since "override" is a required field.
-    aliceLabelType: "final"
+    aliceLabel: "final"
     """
     yaml = ruamel.yaml.YAML()
     data = yaml.load(testYaml)
@@ -121,7 +121,7 @@ inputListName: "inputListNameValue"
 outputPrefix: "outputPrefixValue"
 outputFilename: "outputFilenameValue"
 printingExtensions: ["pdf"]
-aliceLabelType: "thesis"
+aliceLabel: "thesis"
 
 responseTaskName: &responseTaskName ["baseName"]
 intVal: 1
@@ -333,9 +333,14 @@ def checkJetHBaseObject(obj, config, selectedAnalysisOptions, eventPlaneAngle, *
 
     # We need to retrieve these values so we can test them directly.
     # `defaultValues` will now be used as the set of reference values.
-    valueNames = ["inputFilename", "inputListName", "outputPrefix", "outputFilename", "printingExtensions", "aliceLabelType"]
+    valueNames = ["inputFilename", "inputListName", "outputPrefix", "outputFilename", "printingExtensions", "aliceLabel"]
     for k in valueNames:
-        defaultValues[k] = config[k]
+        # The aliceLabel gets converted to the enum in the object, so we need to do the conversion here.
+        if k == "aliceLabel":
+            val = params.aliceLabel[config[k]]
+        else:
+            val = config[k]
+        defaultValues[k] = val
     defaultValues.update(kwargs)
 
     # Directly compare against the available values
@@ -378,12 +383,12 @@ inputListName: "inputListNameValue"
 outputPrefix: "outputPrefixValue"
 outputFilename: "outputFilenameValue"
 printingExtensions: ["png", "pdf"]
-aliceLabelType: "thesis"
+aliceLabel: "thesis"
 taskName:
     test: "val"
     override:
         # Just need a trivial override value, since "override" is a required field.
-        aliceLabelType: "final"
+        aliceLabel: "final"
         iterables:
             eventPlaneAngle: True
             qVector:

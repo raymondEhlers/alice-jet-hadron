@@ -47,14 +47,14 @@ def testCorrelationTypes(corrType, expected, caplog):
     assert obj.displayStr() == expected["displayStr"]
 
 def testCorrelationObservable1D(caplog, mocker):
-    """ Tests for correlationObservable1D. Implicitly tests Observable and CorrelationObservable. """
+    """ Tests for CorrelationObservable1D. Implicitly tests Observable and CorrelationObservable. """
     caplog.set_level(loggingLevel)
     # Arguments are not selected for any particular reason
     values = {"hist" : mocker.MagicMock(), "jetPtBin" : 2, "trackPtBin" : 3,
             "axis" : mocker.MagicMock(),
             "correlationType" : analysisObjects.jetHCorrelationType.signalDominated}
 
-    obj = analysisObjects.correlationObservable1D(**values)
+    obj = analysisObjects.CorrelationObservable1D(**values)
     assert obj.hist == values["hist"]
     assert obj.jetPtBin == values["jetPtBin"]
     assert obj.trackPtBin == values["trackPtBin"]
@@ -62,13 +62,13 @@ def testCorrelationObservable1D(caplog, mocker):
     assert obj.correlationType == values["correlationType"]
 
 def testExtractedObservable(caplog):
-    """ Tests for extractedObservable. """
+    """ Tests for ExtractedObservable. """
     caplog.set_level(loggingLevel)
     # Arguments are not selected for any particular reason
     values = {"jetPtBin" : 2, "trackPtBin" : 3,
               "value" : 1.5, "error" : 0.3}
 
-    obj = analysisObjects.extractedObservable(**values)
+    obj = analysisObjects.ExtractedObservable(**values)
     assert obj.jetPtBin == values["jetPtBin"]
     assert obj.trackPtBin == values["trackPtBin"]
     assert obj.value == values["value"]
@@ -79,7 +79,7 @@ def testHistContainer(caplog, testRootHists):
     caplog.set_level(loggingLevel)
     (hist, hist2D, hist3D) = testRootHists
 
-    obj = analysisObjects.histContainer(hist)
+    obj = analysisObjects.HistContainer(hist)
     # Test the basic properties.
     assert obj.GetName() == "test"
     # Defined functions are called directly.
@@ -94,7 +94,7 @@ def testHistContainerScaleFactor(histIndex, expected, caplog, testRootHists):
     """ Test hist container scale factor calculation. """
     caplog.set_level(loggingLevel)
 
-    obj = analysisObjects.histContainer(testRootHists[histIndex])
+    obj = analysisObjects.HistContainer(testRootHists[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
     assert obj.calculateFinalScaleFactor(additionalScaleFactor = 0.5) == expected["additionalScaleFactor"]
 
@@ -107,7 +107,7 @@ def testHistContainerCloneAndScale(caplog, testRootHists):
     # Add an additional entry so there is a bit more to test.
     hist.Fill(.2)
 
-    obj = analysisObjects.histContainer(hist)
+    obj = analysisObjects.HistContainer(hist)
     scaledHist = obj.createScaledByBinWidthHist()
     obj.Scale(1/obj.GetXaxis().GetBinWidth(1))
 
@@ -118,21 +118,21 @@ def testHistContainerCloneAndScale(caplog, testRootHists):
 
 @pytest.fixture
 def createHistArray():
-    """ Create a basic histArray for testing.
+    """ Create a basic HistArray for testing.
 
     Returns:
-        tuple: (histArray, dict of args used to create the hist array)
+        tuple: (HistArray, dict of args used to create the hist array)
     """
     args = {"_binCenters" : np.arange(1, 11),
             "_array" : np.random.random_sample(10),
             "_errors" : np.random.random_sample(10)/10.0}
 
-    obj = analysisObjects.histArray(**args)
+    obj = analysisObjects.HistArray(**args)
 
     return (obj, args)
 
 def testHistArray(caplog, createHistArray):
-    """ Test basic histArray functionality. """
+    """ Test basic HistArray functionality. """
     caplog.set_level(loggingLevel)
 
     (obj, args) = createHistArray
@@ -144,11 +144,11 @@ def testHistArray(caplog, createHistArray):
     assert np.array_equal(obj.errors, args["_errors"])
 
 def testHistArrayFromRootHist(caplog, testRootHists):
-    """ Test creating a histArray from a ROOT hist. """
+    """ Test creating a HistArray from a ROOT hist. """
     caplog.set_level(loggingLevel)
 
     hist = testRootHists.hist1D
-    obj = analysisObjects.histArray.initFromRootHist(hist)
+    obj = analysisObjects.HistArray.initFromRootHist(hist)
 
     xAxis = hist.GetXaxis()
     xBins = range(1, xAxis.GetNbins() + 1)
@@ -165,7 +165,7 @@ def createFitContainer(mocker):
     """ Create a basic fit conatiner for testing.
 
     Returns:
-        tuple: (fitContainer, dict of args used to create the hist array)
+        tuple: (FitContainer, dict of args used to create the hist array)
     """
     values = {"jetPtBin" : 1, "trackPtBin" : 3,
             "fitType" : analysisObjects.jetHCorrelationType.signalDominated,
@@ -173,12 +173,12 @@ def createFitContainer(mocker):
             "params" : {"B" : 1, "limit_v3" : [-0.1, 0.5]},
             "covarianceMatrix" : {("a", "b") : 1.234},
             "errors" : {("all", "signalDominated") : [1, 2, 3]}}
-    obj = analysisObjects.fitContainer(**values)
+    obj = analysisObjects.FitContainer(**values)
 
     return (obj, values)
 
 def testFitContainer(caplog, createFitContainer):
-    """ Test fitContainer initialization. """
+    """ Test FitContainer initialization. """
     caplog.set_level(loggingLevel)
     (obj, values) = createFitContainer
 
@@ -195,11 +195,11 @@ def testFitContainer(caplog, createFitContainer):
         analysisObjects.jetHCorrelationType.signalDominated
     ], ids = ["str obj type", "enum obj type"])
 @pytest.mark.parametrize("obj, objArgs", [
-    (analysisObjects.histArray, {"jetPtBin" : 1, "trackPtBin" : 3}),
-    (analysisObjects.fitContainer, {"jetPtBin" : 1, "trackPtBin" : 4})
-    ], ids = ["histArray", "fitContainer"])
+    (analysisObjects.HistArray, {"jetPtBin" : 1, "trackPtBin" : 3}),
+    (analysisObjects.FitContainer, {"jetPtBin" : 1, "trackPtBin" : 4})
+    ], ids = ["HistArray", "FitContainer"])
 def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objType, caplog, mocker):
-    """ Test initializing and writing objects to/from YAML files. Tests both histArray and fitContainer objects.
+    """ Test initializing and writing objects to/from YAML files. Tests both HistArray and FitContainer objects.
 
     NOTE: This test uses real files, which are opened through mocked open() objects. The mocking is
           to avoid any read/write side effects, while the real files are used to ensure the data
@@ -227,11 +227,11 @@ def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objType, caplog, mocke
 
     # Test a few object specific details
     # It isn't exactly ideal to check like this, but I think it's fine
-    if isinstance(testObj, analysisObjects.histArray):
+    if isinstance(testObj, analysisObjects.HistArray):
         assert type(testObj.binCenters) is np.ndarray
         assert type(testObj.histData) is np.ndarray
         assert type(testObj.errors) is np.ndarray
-    if isinstance(testObj, analysisObjects.fitContainer):
+    if isinstance(testObj, analysisObjects.FitContainer):
         # This should be converted on import.
         for k, v in iteritems(testObj.errors):
             assert type(v) is np.ndarray
