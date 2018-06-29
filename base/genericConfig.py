@@ -8,6 +8,7 @@ import future.utils
 from future.utils import iteritems
 from future.utils import itervalues
 
+import copy
 import string
 import collections
 import itertools
@@ -263,8 +264,13 @@ def createObjectsFromIterables(obj, args, iterables, formattingOptions):
                 tempDict = tempDict.setdefault(val, collections.OrderedDict())
             else:
                 # Apply formatting options
-                logger.debug("args pre format: {args}".format(args = args))
-                objectArgs = applyFormattingDict(args, formattingOptions)
+                # Need a deep copy to ensure that the iterable dependent values in the formatting are
+                # properly set for each object individually.
+                # NOTE: We don't need to do this for iterable value names because they will be overwritten
+                #       for each object.
+                objectArgs = copy.deepcopy(args)
+                logger.debug("objectArgs pre format: {objectArgs}".format(objectArgs = objectArgs))
+                objectArgs = applyFormattingDict(objectArgs, formattingOptions)
                 # Skip printing the config because it is quite long
                 printArgs = {k : v for k, v in iteritems(objectArgs) if k != "config"}
                 printArgs["config"] = "..."
