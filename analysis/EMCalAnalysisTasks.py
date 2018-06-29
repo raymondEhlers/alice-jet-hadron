@@ -265,7 +265,7 @@ def runEMCalCorrectionsHistsFromTerminal():
     Returns:
         nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal Corrections")
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(description = "EMCal corrections plotting.")
     analyses = PlotEMCalCorrections.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 
@@ -304,7 +304,7 @@ def runEMCalEmbeddingHistsFromTerminal():
     Returns:
         nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal Embedding")
+    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal embedding plotting.")
     analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
             selectedAnalysisOptions = terminalArgs)
 

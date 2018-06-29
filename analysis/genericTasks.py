@@ -265,7 +265,6 @@ class PlotTaskHists(analysisConfig.JetHBase):
         """ Main driver function to create, process, and plot task hists.
 
         Args:
-            cls (object): Class to be constructed. Must be an instance of or inherit from PlotTaskHists.
             configFilename (str): Filename of the yaml config.
             selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
             runPlotting (bool): If true, run plotting after the processing.
@@ -283,8 +282,8 @@ class PlotTaskHists(analysisConfig.JetHBase):
         logger.info("About to process")
         for keys, task in analysisConfig.unrollNestedDict(tasks):
             # Print the task selected analysis options
-            opts = ["{name}: {value}".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
-            logger.info("Processing plotting task {} with options: {}".format(task.taskName, ", ".join(opts)))
+            opts = ["{name}: \"{value}\"".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
+            logger.info("Processing plotting task {} with options:\n\t{}".format(task.taskName, "\n\t".join(opts)))
 
             # Setup and run the processing
             task.getHistsFromInputFile()
