@@ -59,6 +59,7 @@ def unrollNestedDict(d, keys = None):
     Returns:
         tuple: (list of keys to get to the object, the object)
     """
+    # TODO: Move to genericConfig?
     if keys is None:
         keys = []
     #logger.debug("d: {}".format(d))
@@ -125,7 +126,7 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
 
     return config
 
-def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {taskName}", addOptionsFunction = None, **kwargs):
+def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {taskName}.", addOptionsFunction = None, **kwargs):
     """ Determine the selected analysis options from the command line arguments.
 
     Defaults are equivalent to None or False so values can be added in the validation
@@ -351,7 +352,7 @@ class JetHBase(genericClass.equalityMixin):
                         leadingHadronBias = leadingHadronBias
                         )
                     ).leadingHadronBias
-        # It should now be params.leadingHadronBias, regardless of whether that type was passed.
+        # The type of leadingHadronBias should now be params.leadingHadronBias, regardless of whether that type was passed.
         self.leadingHadronBias = leadingHadronBias
 
         # File I/O
@@ -366,7 +367,11 @@ class JetHBase(genericClass.equalityMixin):
             os.makedirs(self.outputPrefix)
 
         self.printingExtensions = config["printingExtensions"]
-        self.aliceLabelType = config["aliceLabelType"]
+        # Convert the ALICE label if necessary
+        aliceLabel = config["aliceLabel"]
+        if isinstance(aliceLabel, str):
+            aliceLabel = params.aliceLabel[aliceLabel]
+        self.aliceLabel = aliceLabel
 
     def writeConfig(self):
         """ Write the properties of the analysis to a YAML configuration file for future reference. """

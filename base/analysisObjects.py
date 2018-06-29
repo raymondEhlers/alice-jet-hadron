@@ -53,22 +53,22 @@ class jetHCorrelationType(aenum.Enum):
         """ Name to use in a filename. """
         return self.__str__()
 
-class observable(object):
-    """ Base observable object. Intended to store a histContainer.
+class Observable(object):
+    """ Base observable object. Intended to store a HistContainer.
 
     Args:
-        hist (histContainer): The hist we are interested in.
+        hist (HistContainer): The hist we are interested in.
     """
     def __init__(self, hist = None):
         self.hist = hist
 
-class correlationObservable(observable):
+class CorrelationObservable(Observable):
     """ General correlation observable object. Usually used for 2D correlations.
 
     Args:
         jetPtBin (int): Bin of the jet pt of the observable.
         trackPtBin (int): Bin of the track pt of the observable.
-        hist (histContainer): Associated histogram of the observable. Optional.
+        hist (HistContainer): Associated histogram of the observable. Optional.
     """
     def __init__(self, jetPtBin, trackPtBin, *args, **kwargs):
         """ Initialize the observable """
@@ -77,7 +77,7 @@ class correlationObservable(observable):
         self.jetPtBin = jetPtBin
         self.trackPtBin = trackPtBin
 
-class correlationObservable1D(correlationObservable):
+class CorrelationObservable1D(CorrelationObservable):
     """ For 1D correlation observable object. Can be either dPhi or dEta.
 
     Args:
@@ -85,7 +85,7 @@ class correlationObservable1D(correlationObservable):
         correlationType (jetHCorrelationType): Type of the 1D observable.
         jetPtBin (int): Bin of the jet pt of the observable.
         trackPtBin (int): Bin of the track pt of the observable.
-        hist (histContainer): Associated histogram of the observable. Optional.
+        hist (HistContainer): Associated histogram of the observable. Optional.
     """
     def __init__(self, axis, correlationType, *args, **kwargs):
         # Initialize the base class
@@ -94,7 +94,7 @@ class correlationObservable1D(correlationObservable):
         self.axis = axis
         self.correlationType = correlationType
 
-class extractedObservable(object):
+class ExtractedObservable(object):
     """ For extracted observable such as widths or yields.
 
    Args:
@@ -109,7 +109,7 @@ class extractedObservable(object):
         self.value = value
         self.error = error
 
-class histContainer(object):
+class HistContainer(object):
     """ Container for a histogram to allow for normal function access except for those that
     we choose to overload.
 
@@ -124,7 +124,7 @@ class histContainer(object):
         """ Forwards all requested functions or attributes to the histogram. However, other
         functions or attributes defined in this class are still accessible!
 
-        This function is usually called implicitly by calling the attribute on the histContainer.
+        This function is usually called implicitly by calling the attribute on the HistContainer.
 
         Args:
             attr (str): Desired attribute of the stored histogram.
@@ -178,7 +178,7 @@ class histContainer(object):
 
         return finalScaleFactor
 
-class yamlStorableObject(object):
+class YAMLStorableObject(object):
     """ Base class for objects which can be represented and stored in YAML. """
     outputFilename = "yamlObject.yaml"
     def __init__(self):
@@ -306,13 +306,13 @@ class yamlStorableObject(object):
         logger.debug("Saving {objType} {className} ({jetPtBin}, {trackPtBin}) to file {filename}".format(objType = kwargs["objType"],
             className = type(self).__name__,
             jetPtBin = kwargs["jetPtBin"],
-            trackPtBin = kwargs["jetPtBin"],
+            trackPtBin = kwargs["trackPtBin"],
             filename = filename))
         utils.writeYAML(filename = filename,
                         fileAccessMode = fileAccessMode,
                         parameters = parameters)
 
-class histArray(yamlStorableObject):
+class HistArray(YAMLStorableObject):
     """ Represents a histogram's binned data.
 
     Histograms stored in this class make a number of (soft) assumptions
@@ -347,7 +347,7 @@ class histArray(yamlStorableObject):
         Args:
             hist (ROOT.TH1): ROOT histogram to be converted.
         Returns:
-            histArray: histArray created from the passed TH1.
+            HistArray: HistArray created from the passed TH1.
         """
         arr = utils.getArrayFromHist(hist)
         return cls(_binCenters = arr["binCenters"], _array = arr["y"], _errors = arr["errors"])
@@ -412,7 +412,7 @@ class histArray(yamlStorableObject):
 
         return parameters
 
-class fitContainer(yamlStorableObject):
+class FitContainer(YAMLStorableObject):
     """ Contains information about a particular fit.
 
     Fits should only be stored if they are valid!
@@ -491,7 +491,7 @@ class fitContainer(yamlStorableObject):
         """ Write the fit container properties to a YAML file.
 
         Args:
-            outputPrefix (str): Path to the directory where the fit should be stored.
+            prefix (str): Path to the directory where the fit should be stored.
             fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
             args (list): Additional arguments. They will be forwarded to saveToYAML().
             kwargs (dict): Additional named arguments. `objType`, `jetPtBin`, and `trackPtBin`

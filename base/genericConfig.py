@@ -320,12 +320,12 @@ def applyFormattingDict(obj, formatting):
         for i, el in enumerate(obj):
             # Using indirect access to ensure that the original object is updated.
             obj[i] = applyFormattingDict(el, formatting)
-    elif isinstance(obj, int) or isinstance(obj, float):
+    elif isinstance(obj, int) or isinstance(obj, float) or obj is None:
         # Skip over this, as there is nothing to be done - we just keep the value.
         pass
     elif isinstance(obj, aenum.Enum):
         # Skip over this, as there is nothing to be done - we just keep the value.
-        # This only occurs when formatting something that has already been transformed
+        # This only occurs when the a formatting value has already been transformed
         # into an enuemration.
         pass
     else:

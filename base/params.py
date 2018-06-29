@@ -367,8 +367,14 @@ class leadingHadronBias(genericClass.equalityMixin):
         return self.filenameStr()
 
     def filenameStr(self):
-        """ Return the type and value, such as "cluster6" or "track5". """
-        return "{type}{value}".format(type = self.type, value = self.value)
+        """ Return the type and value, such as "clusterBias6" or "trackBias5".
+
+        In the case of the bias as NA, it simply returns "NA".
+        """
+        if self.type != leadingHadronBiasType.NA:
+            return "{type}Bias{value}".format(type = self.type, value = self.value)
+        else:
+            return "{type}".format(type = self.type, value = self.value)
 
 ##############################
 # Additional selection options
