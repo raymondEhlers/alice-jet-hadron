@@ -173,11 +173,11 @@ class HistPlotter(object):
             - "textLocation" : [x, y]. Default location is top center
             - "textAlignment" : option for multialignment
             - "fontSize"
-            - aliceLabelType (set in the main config)
+            - aliceLabel (set in the main config)
         """
         if self.textLabel is not None:
             text = ""
-            text += params.aliceLabel[obj.aliceLabelType].str()
+            text += obj.aliceLabel.str()
             if str(obj.taskLabel) != "":
                 # We don't want a new line here - we just want to continue it
                 text += " " + str(obj.taskLabel)

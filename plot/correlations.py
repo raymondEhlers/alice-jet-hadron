@@ -77,8 +77,10 @@ def plot2DCorrelations(jetH):
             # Add labels
             # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
             # Instead, print to EPS and then convert to PDF
-            aliceLabel = params.aliceLabel(params.aliceLabelType.workInProgress)
-            systemLabel = params.systemLabel(jetH.collisionSystem.str())
+            aliceLabel = jetH.aliceLabel.str()
+            systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
+                    system = jetH.collisionSystem,
+                    activity = jetH.eventActivity)
             (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
             assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
             #logger.debug("label: {}, systemLabel: {}, constituentCuts: {}, leadingHadron: {}, jetPt: {}, assocPt: {}".format(aliceLabel, systemLabel, constituentCuts, leadingHadron, jetPt, assocPt))
@@ -280,8 +282,10 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
         ax.yaxis.labelpad = 15
         ax.zaxis.labelpad = 12
         # Overall
-        aliceLabel = params.aliceLabel(params.aliceLabelType.workInProgress)
-        systemLabel = params.systemLabel(jetH.collisionSystem.str())
+        aliceLabel = jetH.aliceLabel.str()
+        systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
+                    system = jetH.collisionSystem,
+                    activity = jetH.eventActivity)
         (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
         assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
 

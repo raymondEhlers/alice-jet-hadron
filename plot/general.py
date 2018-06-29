@@ -54,7 +54,7 @@ def plotTriggerJetSpectra(jetH):
     """ Plot the trigger jet spectra. """
     # Use the general histogrmms as a proxy, since usually if we want them, then we
     # also want the trigger spectra
-    if jetH.config["processingOptions"]["generalHistograms"]:
+    if jetH.taskConfig["processingOptions"]["generalHistograms"]:
         canvas = ROOT.TCanvas("canvas", "canvas")
         canvas.SetLogy(True)
         jetH.triggerJetPt[jetH.histNameFormatTrigger].hist.Draw()
