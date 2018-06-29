@@ -340,9 +340,10 @@ def objectAndCreationArgs():
     # Define fake object. We don't use a mock because we need to instantiate the object
     # in the function that is being tested. This is not super straightforward with mock,
     # so instead we create a test object by hand.
-    obj = collections.namedtuple("testObj",["eventPlaneAngle", "qVector", "a", "b"])
-    args = {"a" : 1, "b" : "{fmt}"}
-    formattingOptions = {"fmt" : "formatted"}
+    obj = collections.namedtuple("testObj",["eventPlaneAngle", "qVector", "a", "b", "optionsFmt"])
+    # Include args that depend on the iterable values to ensure that they are varied properly!
+    args = {"a" : 1, "b" : "{fmt}", "optionsFmt" : "{eventPlaneAngle}_{qVector}"}
+    formattingOptions = {"fmt" : "formatted", "optionsFmt" : "{eventPlaneAngle}_{qVector}"}
 
     return (obj, args, formattingOptions)
 
@@ -373,6 +374,7 @@ def testCreateObjectsFromIterables(caplog, objectCreationConfig, objectAndCreati
             assert createdObject.qVector == qVector
             assert createdObject.a == args["a"]
             assert createdObject.b == formattingOptions["fmt"]
+            assert createdObject.optionsFmt == formattingOptions["optionsFmt"].format(eventPlaneAngle = epAngle, qVector = qVector)
 
 def testMissingIterableForObjectCreation(caplog, objectAndCreationArgs):
     """ Test object creation when the iterables are missing. """
