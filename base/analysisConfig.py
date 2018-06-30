@@ -312,7 +312,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
 
     return (names, objects)
 
-class JetHBase(genericClass.equalityMixin):
+class JetHBase(genericClass.EqualityMixin):
     """ Base class for shared jet-hadron configuration values.
 
     Args:

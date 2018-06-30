@@ -5,7 +5,7 @@
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
 
-class equalityMixin(object):
+class EqualityMixin(object):
     """ Defines generic comparison operations using `__dict__`, which can
     then be mixed into any other class using multiple inheritance.
 

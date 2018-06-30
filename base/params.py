@@ -342,7 +342,7 @@ setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
 # These classes are used for final analysis # specification, building
 # on the analysis specification objects specified above.
 ########################
-class leadingHadronBias(genericClass.equalityMixin):
+class leadingHadronBias(genericClass.EqualityMixin):
     """ Full leading hadron bias class, which specifies both the type as well as the value.
     The enum exists to be specified when creating an analysis object, and then the value is
     determined by the selected analysis options (including that enum). This object then
