@@ -27,6 +27,7 @@ import jetH.plot.base as plotBase
 # Import plotting packages
 # Use matplotlib in some cases
 import matplotlib.pyplot as plt
+import matplotlib
 from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 # And use ROOT in others
@@ -114,6 +115,26 @@ def PlotRPF(epFitObj):
             ax.set_title(epAngle.displayStr(), fontsize = 17)
             # Axis labels
             ax.set_xlabel(r"$\Delta\varphi$", fontsize = 17)
+            # Set the number of ticks in the axis to every integer value.
+            # See: https://stackoverflow.com/a/19972993
+            majorTicker = matplotlib.ticker.MultipleLocator(base=1.0)
+            ax.xaxis.set_major_locator(majorTicker)
+            # Enable the axis minor tickers
+            ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+            ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+            ax.tick_params(axis = "both",
+                    which = "major",
+                    labelsize = 15,
+                    direction = "in",
+                    length = 8,
+                    bottom = True,
+                    left = True)
+            ax.tick_params(axis = "both",
+                    which = "minor",
+                    direction = "in",
+                    length = 4,
+                    bottom = True,
+                    left = True)
 
             # Set y label
             (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
@@ -132,9 +153,10 @@ def PlotRPF(epFitObj):
 
             if i == 1:
                 text = ""
-                text += params.systemLabel(energy = jetH.collisionEnergy, system = jetH.collisionSystem, activity = jetH.eventActivity) + "\n"
-                text += jetPt + "\n"
-                text += jetFinding
+                text += jetH.aliceLabel.str()
+                text += "\n" + params.systemLabel(energy = jetH.collisionEnergy, system = jetH.collisionSystem, activity = jetH.eventActivity)
+                text += "\n" + jetPt
+                text += "\n" + jetFinding
                 ax.text(0.5, 0.9, text, horizontalalignment='center',
                         verticalalignment='center',
                         multialignment="left",
@@ -149,14 +171,14 @@ def PlotRPF(epFitObj):
                 #ax.text(0.34, 0.78, anchorText, transform=ax.transAxes)
 
             if i == 2:
-                text = ""
-                text += jetH.aliceLabel.str() + "\n"
-                text += "Background: $0.8<|\Delta\eta|<1.2$\n"
-                text += "Signal + Background: $|\Delta\eta|<0.6$"
-                ax.text(0.5, 0.9, text, horizontalalignment='center',
-                        verticalalignment='center',
-                        multialignment="left",
-                        transform = ax.transAxes)
+                #text = ""
+                #text += "Background: $0.8<|\Delta\eta|<1.2$\n"
+                #text += "Signal + Background: $|\Delta\eta|<0.6$"
+                #ax.text(0.5, 0.9, text, horizontalalignment='center',
+                #        verticalalignment='center',
+                #        multialignment="left",
+                #        transform = ax.transAxes)
+                pass
 
                 #anchorText = AnchoredText(text, loc=9, frameon=False)
                 #ax.add_artist(anchorText)
@@ -169,11 +191,17 @@ def PlotRPF(epFitObj):
 
                 # Plot data
                 # Plot S+B, B for all angles, but only B for EP angles
-                if correlationType == analysisObjects.jetHCorrelationType.backgroundDominated or (correlationType == analysisObjects.jetHCorrelationType.signalDominated and epAngle == params.eventPlaneAngle.all):
+                if (correlationType == analysisObjects.jetHCorrelationType.backgroundDominated and epAngle != params.eventPlaneAngle.all) or (correlationType == analysisObjects.jetHCorrelationType.signalDominated and epAngle == params.eventPlaneAngle.all):
                     x = observable.hist.x
                     y = observable.hist.array
                     errors = observable.hist.errors
-                    ax.errorbar(x, y, yerr = errors, marker = "o", zorder = zOrder[(correlationType, "Data")], color = colorsMap[correlationType, "Data"], label = correlationType.displayStr())
+                    # TODO: This should move to the enum
+                    label = correlationType.displayStr()
+                    if correlationType == analysisObjects.jetHCorrelationType.backgroundDominated:
+                        label = correlationType.displayStr() + ":\n$0.8<|\Delta\eta|<1.2$"
+                    else:
+                        label = correlationType.displayStr() + ":\n$|\Delta\eta|<0.6$"
+                    ax.errorbar(x, y, yerr = errors, marker = "o", zorder = zOrder[(correlationType, "Data")], color = colorsMap[correlationType, "Data"], label = label)
 
                 # Check if the fit was perofmred and therefore should be plotted
                 retVal = epFitObj.CheckIfFitIsEnabled(epAngle, correlationType)
@@ -261,7 +289,7 @@ def PlotRPF(epFitObj):
         fig.tight_layout()
         # Then adjust spacing between subplots
         # Must go second so it isn't reset by tight_layout()
-        fig.subplots_adjust(hspace = 0, wspace = 0.05, bottom = 0.12, left = 0.05)
+        fig.subplots_adjust(hspace = 0, wspace = 0.05, bottom = 0.12, left = 0.07)
 
         # Show legend
         logger.debug("handles: {}, labels: {}".format(handles, labels))
@@ -371,26 +399,56 @@ def PlotSubtractedEPHists(epFitObj):
                 axisAll.set_xlabel(r"$\Delta\varphi$", fontsize = 17)
                 # Set y label
                 axisAll.set_ylabel(r"1/$\mathrm{N}_{\mathrm{trig}}$d(N-B)/d$\Delta\varphi$", fontsize = 17)
+                # TODO: Consoldiate into a function
+                # Set the number of ticks in the axis to every integer value.
+                # See: https://stackoverflow.com/a/19972993
+                majorTicker = matplotlib.ticker.MultipleLocator(base=1.0)
+                axisAll.xaxis.set_major_locator(majorTicker)
+                # Enable the axis minor tickers
+                axisAll.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+                axisAll.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+                axisAll.tick_params(axis = "both",
+                        which = "major",
+                        labelsize = 15,
+                        direction = "in",
+                        length = 8,
+                        bottom = True,
+                        left = True)
+                axisAll.tick_params(axis = "both",
+                        which = "minor",
+                        direction = "in",
+                        length = 4,
+                        bottom = True,
+                        left = True)
 
                 # Add labels
                 # NOTE: Cannot end in "\n". It will cause an crash.
                 # TODO: Add to other subtracted plots
                 (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
                 text = ""
-                text += params.systemLabel(energy = jetH.collisionEnergy, system = jetH.collisionSystem, activity = jetH.eventActivity)
-                text += "\n" + jetFinding + constituentCuts
-                text += "\n" + jetPt + ", " + leadingHadron
-                text += "\n" + params.generateTrackPtRangeString(trackPtBin) + ", " + "$|\Delta\eta|<0.6$"
-                text += "\nScale uncertainty: 6\%"
-                text += "\n" + jetH.aliceLabel.str()
+                if not epFitObj.minimalLabelsForAllAnglesSubtracted:
+                    text += jetH.aliceLabel.str()
+                    text += "\n" + params.systemLabel(energy = jetH.collisionEnergy, system = jetH.collisionSystem, activity = jetH.eventActivity)
+                    text += "\n" + jetFinding + constituentCuts
+                    text += "\n" + jetPt + ", " + leadingHadron
+                    # Extra "\n" at the end because we can't lead with a bare "\n".
+                    text += "\n" + params.generateTrackPtRangeString(trackPtBin) + "\n"
+                    textArgs = {"x" : 0.5, "y" : 0.82,
+                            "horizontalalignment" : "center",
+                            "verticalalignment" : "center",
+                            "multialignment" : "center"}
+                else:
+                    textArgs = {"x" : 0.92, "y" : 0.84,
+                            "horizontalalignment" : "right",
+                            "verticalalignment" : "top"}
+                text += "Scale uncertainty: 6\%"
                 #logger.debug("text: {}".format(text))
-                axisAll.text(0.5, 0.82, text, horizontalalignment='center',
-                        verticalalignment='center',
-                        multialignment="center",
-                        fontsize=12.5,
-                        transform = axisAll.transAxes)
+                textArgs["fontsize"] = 16
+                textArgs["transform"] = axisAll.transAxes
+                textArgs["s"] = text
+                axisAll.text(**textArgs)
 
-                plot = axisAll.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + " Subtracted")
+                plot = axisAll.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + "\nSubtracted: $|\Delta\eta|<0.6$")
                 axisAll.fill_between(xForFitFunc, observable.hist.array - fitErrors, observable.hist.array + fitErrors, label = "Fit error",facecolor = colorsMap[(observable.correlationType, "Fit")], zorder = 10, alpha = 0.8)
 
                 # Adjust after we know the range of the data
@@ -423,7 +481,8 @@ def PlotSubtractedEPHists(epFitObj):
         # Must go second so it isn't reset by tight_layout()
         #figAll.subplots_adjust(hspace = 0, wspace = 0.05, bottom = 0.12, left = 0.1)
 
-        axisAll.legend(loc="best", fontsize = plottingSettings["legend.fontsize"])
+        #axisAll.legend(loc="best", fontsize = plottingSettings["legend.fontsize"])
+        axisAll.legend(loc="best", fontsize = 16)
 
         # Save plot
         plotBase.savePlot(epFitObj, figAll, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "AllAngles_subtracted"))

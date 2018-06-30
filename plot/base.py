@@ -20,7 +20,17 @@ plt.rc('text', usetex=True)
 #from matplotlib import rcParams
 #rcParams.update({'figure.autolayout': True})
 import seaborn as sns
-sns.set(context = "notebook", style = "whitegrid")
+sns.set(context = "notebook", style = "white")
+
+# For sans serif fonts in LaTeX (required for setting the fonts below)
+# See: https://stackoverflow.com/a/11612347
+# Set the tex fonts to be the same as the normal matplotlib fonts
+# See: https://stackoverflow.com/a/27697390
+plt.rc("text.latex", preamble = r"\usepackage{sfmath}")
+matplotlib.rcParams["mathtext.fontset"] = "custom"
+matplotlib.rcParams["mathtext.rm"] = "Bitstream Vera Sans"
+matplotlib.rcParams["mathtext.it"] = "Bitstream Vera Sans:italic"
+matplotlib.rcParams["mathtext.bf"] = "Bitstream Vera Sans:bold"
 
 # Wrappers
 class plottingOutputWrapper(object):

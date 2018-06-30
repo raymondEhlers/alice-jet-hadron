@@ -270,7 +270,8 @@ class JetHEPFit(object):
         self.includeFitError = self.fitConfig["includeFitError"]
         self.drawMinuitQAPlots = self.fitConfig["drawMinuitQAPlots"]
         self.plotSummedFitCrosscheck = self.fitConfig["plotSummedFitCrosscheck"]
-        # This is generally slow (due to needed to calculate the derivatives?)
+        self.minimalLabelsForAllAnglesSubtracted = self.fitConfig["minimalLabelsForAllAnglesSubtracted"]
+        # This is generally slow (due to needing to calculate the derivatives)
         self.calculateFitError = self.fitConfig["calculateFitError"]
 
         # Useful when labeling fit conatiner objects
