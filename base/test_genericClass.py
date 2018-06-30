@@ -20,7 +20,7 @@ loggingLevel = logging.DEBUG
 def setupEqualityMixin():
     """ Create a basic class for tests of the equality mixin. """
 
-    class equalityMixinTestClass(genericClass.equalityMixin):
+    class equalityMixinTestClass(genericClass.EqualityMixin):
         def __init__(self, aNumber, aString, aList, aDict):
             self.aNumber = aNumber
             self.aString = aString
