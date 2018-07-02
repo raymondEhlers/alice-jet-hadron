@@ -169,9 +169,12 @@ class HistContainer(object):
         # The first bin should always exist!
         binWidthScaleFactor = self.hist.GetXaxis().GetBinWidth(1)
 
-        if self.hist.InheritsFrom(ROOT.TH2.Class()):
+        # Recall that TH3 _does not_ inherit from TH2, so we need to explicitly
+        # check for it here to ensure that it is scaled by the Y axis bin width
+        # (as well the z axis bin width scaling that is after this if statement).
+        if isinstance(self.hist, ROOT.TH2) or isinstance(self.hist, ROOT.TH3):
             binWidthScaleFactor *= self.hist.GetYaxis().GetBinWidth(1)
-        if self.hist.InheritsFrom(ROOT.TH3.Class()):
+        if isinstance(self.hist, ROOT.TH3):
             binWidthScaleFactor *= self.hist.GetZaxis().GetBinWidth(1)
 
         finalScaleFactor = additionalScaleFactor/binWidthScaleFactor
