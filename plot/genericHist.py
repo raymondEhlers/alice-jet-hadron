@@ -211,7 +211,7 @@ class HistPlotter(object):
         fig, ax = plt.subplots(figsize=(8,6))
 
         # Draw the hist
-        if self.getFirstHist().InheritsFrom(ROOT.TH2.Class()):
+        if isinstance(self.getFirstHist(), ROOT.TH2):
             if len(self.hists) > 1:
                 logger.critical("Too many hists are included for a 2D hist. Obj contains {}".format(self.hists))
                 sys.exit(1)
@@ -336,7 +336,7 @@ class HistPlotter(object):
             # See: https://stackoverflow.com/a/42092305
             #axFromPlot.collections[0].colorbar.set_label(label)
 
-        elif self.getFirstHist().InheritsFrom(ROOT.TH1.Class()):
+        elif isinstance(self.getFirstHist(), ROOT.TH1):
             # Set colors before plotting because it's not handled automatically
             colorPaletteArgs = {}
             if len(self.hists) > 6:

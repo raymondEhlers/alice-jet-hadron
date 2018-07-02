@@ -84,8 +84,8 @@ class JetHTriggerSparse(aenum.Enum):
 
 class JetHCorrelationAxis(aenum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
-    kDeltaPhi = projectors.TH1AxisType.xAxis
-    kDeltaEta = projectors.TH1AxisType.yAxis
+    kDeltaPhi = projectors.TH1AxisType.xAxis.value
+    kDeltaEta = projectors.TH1AxisType.yAxis.value
 
     def __str__(self):
         """ Turns kDeltaPhi into "deltaPhi" """
@@ -321,7 +321,7 @@ class JetHAnalysis(analysisConfig.JetHBase):
         triggerObservable = self.triggerJetPt[self.histNameFormatTrigger]
         for iJetPtBin in params.iterateOverJetPtBins(self.config):
             """
-            # Retrieve the number of triggers, carefully noting the information below.
+            When retrieving the number of triggers, carefully noting the information below.
             >>> hist = ROOT.TH1D("test", "test", 10, 0, 10)
             >>> x = 2, y = 5
             >>> hist.FindBin(x)

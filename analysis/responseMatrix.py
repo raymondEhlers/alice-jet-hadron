@@ -1408,13 +1408,12 @@ def checkNormalization(hist, rmNormalizationType, useFloatHists):
             logger.error("Normalization not successful for bin {0}. Norm: {1}".format(index, norm))
 
 def removeOutliers(hist, limit, outputPath):
-    if hist.InheritsFrom(ROOT.TH3.Class()):
-        logger.critical("Outlier removal does not work on TH3")
-        sys.exit(1)
+    if isinsatnce(hist, ROOT.TH3):
+        raise TypeError(type(hist), "Outlier removal does not work on TH3")
 
     # Project a TH2 to a TH1 to simplfy the algorithm
     projection = False
-    if hist.InheritsFrom(ROOT.TH2.Class()):
+    if isinstance(hist, ROOT.TH2):
         # Project
         projection = hist.ProjectionX("{histName}_temp".format(histName = hist.GetName()))
 
@@ -1520,7 +1519,7 @@ def removeOutliers(hist, limit, outputPath):
 
     # Check the mean and median
     # Use another temporary hist in the case of a TH2 to simply extracting values
-    if hist.InheritsFrom(ROOT.TH2.Class()):
+    if isinstance(hist, ROOT.TH2):
         # Project
         projection = hist.ProjectionX("{histName}_temp2".format(histName = hist.GetName()))
     histToCheck = projection if projection else hist

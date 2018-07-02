@@ -66,10 +66,10 @@ def retrieveObject(outputDict, obj):
         None: Changes in the dict are reflected in the outputDict which was passed.
     """
     # Store TH1 or THn
-    if obj.InheritsFrom(ROOT.TH1.Class()) or obj.InheritsFrom(ROOT.THnBase.Class()):
+    if isinstance(obj, ROOT.TH1) or isinstance(obj, ROOT.THnBase):
         # Ensure that it is not lost after the file is closed
         # Only works for TH1
-        if obj.InheritsFrom(ROOT.TH1.Class()):
+        if isinstance(obj, ROOT.TH1):
             obj.SetDirectory(0)
 
         # Explictily note that python owns the object
@@ -81,7 +81,7 @@ def retrieveObject(outputDict, obj):
         outputDict[obj.GetName()] = obj
 
     # Recurse over lists
-    if obj.InheritsFrom(ROOT.TCollection.Class()):
+    if isinstance(obj, ROOT.TCollection):
         # Keeping it in order simply makes it easier to follow
         outputDict[obj.GetName()] = collections.OrderedDict()
         for objTemp in list(obj):
