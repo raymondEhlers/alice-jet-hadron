@@ -86,9 +86,9 @@ def testHistContainer(caplog, testRootHists):
     assert obj.calculateFinalScaleFactor() == 10.0
 
 @pytest.mark.parametrize("histIndex, expected", [
-        (0, {"scaleFactor" : 10.0, "additionalScaleFactor" : 5.0}),
-        (1, {"scaleFactor" : 10.0, "additionalScaleFactor" : 5.0}),
-        (2, {"scaleFactor" :  1.0, "additionalScaleFactor" : 0.5}),
+        (0, {"scaleFactor" : 10.0}),
+        (1, {"scaleFactor" :  5.0}),
+        (2, {"scaleFactor" :  0.5}),
     ], ids = ["hist1D", "hist2D", "hist3D"])
 def testHistContainerScaleFactor(histIndex, expected, caplog, testRootHists):
     """ Test hist container scale factor calculation. """
@@ -96,7 +96,8 @@ def testHistContainerScaleFactor(histIndex, expected, caplog, testRootHists):
 
     obj = analysisObjects.HistContainer(testRootHists[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
-    assert obj.calculateFinalScaleFactor(additionalScaleFactor = 0.5) == expected["additionalScaleFactor"]
+    additionalScaleFactor = 0.5
+    assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"]*additionalScaleFactor
 
 def testHistContainerCloneAndScale(caplog, testRootHists):
     """ Test hist container cloning and scaling by bin width. """

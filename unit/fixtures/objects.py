@@ -22,9 +22,9 @@ def testRootHists():
     # Define the hist to test with 
     hist = ROOT.TH1F("test", "test", 10, 0, 1)
     hist.Fill(.1)
-    hist2D = ROOT.TH2F("test2", "test2", 10, 0, 1, 10, 0, 10)
+    hist2D = ROOT.TH2F("test2", "test2", 10, 0, 1, 10, 0, 20)
     hist2D.Fill(.1, 1)
-    hist3D = ROOT.TH3F("test3", "test3", 10, 0, 1, 10, 0, 10, 10, 0, 100)
+    hist3D = ROOT.TH3F("test3", "test3", 10, 0, 1, 10, 0, 20, 10, 0, 100)
     hist3D.Fill(.1, 1, 10)
 
     return rootHists(hist1D = hist, hist2D = hist2D, hist3D = hist3D)
