@@ -12,26 +12,33 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
+import jetH.base.genericClass as genericClass
+
 import rootpy.ROOT as ROOT
 
 class TH1AxisType(aenum.Enum):
+    """ Map from (x,y,z) axis to the axis number. """
     xAxis = 0
     yAxis = 1
     zAxis = 2
 
-class HistAxisRange(object):
-    """ Represents the restriction of a range of an axis of a histogram. An axis can be restricted by multiple HistAxisRange elements
-    (although separate projections are needed to apply more than one. This would be accomplished with separate entries to the 
-    HistProjector.projectionDependentCutAxes. See below.)
+class HistAxisRange(genericClass.EqualityMixin):
+    """ Represents the restriction of a range of an axis of a histogram.
+
+    An axis can be restricted by multiple HistAxisRange elements (although separate projections are
+    needed to apply more than one. This would be accomplished with separate entries to the
+    HistProjector.projectionDependentCutAxes).
 
     NOTE:
         A single axis which has multiple ranges could be represented by multiple HistAxis objects!
 
     Args:
-        axisRangeName (str): Name of the axis range. Usually some combination of the axis name and some sort of description of the range
-        axisType (aenum.Enum): Enumeration corresponding to the axis to be restricted. The numerical value of the enum should be axis number (for a THnBase)
-        minVal (float or function): Minimum range value for the axis
-        minVal (float or function): Maximum range value for the axis
+        axisRangeName (str): Name of the axis range. Usually some combination of the axis name and
+            some sort of description of the range.
+        axisType (aenum.Enum): Enumeration corresponding to the axis to be restricted. The numerical
+            value of the enum should be axis number (for a THnBase).
+        minVal (function): Minimum range value for the axis. Usually set via ApplyFuncToFindBin().
+        minVal (function): Maximum range value for the axis. Usually set via ApplyFuncToFindBin().
     """
     def __init__(self, axisRangeName, axisType, minVal, maxVal):
         self.name = axisRangeName
@@ -40,76 +47,121 @@ class HistAxisRange(object):
         self.maxVal = maxVal
 
     def __repr__(self):
+        """ Representation of the object. """
         # The axis type is an enumeration of some type. In such a case, we want the repr to represent it using the str method instead
         return "{}(name = {name!r}, axisType = {axisType}, minVal = {minVal!r}, maxVal = {maxVal!r})".format(self.__class__.__name__, **self.__dict__)
 
     def __str__(self):
-        return "{}: name: {name}, axisType: {axisType}, axisRange: {axisRange}".format(self.__class__.__name__, **self.__dict__)
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not self == other
+        """ Print the elements of the object. """
+        return "{}: name: {name}, axisType: {axisType}, minVal: {minVal}, maxVal: {maxVal}".format(self.__class__.__name__, **self.__dict__)
 
     @property
     def axis(self):
         """ Determine the axis to return based on the hist type. """
         def axisFunc(hist):
-            if hist.InheritsFrom(ROOT.THnBase.Class()):
+            """ Retrieve the axis associated with the HistAxisRange object for a given hist.
+
+            Args:
+                hist (ROOT.TH1, ROOT.THnBase, or similar): Histogram from which the selected axis should be retrieved.
+            Returns:
+                ROOT.TAxis: The axis associated with the HistAxisRange object.
+            """
+            # Check for valid axis type before continuing.
+            if self.axisType is None:
+                raise TypeError(type(self.axisType), "Must define axis type for range \"{name}\" on axis \"{axisType}\" and hist \"{histName}\".".format(name = self.name, axisType = self.axisType, histName = hist.GetName()))
+
+            # Type checks for axisType
+            # Use try here instead of checking for a particular type to protect against type changes (say in the enum)
+            try:
+                axisType = self.axisType.value
+            except AttributeError:
+                # Seems that we received an int, so just use that value
+                axisType = self.axisType
+
+            if isinstance(hist, ROOT.THnBase):
                 # Return the proper THn access
-                if self.axisType == None:
-                    logger.critical("Must define axis type for range \"{name}\" on axis \"{axisType}\" and hist \"{histName}\".".format(name = self.name, axisType = self.axisType, histName = hist.GetName()))
-                    sys.exit(1)
                 #logger.debug("From hist: {0}, axisType: {1}, axis: {2}".format(hist, self.axisType, ROOT.THnBase.GetAxis(hist, self.axisType.value)))
-                return ROOT.THnBase.GetAxis(hist, self.axisType.value)
+                return ROOT.THnBase.GetAxis(hist, axisType)
             else:
                 # If it's not a THn, then it must be a TH1 derived
-                if self.axisType == None:
-                    logger.critical("Must define axis type for range \"{name}\" with range \"{axisType}\" and hist \"{histName}\".".format(name = self.name, axisType = self.axisType, histName = hist.GetName()))
-                    sys.exit(1)
+                # This effectively emuates THnBase.GetAxis(...)
+                axisFunctionMap = {TH1AxisType.xAxis.value : ROOT.TH1.GetXaxis,
+                        TH1AxisType.yAxis.value : ROOT.TH1.GetYaxis,
+                        TH1AxisType.zAxis.value : ROOT.TH1.GetZaxis}
 
-                # If not of the type TH1AxisType, it is probably an enumeration alias for a TH1AxisType (for example,
-                # JetHCorrelationAxis.kDeltaPhi), so should use the value of that enum, which will be a TH1AxisType
-                axisType = self.axisType
-                if not isinstance(axisType, TH1AxisType):
-                    axisType = axisType.value
-
-                if axisType == TH1AxisType.xAxis:
-                    returnFunc = ROOT.TH1.GetXaxis
-                elif axisType == TH1AxisType.yAxis:
-                    returnFunc = ROOT.TH1.GetYaxis
-                elif axisType == TH1AxisType.zAxis:
-                    returnFunc = ROOT.TH1.GetZaxis
-                else:
-                    logger.critical("Unrecognized axis type. name: {}, value: {}".format(axisType.name, axisType.value))
-                    sys.exit(1)
+                # Retrieve the axis function and execute it. It is done separately to
+                # clarify any possible errors.
+                returnFunc = axisFunctionMap[axisType]
                 return returnFunc(hist)
 
         return axisFunc
 
     def ApplyRangeSet(self, hist):
-        """ Apply the associated range set to the axis.
+        """ Apply the associated range set to the axis of a given hist.
 
-        NOTE: The min and max values should be bins, not user ranges!"""
+        Note:
+            The min and max values should be bins, not user ranges! For more, see the binning
+            explanation in `ApplyFuncToFindBin(...)`.
+
+        Args:
+            hist (ROOT.TH1 or similar): Histogram to which the axis range restriction should be applied.
+        """
         # Do inidividual assignments to clarify which particular value is causing an error here.
         axis = self.axis(hist)
         #logger.debug("axis: {}, axis(): {}".format(axis, axis.GetName()))
         minVal = self.minVal(axis)
         maxVal = self.maxVal(axis)
-        # NOTE: Using SetRangeUser() was a bug, since I've been passing bin values!
+        # NOTE: Using SetRangeUser() here was a bug, since I've been passing bin values! In general,
+        #       passing bin values is more flexible, but requires the values to be passed to ApplyFuncToFindBin()
+        #       to be shifted by some small epsilon to get the desired bin.
         #self.axis(hist).SetRangeUser(minVal, maxVal)
         self.axis(hist).SetRange(minVal, maxVal)
 
     @staticmethod
     def ApplyFuncToFindBin(func, values = None):
-        """ Closure to apply histogram functions if necessary to determine the proper bin for projections. """
+        """ Closure to determine the bin associated with a value on an axis.
+
+        It can apply a function to an axis if necessary to determine the proper bin.  Otherwise,
+        it can just return a stored value.
+
+        Note:
+            To properly determine the value, carefully note the information below. In many cases,
+            such as when we want values [2, 5), the values need to be shifted by a small epsilon
+            to retrieve the proper bin. This is done automatically in `SetRangeUser()`.
+
+            >>> hist = ROOT.TH1D("test", "test", 10, 0, 10)
+            >>> x = 2, y = 5
+            >>> hist.FindBin(x)
+            2
+            >>> hist.FindBin(x+epsilon)
+            2
+            >>> hist.FindBin(y)
+            6
+            >>> hist.FindBin(y-epsilon)
+            5
+
+            Note that the bin + epsilon on the lower bin is not strictly necessary, but it is
+            used for consistency with the upper bound.
+
+        Args:
+            func (function): Function to apply to the histogram axis. If it is None, the value
+                will be returned.
+            values (int or float): Value to pass to the function. Default: None (in which case,
+                it won't be passed).
+        Returns:
+            function: Function to be called with an axis to determine the desired bin on that axis.
+        """
         def returnFunc(axis):
+            """ Apply the stored function and value to a the given axis.
+
+            Args:
+                axis (TAxis or similar): Axis to which the function should be applied.
+            Returns:
+                any: The value returned by the function. Often a float or int, but not necessarily.
+            """
             #logger.debug("func: {0}, values: {1}".format(func, values))
             if func:
-                if values != None:
+                if values is not None:
                     return func(axis, values)
                 else:
                     return func(axis)
@@ -119,11 +171,22 @@ class HistAxisRange(object):
         return returnFunc
 
 class HistProjector(object):
-    """ Handles generic ROOT projections.
+    """ Handles generic ROOT THn and TH1 projections.
     
-    Should handle both THn and TH1 projections.
+    Note:
+        The TH1 projections have not been tested as extensively as the THn projections.
 
-    NOTE: The TH1 projections have not been tested as extensively as the THn projections. """
+    Note:
+        "inputKey", "inputHist", "inputObservable", "projectionName", anad "outputHist" are all reserved
+        keys, such they will be overwritten by predefined information when passed to the various functions.
+        Thus, they should be avoided by the user when storing projection information
+
+    Args:
+        observableList (list): 
+        observableToProjectFrom (): 
+        projectionNameFormat (str): 
+        projectionInformation (dict): 
+    """
     def __init__(self, observableList, observableToProjectFrom, projectionNameFormat, projectionInformation = None):
         # Input and output lists
         self.observableList = observableList
@@ -151,8 +214,9 @@ class HistProjector(object):
 
     # Printing functions
     def __str__(self):
-        """ Prints the properties of the projector. This will only show up properly when printed - otherwise the
-        tabs and newlines won't be printed.
+        """ Prints the properties of the projector.
+
+        This will only show up properly when printed - otherwise the tabs and newlines won't be printed.
         """
         retVal = "{}: Projection Information:\n".format(self.__class__.__name__)
         retVal += "\tProjectionNameFormat: \"{projectionNameFormat}\"\n"
@@ -175,11 +239,10 @@ class HistProjector(object):
             axis.ApplyRangeSet(hist)
 
         projectedHist = None
-        if hist.InheritsFrom(ROOT.THnBase.Class()):
+        if isinstance(hist, ROOT.THnBase):
             projectionAxes = [axis.axisType.value for axis in self.projectionAxes]
             if len(projectionAxes) > 3:
-                logger.critical("Does not currently support projecting higher than a 3D hist. Given axes: {0}".format(projectionAxes))
-                sys.exit(1)
+                raise ValueError(projectionAxes, "Does not currently support projecting higher than a 3D hist.")
 
             # Handle ROOT quirk...
             # 2D projection are called as (y, x, options), so we should reverse the order so it performs as expected
@@ -193,17 +256,23 @@ class HistProjector(object):
             # Do the actual projection
             logger.debug("hist: {0} args: {1}".format(hist.GetName(), args))
             projectedHist = ROOT.THnBase.Projection(hist, *args)
-        elif hist.InheritsFrom(ROOT.TH1.Class()):
+        elif isinstance(hist, ROOT.TH1):
             if len(self.projectionAxes) == 1:
                 #logger.debug("self.projectionAxes[0].axis: {}, axis range name: {}, axisType: {}".format(self.projectionAxes[0].axis, self.projectionAxes[0].name , self.projectionAxes[0].axisType))
-                projectionFuncMap = { TH1AxisType.xAxis : ROOT.TH2.ProjectionX,
-                                      TH1AxisType.yAxis : ROOT.TH2.ProjectionY,
-                                      TH1AxisType.zAxis : ROOT.TH3.ProjectionZ }
+                projectionFuncMap = { TH1AxisType.xAxis.value : ROOT.TH2.ProjectionX,
+                                      TH1AxisType.yAxis.value : ROOT.TH2.ProjectionY,
+                                      TH1AxisType.zAxis.value : ROOT.TH3.ProjectionZ }
                 # If not of the type TH1AxisType, it is probably an enumeration alias for a TH1AxisType (for example,
                 # JetHCorrelationAxis.kDeltaPhi), so should use the value of that enum, which will be a TH1AxisType
-                axisType = self.projectionAxes[0].axisType
-                if not isinstance(axisType, TH1AxisType):
-                    axisType = axisType.value
+                #axisType = self.projectionAxes[0].axisType
+                try:
+                    axisType = self.projectionAxes[0].axisType.value
+                except:
+                    # Seems that we received an int, so just use that value
+                    axisType = self.axisType
+
+                #if not isinstance(axisType, TH1AxisType):
+                #    axisType = axisType.value
                 projectionFunc = projectionFuncMap[axisType]
 
                 # Do the actual projection
@@ -220,11 +289,9 @@ class HistProjector(object):
                 logger.info("Projecting onto axes \"{0}\" from hist {1}".format(projectionAxisName, hist.GetName()))
                 projectedHist = ROOT.TH3.Project3D(hist, projectionAxisName)
             else:
-                logger.critical("Invalid number of axes: {0}".format(len(self.projectionAxes)))
-                sys.exit(1)
+                raise ValueError(len(self.projectionAxes), "Invalid number of axes")
         else:
-            logger.critical("Could not recognize hist {0} of type {1}".format(hist, hist.GetClass().GetName()))
-            sys.exit(1)
+            raise TypeError(type(hist), "Could not recognize hist {0} of type {1}".format(hist, hist.GetClass().GetName()))
 
         # Cleanup restricted axes
         self.CleanupCuts(hist, cutAxes = self.projectionAxes)
