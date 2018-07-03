@@ -112,8 +112,7 @@ class HistPlotter(object):
     def applyHistTitles(self, ax):
         # Title sanity check - we should only set one
         if self.automaticTitleFromName and self.title:
-            logger.critical("Set both automatic title extraction and an actual title. Please select only one setting")
-            sys.exit(1)
+            raise ValueError("Set both automatic title extraction and an actual title. Please select only one setting")
 
         # Figure title
         if self.automaticTitleFromName:
@@ -213,8 +212,7 @@ class HistPlotter(object):
         # Draw the hist
         if isinstance(self.getFirstHist(), ROOT.TH2):
             if len(self.hists) > 1:
-                logger.critical("Too many hists are included for a 2D hist. Obj contains {}".format(self.hists))
-                sys.exit(1)
+                raise ValueError(self.hists, "Too many hists are included for a 2D hist. Should only be one!")
 
             # We can do a few different types of plots:
             #   - Surface plot
@@ -389,8 +387,7 @@ class HistPlotter(object):
         # corrected by the user.
         outputName = outputName if outputName != "" else self.outputName
         if outputName == "":
-            logger.critical("No output name passed or set for the object! Please set a name.")
-            sys.exit(1)
+            raise ValueError("No output name passed or set for the object! Please set a name.")
 
         # Save and close the figure
         plotBase.savePlot(obj, fig, outputName)
