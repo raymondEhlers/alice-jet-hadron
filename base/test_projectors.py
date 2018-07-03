@@ -197,10 +197,25 @@ def testRetrieveAxisValue(caplog, func, value, expected, testTHnSparse):
     assert projectors.HistAxisRange.ApplyFuncToFindBin(func, value)(expectedAxis) == expected
 
 def testProjectors(caplog, testRootHists):
-    """ Test creation of the projection class. """
+    """ Test creation and basic methods of the projection class. """
     caplog.set_level(loggingLevel)
+    # Args
+    projectionNameFormat = "{test} world"
+    # Create object
+    obj = projectors.HistProjector(observableList = {},
+            observableToProjectFrom = {},
+            projectionNameFormat = projectionNameFormat,
+            projectionInformation = {})
 
-    assert False
+    # These objects should be overridden so they aren't super meaningful, but we can still
+    # test to ensure that they provide the basic functionality that is expected.
+    assert obj.ProjectionName(test = "Hello") == projectionNameFormat.format(test = "Hello")
+    assert obj.GetHist(observable = testRootHists.hist2D) == testRootHists.hist2D
+    assert obj.OutputKeyName(inputKey = "inputKey",
+            outputHist = testRootHists.hist2D,
+            projectionName = projectionNameFormat.format(test = "Hello")) == projectionNameFormat.format(test = "Hello")
+    assert obj.OutputHist(outputHist = testRootHists.hist1D,
+            inputObservable = testRootHists.hist2D) == testRootHists.hist1D
 
 def testTH1Projection(caplog, testRootHists):
     """ Test projection of a TH1 derived class. """
@@ -213,5 +228,4 @@ def testTHnProjection(caplog, testRootHists):
     caplog.set_level(loggingLevel)
 
     assert False
-
 
