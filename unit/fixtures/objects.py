@@ -1,5 +1,12 @@
 #!/usr/bin/env pythoon
 
+#!/usr/bin/env python
+
+# Object related fixtures to aid testing.
+#
+# author: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
+# date: 16 July 2018
+
 import pytest
 
 @pytest.fixture

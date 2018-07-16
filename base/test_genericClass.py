@@ -12,10 +12,6 @@ logger = logging.getLogger(__name__)
 
 import jetH.base.genericClass as genericClass
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 @pytest.fixture
 def setupEqualityMixin():
     """ Create a basic class for tests of the equality mixin. """
@@ -39,9 +35,8 @@ def setupEqualityMixin():
 
     return (testClass, expectedClass)
 
-def testEqualityMixin(caplog, setupEqualityMixin):
+def testEqualityMixin(loggingMixin, setupEqualityMixin):
     """ Test the equality mixin with the same classes. """
-    caplog.set_level(loggingLevel)
     testClass, expectedClass = setupEqualityMixin
 
     # Check basic assertions
@@ -77,9 +72,8 @@ def testEqualityMixin(caplog, setupEqualityMixin):
     testClass.aList = expectedClass.aList
     testClass.aDict = expectedClass.aDict
 
-def testEqualityMixinAgainstOtherClasses(caplog, setupEqualityMixin):
+def testEqualityMixinAgainstOtherClasses(loggingMixin, setupEqualityMixin):
     """ Test the quality mixin against other classes, for which comparions are not implemented. """
-    caplog.set_level(loggingLevel)
     testClass, expectedClass = setupEqualityMixin
 
     # Create a named tuple object to compare against.

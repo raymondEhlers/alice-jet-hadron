@@ -14,10 +14,6 @@ logger = logging.getLogger(__name__)
 import jetH.base.params as params
 import jetH.base.genericConfig as genericConfig
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 def logYAMLDump(s):
     """ Simple function that transforms the yaml.dump() call to a stream
     and redirects it to the logger.
@@ -108,9 +104,8 @@ def overrideData(config):
 
     return config
 
-def testOverrideRetrieveUnrelatedValue(caplog, basicConfig):
+def testOverrideRetrieveUnrelatedValue(loggingMixin, basicConfig):
     """ Test retrieving a basic value unrelated to the overridden data. """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
 
     valueName = "test1"
@@ -119,21 +114,19 @@ def testOverrideRetrieveUnrelatedValue(caplog, basicConfig):
     
     assert basicConfig[valueName] == valueBeforeOverride
 
-def testOverrideWithBasicConfig(caplog, basicConfig):
+def testOverrideWithBasicConfig(loggingMixin, basicConfig):
     """ Test override with the basic config.  """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden directly
     assert basicConfig["test3"] == "test6"
 
-def testBasicAnchorOverride(caplog, basicConfig):
+def testBasicAnchorOverride(loggingMixin, basicConfig):
     """ Test overriding with an anchor.
 
     When an anchor refernce is overridden, we expect that the anchor value is updated.
     """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
  
@@ -142,24 +135,22 @@ def testBasicAnchorOverride(caplog, basicConfig):
     assert basicConfig["responseTaskName"] == "AliJetResponseMaker_{cent}histos"
     assert basicConfig["test4"] == "test6"
 
-def testAdvancedAnchorOverride(caplog, basicConfig):
+def testAdvancedAnchorOverride(loggingMixin, basicConfig):
     """ Test overriding a anchored value with another anchor.
     
     When an override value is using an anchor value, we expect that value to propagate fully.
     """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     # This value is overridden indirectly, from another referenced value.
     assert basicConfig["responseTaskName"] == basicConfig["pythiaInfoAfterEventSelectionTaskName"]
 
-def testForUnmatchedKeys(caplog, basicConfig):
+def testForUnmatchedKeys(loggingMixin, basicConfig):
     """ Test for an unmatched key in the override field (ie without a match in the config).
 
     Such an unmatched key should cause a `KeyError` exception, which we catch.
     """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     # Add entry that will cause the exception.
     basicConfig = basicConfigException(basicConfig)
@@ -170,19 +161,18 @@ def testForUnmatchedKeys(caplog, basicConfig):
     # This is the value that we expected to fail.
     assert exceptionInfo.value.args[0] == "testException"
 
-def testComplexObjectOverride(caplog, basicConfig):
+def testComplexObjectOverride(loggingMixin, basicConfig):
     """ Test override with complex objects.
     
     In particular, test with lists, dicts.
     """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
 
     assert basicConfig["testList"] == [3, 4]
     assert basicConfig["testDict"] == {3: 4}
 
-def testLoadConfiguration(caplog, basicConfig):
+def testLoadConfiguration(loggingMixin, basicConfig):
     """ Test that loading yaml goes according to expectations. This may be somewhat trivial, but it
     is still important to check in case ruamel.yaml changes APIs or defaults.
 
@@ -190,7 +180,6 @@ def testLoadConfiguration(caplog, basicConfig):
           are not actually referenced, as well as some trivial variation in quote types and other similarly
           trivial formatting issues.
     """
-    caplog.set_level(loggingLevel)
     (basicConfig, yamlString) = basicConfig
 
     import tempfile
@@ -242,36 +231,33 @@ multiEntryDict:
 
     return data
 
-def testDataSimplificationOnBaseTypes(caplog, dataSimplificationConfig):
+def testDataSimplificationOnBaseTypes(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on base types.
     
     Here we tests int, float, and str.  They should always stay the same.
     """
-    caplog.set_level(loggingLevel)
     config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["int"] == 3
     assert config["float"] == 3.14
     assert config["str"] == "hello"
 
-def testDataSimplificationOnLists(caplog, dataSimplificationConfig):
+def testDataSimplificationOnLists(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on lists.
     
     A single entry list should be returned as a string, while a multiple entry list should be
     preserved as is.
     """
-    caplog.set_level(loggingLevel)
     config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["singleEntryList"] == "hello"
     assert config["multiEntryList"] == ["hello", "world"]
 
-def testDictDataSimplification(caplog, dataSimplificationConfig):
+def testDictDataSimplification(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on dicts.
     
     Dicts should always maintain their structure.
     """
-    caplog.set_level(loggingLevel)
     config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
     assert config["singleEntryDict"] == {"hello" : "world"}
@@ -298,9 +284,8 @@ iterables:
 
     return (config, possibleIterables, ([params.eventPlaneAngle.inPlane, params.eventPlaneAngle.midPlane], list(params.qVector)))
 
-def testDetermineSelectionOfIterableValuesFromConfig(caplog, objectCreationConfig):
+def testDetermineSelectionOfIterableValuesFromConfig(loggingMixin, objectCreationConfig):
     """ Test determining which values of an iterable to use. """
-    caplog.set_level(loggingLevel)
     (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
     iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
                 possibleIterables = possibleIterables)
@@ -312,9 +297,8 @@ def testDetermineSelectionOfIterableValuesFromConfig(caplog, objectCreationConfi
     assert not "collisionEnergy" in iterables
     assert len(iterables) == 2
 
-def testDetermineSelectionOfIterableValuesWithUndefinedIterable(caplog, objectCreationConfig):
+def testDetermineSelectionOfIterableValuesWithUndefinedIterable(loggingMixin, objectCreationConfig):
     """ Test determining which values of an iterable to use when an iterable is not defined. """
-    caplog.set_level(loggingLevel)
     (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
 
     del possibleIterables["qVector"]
@@ -323,9 +307,8 @@ def testDetermineSelectionOfIterableValuesWithUndefinedIterable(caplog, objectCr
                 possibleIterables = possibleIterables)
     assert exceptionInfo.value.args[0] == "qVector"
 
-def testDetermineSelectionOfIterableValuesWithStringSelection(caplog, objectCreationConfig):
+def testDetermineSelectionOfIterableValuesWithStringSelection(loggingMixin, objectCreationConfig):
     """ Test trying to determine values with a string. This is not allowed, so it should raise an exception. """
-    caplog.set_level(loggingLevel)
     (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
 
     config["iterables"]["qVector"] = "True"
@@ -347,9 +330,8 @@ def objectAndCreationArgs():
 
     return (obj, args, formattingOptions)
 
-def testCreateObjectsFromIterables(caplog, objectCreationConfig, objectAndCreationArgs):
+def testCreateObjectsFromIterables(loggingMixin, objectCreationConfig, objectAndCreationArgs):
     """ Test object creation from a set of iterables. """
-    caplog.set_level(loggingLevel)
     # Collect variables
     (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
     (obj, args, formattingOptions) = objectAndCreationArgs
@@ -376,9 +358,8 @@ def testCreateObjectsFromIterables(caplog, objectCreationConfig, objectAndCreati
             assert createdObject.b == formattingOptions["fmt"]
             assert createdObject.optionsFmt == formattingOptions["optionsFmt"].format(eventPlaneAngle = epAngle, qVector = qVector)
 
-def testMissingIterableForObjectCreation(caplog, objectAndCreationArgs):
+def testMissingIterableForObjectCreation(loggingMixin, objectAndCreationArgs):
     """ Test object creation when the iterables are missing. """
-    caplog.set_level(loggingLevel)
     (obj, args, formattingOptions) = objectAndCreationArgs
     # Create empty iterables for this test.
     iterables = {}
@@ -425,9 +406,8 @@ noneExample: null
 
     return (genericConfig.applyFormattingDict(config, formatting), formatting)
 
-def testApplyFormattingToBasicTypes(caplog, formattingConfig):
+def testApplyFormattingToBasicTypes(loggingMixin, formattingConfig):
     """ Test applying formatting to basic types. """
-    caplog.set_level(loggingLevel)
     config, formattingDict = formattingConfig
 
     assert config["int"] == 3
@@ -436,9 +416,8 @@ def testApplyFormattingToBasicTypes(caplog, formattingConfig):
     assert config["format"] == formattingDict["a"]
     assert config["noFormatBecauseNoFormatter"] == "{noFormatHere}"
 
-def testApplyFormattingToIterableTypes(caplog, formattingConfig):
+def testApplyFormattingToIterableTypes(loggingMixin, formattingConfig):
     """ Test applying formatting to iterable types. """
-    caplog.set_level(loggingLevel)
     config, formattingDict = formattingConfig
 
     assert config["list"] == ["noFormat", 2, "b1"]
@@ -446,9 +425,8 @@ def testApplyFormattingToIterableTypes(caplog, formattingConfig):
     # NOTE: The extra str() call is because the formated string needs to be compared against a str.
     assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : str(formattingDict["c"])}
 
-def testApplyFormattingSkipLatex(caplog, formattingConfig):
+def testApplyFormattingSkipLatex(loggingMixin, formattingConfig):
     """ Test skipping the application of the formatting to strings which look like latex. """
-    caplog.set_level(loggingLevel)
     config, formattingDict = formattingConfig
 
     assert config["latexLike"] == "$latex_{like \mathrm{x}}$"

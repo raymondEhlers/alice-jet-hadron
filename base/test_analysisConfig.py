@@ -19,14 +19,8 @@ import jetH.base.params as params
 import jetH.base.genericConfig as genericConfig
 import jetH.base.analysisConfig as analysisConfig
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
-def testUnrollNestedDict(caplog):
+def testUnrollNestedDict(loggingMixin):
     """ Test unrolling the analysis dictionary. """
-    caplog.set_level(loggingLevel)
-
     cDict = {"c1" : "obj", "c2" : "obj2", "c3": "obj3"}
     bDict = {"b" : cDict.copy()}
     print("bDict: {}".format(bDict))
@@ -68,9 +62,8 @@ override:
         ("cluster", None, 10),
         ("cluster", "semiCentral", 6),
     ], ids = ["track5", "cluster10", "cluster6"])
-def testDetermineLeadingHadronBias(biasType, eventActivity, expectedLeadingHadronBiasValue, caplog, leadingHadronBiasConfig):
+def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expectedLeadingHadronBiasValue, leadingHadronBiasConfig):
     """ Test determination of the leading hadron bias. """
-    caplog.set_level(loggingLevel)
     (config, selectedAnalysisOptions) = overrideOptionsHelper(leadingHadronBiasConfig)
 
     # Add in the different selected options
@@ -190,9 +183,8 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
 
     return (config, selectedOptions)
 
-def testBasicSelectedOverrides(caplog, basicConfig):
+def testBasicSelectedOverrides(loggingMixin, basicConfig):
     """ Test that override works for the selected options. """
-    caplog.set_level(loggingLevel)
     (config, selectedAnalysisOptions) = overrideOptionsHelper(basicConfig)
 
     assert config["responseTaskName"] == "jetHPerformance"
@@ -205,10 +197,8 @@ def testBasicSelectedOverrides(caplog, basicConfig):
     # Ensures that merge keys also work
     assert config["mergeValue"] == 2
 
-def testIgnoreUnselectedOptions(caplog, basicConfig):
+def testIgnoreUnselectedOptions(loggingMixin, basicConfig):
     """ Test ignoring unselected values. """
-    caplog.set_level(loggingLevel)
-
     # Delete the central values, thereby removing any values to override.
     # Thus, the configuration values should not change!
     del basicConfig["override"][2.76]["central"]
@@ -274,9 +264,8 @@ def testArgumentParsing():
         "Missing leading hadron bias",
         "Standard 2.76 with enums",
         "5.02 semi-central embedPP with cluster bias"])
-def testValidateArguments(args, expected, caplog):
+def testValidateArguments(loggingMixin, args, expected):
     """ Test argument validation. """
-    caplog.set_level(loggingLevel)
     if expected is None:
         expected = (params.collisionEnergy.twoSevenSix,
                  params.collisionSystem.PbPb,
@@ -402,9 +391,8 @@ taskName:
         (params.leadingHadronBiasType.track),
         (params.leadingHadronBias(type = params.leadingHadronBiasType.track, value = 5))
     ], ids = ["leadingHadronEnum", "leadingHadronClass"])
-def testJetHBaseObjectConstruction(leadingHadronBias, caplog, objectConfig, mocker):
+def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig, mocker):
     """ Test construction of the JetHBase object. """
-    caplog.set_level(loggingLevel)
     objectConfig, taskName = objectConfig
     (config, selectedAnalysisOptions) = overrideOptionsHelper(objectConfig,
             configContainingOverride = objectConfig[taskName])
@@ -448,11 +436,10 @@ def testJetHBaseObjectConstruction(leadingHadronBias, caplog, objectConfig, mock
         None,
         {"iterable1" : params.collisionEnergy, "iterable2" : params.collisionSystem}
     ], ids = ["No additional iterables", "Two additional iterables"])
-def testConstructObjectFromConfig(additionalIterables, caplog, objectConfig, mocker):
+def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfig, mocker):
     """ Test construction of objects through a configuration file.
 
     NOTE: This is an integration test. """
-    caplog.set_level(loggingLevel)
     # Basic setup
     # We need both the input and the expected out.
     # NOTE: We only want to override the options of the expected config because

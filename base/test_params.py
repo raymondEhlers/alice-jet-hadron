@@ -12,10 +12,6 @@ logger = logging.getLogger(__name__)
 
 import jetH.base.params as params
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 def getRangeFromBinArray(array):
     """ Helper function to return bin indices from an array.
     Args:
@@ -25,68 +21,57 @@ def getRangeFromBinArray(array):
     """
     return range(len(array) - 1)
 
-def testIterateOverTrackPtBins(caplog):
+def testIterateOverTrackPtBins(loggingMixin):
     """ Test the track pt bins generator.
 
     Note that we wrap the function in list so we get all of the values from the generator.
     """
-    caplog.set_level(loggingLevel)
     assert len(params.trackPtBins) == 10
     assert list(params.iterateOverTrackPtBins()) == list(getRangeFromBinArray(params.trackPtBins))
 
-def testIterateOverTrackPtBinsWithConfig(caplog):
+def testIterateOverTrackPtBinsWithConfig(loggingMixin):
     """ Test the track pt bins generator with some bins skipped.
 
     The values to skip were not selected with any paticular critera except to be non-continuous.
     """
-    caplog.set_level(loggingLevel)
-
     skipBins = [2, 6]
     comparisonBins = [x for x in getRangeFromBinArray(params.trackPtBins) if not x in skipBins]
     config = {"skipPtBins" : {"track" : skipBins}}
     assert list(params.iterateOverTrackPtBins(config = config)) == comparisonBins
 
-def testIterateOverJetPtBins(caplog):
+def testIterateOverJetPtBins(loggingMixin):
     """ Test the jet pt bins generator.
 
     Note that we wrap the function in list so we get all of the values from the generator.
     """
-    caplog.set_level(loggingLevel)
-
     # Ensure that we have the expected number of jet pt bins
     assert len(params.jetPtBins) == 5
     # Then test the actual iterable.
     assert list(params.iterateOverJetPtBins()) == list(getRangeFromBinArray(params.jetPtBins))
 
-def testIterateOverJetPtBinsWithConfig(caplog):
+def testIterateOverJetPtBinsWithConfig(loggingMixin):
     """ Test the jet pt bins generator with some bins skipped.
 
     The values to skip were not selected with any paticular critera except to be non-continuous.
     """
-    caplog.set_level(loggingLevel)
-
     skipBins = [0, 2]
     comparisonBins = [x for x in getRangeFromBinArray(params.jetPtBins) if not x in skipBins]
     config = {"skipPtBins" : {"jet" : skipBins}}
     assert list(params.iterateOverJetPtBins(config = config)) == comparisonBins
 
-def testIterateOverJetAndTrackPtBins(caplog):
+def testIterateOverJetAndTrackPtBins(loggingMixin):
     """ Test the jet and track pt bins generator.
 
     Note that we wrap the function in list so we get all of the values from the generator.
     """
-    caplog.set_level(loggingLevel)
-
     comparisonBins = [(x, y) for x in getRangeFromBinArray(params.jetPtBins) for y in getRangeFromBinArray(params.trackPtBins)]
     assert list(params.iterateOverJetAndTrackPtBins()) == comparisonBins
 
-def testIterateOverJetAndTrackPtBinsWithConfig(caplog):
+def testIterateOverJetAndTrackPtBinsWithConfig(loggingMixin):
     """ Test the jet and track pt bins generator with some bins skipped.
 
     The values to skip were not selected with any paticular critera except to be non-continuous.
     """
-    caplog.set_level(loggingLevel)
-
     skipJetPtBins = [0, 3]
     skipTrackPtBins = [2, 6]
     comparisonBins = [(x,y) for x in getRangeFromBinArray(params.jetPtBins) for y in getRangeFromBinArray(params.trackPtBins) if not x in skipJetPtBins and not y in skipTrackPtBins]
@@ -96,14 +81,12 @@ def testIterateOverJetAndTrackPtBinsWithConfig(caplog):
     # Then check the actual output.
     assert list(params.iterateOverJetAndTrackPtBins(config = config)) == comparisonBins
 
-def testOutOfRangeSkipBin(caplog):
+def testOutOfRangeSkipBin(loggingMixin):
     """ Test that an except is generated if a skip bin is out of range.
 
     The test is performed both with a in range and out of range bin to ensure
     the exception is thrown on the right value.
     """
-    caplog.set_level(loggingLevel)
-
     skipBins = [2, 38]
     config = {"skipPtBins" : {"track" : skipBins}}
     with pytest.raises(ValueError) as exceptionInfo:
@@ -120,10 +103,8 @@ def testOutOfRangeSkipBin(caplog):
         (r"\textbf{test}", r"#textbf{test}"),
         (r"$\mathrm{test}$", r"#mathrm{test}")
     ], ids = ["just latex", "latex in math mode"])
-def testRootLatexConversion(value, expected, caplog):
+def testRootLatexConversion(loggingMixin, value, expected):
     """ Test converting latex to ROOT compatiable latex. """
-    caplog.set_level(loggingLevel)
-
     assert params.useLabelWithRoot(value) == expected
 
 @pytest.mark.parametrize("label, expected", [
@@ -132,38 +113,30 @@ def testRootLatexConversion(value, expected, caplog):
         ("final", {"str" : "ALICE"}),
         ("thesis", {"str" : "This thesis"})
     ], ids = ["workInProgress", "preliminary", "final", "thesis"])
-def testAliceLabel(label, expected, caplog):
+def testAliceLabel(loggingMixin, label, expected):
     """ Tests ALICE labeling. """
-    caplog.set_level(loggingLevel)
-
     aliceLabel = params.aliceLabel[label]
     assert aliceLabel.str() == expected["str"]
 
 @pytest.mark.parametrize("ptBin", params.iterateOverTrackPtBins())
-def testTrackPtStrings(ptBin, caplog):
+def testTrackPtStrings(loggingMixin, ptBin):
     """ Test the track pt string generation functions. Each bin is tested.  """
-    caplog.set_level(loggingLevel)
-
     assert params.generateTrackPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.trackPtBins[ptBin], "upper" : params.trackPtBins[ptBin+1]}
 
 # We retrieve the generator as a list and cut off the last value because we need
 # to handle it separately in testJetPtStringForLastPtBin()
 @pytest.mark.parametrize("ptBin", list(params.iterateOverJetPtBins())[:-1])
-def testJetPtString(ptBin, caplog):
+def testJetPtString(loggingMixin, ptBin):
     """ Test the jet pt string generation functions. Each bin (except for the last) is tested.
     The last pt bin is left for a separate test because it is printed differently. (See testJetPtStringForLastPtBin())
     """
-    caplog.set_level(loggingLevel)
-
     assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin], "upper" : params.jetPtBins[ptBin+1]}
 
-def testJetPtStringForLastPtBin(caplog):
+def testJetPtStringForLastPtBin(loggingMixin):
     """ Test the jet pt string generation function for the last jet pt bin.
 
     In the case of the last pt bin, we only want to show the lower range.
     """
-    caplog.set_level(loggingLevel)
-
     ptBin = len(params.jetPtBins) - 2
     assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin]}
 
@@ -176,16 +149,12 @@ def testJetPtStringForLastPtBin(caplog):
         ("5.02", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
         (params.collisionEnergy.fiveZeroTwo, params.collisionSystem.PbPb, params.eventActivity.central, r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$")
     ], ids = ["Inclusive pp", "Central PbPb", "Semi-central PbPb", "Central PbPb at 5.02", "Energy as string fiveZeroTwo", "Energy as string \"5.02\"", "Using enums directly"])
-def testSystemLabel(energy, system, activity, expected, caplog):
+def testSystemLabel(loggingMixin, energy, system, activity, expected):
     """ Test system labels. """
-    caplog.set_level(loggingLevel)
-
     assert params.systemLabel(energy = energy, system = system, activity = activity) == expected
 
-def testJetPropertiesLabels(caplog):
+def testJetPropertiesLabels(loggingMixin):
     """ Test the jet properties labels. """
-    caplog.set_level(loggingLevel)
-
     jetPtBin = 1
     (jetFindingExpected, constituentCutsExpected, leadingHadronExpected, jetPtExpected) = (r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$",
             r"$p_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
@@ -213,10 +182,8 @@ def testJetPropertiesLabels(caplog):
                 "displayStr" : "\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV}",
                 "value" : 5.02})
     ], ids = ["2.76 standard", "twoSevenSix alternative intialization", "5.02 standard"])
-def testCollisionEnergy(energy, expected, caplog):
+def testCollisionEnergy(loggingMixin, energy, expected):
     """ Test collision energy values. """
-    caplog.set_level(loggingLevel)
-
     assert str(energy) == expected["str"]
     assert energy.str() == expected["str"]
     assert energy.displayStr() == expected["displayStr"]
@@ -236,10 +203,8 @@ def testCollisionEnergy(energy, expected, caplog):
             {"str" : "embedPP",
                 "displayStr" : r"pp \bigotimes %(PbPb)s" % {"PbPb" : params.PbPbLatexLabel}})
     ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
-def testCollisionSystem(system, expected, caplog):
+def testCollisionSystem(loggingMixin, system, expected):
     """ Test collision system values. """
-    caplog.set_level(loggingLevel)
-
     assert str(system) == expected["str"]
     assert system.str() == expected["str"]
     assert system.displayStr() == expected["displayStr"]
@@ -258,10 +223,8 @@ def testCollisionSystem(system, expected, caplog):
                 "displayStr" : r",\:30\mbox{-}50\mbox{\%}",
                 "range" : params.selectedRange(min = 30, max = 50)})
     ], ids = ["inclusive", "central", "semiCentral"])
-def testEventActivity(activity, expected, caplog):
+def testEventActivity(loggingMixin, activity, expected):
     """ Test event activity values. """
-    caplog.set_level(loggingLevel)
-
     assert str(activity) == expected["str"]
     assert activity.str() == expected["str"]
     assert activity.displayStr() == expected["displayStr"]
@@ -273,10 +236,8 @@ def testEventActivity(activity, expected, caplog):
         ("cluster", {"str" : "cluster"}),
         ("both", {"str" : "both"})
     ], ids = ["NA", "track", "cluster", "both"])
-def testLeadingHadronBiasType(bias, expected, caplog):
+def testLeadingHadronBiasType(loggingMixin, bias, expected):
     """ Test the leading hadron bias enum. """
-    caplog.set_level(loggingLevel)
-
     bias = params.leadingHadronBiasType[bias]
     assert str(bias) == expected["str"]
     assert bias.str() == expected["str"]
@@ -288,10 +249,8 @@ def testLeadingHadronBiasType(bias, expected, caplog):
         ("cluster", 6, {"filenameStr" : "clusterBias6"}),
         ("both", 10, {"filenameStr" : "bothBias10"})
     ], ids = ["NA", "NAPassedWrongValue", "track", "cluster", "both"])
-def testLeadingHadronBias(type, value, expected, caplog):
+def testLeadingHadronBias(loggingMixin, type, value, expected):
     """ Test the leading hadron bias class. """
-    caplog.set_level(loggingLevel)
-
     type = params.leadingHadronBiasType[type]
     bias = params.leadingHadronBias(type = type, value = value)
     # Handle value with a bit of care in the case of "NAPassedWrongValue"
@@ -310,10 +269,8 @@ def testLeadingHadronBias(type, value, expected, caplog):
                 "filenameStr" : "eventPlaneOutOfPlane",
                 "displayStr" : "Out-of-plane"})
     ], ids = ["epAngleAll", "epAngleOutOfPlane"])
-def testEventPlaneAngleStrings(epAngle, expected, caplog):
+def testEventPlaneAngleStrings(loggingMixin, epAngle, expected):
     """ Test event plane angle strings. """
-    caplog.set_level(loggingLevel)
-
     epAngle = params.eventPlaneAngle[epAngle]
     assert str(epAngle) == expected["str"]
     assert epAngle.str() == expected["str"]
@@ -332,10 +289,8 @@ def testEventPlaneAngleStrings(epAngle, expected, caplog):
                 "displayStr" : "Bottom 10%",
                 "range" : params.selectedRange(min = 0, max = 10)})
     ], ids = ["qVectorAll", "qVectorBottom10"])
-def testQVectorStrings(qVector, expected, caplog):
+def testQVectorStrings(loggingMixin, qVector, expected):
     """ Test q vector strings. """
-    caplog.set_level(loggingLevel)
-
     qVector = params.qVector[qVector]
     assert str(qVector) == expected["str"]
     assert qVector.str() == expected["str"]

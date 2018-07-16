@@ -13,19 +13,14 @@ logger = logging.getLogger(__name__)
 
 import jetH.plot.base as plotBase
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 @pytest.mark.parametrize("outputPrefix,printingExtensions", [
         ("a/b", ["png"]),
         ("a/b", ["png", "pdf"]),
         ("a/b/c", ["pdf"])
     ], ids = ["standard", "multipleExtension", "variationOfOutputPrefix"]
     )
-def testPlottingOutputWrapper(outputPrefix, printingExtensions, caplog):
+def testPlottingOutputWrapper(loggingMixin, outputPrefix, printingExtensions):
     """ Test the plottingOutputWrapper object. """
-    caplog.set_level(loggingLevel)
     obj = plotBase.plottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
     assert obj.outputPrefix == outputPrefix
     assert obj.printingExtensions == printingExtensions
@@ -51,9 +46,8 @@ def setupSaveTests(request, mocker):
         expectedFilenames.append(os.path.join(outputPrefix, "{filename}." + ext))
     return (obj, figure, canvas, expectedFilenames)
 
-def testSavePlot(caplog, setupSaveTests):
+def testSavePlot(loggingMixin, setupSaveTests):
     """ Test the wrapper for saving a matplotlib plot. """
-    caplog.set_level(loggingLevel)
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.savePlot(obj, figure, filename)
@@ -61,9 +55,8 @@ def testSavePlot(caplog, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
  
-def testSaveCanvas(caplog, setupSaveTests):
+def testSaveCanvas(loggingMixin, setupSaveTests):
     """ Test the wrapper for saving a ROOT canvas. """
-    caplog.set_level(loggingLevel)
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.saveCanvas(obj, canvas, filename)
@@ -71,9 +64,8 @@ def testSaveCanvas(caplog, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testSavePlotImpl(caplog, setupSaveTests):
+def testSavePlotImpl(loggingMixin, setupSaveTests):
     """ Test the implementation for saving a matplotlib plot. """
-    caplog.set_level(loggingLevel)
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.savePlotImpl(figure, obj.outputPrefix, filename, obj.printingExtensions)
@@ -81,9 +73,8 @@ def testSavePlotImpl(caplog, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testSaveCanvasImpl(caplog, mocker, setupSaveTests):
+def testSaveCanvasImpl(loggingMixin, mocker, setupSaveTests):
     """ Test the implementation for saving a ROOT canvas. """
-    caplog.set_level(loggingLevel)
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
     filenames = plotBase.saveCanvasImpl(canvas, obj.outputPrefix, filename, obj.printingExtensions)
@@ -91,7 +82,7 @@ def testSaveCanvasImpl(caplog, mocker, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testRegistrationOfKBirdColormap(caplog):
+def testRegistrationOfKBirdColormap(loggingMixin):
     """ Test to ensure that the ROOT kBird colormap is registered in matplotlib successfully. """
     import matplotlib.pyplot as plt
     kBirdName = "ROOT_kBird"
@@ -100,7 +91,7 @@ def testRegistrationOfKBirdColormap(caplog):
 
     assert kBird.name == kBirdName
 
-def testFixBadColormapValue(caplog):
+def testFixBadColormapValue(loggingMixin):
     """ Test that the bad (ie. nan or similar) value of a given color scheme is successfully reassigned. """
     import matplotlib.pyplot as plt
     cmap = plt.get_cmap("viridis")

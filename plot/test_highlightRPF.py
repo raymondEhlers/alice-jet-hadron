@@ -10,36 +10,26 @@ logger = logging.getLogger(__name__)
 
 import jetH.plot.highlightRPF as highlightRPF
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 def scaleColorToMax1(colors):
     """ Scale all colors to max 1 (from 255). """
     return tuple(map(highlightRPF.convertColorToMax1, colors))
 
-def testConvertColorsToMax1(caplog):
+def testConvertColorsToMax1(loggingMixin):
     """ Test the scaling of a color from [0, 255] -> [0, 1]. """
-    caplog.set_level(loggingLevel)
-
     assert highlightRPF.convertColorToMax1(0) == 0
     assert highlightRPF.convertColorToMax1(51) == 0.2
     assert highlightRPF.convertColorToMax1(64) == 64/255.
     assert highlightRPF.convertColorToMax1(255) == 1
 
-def testConvertColrosToMax255(caplog):
+def testConvertColrosToMax255(loggingMixin):
     """ Test the scaling of a color from [0,1] -> [0, 255]. """
-    caplog.set_level(loggingLevel)
-
     assert highlightRPF.convertColorToMax255(0) == 0
     assert highlightRPF.convertColorToMax255(0.2) == 51
     assert highlightRPF.convertColorToMax255(0.25) == 64
     assert highlightRPF.convertColorToMax255(1) == 255
 
-def testOverlayColors(caplog):
+def testOverlayColors(loggingMixin):
     """ Test determining colors using the "overlay" method. """
-    caplog.set_level(loggingLevel)
-
     # Example 1
     background = scaleColorToMax1((169, 169, 169))
     foreground = scaleColorToMax1((102, 205, 96))
@@ -53,10 +43,8 @@ def testOverlayColors(caplog):
     result = scaleColorToMax1((154, 90, 42))
     assert numpy.allclose(highlightRPF.overlayColors(foreground = foreground, background = background), result, 0.005)
 
-def testScreenColors(caplog):
+def testScreenColors(loggingMixin):
     """ Test determining colors using the "screen" method. """
-    caplog.set_level(loggingLevel)
-
     # Start with a simple example
     foreground = scaleColorToMax1((0, 0, 0))
     background = scaleColorToMax1((51, 51, 51))

@@ -16,7 +16,6 @@ Using the `coverage` package to better code coverage, run the test with `pytest 
 
 A few things to keep in mind when developing tests:
 
-- Capture the logs written in the logging module via the caplog fixture. The logging level can be set via
-`caplog.set_level(loggingLevel)`. The easiest approach is to set a global logging level for a set of tests.
-Normally, this would be somewhat less than ideal, but for the tests, it seems to be fine.
-- Be certain to write docs to describe the tests.
+- You can capture the logs from the modules via the logging mixin. The default level is set to debug
+  since I think it is most likely to be the right level to aid when tests fail.
+- Be certain to write docs to describe the tests!

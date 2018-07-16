@@ -14,10 +14,6 @@ logger = logging.getLogger(__name__)
 
 import jetH.base.utils as utils
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 @pytest.fixture
 def retrieveRootList(testRootHists):
     """ Create an set of lists to load for a ROOT file.
@@ -79,9 +75,8 @@ def retrieveRootList(testRootHists):
 
     return (filename, l, expected)
 
-def testGetHistogramsInList(caplog, retrieveRootList):
+def testGetHistogramsInList(loggingMixin, retrieveRootList):
     """ Test for retrieving a list of histograms from a ROOT file. """
-    caplog.set_level(loggingLevel)
     (filename, rootList, expected) = retrieveRootList
 
     output = utils.getHistogramsInList(filename, "mainList")
@@ -100,22 +95,20 @@ def testGetHistogramsInList(caplog, retrieveRootList):
             eValues = [eHist.GetBinContent(i) for i in range(0, eHist.GetXaxis().GetNbins()+2)]
             assert np.allclose(oValues, eValues)
 
-def testGetNonExistentList(caplog, retrieveRootList):
+def testGetNonExistentList(loggingMixin, retrieveRootList):
     """ Test for retrieving a list which doesn't exist from a ROOT file. """
-    caplog.set_level(loggingLevel)
     (filename, rootList, expected) = retrieveRootList
 
     output = utils.getHistogramsInList(filename, "nonExistent")
     assert output is None
 
-def testRetrieveObject(caplog, retrieveRootList):
+def testRetrieveObject(loggingMixin, retrieveRootList):
     """ Test for retrieving a list of histograms from a ROOT file.
 
     NOTE: One would normally expect to have the hists in the first level of the dict, but
           this is actually taken care of in `getHistogramsInList()`, so we need to avoid
           doing it in the tests here.
     """
-    caplog.set_level(loggingLevel)
     (filename, rootList, expected) = retrieveRootList
 
     output = {}
@@ -133,18 +126,14 @@ def testRetrieveObject(caplog, retrieveRootList):
         ((3, np.array([10,9,8,7,6,5,4,3,2,1])),
             np.array([27, 24, 21, 18, 15, 12, 9, 6]))
     ], ids = ["n = 3 trianglur values", "n = 4 triangular values", "n = 3 increasing values", "n = 3 decreasing values"])
-def testMovingAverage(inputs, expected, caplog):
+def testMovingAverage(loggingMixin, inputs, expected):
     """ Test the moving average calculation. """
-    caplog.set_level(loggingLevel)
-
     (n, arr) = inputs
     expected = expected/n
     assert np.array_equal(utils.movingAverage(arr = arr, n = n), expected)
 
-def testGetArrayFromHist(caplog, testRootHists):
+def testGetArrayFromHist(loggingMixin, testRootHists):
     """ Test getting numpy arrays from a 1D hist. """
-    caplog.set_level(loggingLevel)
-
     hist = testRootHists.hist1D
     histArray = utils.getArrayFromHist(hist)
 
@@ -161,10 +150,8 @@ def testGetArrayFromHist(caplog, testRootHists):
 @pytest.mark.parametrize("setZeroToNaN", [
         False, True
     ], ids = ["Keep zeroes as zeroes", "Set zeroes to NaN"])
-def testGetArrayFromHist2D(setZeroToNaN, caplog, testRootHists):
+def testGetArrayFromHist2D(loggingMixin, setZeroToNaN, testRootHists):
     """ Test getting numpy arrays from a 2D hist. """
-    caplog.set_level(loggingLevel)
-
     hist = testRootHists.hist2D
     histArray = utils.getArrayFromHist2D(hist = hist, setZeroToNaN = setZeroToNaN)
 
@@ -183,10 +170,8 @@ def testGetArrayFromHist2D(setZeroToNaN, caplog, testRootHists):
     # so we compare against that. It will raise an exception if they disagree
     assert np.testing.assert_array_equal(histArray[2], expectedHistArray) is None
 
-def testGetArrayForFit(caplog, mocker, testRootHists):
+def testGetArrayForFit(loggingMixin, mocker, testRootHists):
     """ Test getting an array from a hist in a dict of observables. """
-    caplog.set_level(loggingLevel)
-
     observables = {}
     for i in range(5):
         observables[i] = mocker.MagicMock(spec = ["jetPtBin", "trackPtBin", "hist"],

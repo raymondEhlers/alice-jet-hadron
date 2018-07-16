@@ -22,10 +22,6 @@ import jetH.base.analysisObjects as analysisObjects
 # For reproducibility
 np.random.seed(1234)
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 @pytest.mark.parametrize("corrType, expected", [
         ("fullRange",
             {"str" : "fullRange",
@@ -37,18 +33,16 @@ loggingLevel = logging.DEBUG
             {"str" : "nearSide",
             "displayStr" : "Near Side"})
     ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
-def testCorrelationTypes(corrType, expected, caplog):
+def testCorrelationTypes(loggingMixin, corrType, expected):
     """ Test jet-hadron correlation types. """
-    caplog.set_level(loggingLevel)
     obj = analysisObjects.jetHCorrelationType[corrType]
 
     assert str(obj) == expected["str"]
     assert obj.str() == expected["str"]
     assert obj.displayStr() == expected["displayStr"]
 
-def testCorrelationObservable1D(caplog, mocker):
+def testCorrelationObservable1D(loggingMixin, mocker):
     """ Tests for CorrelationObservable1D. Implicitly tests Observable and CorrelationObservable. """
-    caplog.set_level(loggingLevel)
     # Arguments are not selected for any particular reason
     values = {"hist" : mocker.MagicMock(), "jetPtBin" : 2, "trackPtBin" : 3,
             "axis" : mocker.MagicMock(),
@@ -61,9 +55,8 @@ def testCorrelationObservable1D(caplog, mocker):
     assert obj.axis == values["axis"]
     assert obj.correlationType == values["correlationType"]
 
-def testExtractedObservable(caplog):
+def testExtractedObservable(loggingMixin):
     """ Tests for ExtractedObservable. """
-    caplog.set_level(loggingLevel)
     # Arguments are not selected for any particular reason
     values = {"jetPtBin" : 2, "trackPtBin" : 3,
               "value" : 1.5, "error" : 0.3}
@@ -74,9 +67,8 @@ def testExtractedObservable(caplog):
     assert obj.value == values["value"]
     assert obj.error == values["error"]
 
-def testHistContainer(caplog, testRootHists):
+def testHistContainer(loggingMixin, testRootHists):
     """ Test the hist container class function override. """
-    caplog.set_level(loggingLevel)
     (hist, hist2D, hist3D) = testRootHists
 
     obj = analysisObjects.HistContainer(hist)
@@ -90,19 +82,15 @@ def testHistContainer(caplog, testRootHists):
         (1, {"scaleFactor" :  5.0}),
         (2, {"scaleFactor" :  0.5}),
     ], ids = ["hist1D", "hist2D", "hist3D"])
-def testHistContainerScaleFactor(histIndex, expected, caplog, testRootHists):
+def testHistContainerScaleFactor(loggingMixin, histIndex, expected, testRootHists):
     """ Test hist container scale factor calculation. """
-    caplog.set_level(loggingLevel)
-
     obj = analysisObjects.HistContainer(testRootHists[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
     additionalScaleFactor = 0.5
     assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"]*additionalScaleFactor
 
-def testHistContainerCloneAndScale(caplog, testRootHists):
+def testHistContainerCloneAndScale(loggingMixin, testRootHists):
     """ Test hist container cloning and scaling by bin width. """
-    caplog.set_level(loggingLevel)
-
     # Test only a 1D hist because we test scaling of different hist dimensions elsewhere.
     hist = testRootHists.hist1D
     # Add an additional entry so there is a bit more to test.
@@ -132,10 +120,8 @@ def createHistArray():
 
     return (obj, args)
 
-def testHistArray(caplog, createHistArray):
+def testHistArray(loggingMixin, createHistArray):
     """ Test basic HistArray functionality. """
-    caplog.set_level(loggingLevel)
-
     (obj, args) = createHistArray
 
     assert np.array_equal(obj.array, args["_array"])
@@ -144,10 +130,8 @@ def testHistArray(caplog, createHistArray):
     assert np.array_equal(obj.x, args["_binCenters"])
     assert np.array_equal(obj.errors, args["_errors"])
 
-def testHistArrayFromRootHist(caplog, testRootHists):
+def testHistArrayFromRootHist(loggingMixin, testRootHists):
     """ Test creating a HistArray from a ROOT hist. """
-    caplog.set_level(loggingLevel)
-
     hist = testRootHists.hist1D
     obj = analysisObjects.HistArray.initFromRootHist(hist)
 
@@ -178,9 +162,8 @@ def createFitContainer(mocker):
 
     return (obj, values)
 
-def testFitContainer(caplog, createFitContainer):
+def testFitContainer(loggingMixin, createFitContainer):
     """ Test FitContainer initialization. """
-    caplog.set_level(loggingLevel)
     (obj, values) = createFitContainer
 
     assert obj.jetPtBin == values["jetPtBin"]
@@ -199,7 +182,7 @@ def testFitContainer(caplog, createFitContainer):
     (analysisObjects.HistArray, {"jetPtBin" : 1, "trackPtBin" : 3}),
     (analysisObjects.FitContainer, {"jetPtBin" : 1, "trackPtBin" : 4})
     ], ids = ["HistArray", "FitContainer"])
-def testAnalysisObjectsWithYAMLReadAndWrite(obj, objArgs, objType, caplog, mocker):
+def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType, mocker):
     """ Test initializing and writing objects to/from YAML files. Tests both HistArray and FitContainer objects.
 
     NOTE: This test uses real files, which are opened through mocked open() objects. The mocking is
