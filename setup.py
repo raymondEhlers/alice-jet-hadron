@@ -76,7 +76,7 @@ setup(
         "uproot", # Not strictly required at the moment, but hopefully for the future.
         "rootpy",
         "root_numpy",
-        "iminuit",
+        "iminuit>=1.3",
         "probfit",
         "numdifftools"
     ],
