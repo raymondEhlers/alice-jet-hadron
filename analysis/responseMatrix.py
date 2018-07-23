@@ -488,32 +488,32 @@ class JetHResponseMatrix(object):
                 plot1DPtHardHists(self.hists["ptHardSpectraAfterEventSelection"], self.hists["ptHardSpectraAfterEventSelectionPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Sample Task Jet Spectra - Part Level
             self.hists["sampleTaskJetSpectraPartLevel"].SetTitle("Sample task particle level jet p_{T}")
-            self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,Part}")
+            self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,part}")
             self.hists["sampleTaskJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
             self.hists["sampleTaskJetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetRangeUser(0, 150)
             plot1DPtHardHists(self.hists["sampleTaskJetSpectraPartLevel"], self.hists["sampleTaskJetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Unmatched Jet Spectra - Part Level
             self.hists["unmatchedJetSpectraPartLevel"].SetTitle("Unmatched particle level jet p_{T}")
-            self.hists["unmatchedJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,Part}")
+            self.hists["unmatchedJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,part}")
             self.hists["unmatchedJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
             self.hists["unmatchedJetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["unmatchedJetSpectraPartLevel"], self.hists["unmatchedJetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # (Matched) Jet Spectra - Part Level
             self.hists["jetSpectraPartLevel"].SetTitle("Particle level jet p_{T}")
-            self.hists["jetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,Part}")
+            self.hists["jetSpectraPartLevel"].GetXaxis().SetTitle("p_{T}^{Jet,part}")
             self.hists["jetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
             self.hists["jetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["jetSpectraPartLevel"], self.hists["jetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Unmatched Jet Spectra - Det Level
             self.hists["unmatchedJetSpectraDetLevel"].SetTitle("Unmatched detector level jet p_{T}")
-            self.hists["unmatchedJetSpectraDetLevel"].GetXaxis().SetTitle("p_{T}^{Jet,Det}")
+            self.hists["unmatchedJetSpectraDetLevel"].GetXaxis().SetTitle("p_{T}^{Jet,det}")
             self.hists["unmatchedJetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
             self.hists["unmatchedJetSpectraDetLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["unmatchedJetSpectraDetLevel"], self.hists["unmatchedJetSpectraDetLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # (Matched) Jet Spectra - Det Level
             self.hists["jetSpectraDetLevel"].SetTitle("Detector level jet p_{T}")
-            self.hists["jetSpectraDetLevel"].GetXaxis().SetTitle("p_{T}^{Jet,Det}")
+            self.hists["jetSpectraDetLevel"].GetXaxis().SetTitle("p_{T}^{Jet,det}")
             self.hists["jetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
             self.hists["jetSpectraDetLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["jetSpectraDetLevel"], self.hists["jetSpectraDetLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
@@ -528,8 +528,8 @@ class JetHResponseMatrix(object):
         responseMatrix = self.hists["responseMatrix"]
         logger.debug("Response matrix n jets: {}".format(responseMatrix.Integral()))
         responseMatrix.SetTitle("Response Matrix")
-        responseMatrix.GetXaxis().SetTitle("p_{T}^{Jet,Det} (GeV/#it{c})")
-        responseMatrix.GetYaxis().SetTitle("p_{T}^{Jet,Part} (GeV/#it{c})")
+        responseMatrix.GetXaxis().SetTitle("p_{T}^{Jet,det} (GeV/#it{c})")
+        responseMatrix.GetYaxis().SetTitle("p_{T}^{Jet,part} (GeV/#it{c})")
         responseMatrix.Draw("colz")
         minVal = ctypes.c_double(0)
         maxVal = ctypes.c_double(0)
@@ -544,7 +544,7 @@ class JetHResponseMatrix(object):
         proj = self.hists["partSpectraProjection"]
         #proj.Scale(1.0/proj.Integral(0, 100))
         proj.SetTitle("")
-        proj.GetXaxis().SetTitle("p_{T,jet}^{Part} (GeV/#it{c})")
+        proj.GetXaxis().SetTitle("p_{T,jet}^{part} (GeV/#it{c})")
         proj.GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
 
         # Draw ALICE Information
@@ -569,8 +569,8 @@ class JetHResponseMatrix(object):
         # Plot response matrix errors
         responseMatrixErrors = self.hists["responseMatrixErrors"]
         responseMatrixErrors.SetTitle("Response Matrix Relative Statistical Errors")
-        responseMatrixErrors.GetXaxis().SetTitle("p_{T}^{Jet,Det}")
-        responseMatrixErrors.GetYaxis().SetTitle("p_{T}^{Jet,Part}")
+        responseMatrixErrors.GetXaxis().SetTitle("p_{T}^{Jet,det}")
+        responseMatrixErrors.GetYaxis().SetTitle("p_{T}^{Jet,part}")
         responseMatrixErrors.Draw("colz")
         canvas.SaveAs(os.path.join(self.outputPath, "{0}Errors.pdf".format(responseMatrixSaveName)))
 
