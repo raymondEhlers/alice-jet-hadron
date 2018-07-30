@@ -43,6 +43,7 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
     ],
 
     # What does your project relate to?
@@ -75,7 +76,7 @@ setup(
         "seaborn",
         "uproot", # Not strictly required at the moment, but hopefully for the future.
         "rootpy",
-        "root_numpy",
+        #"root_numpy", # As of 29 July 2018, doesn't support py3.7, so install via fork. See requirements.txt
         "iminuit>=1.3",
         "probfit",
         "numdifftools"
