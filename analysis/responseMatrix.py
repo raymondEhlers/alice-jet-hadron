@@ -32,17 +32,14 @@ import jetH.base.projectors as projectors
 from jetH.base.projectors import HistAxisRange
 import jetH.base.analysisObjects as analysisObjects
 
+import jetH.plot.rootBase as plotRootBase
+
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 import rootpy
 from rootpy.io import root_open
-
-# TODO: Remove this dependence.
-from aliceYaleDevUtils import plottingUtils
-# Setup color schemes
-plottingUtils.colorSchemes.init(ROOT)
 
 # Configure ROOT
 # Run in batch mode
@@ -1099,8 +1096,9 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         # Det level selected
         #############################################
         drawFlag = False
-        for (label, hist), color in zip(inputDictDetLevel.iteritems(), plottingUtils.colorSchemes.sequential + plottingUtils.colorSchemes.qualitative):
+        for (label, hist), color in zip(inputDictDetLevel.iteritems(), sns.husl_palette(n_colors=len(inputDictDetLevel))):
             # Set hist options
+            color = ROOT.TColor.GetColor(*color)
             hist.SetLineColor(color)
             hist.SetMarkerColor(color)
             hist.SetLineWidth(2)
@@ -1140,8 +1138,9 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         leg.SetFillColorAlpha(0, 0)
 
         drawFlag = False
-        for (label, hist), color in zip(inputDictTruthLevel.iteritems(), plottingUtils.colorSchemes.sequential + plottingUtils.colorSchemes.qualitative):
+        for (label, hist), color in zip(inputDictTruthLevel.iteritems(), sns.husl_palette(n_colors=len(inputDictTruthLevel))):
             # Set hist options
+            color = ROOT.TColor.GetColor(*color)
             hist.SetLineColor(color)
             hist.SetMarkerColor(color)
             hist.SetLineWidth(2)
@@ -1180,7 +1179,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         # Draw a single projection on it's own
         ######################################
         (label, hist) = inputDictDetLevel.iteritems().next()
-        hist.SetLineColor(plottingUtils.colorSchemes.qualitative[0])
+        hist.SetLineColor(ROOT.kBlack)
 
         canvas.Clear()
         canvas.SetLogy(True)
@@ -1190,7 +1189,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas.Update()
         canvas.Modified()
         # GetUymax() doesn't work on log scale....
-        line = plottingUtils.drawVerticalLine(label)
+        line = plotRootBase.drawVerticalLine(label)
 
         # Save plot
         canvas.SaveAs(os.path.join(outputPath, "singleDetectorBin.pdf"))
@@ -1215,7 +1214,8 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         selections = [20, 30, 35, 40, 50, 60, 80, 100, 200]
 
         # Setup possible colors
-        colors = plottingUtils.colorSchemes.sequential + plottingUtils.colorSchemes.qualitative
+        # We must call list because we don't iterate over it below.
+        colors = list(itertools.starmap(ROOT.TColor.GetColor, sns.husl_palette(n_colors=len(inputDictDetLevel)) ))
 
         clones = []
         # NOTE: Need underflow bins to equal 1!
@@ -1592,7 +1592,8 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
         legend.SetNColumns(2)
         legend.SetBorderSize(0)
 
-    for (ptHardBin, spectra), color in zip(ptHardList.iteritems(), plottingUtils.colorSchemes.diverging + plottingUtils.colorSchemes.qualitative):
+    for (ptHardBin, spectra), color in zip(ptHardList.iteritems(), sns.husl_palette(n_colors=len(ptHardList)) ):
+        color = ROOT.TColor.GetColor(*color)
         #logger.debug("Color: {0}".format(color))
         spectra.SetMarkerStyle(ROOT.kFullCircle+int(ptHardBin))
         spectra.SetMarkerColor(color)
@@ -1718,7 +1719,7 @@ def plotParticleSpectraProjection(JetHResponseEP):
             logger.debug("entries: {}, integral: {}".format(hist.GetEntries(), entries))
             hist.Scale(1.0/entries)
             # Update the y axis title to represent the change
-            hist.GetYaxis().SetTitle("(1/N_{jets})dN/dp_{T}")
+            hist.GetYaxis().SetTitle("(1/N_{jets})dN/d#mathit{p}_{T}")
 
         logger.debug("angle: {}, hist: {}, hist entries: {}, integral: {} histTemp: {}, histTemp entries: {} (decrease due to cutting out the 0-5 bin)".format(epAngle, hist, hist.GetEntries(), hist.Integral(), histTemp, histTemp.GetEntries()))
         #logger.debug("color: {}".format(color))
