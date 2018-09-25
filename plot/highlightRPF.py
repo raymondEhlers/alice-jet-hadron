@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 
-# Highlight Reaction Plane Fit fit regions corresponding to the signal
-# and background regions.
-#
-# NOTE: This doesn't quite follow the traditional split between functions and plots
-#       because it also works as a standalone split. However, most data functions are
-#       split off into the RPF utils module.
-#
-# Dependencies:
-#   - rootpy
-#   - numpy
-#   - root_numpy
-#   - matplotlib
-#   - seaborn
-#
-# author: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
-# date: 03 May 2018
+""" Highlight Reaction Plane Fit fit regions.
+
+The highlighted regions correspond to the signal and background regions.
+
+Note:
+    This doesn't quite follow the traditional split between functions and plots
+    because it also works as a standalone executable. The standalone functionality
+    is located at the bottom of the module.
+
+Dependencies:
+  - rootpy
+  - numpy
+  - root_numpy
+  - matplotlib
+  - seaborn
+
+.. code-author: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
+"""
 
 import argparse
 import logging
@@ -36,7 +38,7 @@ import jetH.plot.base as plotBase
 import matplotlib
 import matplotlib.pyplot as plt
 # Needed for 3D plots
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # noqa
 import seaborn as sns
 
 import rootpy.ROOT as ROOT
@@ -63,12 +65,13 @@ def overlayColors(foreground, background):
     Implemented using the formula from [colorblendy](http://colorblendy.com/). Specifically, see
     static/js/colorlib.js:blend_filters in the colorblendy github.
 
-    NOTE: These formulas are based on colors from [0, 255], so we need to scale our [0, 1] colors
+    Note:
+        These formulas are based on colors from [0, 255], so we need to scale our [0, 1] colors
         up and down.
 
     Args:
-        foreground (tuple): (R,G,B), where each color is between [0, 1]
-        background (tuple): (R,G,B), where each color is between [0, 1]
+        foreground (tuple): Foreground (in-front) (R,G,B), where each color is between [0, 1]
+        background (tuple): Background (below) (R,G,B), where each color is between [0, 1]
     Returns:
         tuple: (R,G,B) overlay of colors
     """
@@ -91,12 +94,13 @@ def screenColors(foreground, background):
     Implemented using the formula from [colorblendy](http://colorblendy.com/). Specifically, see
     static/js/colorlib.js:blend_filters in the colorblendy github.
 
-    NOTE: These formulas are based on colors from [0, 255], so we need to scale our [0, 1] colors
+    Note:
+        These formulas are based on colors from [0, 255], so we need to scale our [0, 1] colors
         up and down.
 
     Args:
-        foreground (tuple): (R,G,B), where each color is between [0, 1]
-        background (tuple): (R,G,B), where each color is between [0, 1]
+        foreground (tuple): Foreground (in-front) (R,G,B), where each color is between [0, 1]
+        background (tuple): Background (below) (R,G,B), where each color is between [0, 1]
     Returns:
         tuple: (R,G,B) overlay of colors
     """
@@ -105,7 +109,7 @@ def screenColors(foreground, background):
         # Need to scale up to the 255 scale to use the formula
         fg = convertColorToMax255(fg)
         bg = convertColorToMax255(bg)
-        screenColor = 255 - (((255-fg)*(255-bg)) >> 8)
+        screenColor = 255 - (((255 - fg) * (255 - bg)) >> 8)
         # We then need to scale the color to be between 0 and 1.
         screenColor = convertColorToMax1(screenColor)
         output.append(screenColor)
@@ -150,8 +154,8 @@ def highlightRegionOfSurface(surf, highlightColors, X, Y, phiRange, etaRange, us
 
     # Update the colors with the highlight color.
     # The colors are stored as a list for some reason so get the flat indicies
-    logger.debug("max idx: {}".format(np.max(np.where(highlight[:-1,:-1].flat)[0])))
-    for idx in np.where(highlight[:-1,:-1].flat)[0]:
+    logger.debug("max idx: {}".format(np.max(np.where(highlight[:-1, :-1].flat)[0])))
+    for idx in np.where(highlight[:-1, :-1].flat)[0]:
         # Modify each color one-by-one
         if useColorOverlay:
             colors[idx] = list(overlayColors(foreground = highlightColors, background = tuple(colors[idx])))
@@ -193,11 +197,11 @@ def surfacePlotForHighlighting(ax, X, Y, histArray, colormap, colorbar = False):
     #       (x, y) position. Inspired by https://stackoverflow.com/a/42927880
     norm = matplotlib.colors.Normalize(vmin = np.min(histArray), vmax = np.max(histArray))
     surf = ax.plot_surface(X, Y, histArray.T,
-            facecolors = colormap(norm(histArray.T)),
-            #norm = matplotlib.colors.Normalize(vmin = np.min(histArray), vmax = np.max(histArray)),
-            #cmap = sns.cm.rocket,
-            rcount = len(histArray.T[:,0]),
-            ccount = len(histArray.T[0]))
+                           facecolors = colormap(norm(histArray.T)),
+                           #norm = matplotlib.colors.Normalize(vmin = np.min(histArray), vmax = np.max(histArray)),
+                           #cmap = sns.cm.rocket,
+                           rcount = len(histArray.T[:, 0]),
+                           ccount = len(histArray.T[0]))
 
     if colorbar:
         # NOTE: Cannot use surf directly, because it doesn't contain the mapping from data to color
@@ -225,16 +229,14 @@ def contourPlotForHighlighting(ax, X, Y, histArray, colormap, levelStep = 0.002)
         histArray (numpy.ndarray): Histogram data as 2D array.
         colormap (matplotlib.colors colormap): Colormap used to map the data to colors.
         levelStep (float): Step in z between each contour
-
     Returns:
         matplotlib.axes.Axes.contour: Value returned by the contour plot.
     """
     contour = ax.contour(X, Y, histArray.T,
-                         zdir='z',
+                         zdir = 'z',
                          alpha = 1,
                          cmap = colormap,
-                         levels = np.arange(np.min(histArray), np.max(histArray), levelStep),
-                         norm = norm)
+                         levels = np.arange(np.min(histArray), np.max(histArray), levelStep))
 
     return contour
 
@@ -272,7 +274,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
     #    viewAngle = None
 
     # Setup plot
-    fig = plt.figure(figsize=(10,7.5))
+    fig = plt.figure(figsize=(10, 7.5))
     # We need to create the axis in a special manner to be able to use 3d projections such
     # as surface or contour.
     ax = plt.axes(projection='3d')
@@ -293,8 +295,8 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
         highlightSurf = surf2
 
     if plotContour:
-        contour = contourPlotForHighlighting(ax, X, Y, histArray, colormap = colormap)
-    
+        contourPlotForHighlighting(ax, X, Y, histArray, colormap = colormap)
+
     # Draw highlights
     for region in highlightRegions:
         region.drawHighlights(highlightSurf, X, Y, **highlightArgs)
@@ -331,10 +333,12 @@ class highlightRegion(object):
 
     def addHighlightRegion(self, phiRange, etaRange):
         """ Add a region to this highlight object.
-        
+
         Args:
             phiRange (float, float): Tuple of min, max phi of highlight region.
             etaRange (float, float): Tuple of min, max eta of highlight region.
+        Returns:
+            None. The `regions` list is modified.
         """
         self.regions.append([phiRange, etaRange])
 
@@ -348,6 +352,8 @@ class highlightRegion(object):
             X (numpy.ndarray): X bin centers.
             Y (numpy.ndarray): Y bin centers.
             kwargs (dict): Additional options for highlightRegionOfSurface().
+        Returns:
+            None. The regions are highlighted.
         """
         for region in self.regions:
             # 0 is the phi tuple, while 1 is the eta tuple
@@ -372,23 +378,42 @@ def defineHighlightRegions():
     # Signal
     signalColor = (1, 0, 0, 1.0,)
     signalRegion = highlightRegion("Signal region", signalColor)
-    signalRegion.addHighlightRegion((-np.pi/2, 3.0*np.pi/2), (-0.6, 0.6))
+    signalRegion.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
     highlightRegions.append(signalRegion)
 
     # Background
     backgroundColor = (0, 1, 0, 1.0,)
-    backgroundPhiRange = (-np.pi/2, np.pi/2)
+    backgroundPhiRange = (-np.pi / 2, np.pi / 2)
     backgroundRegion = highlightRegion("Background region", backgroundColor)
     backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
-    backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))
+    backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))  # noqa: E201, E241
     highlightRegions.append(backgroundRegion)
 
     return highlightRegions
 
-##########################
+###################################################
 # Standalone functionality
-##########################
-def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions = ["pdf"]):
+#
+# All standalone functionality is below this point.
+###################################################
+def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions = None):
+    """ Main entry point for stand-alone highlight plotting functionality.
+
+    If this is being used as a library, call ``plotRPFFitRegions(...)`` directly instead.
+
+    Args:
+        inputFile (str): Path to the input file.
+        histName (str): Name of the histogram to be highlighted.
+        outputPrefix (str): Directory where the output file should be stored. Default: "."
+        printingExtensions (list): Printing extensions to be used. Default: None, which corresponds
+            to printing to ``.pdf``.
+    Returns:
+        None.
+    """
+    # Argument validation
+    if printingExtensions is None:
+        printingExtensions = [".pdf"]
+
     # Basic setup
     # Create logger
     logging.basicConfig(level=logging.DEBUG)
@@ -408,9 +433,9 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
         highlightArgs = {}
         # Call plotting functions
         (fig, ax) = plotRPFFitRegions(utils.getArrayFromHist2D(hist),
-                highlightRegions = defineHighlightRegions(),
-                colormap = "ROOT_kBird",
-                **highlightArgs)
+                                      highlightRegions = defineHighlightRegions(),
+                                      colormap = "ROOT_kBird",
+                                      **highlightArgs)
 
         # Modify axis labels
         # Set the distance from axis to label in pixels.
@@ -435,11 +460,11 @@ def parseArguments():
     parser = argparse.ArgumentParser(description = "Creating plot to illustrate Reaction Plane Fit fit ranges.")
     required = parser.add_argument_group("required arguments")
     required.add_argument("-f", "--inputFile", metavar="inputFile",
-                         type=str,
-                         help="Path to input ROOT filename.")
+                          type=str,
+                          help="Path to input ROOT filename.")
     required.add_argument("-i", "--inputHistName", metavar="histName",
-                         type=str,
-                         help="Name of hist.")
+                          type=str,
+                          help="Name of hist.")
     parser.add_argument("-o", "--outputPath", metavar="outputPath",
                         type=str, default = ".",
                         help="Path to where the printed hist should be saved.")
@@ -454,11 +479,15 @@ def parseArguments():
     return (args.inputFile, args.inputHistName, args.outputPath, args.printingExtensions)
 
 def runFromTerminal():
+    """ Entry point when running from the terminal.
+
+    Running from the terminal implies that arguments need to be parsed.
+    """
     (inputFile, histName, outputPath, printingExtensions) = parseArguments()
     plotRPFRegions(inputFile = inputFile,
-            histName = histName,
-            outputPrefix = outputPath,
-            printingExtensions = printingExtensions)
+                   histName = histName,
+                   outputPrefix = outputPath,
+                   printingExtensions = printingExtensions)
 
 if __name__ == "__main__":
     runFromTerminal()
