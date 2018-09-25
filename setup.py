@@ -85,10 +85,22 @@ setup(
     # Include additional files
     include_package_data=True,
 
-    # Test packages
-    tests_require = [
-        "pytest",
-        "pytest-cov",
-        "pytest-mock"
-    ]
-  )
+    extras_require = {
+        "tests": [
+            "pytest",
+            "pytest-cov",
+            "pytest-mock",
+            "coveralls",
+        ],
+        "docs": [
+            "sphinx",
+            # Allow markdown files to be used
+            "recommonmark",
+            # Allow markdown tables to be used
+            "sphinx_markdown_tables",
+        ],
+        "dev": [
+            "flake8",
+        ]
+    }
+)
