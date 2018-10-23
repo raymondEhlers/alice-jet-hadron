@@ -121,7 +121,7 @@ def testAliceLabel(loggingMixin, label, expected):
 @pytest.mark.parametrize("ptBin", params.iterateOverTrackPtBins())
 def testTrackPtStrings(loggingMixin, ptBin):
     """ Test the track pt string generation functions. Each bin is tested.  """
-    assert params.generateTrackPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.trackPtBins[ptBin], "upper" : params.trackPtBins[ptBin+1]}
+    assert params.generateTrackPtRangeString(ptBin) == r"$%(lower)s < \mathit{p}_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.trackPtBins[ptBin], "upper" : params.trackPtBins[ptBin+1]}
 
 # We retrieve the generator as a list and cut off the last value because we need
 # to handle it separately in testJetPtStringForLastPtBin()
@@ -130,7 +130,7 @@ def testJetPtString(loggingMixin, ptBin):
     """ Test the jet pt string generation functions. Each bin (except for the last) is tested.
     The last pt bin is left for a separate test because it is printed differently. (See testJetPtStringForLastPtBin())
     """
-    assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin], "upper" : params.jetPtBins[ptBin+1]}
+    assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin], "upper" : params.jetPtBins[ptBin+1]}
 
 def testJetPtStringForLastPtBin(loggingMixin):
     """ Test the jet pt string generation function for the last jet pt bin.
@@ -138,7 +138,7 @@ def testJetPtStringForLastPtBin(loggingMixin):
     In the case of the last pt bin, we only want to show the lower range.
     """
     ptBin = len(params.jetPtBins) - 2
-    assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin]}
+    assert params.generateJetPtRangeString(ptBin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower" : params.jetPtBins[ptBin]}
 
 @pytest.mark.parametrize("energy, system, activity, expected", [
         (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
@@ -157,9 +157,9 @@ def testJetPropertiesLabels(loggingMixin):
     """ Test the jet properties labels. """
     jetPtBin = 1
     (jetFindingExpected, constituentCutsExpected, leadingHadronExpected, jetPtExpected) = (r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$",
-            r"$p_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
-            r"$p_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$",
-            r"$20.0 < p_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$")
+            r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
+            r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$",
+            r"$20.0 < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$")
 
     (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
 
