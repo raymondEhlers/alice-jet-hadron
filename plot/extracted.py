@@ -29,7 +29,7 @@ def plotYields(jetH):
     for yields, rangeLimits, tag in [(jetH.yieldsAS, (5e-3, 3), "yieldsAS"),
                                      (jetH.yieldsNS, (5e-3, 5), "yieldsNS"),
                                      (jetH.yieldsDEtaNS, (5e-3, 2), "yieldsDEtaNS")]:
-        parameters = ("p_{T}^{assoc}", "dN/dp_{T} (GeV/#it{c})^{-1}", rangeLimits, tag)
+        parameters = ("\mathit{p}_{\mathrm{T}}^{assoc}", "dN/d\mathit{p}_{\mathrm{T}} (GeV/#it{c})^{-1}", rangeLimits, tag)
         plotExtractedValues(jetH, yields, parameters)
 
 def plotWidths(jetH):
@@ -37,7 +37,7 @@ def plotWidths(jetH):
     for widths, rangeLimits, tag, yAxisLabel in [(jetH.widthsAS, (0, 2.5), "widthsAS", "Away-side width"),
                                                  (jetH.widthsNS, (0, 2.5), "widthsNS", "Near-side width"),
                                                  (jetH.widthsDEtaNS, (0, 2.5), "widthsDEtaNS", "Near-side width")]:
-        parameters = ("p_{T}^{assoc}", yAxisLabel, rangeLimits, tag)
+        parameters = ("\mathit{p}_{\mathrm{T}}^{assoc}", yAxisLabel, rangeLimits, tag)
         plotExtractedValues(jetH, widths, parameters)
 
 def createTGraphsFromExtractedValues(jetH, values):
@@ -177,7 +177,7 @@ def PlotWidthsNew(jetH, widths):
             tempErrors.append(observable.error)
 
         ax.errorbar(tempX, tempWidths, yerr = tempErrors, marker = "o", label = "{} Widths".format(location.upper()))
-        ax.set_xlabel("$p_{\mathrm{T}}^{\mathrm{assoc}}$")
+        ax.set_xlabel("$\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$")
         ax.set_ylabel("$\sigma_{AS}$")
 
         # Tight the plotting up

@@ -170,7 +170,7 @@ def generatePtRangeString(arr, binVal, lowerLabel, upperLabel, onlyShowLowerValu
     upper = " < %(upper)s" % {"upper": arr[binVal+1]}
     if onlyShowLowerValueForLastBin and binVal == len(arr) - 2:
         upper = ""
-    ptRange = r"$%(lower)sp_{%(lowerLabel)s}^{%(upperLabel)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : lower, "upper": upper, "lowerLabel" : lowerLabel, "upperLabel" : upperLabel}
+    ptRange = r"$%(lower)s\mathit{p}_{%(lowerLabel)s}^{%(upperLabel)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : lower, "upper": upper, "lowerLabel" : lowerLabel, "upperLabel" : upperLabel}
 
     return ptRange
 
@@ -211,8 +211,8 @@ def jetPropertiesLabel(jetPtBin):
         tuple: (jetFinding, constituentCuts, leadingHadron, jetPt)
     """
     jetFinding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
-    constituentCuts = r"$p_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
-    leadingHadron = r"$p_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$"
+    constituentCuts = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
+    leadingHadron = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$"
     jetPt = generateJetPtRangeString(jetPtBin)
     return (jetFinding, constituentCuts, leadingHadron, jetPt)
 

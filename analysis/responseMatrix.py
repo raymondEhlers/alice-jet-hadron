@@ -472,46 +472,46 @@ class JetHResponseMatrix(object):
 
             if self.ptHardBinProduction:
                 # Pt Hard Spectra
-                self.hists["ptHardSpectra"].SetTitle("p_{T} Hard Spectra")
-                self.hists["ptHardSpectra"].GetXaxis().SetTitle("p_{T}^{Hard}")
-                self.hists["ptHardSpectra"].GetYaxis().SetTitle("#frac{dN}{dp_{T}^{Hard}}")
+                self.hists["ptHardSpectra"].SetTitle("#mathit{p}_{#mathrm{T}} Hard Spectra")
+                self.hists["ptHardSpectra"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T}}^{Hard}")
+                self.hists["ptHardSpectra"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}^{Hard}}")
                 self.hists["ptHardSpectra"].GetYaxis().SetTitleOffset(1.2)
                 plot1DPtHardHists(self.hists["ptHardSpectra"], self.hists["ptHardSpectraPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
                 # Pt Hard Spectra after event selection
-                self.hists["ptHardSpectraAfterEventSelection"].SetTitle("p_{T} Hard Spectra After Event Selection")
-                self.hists["ptHardSpectraAfterEventSelection"].GetXaxis().SetTitle("p_{T}^{Hard}")
-                self.hists["ptHardSpectraAfterEventSelection"].GetYaxis().SetTitle("#frac{dN}{dp_{T}^{Hard}}")
+                self.hists["ptHardSpectraAfterEventSelection"].SetTitle("#mathit{p}_{#mathrm{T}} Hard Spectra After Event Selection")
+                self.hists["ptHardSpectraAfterEventSelection"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T}}^{Hard}")
+                self.hists["ptHardSpectraAfterEventSelection"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}^{Hard}}")
                 self.hists["ptHardSpectraAfterEventSelection"].GetYaxis().SetTitleOffset(1.2)
                 plot1DPtHardHists(self.hists["ptHardSpectraAfterEventSelection"], self.hists["ptHardSpectraAfterEventSelectionPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Sample Task Jet Spectra - Part Level
-            self.hists["sampleTaskJetSpectraPartLevel"].SetTitle("Sample task particle level jet p_{T}")
-            self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T,jet}^{part}")
-            self.hists["sampleTaskJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+            self.hists["sampleTaskJetSpectraPartLevel"].SetTitle("Sample task particle level jet #mathit{p}_{#mathrm{T}}")
+            self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part}")
+            self.hists["sampleTaskJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}}")
             self.hists["sampleTaskJetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             self.hists["sampleTaskJetSpectraPartLevel"].GetXaxis().SetRangeUser(0, 150)
             plot1DPtHardHists(self.hists["sampleTaskJetSpectraPartLevel"], self.hists["sampleTaskJetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Unmatched Jet Spectra - Part Level
-            self.hists["unmatchedJetSpectraPartLevel"].SetTitle("Unmatched particle level jet p_{T}")
-            self.hists["unmatchedJetSpectraPartLevel"].GetXaxis().SetTitle("p_{T,jet}^{part}")
-            self.hists["unmatchedJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+            self.hists["unmatchedJetSpectraPartLevel"].SetTitle("Unmatched particle level jet #mathit{p}_{#mathrm{T}}")
+            self.hists["unmatchedJetSpectraPartLevel"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part}")
+            self.hists["unmatchedJetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}}")
             self.hists["unmatchedJetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["unmatchedJetSpectraPartLevel"], self.hists["unmatchedJetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # (Matched) Jet Spectra - Part Level
-            self.hists["jetSpectraPartLevel"].SetTitle("Particle level jet p_{T}")
-            self.hists["jetSpectraPartLevel"].GetXaxis().SetTitle("p_{T,jet}^{part}")
-            self.hists["jetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+            self.hists["jetSpectraPartLevel"].SetTitle("Particle level jet #mathit{p}_{#mathrm{T}}")
+            self.hists["jetSpectraPartLevel"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part}")
+            self.hists["jetSpectraPartLevel"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}}")
             self.hists["jetSpectraPartLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["jetSpectraPartLevel"], self.hists["jetSpectraPartLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # Unmatched Jet Spectra - Det Level
-            self.hists["unmatchedJetSpectraDetLevel"].SetTitle("Unmatched detector level jet p_{T}")
-            self.hists["unmatchedJetSpectraDetLevel"].GetXaxis().SetTitle("p_{T,jet}^{det}")
-            self.hists["unmatchedJetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+            self.hists["unmatchedJetSpectraDetLevel"].SetTitle("Unmatched detector level jet #mathit{p}_{#mathrm{T}}")
+            self.hists["unmatchedJetSpectraDetLevel"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{det}")
+            self.hists["unmatchedJetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathit{T}}}")
             self.hists["unmatchedJetSpectraDetLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["unmatchedJetSpectraDetLevel"], self.hists["unmatchedJetSpectraDetLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             # (Matched) Jet Spectra - Det Level
-            self.hists["jetSpectraDetLevel"].SetTitle("Detector level jet p_{T}")
-            self.hists["jetSpectraDetLevel"].GetXaxis().SetTitle("p_{T,jet}^{det}")
-            self.hists["jetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+            self.hists["jetSpectraDetLevel"].SetTitle("Detector level jet #mathit{p}_{#mathrm{T}}")
+            self.hists["jetSpectraDetLevel"].GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{det}")
+            self.hists["jetSpectraDetLevel"].GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}}")
             self.hists["jetSpectraDetLevel"].GetYaxis().SetTitleOffset(1.2)
             plot1DPtHardHists(self.hists["jetSpectraDetLevel"], self.hists["jetSpectraDetLevelPtHard"], canvas, outputPath = self.outputPath, ptHardBinning = ptHardBinning)
             canvas.SetLogy(0)
@@ -525,8 +525,8 @@ class JetHResponseMatrix(object):
         responseMatrix = self.hists["responseMatrix"]
         logger.debug("Response matrix n jets: {}".format(responseMatrix.Integral()))
         responseMatrix.SetTitle("Response Matrix")
-        responseMatrix.GetXaxis().SetTitle("p_{T,jet}^{det} (GeV/#it{c})")
-        responseMatrix.GetYaxis().SetTitle("p_{T,jet}^{part} (GeV/#it{c})")
+        responseMatrix.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{det} (GeV/#it{c})")
+        responseMatrix.GetYaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part} (GeV/#it{c})")
         responseMatrix.Draw("colz")
         minVal = ctypes.c_double(0)
         maxVal = ctypes.c_double(0)
@@ -541,13 +541,13 @@ class JetHResponseMatrix(object):
         proj = self.hists["partSpectraProjection"]
         #proj.Scale(1.0/proj.Integral(0, 100))
         proj.SetTitle("")
-        proj.GetXaxis().SetTitle("p_{T,jet}^{part} (GeV/#it{c})")
-        proj.GetYaxis().SetTitle("#frac{dN}{dp_{T}}")
+        proj.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part} (GeV/#it{c})")
+        proj.GetYaxis().SetTitle("#frac{dN}{d#mathit{p}_{#mathrm{T}}}")
 
         # Draw ALICE Information
         latex = []
         latex.append(ROOT.TLatex(.65, .8, "ALICE"))
-        latex.append(ROOT.TLatex(.58, .72, "20 < p_{T}^{det} < 40 GeV/#it{c}"))
+        latex.append(ROOT.TLatex(.58, .72, "20 < #mathit{p}_{#mathrm{T}}^{det} < 40 GeV/#it{c}"))
 
         # Draw
         proj.Draw()
@@ -566,8 +566,8 @@ class JetHResponseMatrix(object):
         # Plot response matrix errors
         responseMatrixErrors = self.hists["responseMatrixErrors"]
         responseMatrixErrors.SetTitle("Response Matrix Relative Statistical Errors")
-        responseMatrixErrors.GetXaxis().SetTitle("p_{T,jet}^{det}")
-        responseMatrixErrors.GetYaxis().SetTitle("p_{T,jet}^{part}")
+        responseMatrixErrors.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{det}")
+        responseMatrixErrors.GetYaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part}")
         responseMatrixErrors.Draw("colz")
         canvas.SaveAs(os.path.join(self.outputPath, "{0}Errors.pdf".format(responseMatrixSaveName)))
 
@@ -1039,7 +1039,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             # Normalize
             ptYProjection.Scale(1.0/ptYProjection.Integral())
             # Titles
-            ptYProjection.SetTitle("Truth level jet p_{T} for detector level jets")
+            ptYProjection.SetTitle("Truth level jet #mathit{p}_{#mathrm{T}} for detector level jets")
             ptYProjection.GetYaxis().SetTitle("Probability")
             #ptYProjection.GetXaxis().SetRangeUser(0, 70)
 
@@ -1059,7 +1059,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             # Normalize
             ptXProjection.Scale(1.0/ptYProjection.Integral())
             # Titles
-            ptXProjection.SetTitle("Detector level jet p_{T} for truth level jets")
+            ptXProjection.SetTitle("Detector level jet #mathit{p}_{#mathrm{T}} for truth level jets")
             ptXProjection.GetYaxis().SetTitle("Probability")
             #ptXProjection.GetXaxis().SetRangeUser(0, 70)
 
@@ -1103,7 +1103,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             hist.SetMarkerColor(color)
             hist.SetLineWidth(2)
 
-            hist.GetXaxis().SetTitle("p_{T}^{truth} (GeV/c)")
+            hist.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T}}^{truth} (GeV/c)")
 
             # Add legend entry
             leg.AddEntry(hist, "p_{{T,jet}}^{{det}} = {0:.1f}".format(label))
@@ -1145,7 +1145,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             hist.SetMarkerColor(color)
             hist.SetLineWidth(2)
 
-            hist.GetXaxis().SetTitle("p_{T}^{det} (GeV/c)")
+            hist.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T}}^{det} (GeV/c)")
 
             # Add legend entry
             leg.AddEntry(hist, "p_{{T,jet}}^{{truth}} = {0:.1f}".format(label))
@@ -1586,9 +1586,9 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
         legend = ROOT.TLegend(0.55, 0.55, 0.95, 0.9)
         # ROOT 5 sux
         if ROOT.gROOT.GetVersionInt() > 60000:
-            legend.SetHeader("p_{T} bins", "C")
+            legend.SetHeader("#matit{p}_{#mathrm{T}} bins", "C")
         else:
-            legend.SetHeader("p_{T} bins")
+            legend.SetHeader("#mathit{p}_{#mathrm{T}} bins")
         legend.SetNColumns(2)
         legend.SetBorderSize(0)
 
