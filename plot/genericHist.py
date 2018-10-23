@@ -342,7 +342,8 @@ class HistPlotter(object):
                 # Resources include: https://seaborn.pydata.org/generated/seaborn.color_palette.html
                 # and https://seaborn.pydata.org/tutorial/color_palettes.html#palette-tutorial
                 # NOTE: "Blues_d" is also a nice scheme for sequential data
-                colorPaletteArgs["palette"] = "hls"
+                # NOTE: "husl" is preferred to "hls" because it is even in color space AND in perception!
+                colorPaletteArgs["palette"] = "husl"
                 colorPaletteArgs["n_colors"] = len(self.hists)
                 logger.debug("Color palette args: {}".format(colorPaletteArgs))
             currentColorPalette = iter(sns.color_palette(**colorPaletteArgs))
