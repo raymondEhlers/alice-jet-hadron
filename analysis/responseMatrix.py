@@ -1639,7 +1639,8 @@ def plotParticleSpectraProjection(JetHResponseEP):
 
     latexLabels = []
     latexLabels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
-    latexLabels.append(ROOT.TLatex(0.475, 0.84, "PYTHIA pp embedded in Pb-Pb"))
+    # TODO: Grab the centrality from the config.
+    latexLabels.append(ROOT.TLatex(0.475, 0.84, "30-50\% Pb-Pb Embedded PYTHIA"))
     latexLabels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
     latexLabels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
     latexLabels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
