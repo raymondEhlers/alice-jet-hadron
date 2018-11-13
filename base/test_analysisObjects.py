@@ -17,7 +17,8 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import jetH.base.analysisObjects as analysisObjects
+from jetH.base import analysisObjects
+from jetH.base import utils
 
 # For reproducibility
 np.random.seed(1234)
@@ -193,18 +194,22 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
     objArgs["objType"] = objType
 
     # Make sure the file will be read
-    mocker.patch("os.path.exists")
+    mExists = mocker.MagicMock(return_value = True)
+    mocker.patch("jetH.base.analysisObjects.os.path.exists", mExists)
 
-    # Determine the filename and get the test data
-    # `inputData` contains the data for the test
+    # Determine the filename and get the test data.
+    # `inputData` contains the data for the test.
     dataFilename = obj.yamlFilename(**objArgs)
-    inputData = ""
     with open(dataFilename, "r") as f:
         inputData = f.read()
+        f.seek(0)
+        yaml = ruamel.yaml.YAML(typ = "rt")
+        yaml.default_flow_style = False
+        expectedYAMLParameters = yaml.load(f)
 
     # Read
     mRead = mocker.mock_open(read_data = inputData)
-    mocker.patch("builtins.open", mRead)
+    mocker.patch("jetH.base.utils.open", mRead)
     testObj = obj.initFromYAML(**objArgs)
     calls = mRead.mock_calls
     mRead.assert_called_once_with(dataFilename, "r")
@@ -221,19 +226,12 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
             assert type(v) is np.ndarray
 
     # Write
-    mWrite = mocker.mock_open(read_data = inputData)
-    mocker.patch("builtins.open", mWrite)
+    mWrite = mocker.mock_open()
+    mocker.patch("jetH.base.utils.open", mWrite)
+    mYaml = mocker.MagicMock()
+    mocker.patch("jetH.base.utils.ruamel.yaml.YAML.dump", mYaml)
     testObj.saveToYAML(**objArgs)
-    mWrite.assert_called_with(dataFilename, "wb")
-    calls = mWrite.mock_calls
-    fileHandle = mWrite()
-    writtenData = fileHandle.read()
-    # NOTE: Cannot use assert_called_once_with() here because yaml.dump() calls
-    #       write many times. Perhaps once per line? In any case, far too often
-    #       to mock easily.
-    assert inputData == writtenData
-
-    # Necessary to ensure that profiling works (it seems that it runs before all mocks are cleared)
-    # Probably something to do with mocking open
-    mocker.stopall()
+    # Check the expect write and YAML calls.
+    mWrite.assert_called_once_with(dataFilename, "w")
+    mYaml.assert_called_once_with(expectedYAMLParameters, mWrite())
 
