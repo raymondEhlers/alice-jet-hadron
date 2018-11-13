@@ -364,6 +364,10 @@ class HistProjector(object):
                 logger.debug("Apply additional axis hist range: {0}".format(axis.name))
                 axis.ApplyRangeSet(hist)
 
+            # We need to ensure that it isn't empty so at least one project occurs
+            if self.projectionDependentCutAxes == []:
+                self.projectionDependentCutAxes.append([])
+
             # Perform the projections
             hists = []
             for (i, axes) in enumerate(self.projectionDependentCutAxes):
