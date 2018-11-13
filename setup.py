@@ -54,14 +54,14 @@ setup(
     # Rename scripts to the desired executable names
     # See: https://stackoverflow.com/a/8506532
     entry_points = {
-        "console_scripts" : [
+        "console_scripts": [
             "jetHAnalysis = jetH.analysis.correlations:runFromTerminal",
             "jetHResponse = jetH.analysis.responseMatrix:runFromTerminal",
             "plotEMCalCorrections = jetH.analysis.EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
             "plotEMCalEmbedding = jetH.analysis.EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
             "plotRPFRegions = jetH.plot.highlightRPF:runFromTerminal"
-            ],
-        },
+        ],
+    },
 
     # This is usually the minimal set of the required packages.
     # Packages should be installed via pip -r requirements.txt !
@@ -74,9 +74,9 @@ setup(
         "numpy",
         "matplotlib",
         "seaborn",
-        "uproot", # Not strictly required at the moment, but hopefully for the future.
+        "uproot",  # Not strictly required at the moment, but hopefully for the future.
         "rootpy",
-        #"root_numpy", # As of 29 July 2018, doesn't support py3.7, so install via fork. See requirements.txt
+        #"root_numpy",  # As of 29 July 2018, doesn't support py3.7, so install via fork. See requirements.txt
         "iminuit>=1.3",
         "probfit",
         "numdifftools"
