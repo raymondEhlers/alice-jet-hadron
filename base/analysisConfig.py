@@ -6,15 +6,11 @@
 # date: 8 May 2018
 
 # Py2/3 compatibility
-from builtins import super
 from future.utils import iteritems
-from future.utils import itervalues
 
 import os
 import argparse
 import collections
-import itertools
-import enum
 import logging
 logger = logging.getLogger(__name__)
 
@@ -95,8 +91,8 @@ def determineLeadingHadronBias(config, selectedAnalysisOptions):
             bias object.
     """
     overrideOptions = genericConfig.determineOverrideOptions(selectedOptions = selectedAnalysisOptions,
-            overrideOptions = config["leadingHadronBiasValues"],
-            setOfPossibleOptions = params.setOfPossibleOptions)
+                                                             overrideOptions = config["leadingHadronBiasValues"],
+                                                             setOfPossibleOptions = params.setOfPossibleOptions)
     leadingHadronBiasValue = overrideOptions["value"]
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
@@ -120,8 +116,8 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
         dict: The updated configuration
     """
     config = genericConfig.overrideOptions(config, selectedOptions,
-            setOfPossibleOptions = params.setOfPossibleOptions,
-            configContainingOverride = configContainingOverride)
+                                           setOfPossibleOptions = params.setOfPossibleOptions,
+                                           configContainingOverride = configContainingOverride)
     config = genericConfig.simplifyDataRepresentations(config)
 
     return config
@@ -151,20 +147,20 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
     parser = argparse.ArgumentParser(description = description.format(**kwargs))
     # General options
     parser.add_argument("-c", "--configFilename", metavar="configFilename",
-            type = str, default = "config/analysisConfig.yaml",
-            help="Path to config filename")
+                        type = str, default = "config/analysisConfig.yaml",
+                        help="Path to config filename")
     parser.add_argument("-e", "--energy", metavar = "energy",
-            type = float, default = 0.0,
-            help = "Collision energy")
+                        type = float, default = 0.0,
+                        help = "Collision energy")
     parser.add_argument("-s", "--collisionSystem", metavar = "collisionSystem",
-            type = str, default = "",
-            help = "Collision system")
+                        type = str, default = "",
+                        help = "Collision system")
     parser.add_argument("-a", "--eventActivity", metavar = "eventActivity",
-            type = str, default = "",
-            help = "Event activity")
+                        type = str, default = "",
+                        help = "Event activity")
     parser.add_argument("-b", "--biasType", metavar="biasType",
-            type = str, default = "",
-            help = "Leading hadron bias type")
+                        type = str, default = "",
+                        help = "Leading hadron bias type")
 
     # Extension for additional arguments
     if addOptionsFunction:
@@ -176,9 +172,9 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
     selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = args.energy,
-            collisionSystem = args.collisionSystem,
-            eventActivity = args.eventActivity,
-            leadingHadronBias = args.biasType)
+                                                             collisionSystem = args.collisionSystem,
+                                                             eventActivity = args.eventActivity,
+                                                             leadingHadronBias = args.biasType)
     return (args.configFilename, selectedAnalysisOptions, args)
 
 def validateArguments(selectedArgs, validateExtraArgsFunc = None):
@@ -225,14 +221,14 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
         additionalValidatedArgs.update(validateExtraArgsFunc())
 
     selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = energy,
-            collisionSystem = collisionSystem,
-            eventActivity = eventActivity,
-            leadingHadronBias = leadingHadronBiasType)
+                                                             collisionSystem = collisionSystem,
+                                                             eventActivity = eventActivity,
+                                                             leadingHadronBias = leadingHadronBiasType)
     return (selectedAnalysisOptions, additionalValidatedArgs)
 
 def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOptions, obj, additionalPossibleIterables = None):
     """ This is the main driver function to create an analysis object from a configuration.
-    
+
     Args:
         taskName (str): Name of the analysis task.
         configFilename (str): Filename of the yaml config.
@@ -254,7 +250,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     # Load configuration
     config = genericConfig.loadConfiguration(configFilename)
     config = overrideOptions(config, selectedAnalysisOptions,
-            configContainingOverride = config[taskName])
+                             configContainingOverride = config[taskName])
     # We (re)define the task config here after we have overridden the relevant values.
     taskConfig = config[taskName]
 
@@ -275,7 +271,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     # NOTE: These requested iterators should be passed by the task,
     #       but then the values should be selected in the YAML config.
     iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-            possibleIterables = possibleIterables)
+                                                                           possibleIterables = possibleIterables)
 
     # Determine formatting options
     logger.debug("selectedAnalysisOptions: {}".format(selectedAnalysisOptions._asdict()))
@@ -300,13 +296,13 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     #       See: https://stackoverflow.com/a/26180604
     args.update(selectedAnalysisOptions._asdict())
     # We want to convert the enum values into strs for formatting. Performed with a dict comprehension.
-    formattingOptions.update({k : v.str() for k, v in iteritems(selectedAnalysisOptions._asdict())})
+    formattingOptions.update({k: v.str() for k, v in iteritems(selectedAnalysisOptions._asdict())})
 
     # Iterate over the iterables defined above to create the objects.
     (names, objects) = genericConfig.createObjectsFromIterables(obj = obj,
-            args = args,
-            iterables = iterables,
-            formattingOptions = formattingOptions)
+                                                                args = args,
+                                                                iterables = iterables,
+                                                                formattingOptions = formattingOptions)
 
     #logger.debug("objects: {objects}".format(objects = objects))
 
@@ -345,13 +341,12 @@ class JetHBase(genericClass.EqualityMixin):
         # Handle leading hadron bias depending on the type.
         if isinstance(leadingHadronBias, params.leadingHadronBiasType):
             leadingHadronBias = determineLeadingHadronBias(config = self.config,
-                    selectedAnalysisOptions = params.selectedAnalysisOptions(
-                        collisionEnergy = self.collisionEnergy,
-                        collisionSystem = self.collisionSystem,
-                        eventActivity = self.eventActivity,
-                        leadingHadronBias = leadingHadronBias
-                        )
-                    ).leadingHadronBias
+                                                           selectedAnalysisOptions = params.selectedAnalysisOptions(
+                                                               collisionEnergy = self.collisionEnergy,
+                                                               collisionSystem = self.collisionSystem,
+                                                               eventActivity = self.eventActivity,
+                                                               leadingHadronBias = leadingHadronBias)
+                                                           ).leadingHadronBias
         # The type of leadingHadronBias should now be params.leadingHadronBias, regardless of whether that type was passed.
         self.leadingHadronBias = leadingHadronBias
 
@@ -377,7 +372,7 @@ class JetHBase(genericClass.EqualityMixin):
         """ Write the properties of the analysis to a YAML configuration file for future reference. """
         logger.info("{name} Properties:".format(name = self.__class__.__name__))
         # See: https://stackoverflow.com/a/1398059
-        properties = {attr : getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
+        properties = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 
         # TODO: Implement writing this out
 
@@ -397,10 +392,10 @@ def createFromTerminal(obj, taskName, additionalPossibleIterables = None):
     """
     (configFilename, terminalArgs, additionalArgs) = determineSelectedOptionsFromKwargs(taskName = taskName)
     return constructFromConfigurationFile(taskName = taskName,
-            configFilename = configFilename,
-            selectedAnalysisOptions = terminalArgs,
-            obj = obj,
-            additionalPossibleIterables = additionalPossibleIterables)
+                                          configFilename = configFilename,
+                                          selectedAnalysisOptions = terminalArgs,
+                                          obj = obj,
+                                          additionalPossibleIterables = additionalPossibleIterables)
 
 # TODO: Create a list of pt hard objects based on the YAML config.
 #       Loop over that list to create objects.

@@ -43,7 +43,7 @@ def getHistogramsInList(filename, listName = "AliAnalysisTaskJetH_tracks_caloClu
     with rootpy.io.root_open(filename, "READ") as fIn:
         try:
             histList = fIn.Get(listName)
-        except rootpy.io.file.DoesNotExist as e:
+        except rootpy.io.file.DoesNotExist:
             logger.critical("Could not find list with name \"{}\". Possible names include:".format(listName))
             fIn.ls()
             return None
@@ -76,7 +76,7 @@ def retrieveObject(outputDict, obj):
         # From more on memory management with ROOT and python, see:
         # https://root.cern.ch/root/html/guides/users-guide/PythonRuby.html#memory-handling
         ROOT.SetOwnership(obj, True)
-        
+
         # Store the objects
         outputDict[obj.GetName()] = obj
 
@@ -141,7 +141,7 @@ def getArrayFromHist(observable):
     """
     try:
         hist = observable.hist.hist
-    except AttributeError as e:
+    except AttributeError:
         hist = observable
     #logger.debug("hist: {}".format(hist))
     arrayFromHist = root_numpy.hist2array(hist)
@@ -151,7 +151,7 @@ def getArrayFromHist(observable):
     # NOTE: The bin error is stored with the hist, not the axis.
     errors = np.array([hist.GetBinError(i) for i in xBins])
     binCenters = np.array([xAxis.GetBinCenter(i) for i in xBins])
-    return {"y" : arrayFromHist, "errors" : errors, "binCenters" : binCenters}
+    return {"y": arrayFromHist, "errors": errors, "binCenters": binCenters}
 
 def getArrayFromHist2D(hist, setZeroToNaN = True):
     """ Extract the necessary data from the hist.
@@ -182,8 +182,8 @@ def getArrayFromHist2D(hist, setZeroToNaN = True):
         histArray[histArray == 0] = np.nan
 
     # We want an array of bin centers
-    xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins()+1)])
-    yRange = np.array([hist.GetYaxis().GetBinCenter(i) for i in range(1, hist.GetYaxis().GetNbins()+1)])
+    xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins() + 1)])
+    yRange = np.array([hist.GetYaxis().GetBinCenter(i) for i in range(1, hist.GetYaxis().GetNbins() + 1)])
     X, Y = np.meshgrid(xRange, yRange)
 
     return (X, Y, histArray)

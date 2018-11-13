@@ -21,7 +21,7 @@ import jetH.base.genericClass as genericClass
 etaBins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
 trackPtBins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
 jetPtBins = [15.0, 20.0, 40.0, 60.0, 200.0]
-phiBins = [-1.*math.pi/2., math.pi/2., 3.*math.pi/2]
+phiBins = [-1. * math.pi / 2., math.pi / 2., 3. * math.pi / 2]
 
 ########
 # Utility functions
@@ -53,7 +53,7 @@ def iterateOverPtBins(name, bins, config = None):
         if val >= len(bins) - 1:
             raise ValueError(val, "Pt bin to skip {val} is outside the range of the {name} list".format(val = val, name = name))
 
-    for ptBin in range(0, len(bins)-1):
+    for ptBin in range(0, len(bins) - 1):
         if ptBin in skipPtBins:
             continue
 
@@ -145,9 +145,9 @@ def systemLabel(energy, system, activity):
     if isinstance(activity, str):
         activity = eventActivity[activity]
 
-    systemLabel = r"$\mathrm{%(system)s}\:%(energy)s%(eventActivity)s$" % {"energy" : energy.displayStr(),
-            "eventActivity" : activity.displayStr(),
-            "system" : system.displayStr()}
+    systemLabel = r"$\mathrm{%(system)s}\:%(energy)s%(eventActivity)s$" % {"energy": energy.displayStr(),
+                                                                           "eventActivity": activity.displayStr(),
+                                                                           "system": system.displayStr()}
 
     logger.debug("systemLabel: {}".format(systemLabel))
 
@@ -166,11 +166,11 @@ def generatePtRangeString(arr, binVal, lowerLabel, upperLabel, onlyShowLowerValu
         str: The pt range label
     """
     # Cast as string so we don't have to deal with formatting the extra digits
-    lower = "%(lower)s < " % {"lower" : arr[binVal]}
-    upper = " < %(upper)s" % {"upper": arr[binVal+1]}
+    lower = "%(lower)s < " % {"lower": arr[binVal]}
+    upper = " < %(upper)s" % {"upper": arr[binVal + 1]}
     if onlyShowLowerValueForLastBin and binVal == len(arr) - 2:
         upper = ""
-    ptRange = r"$%(lower)s\mathit{p}_{%(lowerLabel)s}^{%(upperLabel)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower" : lower, "upper": upper, "lowerLabel" : lowerLabel, "upperLabel" : upperLabel}
+    ptRange = r"$%(lower)s\mathit{p}_{%(lowerLabel)s}^{%(upperLabel)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": lower, "upper": upper, "lowerLabel": lowerLabel, "upperLabel": upperLabel}
 
     return ptRange
 
@@ -183,10 +183,10 @@ def generateJetPtRangeString(jetPtBin):
         str: Jet pt range label
     """
     return generatePtRangeString(arr = jetPtBins,
-            binVal = jetPtBin,
-            lowerLabel = r"\mathrm{T \,unc,jet}",
-            upperLabel = r"\mathrm{ch+ne}",
-            onlyShowLowerValueForLastBin = True)
+                                 binVal = jetPtBin,
+                                 lowerLabel = r"\mathrm{T \,unc,jet}",
+                                 upperLabel = r"\mathrm{ch+ne}",
+                                 onlyShowLowerValueForLastBin = True)
 
 def generateTrackPtRangeString(trackPtBin, ptBins = None):
     """ Generate a label for the track pt range based on the track pt bin.
@@ -198,9 +198,9 @@ def generateTrackPtRangeString(trackPtBin, ptBins = None):
         str: Track pt range label.
     """
     return generatePtRangeString(arr = ptBins if ptBins is not None else trackPtBins,
-            binVal = trackPtBin,
-            lowerLabel = r"\mathrm{T}",
-            upperLabel = r"\mathrm{assoc}")
+                                 binVal = trackPtBin,
+                                 lowerLabel = r"\mathrm{T}",
+                                 upperLabel = r"\mathrm{assoc}")
 
 def jetPropertiesLabel(jetPtBin):
     """ Return the jet finding properties based on the jet pt bin.
@@ -229,9 +229,9 @@ def jetPropertiesLabel(jetPtBin):
 # NOTE: The leadingHadronBias field is often the leadingHadronBiasType enum, but it can also
 #       be the `leadingHadronBias` class
 selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
-            "collisionSystem",
-            "eventActivity",
-            "leadingHadronBias"])
+                                                                             "collisionSystem",
+                                                                             "eventActivity",
+                                                                             "leadingHadronBias"])
 selectedRange = collections.namedtuple("selectedRange", ["min", "max"])
 
 #########
@@ -252,7 +252,7 @@ class collisionEnergy(aenum.Enum):
 
     def displayStr(self):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
-        return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy" : self.value}
+        return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy": self.value}
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"
@@ -262,10 +262,10 @@ class collisionSystem(aenum.Enum):
     NA = "Invalid collision system"
     pp = "pp"
     pythia = "PYTHIA"
-    embedPP = r"pp \bigotimes %(PbPb)s" % {"PbPb" : PbPbLatexLabel}
-    embedPythia = r"PYTHIA \bigotimes %(PbPb)s" % {"PbPb" : PbPbLatexLabel}
+    embedPP = r"pp \bigotimes %(PbPb)s" % {"PbPb": PbPbLatexLabel}
+    embedPythia = r"PYTHIA \bigotimes %(PbPb)s" % {"PbPb": PbPbLatexLabel}
     pPb = r"pPb"
-    PbPb = "%(PbPb)s" % {"PbPb" : PbPbLatexLabel}
+    PbPb = "%(PbPb)s" % {"PbPb": PbPbLatexLabel}
 
     def __str__(self):
         """ Return a string of the name of the system. """
@@ -332,9 +332,9 @@ class leadingHadronBiasType(aenum.Enum):
 
 # For use with overriding configuration values
 setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
-            collisionSystem,
-            eventActivity,
-            leadingHadronBiasType)
+                                               collisionSystem,
+                                               eventActivity,
+                                               leadingHadronBiasType)
 
 ########################
 # Final anaylsis options

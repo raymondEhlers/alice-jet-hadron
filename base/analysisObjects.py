@@ -8,7 +8,6 @@
 # From the future package
 from builtins import super
 from future.utils import iteritems
-from future.utils import itervalues
 
 import os
 import aenum
@@ -177,13 +176,14 @@ class HistContainer(object):
         if isinstance(self.hist, ROOT.TH3):
             binWidthScaleFactor *= self.hist.GetZaxis().GetBinWidth(1)
 
-        finalScaleFactor = additionalScaleFactor/binWidthScaleFactor
+        finalScaleFactor = additionalScaleFactor / binWidthScaleFactor
 
         return finalScaleFactor
 
 class YAMLStorableObject(object):
     """ Base class for objects which can be represented and stored in YAML. """
     outputFilename = "yamlObject.yaml"
+
     def __init__(self):
         pass
 
@@ -209,7 +209,7 @@ class YAMLStorableObject(object):
         return os.path.join(prefix, cls.outputFilename.format(**formattingArgs))
 
     @staticmethod
-    def initializeSpecificProcessing(parameters): # pragma: no cover
+    def initializeSpecificProcessing(parameters):  # pragma: no cover
         """ Initialization specific processing plugin. Applied to obj immediately after creation from YAML.
 
         NOTE: This is called on `cls`, but we don't want to modify the object, so
@@ -244,18 +244,21 @@ class YAMLStorableObject(object):
 
         # Check for file.
         if not os.path.exists(filename):
-            logger.warning("Requested {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename} does not exist! This container will not be initialized".format(objType = kwargs["objType"].str(),
-                className = type(cls).__name__,
-                jetPtBin = kwargs["jetPtBin"],
-                trackPtBin = kwargs["trackPtBin"],
-                filename = filename))
+            logger.warning("Requested {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename}"
+                           " does not exist! This container will not be"
+                           " initialized".format(objType = kwargs["objType"].str(),
+                                                 className = type(cls).__name__,
+                                                 jetPtBin = kwargs["jetPtBin"],
+                                                 trackPtBin = kwargs["trackPtBin"],
+                                                 filename = filename))
             return None
 
-        logger.debug("Loading {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename}".format(objType = kwargs["objType"].str(),
-            className = type(cls).__name__,
-            jetPtBin = kwargs["jetPtBin"],
-            trackPtBin = kwargs["trackPtBin"],
-            filename = filename))
+        logger.debug("Loading {objType} {className} ({jetPtBin}, {trackPtBin}) from file"
+                     " {filename}".format(objType = kwargs["objType"].str(),
+                                          className = type(cls).__name__,
+                                          jetPtBin = kwargs["jetPtBin"],
+                                          trackPtBin = kwargs["trackPtBin"],
+                                          filename = filename))
         parameters = utils.readYAML(filename = filename)
 
         # Handle custom data type conversion
@@ -266,7 +269,7 @@ class YAMLStorableObject(object):
         return obj
 
     @staticmethod
-    def saveSpecificProcessing(parameters): #pragma: no cover
+    def saveSpecificProcessing(parameters):  # pragma: no cover
         """ Save specific processing plugin. Applied to obj immediately before saving to YAML.
 
         NOTE: This is called on `self` since we don't have a `cls` instance, but
@@ -306,11 +309,12 @@ class YAMLStorableObject(object):
         parameters = self.saveSpecificProcessing(parameters)
 
         #logger.debug("parameters: {}".format(parameters))
-        logger.debug("Saving {objType} {className} ({jetPtBin}, {trackPtBin}) to file {filename}".format(objType = kwargs["objType"],
-            className = type(self).__name__,
-            jetPtBin = kwargs["jetPtBin"],
-            trackPtBin = kwargs["trackPtBin"],
-            filename = filename))
+        logger.debug("Saving {objType} {className} ({jetPtBin}, {trackPtBin}) to file"
+                     " {filename}".format(objType = kwargs["objType"],
+                                          className = type(self).__name__,
+                                          jetPtBin = kwargs["jetPtBin"],
+                                          trackPtBin = kwargs["trackPtBin"],
+                                          filename = filename))
         utils.writeYAML(filename = filename,
                         fileAccessMode = fileAccessMode,
                         parameters = parameters)
@@ -334,6 +338,7 @@ class HistArray(YAMLStorableObject):
     """
     # Format of the filename used for storing the hist array.
     outputFilename = "hist_{type}_jetPt{jetPtBin}_trackPt{trackPtBin}.yaml"
+
     def __init__(self, _binCenters, _array, _errors):
         # Init base class
         super().__init__()
@@ -466,7 +471,7 @@ class FitContainer(YAMLStorableObject):
             dict: Parameters with the initialization specific processing applied.
         """
         if "errors" in parameters:
-            for k,v in iteritems(parameters["errors"]):
+            for k, v in iteritems(parameters["errors"]):
                 parameters["errors"][k] = np.array(v)
         # NOTE: The enum will be converted in the constructor, so we don't need to handle it here.
 
@@ -507,8 +512,8 @@ class FitContainer(YAMLStorableObject):
 
         # Call the base class to handle the actual work.
         super().saveToYAML(prefix = prefix,
-                fileAccessMode = fileAccessMode,
-                *args, **kwargs)
+                           fileAccessMode = fileAccessMode,
+                           *args, **kwargs)
 
 ###############
 # Additional experimental code
@@ -516,7 +521,7 @@ class FitContainer(YAMLStorableObject):
 # Then, for THn's like Salvatore createHists function
 # Salvatore recommends binning by hand, as in his BinMultiSet class
 # To use this function, much more work would be required!
-def createHist(axes): # pragma: no cover
+def createHist(axes):  # pragma: no cover
     hist = None
     for (axis, func) in (axes, [hist.GetXaxis, hist.GetYaxis, hist.GetZaxis]):
         func().SetTitle(axis.name)

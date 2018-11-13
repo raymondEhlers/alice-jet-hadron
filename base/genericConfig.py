@@ -103,7 +103,7 @@ def overrideOptions(config, selectedOptions, setOfPossibleOptions, configContain
                 config[k] = v
         else:
             raise KeyError(k, "Trying to override key \"{}\" that it is not in the config.".format(k))
-    
+
     return config
 
 def simplifyDataRepresentations(config):
@@ -114,13 +114,13 @@ def simplifyDataRepresentations(config):
     just the scalar entry, which is more usable.
 
     Some notes on anchors in ruamel.yaml are here: https://stackoverflow.com/a/48559644
-    
+
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be simplified.
     Returns:
         dict-like object: The updated configuration
     """
-    for k,v in iteritems(config):
+    for k, v in iteritems(config):
         if v and isinstance(v, list) and len(v) == 1:
             logger.debug("v: {}".format(v))
             config[k] = v[0]
@@ -136,7 +136,7 @@ def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOpti
     Args:
         selectedOptions (tuple): The options selected for this analysis, in the order defined used
             with overrideOptions() and in the configuration file.
-        overrideOptions (CommentedMap): dict-like object returned by ruamel.yaml which contains the options that 
+        overrideOptions (CommentedMap): dict-like object returned by ruamel.yaml which contains the options that
             should be used to override the configuration options.
         setOfPossibleOptions (tuple of enums): Possible options for the override value categories.
     """
@@ -161,7 +161,7 @@ def determineOverrideOptions(selectedOptions, overrideOptions, setOfPossibleOpti
                 # we should compare to the name or the value in the enum and only compares against the designated value).
                 #for possibleOpt in possibleOptions:
                     #if possibleOpt.name == option or possibleOpt.value == option:
-                        #foundAsPossibleOption = True
+                    #    foundAsPossibleOption = True
 
             if not foundAsPossibleOption:
                 # Store the override value, since it doesn't correspond with a selected option or a possible option
@@ -188,7 +188,7 @@ def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
     iterables = collections.OrderedDict()
     requestedIterables = config["iterables"]
     for k, v in iteritems(requestedIterables):
-        if not k in possibleIterables:
+        if k not in possibleIterables:
             raise KeyError(k, "Cannot find requested iterable in possibleIterables: {possibleIterables}".format(possibleIterables = possibleIterables))
         logger.debug("k: {}, v: {}".format(k, v))
         additionalIterable = []
@@ -197,10 +197,10 @@ def determineSelectionOfIterableValuesFromConfig(config, possibleIterables):
         if isinstance(v, future.utils.string_types):
             raise TypeError(type(v), "Passed string {v} when must be either bool or list".format(v = v))
         # Allow the possibility to skip
-        if v == False:
+        if v is False:
             continue
         # Allow the possibility to including all possible values in the enum.
-        elif v == True:
+        elif v is True:
             additionalIterable = list(enum)
         else:
             # Otherwise, only take the requested values.
@@ -272,7 +272,7 @@ def createObjectsFromIterables(obj, args, iterables, formattingOptions):
                 logger.debug("objectArgs pre format: {objectArgs}".format(objectArgs = objectArgs))
                 objectArgs = applyFormattingDict(objectArgs, formattingOptions)
                 # Skip printing the config because it is quite long
-                printArgs = {k : v for k, v in iteritems(objectArgs) if k != "config"}
+                printArgs = {k: v for k, v in iteritems(objectArgs) if k != "config"}
                 printArgs["config"] = "..."
                 logger.debug("Constructing obj \"{obj}\" with args: \"{printArgs}\"".format(obj = obj, printArgs = printArgs))
 
@@ -314,7 +314,7 @@ def applyFormattingDict(obj, formatting):
         # see: https://ashwch.github.io/handling-missing-keys-in-str-format-map.html
         # Note that we can't use format_map becuase it is python 3.2+ only.
         # The solution below works in py 2/3
-        if not "$" in obj:
+        if "$" not in obj:
             obj = string.Formatter().vformat(obj, (), formattingDict(**formatting))
         #else:
         #    logger.debug("Skipping str {} since it appears to be a latex string, which may break the formatting.".format(obj))
