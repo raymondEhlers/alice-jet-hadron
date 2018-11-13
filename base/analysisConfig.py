@@ -18,66 +18,6 @@ import jetH.base.genericConfig as genericConfig
 import jetH.base.genericClass as genericClass
 import jetH.base.params as params
 
-def unrollNestedDict(d, keys = None):
-    """ Unroll (flatten) an analysis object dictionary, yielding the keys
-    to get to the analysis object, as well as the object itself. Note that
-    this function is designed to be called recursively.
-
-    As an example, consider the input:
-
-    ```
-    >>> d = {
-    ...    "a1" : {
-    ...        "b" : {
-    ...            "c1" : "obj",
-    ...            "c2" : "obj2",
-    ...            "c3" : "obj3"
-    ...        }
-    ...    }
-    ...    "a2" : {
-    ...        "b" : {
-    ...            "c1" : "obj",
-    ...            "c2" : "obj2",
-    ...            "c3" : "obj3"
-    ...        }
-    ...    }
-    ... }
-    >>> unroll = unrollNestedDict(d)
-    >>> next(unroll) == (["a1", "b", "c1"], "obj")
-    >>> next(unroll) == (["a1", "b", "c12"], "obj2")
-    ............
-    >>> next(unroll) == (["a2", "b", "c3"], "obj3") # Last result.
-    ```
-
-    Args:
-        d (dict): Analysis dictionary to unroll (flatten)
-        keys (list): Keys navigated to get to the analysis object
-    Returns:
-        tuple: (list of keys to get to the object, the object)
-    """
-    # TODO: Move to genericConfig?
-    if keys is None:
-        keys = []
-    #logger.debug("d: {}".format(d))
-    for k, v in iteritems(d):
-        #logger.debug("k: {}, v: {}".format(k, v))
-        #logger.debug("keys: {}".format(keys))
-        # We need a copy of keys before we append to ensure that we don't
-        # have the final keys build up (ie. first yield [a], next [a, b], then [a, b, c], etc...)
-        copyOfKeys = keys[:]
-        copyOfKeys.append(k)
-
-        if isinstance(v, dict):
-            #logger.debug("v is a dict!")
-            # Could be `yield from`, but then it wouldn't work in python 2.
-            # We take a small performance hit here, but it's fine.
-            # See: https://stackoverflow.com/a/38254338
-            for val in unrollNestedDict(d = v, keys = copyOfKeys):
-                yield val
-        else:
-            #logger.debug("Yielding {}".format(v))
-            yield (copyOfKeys, v)
-
 def determineLeadingHadronBias(config, selectedAnalysisOptions):
     """ Determines the leading hadron bias based on the analysis options. It is then created and
     stored in the updated analysis options which are returned.
