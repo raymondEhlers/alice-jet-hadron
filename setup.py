@@ -101,6 +101,8 @@ setup(
         ],
         "dev": [
             "flake8",
+            # Makes flake8 easier to parse
+            "flake8-colors",
         ]
     }
 )
