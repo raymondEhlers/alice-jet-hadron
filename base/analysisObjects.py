@@ -279,11 +279,11 @@ class YAMLStorableObject(object):
         """
         return parameters
 
-    def saveToYAML(self, fileAccessMode = "wb", *args, **kwargs):
+    def saveToYAML(self, fileAccessMode = "w", *args, **kwargs):
         """ Write the object properties to a YAML file.
 
         Args:
-            fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
+            fileAccessMode (str): Mode under which the file should be opened. Defualt: "w"
             args (list): Positional arguments to use for intialization. They currently aren't used.
             kwargs (dict): Named arguments to use for initialization. Must contain:
                 prefix (str): Path to the diretory in which the YAML file is stored.
@@ -490,12 +490,12 @@ class FitContainer(YAMLStorableObject):
 
         return parameters
 
-    def saveToYAML(self, prefix, fileAccessMode = "wb", *args, **kwargs):
+    def saveToYAML(self, prefix, fileAccessMode = "w", *args, **kwargs):
         """ Write the fit container properties to a YAML file.
 
         Args:
             prefix (str): Path to the directory where the fit should be stored.
-            fileAccessMode (str): Mode under which the file should be opened. Defualt: "wb"
+            fileAccessMode (str): Mode under which the file should be opened. Defualt: "w"
             args (list): Additional arguments. They will be forwarded to saveToYAML().
             kwargs (dict): Additional named arguments. `objType`, `jetPtBin`, and `trackPtBin`
                 will be overwritten by values stored in the class.

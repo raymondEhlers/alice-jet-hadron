@@ -99,10 +99,11 @@ def readYAML(filename, fileAccessMode = "r"):
     parameters = None
     with open(filename, fileAccessMode) as f:
         yaml = ruamel.yaml.YAML(typ = "rt")
+        yaml.default_flow_style = False
         parameters = yaml.load(f)
     return parameters
 
-def writeYAML(parameters, filename, fileAccessMode = "wb"):
+def writeYAML(parameters, filename, fileAccessMode = "w"):
     """ Write the given output dict to file using YAML. Uses the roundtrip mode.
 
     Args:
@@ -112,6 +113,7 @@ def writeYAML(parameters, filename, fileAccessMode = "wb"):
     """
     with open(filename, fileAccessMode) as f:
         yaml = ruamel.yaml.YAML(typ = "rt")
+        yaml.default_flow_style = False
         yaml.dump(parameters, f)
 
 def movingAverage(arr, n=3):
