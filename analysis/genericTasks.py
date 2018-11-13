@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 # Quiet down the matplotlib logging
 logging.getLogger("matplotlib").setLevel(logging.INFO)
 
-import IPython
 import pprint
 
 import jetH.base.utils as utils
@@ -231,21 +230,25 @@ class PlotTaskHists(analysisConfig.JetHBase):
                 if componentName in componentNameInFile:
                     # We've now matched the component name and and can move on to dealing with
                     # the individual hists
-                    (histsConfigurationOptions, plotAdditional) = self.definePlotObjectsForComponent(componentName = componentName,
-                            componentHistsOptions = componentHistsOptions)
+                    (histsConfigurationOptions, plotAdditional) = self.definePlotObjectsForComponent(
+                        componentName = componentName,
+                        componentHistsOptions = componentHistsOptions
+                    )
                     logger.debug("Component name: {}, histsConfigurationOptions: {}".format(componentName, histsConfigurationOptions))
 
                     # Assign hists from the component in the input file to a hist object
-                    componentHists = self.assignHistsToPlotObjects(componentHistsInFile = componentHistsInFile,
-                            histsConfigurationOptions = histsConfigurationOptions,
-                            plotAdditional = plotAdditional)
+                    componentHists = self.assignHistsToPlotObjects(
+                        componentHistsInFile = componentHistsInFile,
+                        histsConfigurationOptions = histsConfigurationOptions,
+                        plotAdditional = plotAdditional
+                    )
 
                     logger.debug("componentHists: {}".format(pprint.pformat(componentHists)))
                     for componentHist in itervalues(componentHists):
                         # Even though the hist names could be defined in order in the configuration,
                         # the hists will not necessarily show up in alphabetical order when they are assigned to
                         # the plot objects. So we sort them alphabetically here
-                        componentHist.hists = sorted(componentHist.hists, key = lambda hist : hist.GetName())
+                        componentHist.hists = sorted(componentHist.hists, key = lambda hist: hist.GetName())
                         logger.debug("componentHist: {}, hists: {}, (first) hist name: {}".format(componentHist, componentHist.hists, componentHist.getFirstHist().GetName()))
 
                     self.components[componentName] = componentHists
@@ -275,8 +278,10 @@ class PlotTaskHists(analysisConfig.JetHBase):
         logging.basicConfig(level=logging.DEBUG)
 
         # Construct tasks
-        (selectedOptionNames, tasks) = cls.constructFromConfigurationFile(configFilename = configFilename,
-                selectedAnalysisOptions = selectedAnalysisOptions)
+        (selectedOptionNames, tasks) = cls.constructFromConfigurationFile(
+            configFilename = configFilename,
+            selectedAnalysisOptions = selectedAnalysisOptions
+        )
 
         # Run the analysis
         logger.info("About to process")
