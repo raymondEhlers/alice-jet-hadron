@@ -17,10 +17,6 @@ import jetH.base.projectors as projectors
 import numpy as np
 import rootpy.ROOT as ROOT
 
-# Set logging level as a global variable to simplify configuration.
-# This is not ideal, but fine for simple tests.
-loggingLevel = logging.DEBUG
-
 @pytest.fixture
 def createHistAxisRange():
     """ Create a HistAxisRange object to use for testing. """
@@ -37,9 +33,8 @@ def createHistAxisRange():
 
     return (obj, objectArgs)
 
-def testHistAxisRange(caplog, createHistAxisRange):
+def testHistAxisRange(loggingMixin, createHistAxisRange):
     """ Tests for creating a HistAxisRange object. """
-    caplog.set_level(loggingLevel)
     obj, objectArgs = createHistAxisRange
 
     assert obj.name == objectArgs["name"]
@@ -62,9 +57,8 @@ def testHistAxisRange(caplog, createHistAxisRange):
         (2, ROOT.TH1.GetZaxis),
     ], ids = ["xAxis", "yAxis", "zAxis", "number for x axis", "number for y axis", "number for z axis"])
 @pytest.mark.parametrize("histToTest", range(0, 3), ids = ["1D", "2D", "3D"])
-def testTH1AxisDetermination(caplog, createHistAxisRange, axisType, axis, histToTest, testRootHists):
+def testTH1AxisDetermination(loggingMixin, createHistAxisRange, axisType, axis, histToTest, testRootHists):
     """ Test TH1 axis determination in the HistAxisRange object. """
-    caplog.set_level(loggingLevel)
     # Get the HistAxisRange object
     obj, objectArgs = createHistAxisRange
     # Insert the proepr axis type
@@ -87,7 +81,11 @@ class selectedTestAxis(aenum.Enum):
 
 @pytest.fixture
 def testTHnSparse():
-    """ Create a THnSparse for use in testing. """
+    """ Create a THnSparse for use in testing.
+
+    Returns:
+        tuple: (THnSparse, list of fill values)
+    """
     # namedtuple is just for convenience
     sparseAxis = collections.namedtuple("sparseAxis", ["nBins", "min", "max"])
     ignoredAxis   = sparseAxis(nBins =  1, min =   0.0, max =  1.0)
@@ -96,7 +94,6 @@ def testTHnSparse():
     selectedAxis3 = sparseAxis(nBins = 30, min =   0.0, max = 30.0)
     # We want to select axes 2, 4, 5
     axes = [ignoredAxis, ignoredAxis, selectedAxis1, ignoredAxis, selectedAxis2, selectedAxis3, ignoredAxis]
-    
 
     # Create the actual sparse
     bins = np.array([el.nBins for el in axes], dtype=np.int32)
@@ -124,9 +121,8 @@ def testTHnSparse():
         selectedTestAxis.axisThree,
         2, 4, 5
     ], ids = ["axisOne", "axisTwo", "axisThree", "number for axis one", "number for axis two", "number for axis three"])
-def testTHnAxisDetermination(caplog, axisSelection, createHistAxisRange, testTHnSparse):
+def testTHnAxisDetermination(loggingMixin, axisSelection, createHistAxisRange, testTHnSparse):
     """ Test THn axis determination in the HistAxisRange object. """
-    caplog.set_level(loggingLevel)
     # Retrieve sparse.
     sparse, _ = testTHnSparse
     # Retrieve object and setup.
@@ -141,6 +137,10 @@ def testTHnAxisDetermination(caplog, axisSelection, createHistAxisRange, testTHn
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, x + utils.epsilon),
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, x - utils.epsilon),
             lambda axis, x, y : axis.SetRangeUser(x, y) ),
+        (1, 9,
+            lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, x + utils.epsilon),
+            lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, x - utils.epsilon),
+            lambda axis, x, y : axis.SetRangeUser(x, y) ),
         (1, None,
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(None, x),
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins),
@@ -149,8 +149,8 @@ def testTHnAxisDetermination(caplog, axisSelection, createHistAxisRange, testTHn
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(None, x),
             lambda x : projectors.HistAxisRange.ApplyFuncToFindBin(None, x),
             lambda axis, x, y : axis.SetRange(x, y) )
-    ], ids = ["0 - 10 with ApplyFuncToFindBin with FindBin", "1 - Nbins with ApplyFuncToFindBin (no under/overflow)", "0 - 10 with raw bin value passed ApplyFuncToFindBin"])
-def testApplyRangeSet(caplog, minVal, maxVal, minValFunc, maxValFunc, expectedFunc, testTHnSparse):
+    ], ids = ["0 - 10 with ApplyFuncToFindBin with FindBin", "1 - 9 (mid bin) with ApplyFuncToFindBin with FindBin", "1 - Nbins with ApplyFuncToFindBin (no under/overflow)", "0 - 10 with raw bin value passed ApplyFuncToFindBin"])
+def testApplyRangeSet(loggingMixin, minVal, maxVal, minValFunc, maxValFunc, expectedFunc, testTHnSparse):
     """ Test apply a range set to an axis via a HistAxisRange object. 
 
     This is intentionally tested against SetRangeUser, so we can be certain that it reproduces
@@ -163,7 +163,6 @@ def testApplyRangeSet(caplog, minVal, maxVal, minValFunc, maxValFunc, expectedFu
         This implicity tests ApplyFuncToFindBin, which is fine given how often the two are used
         together (almost always).
     """
-    caplog.set_level(loggingLevel)
     selectedAxis = selectedTestAxis.axisOne
     sparse, _ = testTHnSparse
     expectedAxis = sparse.GetAxis(selectedAxis.value).Clone("axis2")
@@ -177,28 +176,60 @@ def testApplyRangeSet(caplog, minVal, maxVal, minValFunc, maxValFunc, expectedFu
     obj.ApplyRangeSet(sparse)
     ax = sparse.GetAxis(selectedAxis.value)
 
-    # Unfortunately, equality comparison doesn't work...
+    # Unfortunately, equality comparison doesn't work for TAxis...
     # GetXmin() and GetXmax() aren't restircted by SetRange(), so instead use GetFirst() and GetLast()
     assert ax.GetFirst() == expectedAxis.GetFirst()
     assert ax.GetLast() == expectedAxis.GetLast()
+    # Sanity check that the overall axis still agrees
+    assert ax.GetNbins() == expectedAxis.GetNbins()
+    assert ax.GetName() == expectedAxis.GetName()
+
+def testDisagreementWithSetRangeUser(loggingMixin, testTHnSparse):
+    """ Test the disagreement between SetRange and SetRangeUser when the epsilon shift is not included. """
+    # Setup values
+    selectedAxis = selectedTestAxis.axisOne
+    minVal = 2
+    maxVal = 8
+    sparse, _ = testTHnSparse
+    # Detemine expected value (must be first to avoid interfering with applying the axis range)
+    expectedAxis = sparse.GetAxis(selectedAxis.value).Clone("axis2")
+    expectedAxis.SetRangeUser(minVal, maxVal)
+
+    obj = projectors.HistAxisRange(axisRangeName = "axisOneTest",
+            axisType = selectedAxis,
+            minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, minVal),
+            maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, maxVal))
+    # Applys the restriction to the sparse.
+    obj.ApplyRangeSet(sparse)
+    ax = sparse.GetAxis(selectedAxis.value)
+
+    # Unfortunately, equality comparison doesn't work for TAxis...
+    # GetXmin() and GetXmax() aren't restircted by SetRange(), so instead use GetFirst() and GetLast()
+    # The lower bin will still agree.
+    assert ax.GetFirst() == expectedAxis.GetFirst()
+    # The upper bin will not.
+    assert ax.GetLast() != expectedAxis.GetLast()
+    # If we subtract a bin (equivalent to including - epsilon), it will agree.
+    assert ax.GetLast()-1 == expectedAxis.GetLast()
+    # Sanity check that the overall axis still agrees
+    assert ax.GetNbins() == expectedAxis.GetNbins()
+    assert ax.GetName() == expectedAxis.GetName()
 
 @pytest.mark.parametrize("func, value, expected", [
         (None, 3, 3),
         (ROOT.TAxis.GetNbins, None, 10),
         (ROOT.TAxis.FindBin, 10 - utils.epsilon, 5)
     ], ids = ["Only value", "Func only", "Func with value"])
-def testRetrieveAxisValue(caplog, func, value, expected, testTHnSparse):
+def testRetrieveAxisValue(loggingMixin, func, value, expected, testTHnSparse):
     """ Test retrieving axis values using ApplyFuncToFindBin(). """
-    caplog.set_level(loggingLevel)
     selectedAxis = selectedTestAxis.axisOne
     sparse, _ = testTHnSparse
     expectedAxis = sparse.GetAxis(selectedAxis.value)
 
     assert projectors.HistAxisRange.ApplyFuncToFindBin(func, value)(expectedAxis) == expected
 
-def testProjectors(caplog, testRootHists):
+def testProjectors(loggingMixin, testRootHists):
     """ Test creation and basic methods of the projection class. """
-    caplog.set_level(loggingLevel)
     # Args
     projectionNameFormat = "{test} world"
     # Create object
@@ -217,15 +248,163 @@ def testProjectors(caplog, testRootHists):
     assert obj.OutputHist(outputHist = testRootHists.hist1D,
             inputObservable = testRootHists.hist2D) == testRootHists.hist1D
 
-def testTH1Projection(caplog, testRootHists):
-    """ Test projection of a TH1 derived class. """
-    caplog.set_level(loggingLevel)
+# Global to allow easier definition of the parametrization
+histAxisRangesNamedTuple = collections.namedtuple("histAxisRanges", ["xAxis", "yAxis", "zAxis"])
 
-    assert False
+histAxisRanges = histAxisRangesNamedTuple(
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.xAxis,
+            axisRangeName = "xAxis",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0.1 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0.8 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
+        axisRangeName = "yAxis",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.zAxis,
+        axisRangeName = "zAxis",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 60 - utils.epsilon))
+    )
 
-def testTHnProjection(caplog, testRootHists):
+histAxisRangesWithNoEntries = histAxisRangesNamedTuple(
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.xAxis,
+            axisRangeName = "xAxisNoEntries",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0.2 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0.8 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
+        axisRangeName = "yAxisNoEntries",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.zAxis,
+        axisRangeName = "zAxisNoEntries",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 60 - utils.epsilon))
+    )
+
+histAxisRangesRestricted = (
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
+        axisRangeName = "yAxisLower",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
+        axisRangeName = "yAxisMiddle",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 8 - utils.epsilon)),
+    projectors.HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
+        axisRangeName = "yAxisUpper",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 8 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 - utils.epsilon))
+)
+
+# AAC = Additional Axis Cuts
+#@pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
+#        (None, True),
+#        (histAxisRanges.xAxis, True),
+#        (histAxisRangesWithNoEntries.xAxis, False)
+#    ], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
+# PDCA = Projection Dependent Cut Axes
+@pytest.mark.parametrize("projectionDependentCutAxes, expectedProjectionDependentCutAxes", [
+        (None, True),
+        ([], True),
+        ([histAxisRanges.yAxis], True),
+        ([histAxisRangesWithNoEntries.yAxis], False),
+        ([histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+        ([histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
+    ], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"])
+# PA = Projection Axes
+@pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
+        (histAxisRanges.zAxis, True),
+        (histAxisRangesWithNoEntries.zAxis, False)
+    ], ids = ["PA with entries", "PA without entries"])
+def testTH3ToTH1Projection(loggingMixin, testRootHists,
+        #additionalAxisCuts, expectedAdditionalAxisCuts,
+        projectionDependentCutAxes, expectedProjectionDependentCutAxes,
+        projectionAxes, expectedProjectionAxes):
+    """ Test projection from a TH3 to a TH1 derived class. """
+    observableList = {}
+    observableToProjectFrom = {"hist3D" : testRootHists.hist3D}
+    projectionNameFormat = "hist"
+    obj = projectors.HistProjector(observableList = observableList,
+            observableToProjectFrom = observableToProjectFrom,
+            projectionNameFormat = projectionNameFormat,
+            projectionInformation = {})
+
+    # Set the projection axes.
+    #if additionalAxisCuts is not None:
+    #    obj.additionalAxisCuts.append(additionalAxisCuts)
+    if projectionDependentCutAxes is not None:
+        # We need to iterate here separately so that we can separate out the cuts
+        # for the disconnected PDCAs.
+        for axisSet in projectionDependentCutAxes:
+            obj.projectionDependentCutAxes.append([axisSet])
+    obj.projectionAxes.append(projectionAxes)
+
+    ## Additional axis cut with entry at 1
+    #obj.additionalAxisCuts.append(histAxisRanges[0])
+    #obj.projectionAxes.append(histAxisRange[2])
+
+    ## Additional axis cut with entry at 1 (empty projection depednent cut axis)
+    #obj.additionalAxisCuts.append(histAxisRanges[0])
+    #obj.projectionDependentCutAxes.append([])
+    #obj.projectionAxes.append(histAxisRange[2])
+
+    ## Additional axis cut with no entries
+    #obj.additionalAxisCuts.append(histAxisRangesWithNoEntries[0])
+    #obj.projectionAxes.append(histAxisRange[2])
+
+    ## Additional aix cut with no entries (empty projection dependent cut axis)
+    #obj.additionalAxisCuts.append(histAxisRangesWithNoEntries[0])
+    #obj.projectionDependentCutAxes.append([])
+    #obj.projectionAxes.append(histAxisRange[2])
+
+    # Perform the projection.
+    obj.Project()
+
+    # Check the output.
+    assert len(observableList) == 1
+
+    proj = next(iter(observableList.values()))
+    assert proj.GetName() == "hist"
+
+    logger.debug("observableList: {}, proj.GetEntries(): {}".format(observableList, proj.GetEntries()))
+
+    expectedBins = 5
+    # If we don't expect a count, we've restricted the range further, so we need to reflect this in our check.
+    if expectedProjectionAxes is False:
+        expectedBins = 4
+    assert proj.GetXaxis().GetNbins() == expectedBins
+
+    # Check the bin content. There should be one entry at 10, which translates to
+    # the bin 1
+    nonZeroBins = []
+    for x in range(1, proj.GetXaxis().GetNbins() + 1):
+        if proj.GetBinContent(x) != 0:
+            nonZeroBins.append(x)
+
+    expectedCount = 0
+    # It will only be non-zero if all of the expected values are true.
+    #expectedNonZeroCounts = all([expectedAdditionalAxisCuts, expectedProjectionDependentCutAxes, expectedProjectionAxes])
+    expectedNonZeroCounts = all([expectedProjectionDependentCutAxes, expectedProjectionAxes])
+    if expectedNonZeroCounts:
+        expectedCount = 1
+    assert len(nonZeroBins) == expectedCount
+    if expectedCount != 0:
+        # Only check if we actually expected a count
+        assert next(iter(nonZeroBins)) == 1
+
+    #for x in range(1, proj.GetXaxis().GetNbins()+1):
+    #    for y in range(1, proj.GetYaxis().GetNbins()+1):
+    #        if proj.GetBinContent(proj.GetBin(x, y)) != 0:
+    #            logger.debug("x, y: ({}, {})".format(x, y))
+    #        #if x == 2 and y == 2:
+    #        #    assert proj.GetBinContent(proj.GetBin(x, y)) == 1
+    #        #else:
+    #        #    assert proj.GetBinContent(proj.GetBin(x, y)) == 0
+
+    #assert proj.GetBinContent(proj.GetBin(2, 2)) == 1
+
+def testTHnProjection(loggingMixin, testRootHists):
     """ Test projection of a THnSparse. """
-    caplog.set_level(loggingLevel)
 
     assert False
 
