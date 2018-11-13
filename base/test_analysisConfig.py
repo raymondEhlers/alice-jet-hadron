@@ -14,23 +14,9 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import jetH.base.params as params
-import jetH.base.analysisConfig as analysisConfig
-
-def testUnrollNestedDict(loggingMixin):
-    """ Test unrolling the analysis dictionary. """
-    cDict = {"c1": "obj", "c2": "obj2", "c3": "obj3"}
-    bDict = {"b": cDict.copy()}
-    print("bDict: {}".format(bDict))
-    testDict = {"a1": bDict.copy(), "a2": bDict.copy()}
-    unroll = analysisConfig.unrollNestedDict(testDict)
-
-    assert next(unroll) == (["a1", "b", "c1"], "obj")
-    assert next(unroll) == (["a1", "b", "c2"], "obj2")
-    assert next(unroll) == (["a1", "b", "c3"], "obj3")
-    assert next(unroll) == (["a2", "b", "c1"], "obj")
-    assert next(unroll) == (["a2", "b", "c2"], "obj2")
-    assert next(unroll) == (["a2", "b", "c3"], "obj3")
+from jetH.base import params
+from jetH.base import genericConfig
+from jetH.base import analysisConfig
 
 @pytest.fixture
 def leadingHadronBiasConfig():
@@ -473,7 +459,7 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
     loadConfigurationMock.assert_called_once_with(configFilename)
 
     assert names == expectedNames
-    for unrolled in analysisConfig.unrollNestedDict(objects):
+    for unrolled in genericConfig.unrollNestedDict(objects):
         (values, obj) = unrolled
         res = checkJetHBaseObject(obj = obj,
                                   config = expectedConfig,

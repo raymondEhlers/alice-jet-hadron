@@ -431,3 +431,18 @@ def testApplyFormattingSkipLatex(loggingMixin, formattingConfig):
 
     assert config["latexLike"] == r"$latex_{like \mathrm{x}}$"
 
+def testUnrollNestedDict(loggingMixin):
+    """ Test unrolling the analysis dictionary. """
+    cDict = {"c1": "obj", "c2": "obj2", "c3": "obj3"}
+    bDict = {"b": cDict.copy()}
+    print("bDict: {}".format(bDict))
+    testDict = {"a1": bDict.copy(), "a2": bDict.copy()}
+    unroll = genericConfig.unrollNestedDict(testDict)
+
+    assert next(unroll) == (["a1", "b", "c1"], "obj")
+    assert next(unroll) == (["a1", "b", "c2"], "obj2")
+    assert next(unroll) == (["a1", "b", "c3"], "obj3")
+    assert next(unroll) == (["a2", "b", "c1"], "obj")
+    assert next(unroll) == (["a2", "b", "c2"], "obj2")
+    assert next(unroll) == (["a2", "b", "c3"], "obj3")
+
