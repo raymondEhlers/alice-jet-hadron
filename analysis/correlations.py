@@ -576,6 +576,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
                 rawSignalProjector.additionalAxisCuts.append(centralityCutAxis)
             if eventPlaneAngleCutAxis:
                 rawSignalProjector.additionalAxisCuts.append(eventPlaneAngleCutAxis)
+            # TODO: Do these projectors really need projection dependent cut axes?
+            #       It seems like additionalAxisCuts would be sufficient.
             projectionDependentCutAxes = []
             projectionDependentCutAxes.append(HistAxisRange(axisType = JetHCorrelationSparse.kJetPt,
                     axisRangeName = "jetPt{}".format(iJetPtBin), **jetAxisRange) )
