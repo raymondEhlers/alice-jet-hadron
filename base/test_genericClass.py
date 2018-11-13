@@ -27,8 +27,8 @@ def setupEqualityMixin():
     # that we can test comparion of all of the relevant types.
     aNumber = 10.3
     aString = "hello world"
-    aList = [1,2,3, {"hello" : "world"}],
-    aDict = {"string" : "string", "list" : [1,2,3], "dict" : {"hello" : "world"}}
+    aList = [1, 2, 3, {"hello": "world"}],
+    aDict = {"string": "string", "list": [1, 2, 3], "dict": {"hello": "world"}}
 
     testClass = equalityMixinTestClass(aNumber, aString, aList, aDict)
     expectedClass = equalityMixinTestClass(aNumber, aString, aList, aDict)

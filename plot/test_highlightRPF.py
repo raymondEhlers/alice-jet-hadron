@@ -2,7 +2,7 @@
 
 # Tests for plotting highlights of RPF regions
 
-import pytest
+import pytest  # noqa: F401
 import numpy
 import logging
 # Setup logger
@@ -18,7 +18,7 @@ def testConvertColorsToMax1(loggingMixin):
     """ Test the scaling of a color from [0, 255] -> [0, 1]. """
     assert highlightRPF.convertColorToMax1(0) == 0
     assert highlightRPF.convertColorToMax1(51) == 0.2
-    assert highlightRPF.convertColorToMax1(64) == 64/255.
+    assert highlightRPF.convertColorToMax1(64) == 64 / 255.
     assert highlightRPF.convertColorToMax1(255) == 1
 
 def testConvertColrosToMax255(loggingMixin):

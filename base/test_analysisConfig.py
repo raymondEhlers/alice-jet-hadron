@@ -8,7 +8,6 @@
 from future.utils import iteritems
 
 import pytest
-import os
 import copy
 import ruamel.yaml
 import logging
@@ -16,15 +15,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 import jetH.base.params as params
-import jetH.base.genericConfig as genericConfig
 import jetH.base.analysisConfig as analysisConfig
 
 def testUnrollNestedDict(loggingMixin):
     """ Test unrolling the analysis dictionary. """
-    cDict = {"c1" : "obj", "c2" : "obj2", "c3": "obj3"}
-    bDict = {"b" : cDict.copy()}
+    cDict = {"c1": "obj", "c2": "obj2", "c3": "obj3"}
+    bDict = {"b": cDict.copy()}
     print("bDict: {}".format(bDict))
-    testDict = {"a1" : bDict.copy(), "a2" : bDict.copy()}
+    testDict = {"a1": bDict.copy(), "a2": bDict.copy()}
     unroll = analysisConfig.unrollNestedDict(testDict)
 
     assert next(unroll) == (["a1", "b", "c1"], "obj")
@@ -58,10 +56,10 @@ override:
     return data
 
 @pytest.mark.parametrize("biasType, eventActivity, expectedLeadingHadronBiasValue", [
-        ("track", None, 5),
-        ("cluster", None, 10),
-        ("cluster", "semiCentral", 6),
-    ], ids = ["track5", "cluster10", "cluster6"])
+    ("track", None, 5),
+    ("cluster", None, 10),
+    ("cluster", "semiCentral", 6),
+], ids = ["track5", "cluster10", "cluster6"])
 def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expectedLeadingHadronBiasValue, leadingHadronBiasConfig):
     """ Test determination of the leading hadron bias. """
     (config, selectedAnalysisOptions) = overrideOptionsHelper(leadingHadronBiasConfig)
@@ -72,11 +70,11 @@ def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expect
         # also doesn't hurt anything, so it's fine.
         kwargs = selectedAnalysisOptions._asdict()
         kwargs["leadingHadronBias"] = params.leadingHadronBiasType[biasType]
-        selectedAnalysisOptions =  params.selectedAnalysisOptions(**kwargs)
+        selectedAnalysisOptions = params.selectedAnalysisOptions(**kwargs)
     if eventActivity:
         kwargs = selectedAnalysisOptions._asdict()
         kwargs["eventActivity"] = params.eventActivity[eventActivity]
-        selectedAnalysisOptions =  params.selectedAnalysisOptions(**kwargs)
+        selectedAnalysisOptions = params.selectedAnalysisOptions(**kwargs)
 
     returnedOptions = analysisConfig.determineLeadingHadronBias(config = config, selectedAnalysisOptions = selectedAnalysisOptions)
     # Check that we still got these right.
@@ -164,9 +162,9 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
     """
     if selectedOptions is None:
         selectedOptions = params.selectedAnalysisOptions(collisionEnergy = params.collisionEnergy.twoSevenSix,
-                           collisionSystem = params.collisionSystem.PbPb,
-                           eventActivity = params.eventActivity.central,
-                           leadingHadronBias = params.leadingHadronBiasType.track)
+                                                         collisionSystem = params.collisionSystem.PbPb,
+                                                         eventActivity = params.eventActivity.central,
+                                                         leadingHadronBias = params.leadingHadronBiasType.track)
 
     yaml = ruamel.yaml.YAML()
     if logger.isEnabledFor(logging.DEBUG):
@@ -174,8 +172,8 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
         yaml.dump(config, None, transform = logYAMLDump)
 
     config = analysisConfig.overrideOptions(config = config,
-            selectedOptions = selectedOptions,
-            configContainingOverride = configContainingOverride)
+                                            selectedOptions = selectedOptions,
+                                            configContainingOverride = configContainingOverride)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
@@ -242,35 +240,35 @@ def testArgumentParsing():
         assert validatedAnalysisOptions.leadingHadronBias == params.leadingHadronBiasType.track
 
 @pytest.mark.parametrize("args, expected", [
-        ((2.76, "PbPb", "central", "track"), None),
-        ((None, "PbPb", "central", "track"), None),
-        ((2.76, None, "central", "track"), None),
-        ((2.76, "PbPb", None, "track"), None),
-        ((2.76, "PbPb", "central", None), None),
-        ((params.collisionEnergy.twoSevenSix,
-                 params.collisionSystem.PbPb,
-                 params.eventActivity.central,
-                 params.leadingHadronBiasType.track), None),
-        ((5.02, "embedPP", "semiCentral", "cluster"),
-             (params.collisionEnergy.fiveZeroTwo,
-             params.collisionSystem.embedPP,
-             params.eventActivity.semiCentral,
-             params.leadingHadronBiasType.cluster))
-    ], ids = [
-        "Standard 2.76",
-        "Missing collision energy",
-        "Missing collision system",
-        "Missing event activity",
-        "Missing leading hadron bias",
-        "Standard 2.76 with enums",
-        "5.02 semi-central embedPP with cluster bias"])
+    ((2.76, "PbPb", "central", "track"), None),
+    ((None, "PbPb", "central", "track"), None),
+    ((2.76, None, "central", "track"), None),
+    ((2.76, "PbPb", None, "track"), None),
+    ((2.76, "PbPb", "central", None), None),
+    ((params.collisionEnergy.twoSevenSix,
+      params.collisionSystem.PbPb,
+      params.eventActivity.central,
+      params.leadingHadronBiasType.track), None),
+    ((5.02, "embedPP", "semiCentral", "cluster"),
+     (params.collisionEnergy.fiveZeroTwo,
+      params.collisionSystem.embedPP,
+      params.eventActivity.semiCentral,
+      params.leadingHadronBiasType.cluster))
+], ids = [
+    "Standard 2.76",
+    "Missing collision energy",
+    "Missing collision system",
+    "Missing event activity",
+    "Missing leading hadron bias",
+    "Standard 2.76 with enums",
+    "5.02 semi-central embedPP with cluster bias"])
 def testValidateArguments(loggingMixin, args, expected):
     """ Test argument validation. """
     if expected is None:
         expected = (params.collisionEnergy.twoSevenSix,
-                 params.collisionSystem.PbPb,
-                 params.eventActivity.central,
-                 params.leadingHadronBiasType.track)
+                    params.collisionSystem.PbPb,
+                    params.eventActivity.central,
+                    params.leadingHadronBiasType.track)
 
     args = params.selectedAnalysisOptions(*args)
     args, _ = analysisConfig.validateArguments(args)
@@ -301,17 +299,17 @@ def checkJetHBaseObject(obj, config, selectedAnalysisOptions, eventPlaneAngle, *
     # Determine default values
     taskName = "taskName"
     defaultValues = {
-            "taskName" : taskName,
-            "configFilename" : "configFilename.yaml",
-            "config" : config,
-            "taskConfig" : config[taskName],
-            "eventPlaneAngle" : eventPlaneAngle
+        "taskName": taskName,
+        "configFilename": "configFilename.yaml",
+        "config": config,
+        "taskConfig": config[taskName],
+        "eventPlaneAngle": eventPlaneAngle
     }
     # Add these afterwards so we don't have to do each value by hand.
     defaultValues.update(selectedAnalysisOptions._asdict())
     # NOTE: All other values will be taken from the config when constructing the object.
     for k, v in iteritems(defaultValues):
-        if not k in kwargs:
+        if k not in kwargs:
             kwargs[k] = v
 
     # Creating thie object is something of a tautology, because in both cases we use the
@@ -388,14 +386,14 @@ taskName:
     return (data, "taskName")
 
 @pytest.mark.parametrize("leadingHadronBias", [
-        (params.leadingHadronBiasType.track),
-        (params.leadingHadronBias(type = params.leadingHadronBiasType.track, value = 5))
-    ], ids = ["leadingHadronEnum", "leadingHadronClass"])
+    (params.leadingHadronBiasType.track),
+    (params.leadingHadronBias(type = params.leadingHadronBiasType.track, value = 5))
+], ids = ["leadingHadronEnum", "leadingHadronClass"])
 def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig, mocker):
     """ Test construction of the JetHBase object. """
     objectConfig, taskName = objectConfig
     (config, selectedAnalysisOptions) = overrideOptionsHelper(objectConfig,
-            configContainingOverride = objectConfig[taskName])
+                                                              configContainingOverride = objectConfig[taskName])
 
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
@@ -404,14 +402,14 @@ def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig
     taskConfig = config[taskName]
     eventPlaneAngle = params.eventPlaneAngle.all
     configBase = analysisConfig.JetHBase(taskName = taskName,
-            configFilename = configFilename,
-            config = config,
-            taskConfig = taskConfig,
-            collisionEnergy = selectedAnalysisOptions.collisionEnergy,
-            collisionSystem = selectedAnalysisOptions.collisionSystem,
-            eventActivity = selectedAnalysisOptions.eventActivity,
-            leadingHadronBias = selectedAnalysisOptions.leadingHadronBias,
-            eventPlaneAngle = eventPlaneAngle)
+                                         configFilename = configFilename,
+                                         config = config,
+                                         taskConfig = taskConfig,
+                                         collisionEnergy = selectedAnalysisOptions.collisionEnergy,
+                                         collisionSystem = selectedAnalysisOptions.collisionSystem,
+                                         eventActivity = selectedAnalysisOptions.eventActivity,
+                                         leadingHadronBias = selectedAnalysisOptions.leadingHadronBias,
+                                         eventPlaneAngle = eventPlaneAngle)
 
     # We need values to compare against. However, namedtuples are immutable,
     # so we have to create a new one with the proper value.
@@ -424,18 +422,18 @@ def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig
 
     # Assertions are performed in this function
     res = checkJetHBaseObject(obj = configBase,
-            config = config,
-            selectedAnalysisOptions = selectedAnalysisOptions,
-            eventPlaneAngle = eventPlaneAngle)
-    assert res == True
+                              config = config,
+                              selectedAnalysisOptions = selectedAnalysisOptions,
+                              eventPlaneAngle = eventPlaneAngle)
+    assert res is True
 
     # Just to be safe
     mocker.stopall()
 
 @pytest.mark.parametrize("additionalIterables", [
-        None,
-        {"iterable1" : params.collisionEnergy, "iterable2" : params.collisionSystem}
-    ], ids = ["No additional iterables", "Two additional iterables"])
+    None,
+    {"iterable1": params.collisionEnergy, "iterable2": params.collisionSystem}
+], ids = ["No additional iterables", "Two additional iterables"])
 def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfig, mocker):
     """ Test construction of objects through a configuration file.
 
@@ -452,7 +450,7 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
             config[taskName]["override"]["iterables"][iterable] = True
     expectedConfig = copy.deepcopy(config)
     (expectedConfig, selectedAnalysisOptions) = overrideOptionsHelper(expectedConfig,
-            configContainingOverride = expectedConfig[taskName])
+                                                                      configContainingOverride = expectedConfig[taskName])
     expectedAnalysisOptions = analysisConfig.determineLeadingHadronBias(config = expectedConfig, selectedAnalysisOptions = selectedAnalysisOptions)
 
     # Task arguments
@@ -467,21 +465,21 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
     mocker.patch("os.makedirs")
 
     (names, objects) = analysisConfig.constructFromConfigurationFile(taskName = taskName,
-            configFilename = configFilename,
-            selectedAnalysisOptions = selectedAnalysisOptions,
-            obj = obj,
-            additionalPossibleIterables = additionalIterables)
+                                                                     configFilename = configFilename,
+                                                                     selectedAnalysisOptions = selectedAnalysisOptions,
+                                                                     obj = obj,
+                                                                     additionalPossibleIterables = additionalIterables)
     # Check the opening the config file was called properly.
     loadConfigurationMock.assert_called_once_with(configFilename)
 
     assert names == expectedNames
-    for unrolled  in analysisConfig.unrollNestedDict(objects):
+    for unrolled in analysisConfig.unrollNestedDict(objects):
         (values, obj) = unrolled
         res = checkJetHBaseObject(obj = obj,
-                config = expectedConfig,
-                selectedAnalysisOptions = expectedAnalysisOptions,
-                eventPlaneAngle = values[0])
-        assert res == True
+                                  config = expectedConfig,
+                                  selectedAnalysisOptions = expectedAnalysisOptions,
+                                  eventPlaneAngle = values[0])
+        assert res is True
 
     # Just to be safe
     mocker.stopall()

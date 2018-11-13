@@ -17,7 +17,7 @@ import jetH.base.genericConfig as genericConfig
 def logYAMLDump(s):
     """ Simple function that transforms the yaml.dump() call to a stream
     and redirects it to the logger.
-    
+
     Inspired by: https://stackoverflow.com/a/47617341
     """
     logger.debug(s)
@@ -111,7 +111,7 @@ def testOverrideRetrieveUnrelatedValue(loggingMixin, basicConfig):
     valueName = "test1"
     valueBeforeOverride = basicConfig[valueName]
     basicConfig = overrideData(basicConfig)
-    
+
     assert basicConfig[valueName] == valueBeforeOverride
 
 def testOverrideWithBasicConfig(loggingMixin, basicConfig):
@@ -129,7 +129,7 @@ def testBasicAnchorOverride(loggingMixin, basicConfig):
     """
     (basicConfig, yamlString) = basicConfig
     basicConfig = overrideData(basicConfig)
- 
+
     # The two conditions below are redundant, but each are useful for visualizing
     # different configuration circumstances, so both are kept.
     assert basicConfig["responseTaskName"] == "AliJetResponseMaker_{cent}histos"
@@ -137,7 +137,7 @@ def testBasicAnchorOverride(loggingMixin, basicConfig):
 
 def testAdvancedAnchorOverride(loggingMixin, basicConfig):
     """ Test overriding a anchored value with another anchor.
-    
+
     When an override value is using an anchor value, we expect that value to propagate fully.
     """
     (basicConfig, yamlString) = basicConfig
@@ -163,7 +163,7 @@ def testForUnmatchedKeys(loggingMixin, basicConfig):
 
 def testComplexObjectOverride(loggingMixin, basicConfig):
     """ Test override with complex objects.
-    
+
     In particular, test with lists, dicts.
     """
     (basicConfig, yamlString) = basicConfig
@@ -205,7 +205,7 @@ def testLoadConfiguration(loggingMixin, basicConfig):
 @pytest.fixture
 def dataSimplificationConfig():
     """ Simple YAML config to test the data simplification functionality of the genericConfig module.
-    
+
     It povides example configurations entries for numbers, str, list, and dict.
 
     Args:
@@ -233,7 +233,7 @@ multiEntryDict:
 
 def testDataSimplificationOnBaseTypes(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on base types.
-    
+
     Here we tests int, float, and str.  They should always stay the same.
     """
     config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
@@ -244,7 +244,7 @@ def testDataSimplificationOnBaseTypes(loggingMixin, dataSimplificationConfig):
 
 def testDataSimplificationOnLists(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on lists.
-    
+
     A single entry list should be returned as a string, while a multiple entry list should be
     preserved as is.
     """
@@ -255,13 +255,13 @@ def testDataSimplificationOnLists(loggingMixin, dataSimplificationConfig):
 
 def testDictDataSimplification(loggingMixin, dataSimplificationConfig):
     """ Test the data simplification function on dicts.
-    
+
     Dicts should always maintain their structure.
     """
     config = genericConfig.simplifyDataRepresentations(dataSimplificationConfig)
 
-    assert config["singleEntryDict"] == {"hello" : "world"}
-    assert config["multiEntryDict"] == {"hello" : "world", "foo" : "bar"}
+    assert config["singleEntryDict"] == {"hello": "world"}
+    assert config["multiEntryDict"] == {"hello": "world", "foo": "bar"}
 
 @pytest.fixture
 def objectCreationConfig():
@@ -288,13 +288,13 @@ def testDetermineSelectionOfIterableValuesFromConfig(loggingMixin, objectCreatio
     """ Test determining which values of an iterable to use. """
     (config, possibleIterables, (eventPlaneAngles, qVectors)) = objectCreationConfig
     iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-                possibleIterables = possibleIterables)
+                                                                           possibleIterables = possibleIterables)
 
     assert iterables["eventPlaneAngle"] == eventPlaneAngles
     assert iterables["qVector"] == qVectors
     # Collision Energy should _not_ be included! It was only a possible iterator.
     # Check in two ways.
-    assert not "collisionEnergy" in iterables
+    assert "collisionEnergy" not in iterables
     assert len(iterables) == 2
 
 def testDetermineSelectionOfIterableValuesWithUndefinedIterable(loggingMixin, objectCreationConfig):
@@ -303,8 +303,8 @@ def testDetermineSelectionOfIterableValuesWithUndefinedIterable(loggingMixin, ob
 
     del possibleIterables["qVector"]
     with pytest.raises(KeyError) as exceptionInfo:
-        iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-                possibleIterables = possibleIterables)
+        genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
+                                                                   possibleIterables = possibleIterables)
     assert exceptionInfo.value.args[0] == "qVector"
 
 def testDetermineSelectionOfIterableValuesWithStringSelection(loggingMixin, objectCreationConfig):
@@ -313,8 +313,8 @@ def testDetermineSelectionOfIterableValuesWithStringSelection(loggingMixin, obje
 
     config["iterables"]["qVector"] = "True"
     with pytest.raises(TypeError) as exceptionInfo:
-        iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-                possibleIterables = possibleIterables)
+        genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
+                                                                   possibleIterables = possibleIterables)
     assert exceptionInfo.value.args[0] is str
 
 @pytest.fixture
@@ -323,10 +323,10 @@ def objectAndCreationArgs():
     # Define fake object. We don't use a mock because we need to instantiate the object
     # in the function that is being tested. This is not super straightforward with mock,
     # so instead we create a test object by hand.
-    obj = collections.namedtuple("testObj",["eventPlaneAngle", "qVector", "a", "b", "optionsFmt"])
+    obj = collections.namedtuple("testObj", ["eventPlaneAngle", "qVector", "a", "b", "optionsFmt"])
     # Include args that depend on the iterable values to ensure that they are varied properly!
-    args = {"a" : 1, "b" : "{fmt}", "optionsFmt" : "{eventPlaneAngle}_{qVector}"}
-    formattingOptions = {"fmt" : "formatted", "optionsFmt" : "{eventPlaneAngle}_{qVector}"}
+    args = {"a": 1, "b": "{fmt}", "optionsFmt": "{eventPlaneAngle}_{qVector}"}
+    formattingOptions = {"fmt": "formatted", "optionsFmt": "{eventPlaneAngle}_{qVector}"}
 
     return (obj, args, formattingOptions)
 
@@ -338,13 +338,13 @@ def testCreateObjectsFromIterables(loggingMixin, objectCreationConfig, objectAnd
 
     # Get iterables
     iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-            possibleIterables = possibleIterables)
+                                                                           possibleIterables = possibleIterables)
 
     # Create the objects.
     (names, objects) = genericConfig.createObjectsFromIterables(obj = obj,
-            args = args,
-            iterables = iterables,
-            formattingOptions = formattingOptions)
+                                                                args = args,
+                                                                iterables = iterables,
+                                                                formattingOptions = formattingOptions)
 
     # Check the names of the iterables.
     assert names == list(iterables)
@@ -366,10 +366,10 @@ def testMissingIterableForObjectCreation(loggingMixin, objectAndCreationArgs):
 
     # Create the objects.
     with pytest.raises(ValueError) as exceptionInfo:
-         (names, objects) = genericConfig.createObjectsFromIterables(obj = obj,
-            args = args,
-            iterables = iterables,
-            formattingOptions = formattingOptions)
+        (names, objects) = genericConfig.createObjectsFromIterables(obj = obj,
+                                                                    args = args,
+                                                                    iterables = iterables,
+                                                                    formattingOptions = formattingOptions)
     assert exceptionInfo.value.args[0] == iterables
 
 @pytest.fixture
@@ -379,7 +379,7 @@ def formattingConfig():
     Returns:
         tuple: (Config with formatting applied, formatting dict)
     """
-    config = """
+    config = r"""
 int: 3
 float: 3.14
 noFormat: "test"
@@ -402,7 +402,7 @@ noneExample: null
     yaml = ruamel.yaml.YAML()
     config = yaml.load(config)
 
-    formatting = {"a" : "b", "c": 1}
+    formatting = {"a": "b", "c": 1}
 
     return (genericConfig.applyFormattingDict(config, formatting), formatting)
 
@@ -421,13 +421,13 @@ def testApplyFormattingToIterableTypes(loggingMixin, formattingConfig):
     config, formattingDict = formattingConfig
 
     assert config["list"] == ["noFormat", 2, "b1"]
-    assert config["dict"] == {"noFormat" : "hello", "format" : "{}{}".format(formattingDict["a"], formattingDict["c"])}
+    assert config["dict"] == {"noFormat": "hello", "format": "{}{}".format(formattingDict["a"], formattingDict["c"])}
     # NOTE: The extra str() call is because the formated string needs to be compared against a str.
-    assert config["dict2"]["dict"] == { "str" : "do nothing", "format" : str(formattingDict["c"])}
+    assert config["dict2"]["dict"] == {"str": "do nothing", "format": str(formattingDict["c"])}
 
 def testApplyFormattingSkipLatex(loggingMixin, formattingConfig):
     """ Test skipping the application of the formatting to strings which look like latex. """
     config, formattingDict = formattingConfig
 
-    assert config["latexLike"] == "$latex_{like \mathrm{x}}$"
+    assert config["latexLike"] == r"$latex_{like \mathrm{x}}$"
 

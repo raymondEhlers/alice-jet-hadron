@@ -5,12 +5,10 @@
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
 
-import builtins
 from future.utils import iteritems
 
 import pytest
 import os
-import copy
 import ruamel.yaml
 import numpy as np
 import logging
@@ -18,22 +16,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 from jetH.base import analysisObjects
-from jetH.base import utils
 
 # For reproducibility
 np.random.seed(1234)
 
 @pytest.mark.parametrize("corrType, expected", [
-        ("fullRange",
-            {"str" : "fullRange",
-            "displayStr" : "Full Range"}),
-        ("signalDominated",
-            {"str" : "signalDominated",
-            "displayStr" : "Signal Dominated"}),
-        ("nearSide",
-            {"str" : "nearSide",
-            "displayStr" : "Near Side"})
-    ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
+    ("fullRange",
+        {"str": "fullRange",
+            "displayStr": "Full Range"}),
+    ("signalDominated",
+        {"str": "signalDominated",
+            "displayStr": "Signal Dominated"}),
+    ("nearSide",
+        {"str": "nearSide",
+            "displayStr": "Near Side"})
+], ids = ["full range", "dPhi signal dominated", "dEta near side"])
 def testCorrelationTypes(loggingMixin, corrType, expected):
     """ Test jet-hadron correlation types. """
     obj = analysisObjects.jetHCorrelationType[corrType]
@@ -45,9 +42,9 @@ def testCorrelationTypes(loggingMixin, corrType, expected):
 def testCorrelationObservable1D(loggingMixin, mocker):
     """ Tests for CorrelationObservable1D. Implicitly tests Observable and CorrelationObservable. """
     # Arguments are not selected for any particular reason
-    values = {"hist" : mocker.MagicMock(), "jetPtBin" : 2, "trackPtBin" : 3,
-            "axis" : mocker.MagicMock(),
-            "correlationType" : analysisObjects.jetHCorrelationType.signalDominated}
+    values = {"hist": mocker.MagicMock(), "jetPtBin": 2, "trackPtBin": 3,
+              "axis": mocker.MagicMock(),
+              "correlationType": analysisObjects.jetHCorrelationType.signalDominated}
 
     obj = analysisObjects.CorrelationObservable1D(**values)
     assert obj.hist == values["hist"]
@@ -59,8 +56,8 @@ def testCorrelationObservable1D(loggingMixin, mocker):
 def testExtractedObservable(loggingMixin):
     """ Tests for ExtractedObservable. """
     # Arguments are not selected for any particular reason
-    values = {"jetPtBin" : 2, "trackPtBin" : 3,
-              "value" : 1.5, "error" : 0.3}
+    values = {"jetPtBin": 2, "trackPtBin": 3,
+              "value": 1.5, "error": 0.3}
 
     obj = analysisObjects.ExtractedObservable(**values)
     assert obj.jetPtBin == values["jetPtBin"]
@@ -79,16 +76,16 @@ def testHistContainer(loggingMixin, testRootHists):
     assert obj.calculateFinalScaleFactor() == 10.0
 
 @pytest.mark.parametrize("histIndex, expected", [
-        (0, {"scaleFactor" : 10.0}),
-        (1, {"scaleFactor" :  5.0}),
-        (2, {"scaleFactor" :  0.5}),
-    ], ids = ["hist1D", "hist2D", "hist3D"])
+    (0, {"scaleFactor": 10.0}),
+    (1, {"scaleFactor": 5.0}),
+    (2, {"scaleFactor": 0.5}),
+], ids = ["hist1D", "hist2D", "hist3D"])
 def testHistContainerScaleFactor(loggingMixin, histIndex, expected, testRootHists):
     """ Test hist container scale factor calculation. """
     obj = analysisObjects.HistContainer(testRootHists[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
     additionalScaleFactor = 0.5
-    assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"]*additionalScaleFactor
+    assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"] * additionalScaleFactor
 
 def testHistContainerCloneAndScale(loggingMixin, testRootHists):
     """ Test hist container cloning and scaling by bin width. """
@@ -99,11 +96,11 @@ def testHistContainerCloneAndScale(loggingMixin, testRootHists):
 
     obj = analysisObjects.HistContainer(hist)
     scaledHist = obj.createScaledByBinWidthHist()
-    obj.Scale(1/obj.GetXaxis().GetBinWidth(1))
+    obj.Scale(1 / obj.GetXaxis().GetBinWidth(1))
 
     assert scaledHist.GetEntries() == obj.GetEntries()
     # Compare all bins
-    for bin in range(1, obj.GetXaxis().GetNbins()+1):
+    for bin in range(1, obj.GetXaxis().GetNbins() + 1):
         assert scaledHist.GetBinContent(bin) == obj.GetBinContent(bin)
 
 @pytest.fixture
@@ -113,9 +110,9 @@ def createHistArray():
     Returns:
         tuple: (HistArray, dict of args used to create the hist array)
     """
-    args = {"_binCenters" : np.arange(1, 11),
-            "_array" : np.random.random_sample(10),
-            "_errors" : np.random.random_sample(10)/10.0}
+    args = {"_binCenters": np.arange(1, 11),
+            "_array": np.random.random_sample(10),
+            "_errors": np.random.random_sample(10) / 10.0}
 
     obj = analysisObjects.HistArray(**args)
 
@@ -153,12 +150,12 @@ def createFitContainer(mocker):
     Returns:
         tuple: (FitContainer, dict of args used to create the hist array)
     """
-    values = {"jetPtBin" : 1, "trackPtBin" : 3,
-            "fitType" : analysisObjects.jetHCorrelationType.signalDominated,
-            "values" : {"B" : 1, "BG" : 2},
-            "params" : {"B" : 1, "limit_v3" : [-0.1, 0.5]},
-            "covarianceMatrix" : {("a", "b") : 1.234},
-            "errors" : {("all", "signalDominated") : [1, 2, 3]}}
+    values = {"jetPtBin": 1, "trackPtBin": 3,
+              "fitType": analysisObjects.jetHCorrelationType.signalDominated,
+              "values": {"B": 1, "BG": 2},
+              "params": {"B": 1, "limit_v3": [-0.1, 0.5]},
+              "covarianceMatrix": {("a", "b"): 1.234},
+              "errors": {("all", "signalDominated"): [1, 2, 3]}}
     obj = analysisObjects.FitContainer(**values)
 
     return (obj, values)
@@ -176,13 +173,13 @@ def testFitContainer(loggingMixin, createFitContainer):
     assert obj.errors == values["errors"]
 
 @pytest.mark.parametrize("objType", [
-        "signalDominated",
-        analysisObjects.jetHCorrelationType.signalDominated
-    ], ids = ["str obj type", "enum obj type"])
+    "signalDominated",
+    analysisObjects.jetHCorrelationType.signalDominated
+], ids = ["str obj type", "enum obj type"])
 @pytest.mark.parametrize("obj, objArgs", [
-    (analysisObjects.HistArray, {"jetPtBin" : 1, "trackPtBin" : 3}),
-    (analysisObjects.FitContainer, {"jetPtBin" : 1, "trackPtBin" : 4})
-    ], ids = ["HistArray", "FitContainer"])
+    (analysisObjects.HistArray, {"jetPtBin": 1, "trackPtBin": 3}),
+    (analysisObjects.FitContainer, {"jetPtBin": 1, "trackPtBin": 4})
+], ids = ["HistArray", "FitContainer"])
 def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType, mocker):
     """ Test initializing and writing objects to/from YAML files. Tests both HistArray and FitContainer objects.
 
@@ -211,7 +208,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
     mRead = mocker.mock_open(read_data = inputData)
     mocker.patch("jetH.base.utils.open", mRead)
     testObj = obj.initFromYAML(**objArgs)
-    calls = mRead.mock_calls
+    # Check the expected read call.
     mRead.assert_called_once_with(dataFilename, "r")
 
     # Test a few object specific details
@@ -231,7 +228,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
     mYaml = mocker.MagicMock()
     mocker.patch("jetH.base.utils.ruamel.yaml.YAML.dump", mYaml)
     testObj.saveToYAML(**objArgs)
-    # Check the expect write and YAML calls.
+    # Check the expected write and YAML calls.
     mWrite.assert_called_once_with(dataFilename, "w")
     mYaml.assert_called_once_with(expectedYAMLParameters, mWrite())
 
