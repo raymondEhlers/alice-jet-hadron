@@ -4,7 +4,6 @@
 from builtins import range
 from future.utils import iteritems
 
-import sys
 import re
 import logging
 # Setup logger
@@ -18,37 +17,35 @@ import matplotlib.colors
 plt.rc('text', usetex=True)
 import matplotlib.ticker
 # For 3D plots
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # noqa: 21 . Needed for 3D plots, even if not directly called.
 import seaborn as sns
 
 import numpy as np
 
 import rootpy.ROOT as ROOT
-import rootpy
-import rootpy.plotting.root2matplotlib as rplt
 import root_numpy
 
 class HistPlotter(object):
     def __init__(self,
-            histNames = None,
-            hist = None,
-            hists = None,
-            outputName = "",
-            title = None,
-            automaticTitleFromName = False,
-            exactNameMatch = False,
-            xLabel = None,
-            yLabel = None,
-            zLabel = None,
-            xLimits = None,
-            yLimits = None,
-            textLabel = None,
-            scientificNotationOnAxis = "",
-            logy = False,
-            logz = False,
-            surface = False,
-            usePColorMesh = False,
-            stepPlot = True):
+                 histNames = None,
+                 hist = None,
+                 hists = None,
+                 outputName = "",
+                 title = None,
+                 automaticTitleFromName = False,
+                 exactNameMatch = False,
+                 xLabel = None,
+                 yLabel = None,
+                 zLabel = None,
+                 xLimits = None,
+                 yLimits = None,
+                 textLabel = None,
+                 scientificNotationOnAxis = "",
+                 logy = False,
+                 logz = False,
+                 surface = False,
+                 usePColorMesh = False,
+                 stepPlot = True):
         # A list of dictionaries, with key histName and value histTitle
         if histNames is None:
             histNames = {}
@@ -104,7 +101,7 @@ class HistPlotter(object):
             # See: https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.ticklabel_format.html
             # (0,0) means apply to all numbers of the axis
             # axis could be x, y, or both
-            ax.ticklabel_format(axis = self.scientificNotationOnAxis, style = "sci", scilimits = (0,0))
+            ax.ticklabel_format(axis = self.scientificNotationOnAxis, style = "sci", scilimits = (0, 0))
 
     def postDrawOptions(self, ax):
         pass
@@ -130,8 +127,8 @@ class HistPlotter(object):
             ax.set_title(title)
 
         # Axis labels
-        labelMap = {"x" : (self.xLabel, ROOT.TH1.GetXaxis, ax.set_xlabel),
-                "y" : (self.yLabel, ROOT.TH1.GetYaxis, ax.set_ylabel)}
+        labelMap = {"x": (self.xLabel, ROOT.TH1.GetXaxis, ax.set_xlabel),
+                    "y": (self.yLabel, ROOT.TH1.GetYaxis, ax.set_ylabel)}
         for axisName, (val, axis, applyTitle) in iteritems(labelMap):
             if val:
                 label = val
@@ -148,17 +145,17 @@ class HistPlotter(object):
                 logger.debug("Found latex: {}, label: \"{}\"".format(foundLatex, label))
                 if foundLatex:
                     if unitsLocation > -1:
-                        label = "$" + label[:unitsLocation-1] + "$ " + label[unitsLocation:]
+                        label = "$" + label[:unitsLocation - 1] + "$ " + label[unitsLocation:]
                     else:
                         label = "$" + label + "$"
             logger.debug("Apply {} axis title with label \"{}\", axis {}, and applyTitle function {}".format(axisName, label, axis, applyTitle))
             applyTitle(label)
 
     def applyHistLimits(self, ax):
-        if not self.xLimits is None:
+        if self.xLimits is not None:
             logger.debug("Setting x limits of {}".format(self.xLimits))
             ax.set_xlim(self.xLimits)
-        if not self.yLimits is None:
+        if self.yLimits is not None:
             logger.debug("Setting y limits of {}".format(self.yLimits))
             ax.set_ylim(self.yLimits)
 
@@ -182,17 +179,17 @@ class HistPlotter(object):
                 text += " " + str(obj.taskLabel)
 
             text += "\n" + params.systemLabel(energy = obj.collisionEnergy,
-                    system = obj.collisionSystem,
-                    activity = obj.eventActivity)
+                                              system = obj.collisionSystem,
+                                              activity = obj.eventActivity)
             propertyLabels = []
             if self.textLabel.get("cellLabel", False):
                 # Handled separately because it is long enough that it has to be
                 # on a separate line
-                text += "\nCell $E_{\mathrm{seed}} = 100$ MeV, $E_{\mathrm{cell}} = 50$ MeV"
+                text += r"\nCell $E_{\mathrm{seed}} = 100$ MeV, $E_{\mathrm{cell}} = 50$ MeV"
             if self.textLabel.get("clusterLabel", False):
-                propertyLabels.append("$E_{cluster} > 300$ MeV")
+                propertyLabels.append(r"$E_{cluster} > 300$ MeV")
             if self.textLabel.get("trackLabel", False):
-                propertyLabels.append("$p_{T,track} > 150\:\mathrm{MeV/\mathit{c}}$")
+                propertyLabels.append(r"$p_{T,track} > 150\:\mathrm{MeV/\mathit{c}}$")
             if len(propertyLabels) > 0:
                 text += "\n" + ", ".join(propertyLabels)
             #logger.debug("text: {}".format(text))
@@ -207,7 +204,7 @@ class HistPlotter(object):
 
     def plot(self, obj, outputName = ""):
         # Make the plots
-        fig, ax = plt.subplots(figsize=(8,6))
+        fig, ax = plt.subplots(figsize=(8, 6))
 
         # Draw the hist
         if isinstance(self.getFirstHist(), ROOT.TH2):
@@ -223,13 +220,13 @@ class HistPlotter(object):
             #       Since the style is already applied, there isn't really anything lost
 
             # Retrieve the array corresponding to the data
-            # NOTE: The data is transposed from what is normally expected. Apparently this is done to match up with numpy axis conventions
-            #       We will have to transpose the data when we go to plot it.
+            # NOTE: The data is transposed from what is normally expected. Apparently this is done to match up with numpy
+            #       axis conventions. We will have to transpose the data when we go to plot it.
             # NOTE: binEdges is an array which contains edges for each axis. x is 0.
             (histArray, binEdges) = root_numpy.hist2array(self.getFirstHist(), return_edges=True)
-            # Set all 0s to nan to get similar behavior to ROOT.In ROOT, it will basically ignore 0s. This is especially important
-            # for log plots. Matplotlib doesn't handle 0s as well, since it attempts to plot them and then will throw exceptions
-            # when the log is taken.
+            # Set all 0s to nan to get similar behavior to ROOT.In ROOT, it will basically ignore 0s. This is especially
+            # important for log plots. Matplotlib doesn't handle 0s as well, since it attempts to plot them and then will
+            # throw exceptions when the log is taken.
             # By setting to nan, mpl basically ignores them similar to ROOT
             # NOTE: This requires a few special functions later which ignore nan
             histArray[histArray == 0] = np.nan
@@ -262,8 +259,8 @@ class HistPlotter(object):
                 # NOTE: There are n-1 faces for n points, so not every value will be represented by a face.
                 #       However, the location of the points at the bin centers is still correct!
                 hist = self.getFirstHist()
-                xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins()+1)])
-                yRange = np.array([hist.GetYaxis().GetBinCenter(i) for i in range(1, hist.GetYaxis().GetNbins()+1)])
+                xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins() + 1)])
+                yRange = np.array([hist.GetYaxis().GetBinCenter(i) for i in range(1, hist.GetYaxis().GetNbins() + 1)])
                 X, Y = np.meshgrid(xRange, yRange)
 
                 # Create the plot
@@ -284,14 +281,16 @@ class HistPlotter(object):
                 # NOTE: The addition of epsilon to the max is extremely important! Otherwise, the x and y ranges will
                 #       be one bin short since arange is not inclusive. This could also be reolved by using linspace,
                 #       but I think this approach is perfectly fine.
-                # NOTE: This epsilon is smaller than the one in JetHUtils because we are sometimes dealing with small times (~ns).
-                #       The other value is larger because (I seem to recall) that smaller values didn't always place nice with ROOT,
-                #       but it is fine here, since we're working with numpy.
-                # NOTE: This should be identical to taking the min and max of the axis using TAxis.GetXmin() and TAxis.GetXmax(),
-                #       but I prefer this approach.
+                # NOTE: This epsilon is smaller than the one in JetHUtils because we are sometimes dealing with small
+                #       times (~ns). The other value is larger because (I seem to recall) that smaller values didn't
+                #       always place nice with ROOT, but it is fine here, since we're working with numpy.
+                # NOTE: This should be identical to taking the min and max of the axis using ``TAxis.GetXmin()`` and
+                #       ``TAxis.GetXmax()``, but I prefer this approach.
                 epsilon = 1e-9
-                xRange = np.arange(np.amin(binEdges[0]), np.amax(binEdges[0]) + epsilon, self.getFirstHist().GetXaxis().GetBinWidth(1))
-                yRange = np.arange(np.amin(binEdges[1]), np.amax(binEdges[1]) + epsilon, self.getFirstHist().GetYaxis().GetBinWidth(1))
+                xRange = np.arange(np.amin(binEdges[0]), np.amax(binEdges[0]) + epsilon,
+                                   self.getFirstHist().GetXaxis().GetBinWidth(1))
+                yRange = np.arange(np.amin(binEdges[1]), np.amax(binEdges[1]) + epsilon,
+                                   self.getFirstHist().GetYaxis().GetBinWidth(1))
                 X, Y = np.meshgrid(xRange, yRange)
 
                 # Plot with either imshow or pcolormesh
@@ -306,17 +305,18 @@ class HistPlotter(object):
                     logger.debug("Plotting with imshow ")
 
                     # This imshow is quite similar to rplt.imshow (it is locaed in plotting.root2matplotlib.imshow)
-                    # which can be seen here: https://github.com/rootpy/rootpy/blob/master/rootpy/plotting/root2matplotlib.py#L743
+                    # which can be seen here:
+                    # https://github.com/rootpy/rootpy/blob/master/rootpy/plotting/root2matplotlib.py#L743
                     # However, we don't copy it directly because we want to set the 0s to nan so they won't be plotted.
                     extent = [np.amin(X), np.amax(X),
                               np.amin(Y), np.amax(Y)]
                     #logger.debug("Extent: {}, binEdges[1]: {}".format(extent, binEdges[1]))
                     axFromPlot = plt.imshow(histArray.T,
-                            extent = extent,
-                            interpolation = "nearest",
-                            aspect = "auto",
-                            origin = "lower",
-                            **kwargs)
+                                            extent = extent,
+                                            interpolation = "nearest",
+                                            aspect = "auto",
+                                            origin = "lower",
+                                            **kwargs)
 
             # Draw the colorbar based on the drawn axis above.
             label = self.zLabel if self.zLabel else self.getFirstHist().GetZaxis().GetTitle()
@@ -354,17 +354,18 @@ class HistPlotter(object):
                 (histArray, binEdges) = root_numpy.hist2array(hist, return_edges=True)
                 # NOTE: Could remove 0s when taking logs if necessary here
 
-                # NOTE: We plot by hand instead of using rplt.hist() so that we can have better control over the plotting options
+                # NOTE: We plot by hand instead of using rplt.hist() so that we can have better control over the
+                #       plotting options
                 if self.stepPlot:
                     # Step plots look like histograms. They plot some value for some width
-                    # According to the documentation, it is basically a thin wrapper around plt.plot() with some modified options
-                    # An additional 0 neds to be appended to the end of the data so the arrays are the same length (this appears
-                    # to be imposed as an mpl requirement), but it is not meaningful. binEdges[0] corresponds to x axis bin edges
-                    # (which are the only relevant ones here)
+                    # According to the documentation, it is basically a thin wrapper around plt.plot() with some
+                    # modified options. An additional 0 neds to be appended to the end of the data so the arrays are
+                    # the same length (this appears to be imposed as an mpl requirement), but it is not meaningful.
+                    # ``binEdges[0]`` corresponds to x axis bin edges (which are the only relevant ones here).
                     plt.step(binEdges[0], np.append(histArray, [0]), where = "post", label = hist.GetTitle(), color = next(currentColorPalette))
                 else:
                     # A more standard plot, with each value at the bin center
-                    binCenters = np.array([hist.GetXaxis().GetBinCenter(iBin) for iBin in xrange(1, hist.GetXaxis().GetNbins()+1)])
+                    binCenters = np.array([hist.GetXaxis().GetBinCenter(iBin) for iBin in range(1, hist.GetXaxis().GetNbins() + 1)])
                     plt.plot(binCenters, histArray, label = hist.GetTitle(), color = next(currentColorPalette))
 
             # Only plot the legend for 1D hists where it may be stacked. For 2D hists,

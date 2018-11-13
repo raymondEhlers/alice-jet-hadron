@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 import jetH.plot.base as plotBase
 
 # Use matplitlib for some plots
-import matplotlib.pyplot as plt
 # And use ROOT in others
 import rootpy.ROOT as ROOT
 

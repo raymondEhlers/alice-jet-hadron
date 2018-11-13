@@ -5,7 +5,6 @@
 ######################
 
 import os
-import collections
 # Setup logger
 import logging
 logger = logging.getLogger(__name__)
@@ -122,17 +121,17 @@ def savePlotImpl(fig, outputPrefix, outputPath, printingExtensions):
 # Color entries are of the form (r, g, b)
 # Creation of the colorscheme inspired by: https://github.com/matplotlib/matplotlib/blob/master/examples/images_contours_and_fields/custom_cmap.py
 birdRoot = matplotlib.colors.LinearSegmentedColormap.from_list(name = "ROOT_kBird", N = 256,
-        colors = [
-            (0.2082, 0.1664, 0.5293),
-            (0.0592, 0.3599, 0.8684),
-            (0.0780, 0.5041, 0.8385),
-            (0.0232, 0.6419, 0.7914),
-            (0.1802, 0.7178, 0.6425),
-            (0.5301, 0.7492, 0.4662),
-            (0.8186, 0.7328, 0.3499),
-            (0.9956, 0.7862, 0.1968),
-            (0.9764, 0.9832, 0.0539)
-        ])
+                                                               colors = [
+                                                                   (0.2082, 0.1664, 0.5293),
+                                                                   (0.0592, 0.3599, 0.8684),
+                                                                   (0.0780, 0.5041, 0.8385),
+                                                                   (0.0232, 0.6419, 0.7914),
+                                                                   (0.1802, 0.7178, 0.6425),
+                                                                   (0.5301, 0.7492, 0.4662),
+                                                                   (0.8186, 0.7328, 0.3499),
+                                                                   (0.9956, 0.7862, 0.1968),
+                                                                   (0.9764, 0.9832, 0.0539)
+                                                               ])
 # Register the colormap with matplotlib
 plt.register_cmap(name = birdRoot.name, cmap = birdRoot)
 
@@ -149,7 +148,7 @@ def prepareColormap(colormap):
         colormap: The updated colormap.
     """
     # Set bad values to white instead of transparent because EPS doesn't support transparency
-    colormap.set_bad("w",1)
+    colormap.set_bad("w", 1)
 
     return colormap
 

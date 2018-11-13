@@ -10,7 +10,7 @@
 from future.utils import iteritems
 from future.utils import itervalues
 
-# Setup logger
+import collections
 import logging
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ import jetH.plot.base as plotBase
 # Import plotting packages
 # Use matplotlib in some cases
 import matplotlib.pyplot as plt
-import seaborn as sns
 # And use ROOT in others
 import rootpy.ROOT as ROOT
 
@@ -29,7 +28,7 @@ def plotYields(jetH):
     for yields, rangeLimits, tag in [(jetH.yieldsAS, (5e-3, 3), "yieldsAS"),
                                      (jetH.yieldsNS, (5e-3, 5), "yieldsNS"),
                                      (jetH.yieldsDEtaNS, (5e-3, 2), "yieldsDEtaNS")]:
-        parameters = ("\mathit{p}_{\mathrm{T}}^{assoc}", "dN/d\mathit{p}_{\mathrm{T}} (GeV/#it{c})^{-1}", rangeLimits, tag)
+        parameters = (r"\mathit{p}_{\mathrm{T}}^{assoc}", r"dN/d\mathit{p}_{\mathrm{T}} (GeV/#it{c})^{-1}", rangeLimits, tag)
         plotExtractedValues(jetH, yields, parameters)
 
 def plotWidths(jetH):
@@ -37,7 +36,7 @@ def plotWidths(jetH):
     for widths, rangeLimits, tag, yAxisLabel in [(jetH.widthsAS, (0, 2.5), "widthsAS", "Away-side width"),
                                                  (jetH.widthsNS, (0, 2.5), "widthsNS", "Near-side width"),
                                                  (jetH.widthsDEtaNS, (0, 2.5), "widthsDEtaNS", "Near-side width")]:
-        parameters = ("\mathit{p}_{\mathrm{T}}^{assoc}", yAxisLabel, rangeLimits, tag)
+        parameters = (r"\mathit{p}_{\mathrm{T}}^{assoc}", yAxisLabel, rangeLimits, tag)
         plotExtractedValues(jetH, widths, parameters)
 
 def createTGraphsFromExtractedValues(jetH, values):
@@ -53,15 +52,15 @@ def createTGraphsFromExtractedValues(jetH, values):
         #    continue
         # ENDTEMP
 
-        graphs[jetPtBin] = ROOT.TGraphErrors(len(params.trackPtBins)-1)
+        graphs[jetPtBin] = ROOT.TGraphErrors(len(params.trackPtBins) - 1)
         # Disable title
         graphs[jetPtBin].SetTitle("")
 
     for observable in itervalues(values):
         # Center points in the bin
         trackPtBin = observable.trackPtBin
-        halfBinWidth = (params.trackPtBins[trackPtBin+1] - params.trackPtBins[trackPtBin])/2.0
-        offset = 0.07*observable.jetPtBin
+        halfBinWidth = (params.trackPtBins[trackPtBin + 1] - params.trackPtBins[trackPtBin]) / 2.0
+        offset = 0.07 * observable.jetPtBin
         binCenterPoint = params.trackPtBins[trackPtBin] + halfBinWidth + offset
         logger.debug("binCenterPoint: {}".format(binCenterPoint))
 
@@ -107,8 +106,8 @@ def plotExtractedValues(jetH, values, parameters):
         # ENDTEMP
 
         # Style
-        graph.SetLineColor(colors[i+1])
-        graph.SetMarkerColor(colors[i+1])
+        graph.SetLineColor(colors[i + 1])
+        graph.SetMarkerColor(colors[i + 1])
         graph.SetLineWidth(1)
         #graph.SetMarkerSize(1)
         graph.SetMarkerStyle(ROOT.kFullCircle)
@@ -163,22 +162,23 @@ def PlotWidthsNew(jetH, widths):
             if trackPtBin == 0:
                 continue
 
-            halfBinWidth = (params.trackPtBins[trackPtBin+1] - params.trackPtBins[trackPtBin])/2.0
+            halfBinWidth = (params.trackPtBins[trackPtBin + 1] - params.trackPtBins[trackPtBin]) / 2.0
             binCenterPoint = params.trackPtBins[trackPtBin] + halfBinWidth
 
-            logger.debug("location: {}, jetPtBin: {}, trackPtBin: {}, X: {}, width: {}, error: {}".format(location.upper(),
-                    jetPtBin,
-                    trackPtBin,
-                    binCenterPoint,
-                    observable.value,
-                    observable.error))
+            logger.debug("location: {}, jetPtBin: {}, trackPtBin: {}, X: {}, width: {},"
+                         " error: {}".format(location.upper(),
+                                             jetPtBin,
+                                             trackPtBin,
+                                             binCenterPoint,
+                                             observable.value,
+                                             observable.error))
             tempX.append(binCenterPoint)
             tempWidths.append(observable.value)
             tempErrors.append(observable.error)
 
         ax.errorbar(tempX, tempWidths, yerr = tempErrors, marker = "o", label = "{} Widths".format(location.upper()))
-        ax.set_xlabel("$\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$")
-        ax.set_ylabel("$\sigma_{AS}$")
+        ax.set_xlabel(r"$\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$")
+        ax.set_ylabel(r"$\sigma_{AS}$")
 
         # Tight the plotting up
         fig.tight_layout()

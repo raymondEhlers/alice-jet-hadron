@@ -11,7 +11,6 @@ from future.utils import iteritems
 
 import os
 import collections
-import itertools
 # Setup logger
 import logging
 logger = logging.getLogger(__name__)
@@ -28,20 +27,21 @@ import jetH.plot.base as plotBase
 # Use matplotlib in some cases
 import matplotlib.pyplot as plt
 import matplotlib
-from matplotlib.offsetbox import AnchoredText
+#from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 # And use ROOT in others
 import rootpy.ROOT as ROOT
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
-    """ 
+    """ Plot showing iminuit QA.
+
     This is really just a debug plot, but it is nice to have available
 
     NOTE: We can't really modify the plot layout much because this uses a predefined function
           in the probfit package that doesn't seem to take well to modification.
 
     Args:
-        epFitObj (JetHEPFit): The fit object for this 
+        epFitObj (JetHEPFit): The fit object for this plot.
     """
     # NOTE: Turned off parameter printing to make it easier to see
     # NOTE: Can enable parts = true to draw each part of an added PDF separately, but it
@@ -72,20 +72,24 @@ def PlotRPF(epFitObj):
     colors = sns.color_palette()
 
     colorIter = iter(colors)
-    colorsMap = { (analysisObjects.jetHCorrelationType.signalDominated, "Fit") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.signalDominated, "Data") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
-    zOrder = { (analysisObjects.jetHCorrelationType.signalDominated, "Fit") : 10,
-        (analysisObjects.jetHCorrelationType.signalDominated, "FitErrorBars") : 9,
-        (analysisObjects.jetHCorrelationType.signalDominated, "Data") : 6,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit") : 8,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "FitErrorBars") : 7,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data") : 5 }
+    colorsMap = {
+        (analysisObjects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
+        (analysisObjects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
+        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
+        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)
+    }
+    zOrder = {
+        (analysisObjects.jetHCorrelationType.signalDominated, "Fit"): 10,
+        (analysisObjects.jetHCorrelationType.signalDominated, "FitErrorBars"): 9,
+        (analysisObjects.jetHCorrelationType.signalDominated, "Data"): 6,
+        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): 8,
+        (analysisObjects.jetHCorrelationType.backgroundDominated, "FitErrorBars"): 7,
+        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): 5
+    }
 
     for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
         # Define axes for plot
-        fig, axes = plt.subplots(1, 4, sharey = True, sharex = True, figsize = (12,6))
+        fig, axes = plt.subplots(1, 4, sharey = True, sharex = True, figsize = (12, 6))
         # TODO: Residual = data-fit/fit, not just data-fit
         figResidual, axesResidual = plt.subplots(1, 4, sharey = True, sharex = True)
 
@@ -97,8 +101,8 @@ def PlotRPF(epFitObj):
         labelsResidual = []
 
         # Store the all angles data generated from the other angles
-        allAnglesSummedFromFit = {analysisObjects.jetHCorrelationType.backgroundDominated : None,
-                                  analysisObjects.jetHCorrelationType.signalDominated : None}
+        allAnglesSummedFromFit = {analysisObjects.jetHCorrelationType.backgroundDominated: None,
+                                  analysisObjects.jetHCorrelationType.signalDominated: None}
 
         # Put the all angles at the end for consistnecy
         epAngles = [angle for angle in params.eventPlaneAngle]
@@ -123,18 +127,18 @@ def PlotRPF(epFitObj):
             ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
             ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
             ax.tick_params(axis = "both",
-                    which = "major",
-                    labelsize = 15,
-                    direction = "in",
-                    length = 8,
-                    bottom = True,
-                    left = True)
+                           which = "major",
+                           labelsize = 15,
+                           direction = "in",
+                           length = 8,
+                           bottom = True,
+                           left = True)
             ax.tick_params(axis = "both",
-                    which = "minor",
-                    direction = "in",
-                    length = 4,
-                    bottom = True,
-                    left = True)
+                           which = "minor",
+                           direction = "in",
+                           length = 4,
+                           bottom = True,
+                           left = True)
 
             # Set y label
             (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
@@ -198,14 +202,14 @@ def PlotRPF(epFitObj):
                     # TODO: This should move to the enum
                     label = correlationType.displayStr()
                     if correlationType == analysisObjects.jetHCorrelationType.backgroundDominated:
-                        label = correlationType.displayStr() + ":\n$0.8<|\Delta\eta|<1.2$"
+                        label = correlationType.displayStr() + ":\n" + r"$0.8<|\Delta\eta|<1.2$"
                     else:
-                        label = correlationType.displayStr() + ":\n$|\Delta\eta|<0.6$"
+                        label = correlationType.displayStr() + ":\n" + r"$|\Delta\eta|<0.6$"
                     ax.errorbar(x, y, yerr = errors, marker = "o", zorder = zOrder[(correlationType, "Data")], color = colorsMap[correlationType, "Data"], label = label)
 
                 # Check if the fit was perofmred and therefore should be plotted
                 retVal = epFitObj.CheckIfFitIsEnabled(epAngle, correlationType)
-                if retVal == False:
+                if retVal is False:
                     # Also plot the fit in the case of background dominated in all angles
                     # Although need to clarify that we didn't actually fit - this is just showing that component
                     if not (correlationType == analysisObjects.jetHCorrelationType.backgroundDominated and epAngle == params.eventPlaneAngle.all):
@@ -241,10 +245,10 @@ def PlotRPF(epFitObj):
                 residualPlot = axResidual.plot(xForFitFunc, residual)
                 axResidual.fill_between(xForFitFunc, residual - errors, residual + errors, facecolor = residualPlot[0].get_color(), label = correlationType.displayStr() + " fit residual")
 
-                h, l = axResidual.get_legend_handles_labels()
+                h, label = axResidual.get_legend_handles_labels()
                 logger.debug("handlesResidual: {}, labelsResidual: {}".format(handlesResidual, labelsResidual))
                 handlesResidual += h
-                labelsResidual += l
+                labelsResidual += label
 
                 # Build up event plane fit to get all angles as a cross check
                 # TODO: This should probably be refactored back to JetHFitting
@@ -256,10 +260,10 @@ def PlotRPF(epFitObj):
                     allAnglesSummedFromFit[correlationType] = np.add(fit, allAnglesSummedFromFit[correlationType])
 
                 # Store legend label
-                h, l = ax.get_legend_handles_labels()
+                h, label = ax.get_legend_handles_labels()
                 logger.debug("handles: {}, labels: {}".format(handles, labels))
                 handles += h
-                labels += l
+                labels += label
 
             # Need to perform after plotting all angles to ensure that we get a good
             # estimate for y max
@@ -269,7 +273,7 @@ def PlotRPF(epFitObj):
                 if trackPtBin > 4:
                     yMin, yMax = ax.get_ylim()
                     # Scale in a data dependent manner
-                    yMax = yMax + 0.3*(yMax-yMin)
+                    yMax = yMax + 0.3 * (yMax - yMin)
                     ax.set_ylim(yMin, yMax)
 
         # Plot a possible cross check
@@ -280,7 +284,7 @@ def PlotRPF(epFitObj):
                     # Fit can be None if, for example, we fit the all angles signal, such that the EP signal is not fit
                     # TODO: Is the trivial factor of 3 here correct?
                     logger.info("Plotting summed all angles for correlation type {}".format(correlationType.str()))
-                    ax.plot(xForFitFunc, fit/3., zorder = 10, label = correlationType.displayStr() + " fit cross-check")
+                    ax.plot(xForFitFunc, fit / 3., zorder = 10, label = correlationType.displayStr() + " fit cross-check")
                     #ax.errorbar(xForFitFunc, fit/3., yerr = fitCont.errors["{}_{}".format(epAngle.str(), correlationType.str())], zorder = 10, label = "Signal fit")
                 else:
                     logger.debug("Skipping plot of all angles summed up from each EP angle since it was empty")
@@ -328,10 +332,10 @@ def PlotSubtractedEPHists(epFitObj):
 
     # TODO: Use the color map defined in PlotRPF (it's the same, just copied here)
     colorIter = iter(colors)
-    colorsMap = { (analysisObjects.jetHCorrelationType.signalDominated, "Fit") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.signalDominated, "Data") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit") : next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data") : next(colorIter)}
+    colorsMap = {(analysisObjects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
+                 (analysisObjects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
+                 (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
+                 (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)}
 
     # Iterate over the data and subtract the hists
     for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
@@ -340,7 +344,7 @@ def PlotSubtractedEPHists(epFitObj):
         fig, axes = plt.subplots(1, 4, sharey = True, sharex = True)
 
         # Just for the all angles subtracted
-        figAll, axisAll = plt.subplots(figsize=(5,7.5))
+        figAll, axisAll = plt.subplots(figsize=(5, 7.5))
 
         # Store legend information
         handles = []
@@ -380,17 +384,17 @@ def PlotSubtractedEPHists(epFitObj):
             # TODO: Is it right to be retrieving the background errors here?? I'm not so certain for the all angles case that this is right...
             fitErrors = fitCont.errors[(epAngle.str(), analysisObjects.jetHCorrelationType.backgroundDominated.str())]
 
-            plot = ax.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + " Subtracted")
+            ax.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + " Subtracted")
             # Following Joel's example, plot the fit error on the same points as the correlation error
             # Fill in the error band
             # See: https://stackoverflow.com/a/12958534
-            ax.fill_between(xForFitFunc, observable.hist.array - fitErrors, observable.hist.array + fitErrors, label = "Fit error",facecolor = colorsMap[(observable.correlationType, "Fit")], zorder = 10, alpha = 0.8)
+            ax.fill_between(xForFitFunc, observable.hist.array - fitErrors, observable.hist.array + fitErrors, label = "Fit error", facecolor = colorsMap[(observable.correlationType, "Fit")], zorder = 10, alpha = 0.8)
 
             # Store legend label
-            h, l = ax.get_legend_handles_labels()
+            h, label = ax.get_legend_handles_labels()
             logger.debug("handles: {}, labels: {}".format(handles, labels))
             handles += h
-            labels += l
+            labels += label
 
             if epAngle == params.eventPlaneAngle.all:
                 # TODO: Include all angles in label
@@ -408,18 +412,18 @@ def PlotSubtractedEPHists(epFitObj):
                 axisAll.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
                 axisAll.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
                 axisAll.tick_params(axis = "both",
-                        which = "major",
-                        labelsize = 15,
-                        direction = "in",
-                        length = 8,
-                        bottom = True,
-                        left = True)
+                                    which = "major",
+                                    labelsize = 15,
+                                    direction = "in",
+                                    length = 8,
+                                    bottom = True,
+                                    left = True)
                 axisAll.tick_params(axis = "both",
-                        which = "minor",
-                        direction = "in",
-                        length = 4,
-                        bottom = True,
-                        left = True)
+                                    which = "minor",
+                                    direction = "in",
+                                    length = 4,
+                                    bottom = True,
+                                    left = True)
 
                 # Add labels
                 # NOTE: Cannot end in "\n". It will cause an crash.
@@ -433,28 +437,28 @@ def PlotSubtractedEPHists(epFitObj):
                     text += "\n" + jetPt + ", " + leadingHadron
                     # Extra "\n" at the end because we can't lead with a bare "\n".
                     text += "\n" + params.generateTrackPtRangeString(trackPtBin) + "\n"
-                    textArgs = {"x" : 0.5, "y" : 0.82,
-                            "horizontalalignment" : "center",
-                            "verticalalignment" : "center",
-                            "multialignment" : "center"}
+                    textArgs = {"x": 0.5, "y": 0.82,
+                                "horizontalalignment": "center",
+                                "verticalalignment": "center",
+                                "multialignment": "center"}
                 else:
-                    textArgs = {"x" : 0.92, "y" : 0.84,
-                            "horizontalalignment" : "right",
-                            "verticalalignment" : "top"}
-                text += "Scale uncertainty: 6\%"
+                    textArgs = {"x": 0.92, "y": 0.84,
+                                "horizontalalignment": "right",
+                                "verticalalignment": "top"}
+                text += "Scale uncertainty: 6%"
                 #logger.debug("text: {}".format(text))
                 textArgs["fontsize"] = 16
                 textArgs["transform"] = axisAll.transAxes
                 textArgs["s"] = text
                 axisAll.text(**textArgs)
 
-                plot = axisAll.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + "\nSubtracted: $|\Delta\eta|<0.6$")
-                axisAll.fill_between(xForFitFunc, observable.hist.array - fitErrors, observable.hist.array + fitErrors, label = "Fit error",facecolor = colorsMap[(observable.correlationType, "Fit")], zorder = 10, alpha = 0.8)
+                axisAll.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + "\nSubtracted: " + r"$|\Delta\eta|<0.6$")
+                axisAll.fill_between(xForFitFunc, observable.hist.array - fitErrors, observable.hist.array + fitErrors, label = "Fit error", facecolor = colorsMap[(observable.correlationType, "Fit")], zorder = 10, alpha = 0.8)
 
                 # Adjust after we know the range of the data
                 yMin, yMax = axisAll.get_ylim()
                 # Scale in a data dependent manner
-                yMax = yMax + 0.35*(yMax-yMin)
+                yMax = yMax + 0.35 * (yMax - yMin)
                 axisAll.set_ylim(yMin, yMax)
 
         # Tight the plotting up

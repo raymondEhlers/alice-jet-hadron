@@ -66,9 +66,9 @@ def plot2DCorrelations(jetH):
             else:
                 zTitle = r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
                 if "corr" in name:
-                    zTitle = zTitle % {"label" : ""}
+                    zTitle = zTitle % {"label": ""}
                 else:
-                    zTitle = zTitle % {"label" : "_{\mathrm{raw}}"}
+                    zTitle = zTitle % {"label": r"_{\mathrm{raw}}"}
                     # Decrease size so it doesn't overlap with the other labels
                     hist.GetZaxis().SetTitleSize(0.05)
 
@@ -79,8 +79,8 @@ def plot2DCorrelations(jetH):
             # Instead, print to EPS and then convert to PDF
             aliceLabel = jetH.aliceLabel.str()
             systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
-                    system = jetH.collisionSystem,
-                    activity = jetH.eventActivity)
+                                             system = jetH.collisionSystem,
+                                             activity = jetH.eventActivity)
             (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
             assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
             #logger.debug("label: {}, systemLabel: {}, constituentCuts: {}, leadingHadron: {}, jetPt: {}, assocPt: {}".format(aliceLabel, systemLabel, constituentCuts, leadingHadron, jetPt, assocPt))
@@ -141,21 +141,21 @@ def plot1DCorrelationsWithFits(jetH):
             fit.Draw("same")
             plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
 
-def mixedEventNormalization(jetH, 
-        # For labeling purposes
-        histName, etaLimits, jetPtTitle, trackPtTitle,
-        # Basic data
-        linSpace,      peakFindingArray,
-        linSpaceRebin, peakFindingArrayRebin,
-        # CWT
-        peakLocations, peakLocationsRebin,
-        # Moving Average
-        maxMovingAvg, maxMovingAvgRebin,
-        # Smoothed gaussian
-        linSpaceResample, smoothedArray, maxSmoothedMovingAvg,
-        # Linear fits
-        maxLinearFit1D, maxLinearFit1DRebin,
-        maxLinearFit2D, maxLinearFit2DRebin):
+def mixedEventNormalization(jetH,
+                            # For labeling purposes
+                            histName, etaLimits, jetPtTitle, trackPtTitle,
+                            # Basic data
+                            linSpace,      peakFindingArray,  # noqa: E241
+                            linSpaceRebin, peakFindingArrayRebin,
+                            # CWT
+                            peakLocations, peakLocationsRebin,
+                            # Moving Average
+                            maxMovingAvg, maxMovingAvgRebin,
+                            # Smoothed gaussian
+                            linSpaceResample, smoothedArray, maxSmoothedMovingAvg,
+                            # Linear fits
+                            maxLinearFit1D, maxLinearFit1DRebin,
+                            maxLinearFit2D, maxLinearFit2DRebin):
 
     # Make the actual plot
     fig, ax = plt.subplots()
@@ -164,8 +164,8 @@ def mixedEventNormalization(jetH,
     # See: https://stackoverflow.com/a/42804403
     dataMin = min(peakFindingArray.min(), peakFindingArrayRebin.min())
     dataMax = max(peakFindingArray.max(), peakFindingArrayRebin.max())
-    yMin = dataMin - 0.5*(dataMax-dataMin)
-    yMax = dataMax + 0.12*(dataMax-dataMin)
+    yMin = dataMin - 0.5 * (dataMax - dataMin)
+    yMax = dataMax + 0.12 * (dataMax - dataMin)
     ax.set_ylim(yMin, yMax)
 
     # Can either plot the hist or the array
@@ -181,11 +181,11 @@ def mixedEventNormalization(jetH,
     plotArrayPeak = ax.plot(linSpace[peakLocations], peakFindingArray[peakLocations], marker="*", markersize=10, linestyle="None", label = "CWT", zorder=10)
     plotArrayRebinPeak = ax.plot(linSpaceRebin[peakLocationsRebin], peakFindingArrayRebin[peakLocationsRebin], marker="*", markersize=10, linestyle="None", label = "CWT rebin", zorder=10)
     # Moving average
-    ax.axhline(maxMovingAvg, color = plotArrayPeak[0].get_color(), label = "Mov. avg. (size $\pi$)")
+    ax.axhline(maxMovingAvg, color = plotArrayPeak[0].get_color(), label = r"Mov. avg. (size $\pi$)")
     ax.axhline(maxMovingAvgRebin, color = plotArrayRebinPeak[0].get_color(), linestyle = "--", label = "Mov. avg. rebin")
     # Gaussian
     # Use a mask so the range doesn't get extremely distorted when the interpolation drops around the edges
-    mask = np.where(np.logical_and(linSpaceResample>-0.3*np.pi, linSpaceResample<1.3*np.pi))
+    mask = np.where(np.logical_and(linSpaceResample > -0.3 * np.pi, linSpaceResample < 1.3 * np.pi))
     plotGaussian = ax.plot(linSpaceResample[mask], smoothedArray[mask], label = "Gauss. smooth")
     ax.axhline(maxSmoothedMovingAvg, color = plotGaussian[0].get_color(), linestyle = "--", label ="Gauss. mov. avg")
     #ax.axhline(maxSmoothed, color = plotGaussian[0].get_color(), linestyle = ":", label = "Gauss. max")
@@ -196,7 +196,7 @@ def mixedEventNormalization(jetH,
     ax.axhline(maxLinearFit2D, color = "b", label = "2D fit")
     ax.axhline(maxLinearFit2DRebin, color = "b", linestyle = "--", label = "2D fit rebin")
 
-    etaLimitsLabel = AnchoredText("|$\Delta\eta$|<{}".format(etaLimits[1]), loc=2, frameon=False)
+    etaLimitsLabel = AnchoredText(r"|$\Delta\eta$|<{}".format(etaLimits[1]), loc=2, frameon=False)
     ax.add_artist(etaLimitsLabel)
 
     # Legend and Labels for the plot
@@ -235,17 +235,17 @@ def defineHighlightRegions():
     # NOTE: Blue really doesn't look good with ROOT_kBird, so for that case, the
     #       signal fit color, seaborn green, should be used.
     signalColor = palette[0] + (1.0,)
-    signalRegion = highlightRPF.highlightRegion("Signal dom. region,\n$|\Delta\eta|<0.6$", signalColor)
-    signalRegion.addHighlightRegion((-np.pi/2, 3.0*np.pi/2), (-0.6, 0.6))
+    signalRegion = highlightRPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signalColor)
+    signalRegion.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
     highlightRegions.append(signalRegion)
 
     # Background
     # Red used for background data color
     backgroundColor = palette[2] + (1.0,)
-    backgroundPhiRange = (-np.pi/2, np.pi/2)
-    backgroundRegion = highlightRPF.highlightRegion("Background dom. region,\n$0.8<|\Delta\eta|<1.2$", backgroundColor)
+    backgroundPhiRange = (-np.pi / 2, np.pi / 2)
+    backgroundRegion = highlightRPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", backgroundColor)
     backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
-    backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))
+    backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))  # noqa: E201, E241
     highlightRegions.append(backgroundRegion)
 
     return highlightRegions
@@ -267,8 +267,8 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
         # Perform the plotting
         # TODO: Determmine if color overlays are better here!
         (fig, ax) = highlightRPF.plotRPFFitRegions(utils.getArrayFromHist2D(observable.hist.hist),
-                highlightRegions = defineHighlightRegions(),
-                useColorOverlay = False)
+                                                   highlightRegions = defineHighlightRegions(),
+                                                   useColorOverlay = False)
 
         # Add additional labeling
         # Axis
@@ -284,8 +284,8 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
         # Overall
         aliceLabel = jetH.aliceLabel.str()
         systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
-                    system = jetH.collisionSystem,
-                    activity = jetH.eventActivity)
+                                         system = jetH.collisionSystem,
+                                         activity = jetH.eventActivity)
         (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
         assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
 
@@ -304,15 +304,15 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
 
         # Need a different text function since we have a 3D axis
         ax.text2D(0.01, 0.99, upperLeftText,
-                horizontalalignment = "left",
-                verticalalignment = "top",
-                multialignment = "left",
-                transform = ax.transAxes)
+                  horizontalalignment = "left",
+                  verticalalignment = "top",
+                  multialignment = "left",
+                  transform = ax.transAxes)
         ax.text2D(0.00, 0.00, upperRightText,
-                horizontalalignment = "left",
-                verticalalignment = "bottom",
-                multialignment = "left",
-                transform = ax.transAxes)
+                  horizontalalignment = "left",
+                  verticalalignment = "bottom",
+                  multialignment = "left",
+                  transform = ax.transAxes)
 
         # Finish up
         plotBase.savePlot(jetH, fig, "highlightRPFRegions")
