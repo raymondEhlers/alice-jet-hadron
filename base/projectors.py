@@ -7,7 +7,6 @@ from future.utils import iteritems
 
 import aenum
 import copy
-import sys
 import logging
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -88,9 +87,11 @@ class HistAxisRange(genericClass.EqualityMixin):
             else:
                 # If it's not a THn, then it must be a TH1 derived
                 # This effectively emuates THnBase.GetAxis(...)
-                axisFunctionMap = {TH1AxisType.xAxis.value : ROOT.TH1.GetXaxis,
-                        TH1AxisType.yAxis.value : ROOT.TH1.GetYaxis,
-                        TH1AxisType.zAxis.value : ROOT.TH1.GetZaxis}
+                axisFunctionMap = {
+                    TH1AxisType.xAxis.value: ROOT.TH1.GetXaxis,
+                    TH1AxisType.yAxis.value: ROOT.TH1.GetYaxis,
+                    TH1AxisType.zAxis.value: ROOT.TH1.GetZaxis
+                }
 
                 # Retrieve the axis function and execute it. It is done separately to
                 # clarify any possible errors.
@@ -181,7 +182,7 @@ class HistProjector(object):
         we want to project non-continuous ranges of a non-projection axis (say, dEta when projecting dPhi). It is
         a list of list to allow for groups of cuts to be specified together if necessary.
      - projectionAxes: List of axes which should be projected.
-    
+
     Note:
         The TH1 projections have not been tested as extensively as the THn projections.
 
@@ -284,12 +285,6 @@ class HistProjector(object):
             if len(self.projectionAxes) < 1 or len(self.projectionAxes) > 2:
                 raise ValueError(len(self.projectionAxes), "Invalid number of axes")
 
-            projectionAxisMap = {
-                TH1AxisType.xAxis.value : "x",
-                TH1AxisType.yAxis.value : "y",
-                TH1AxisType.zAxis.value : "z",
-            }
-
             # Need to concatenate the names of the axes together
             projectionAxisName = ""
             for axis in self.projectionAxes:
@@ -317,8 +312,8 @@ class HistProjector(object):
             #       In particular, it doesn't respect the axis limits of axis onto which it is projected.
             #       So we have to separate the projection by histogram type as opposed to axis length.
             projectionFuncMap = {
-                TH1AxisType.xAxis.value : ROOT.TH2.ProjectionX,
-                TH1AxisType.yAxis.value : ROOT.TH2.ProjectionY
+                TH1AxisType.xAxis.value: ROOT.TH2.ProjectionX,
+                TH1AxisType.yAxis.value: ROOT.TH2.ProjectionY
             }
 
             # Determine the axisType value
@@ -326,7 +321,7 @@ class HistProjector(object):
             try:
                 # Try to extract the value from an enum
                 axisType = self.projectionAxes[0].axisType.value
-            except:
+            except ValueError:
                 # Seems that we received an int, so just use that value
                 axisType = self.axisType
 
@@ -406,7 +401,7 @@ class HistProjector(object):
 
             outputHist.SetName(projectionName)
             outputHistArgs = projectionNameArgs
-            outputHistArgs.update({"outputHist" : outputHist, "projectionName" : projectionName})
+            outputHistArgs.update({"outputHist": outputHist, "projectionName": projectionName})
             outputKeyName = self.OutputKeyName(*args, **outputHistArgs)
             self.observableList[outputKeyName] = self.OutputHist(*args, **outputHistArgs)
 
