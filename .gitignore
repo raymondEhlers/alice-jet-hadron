@@ -1,0 +1,18 @@
+build/
+output/
+.ipynb_checkpoints/
+
+# Ignore setup.py related folder
+jet_hadron.egg-info/
+
+# Ignore pytests cache
+.pytest_cache/
+
+# Profiling
+prof/
+
+# Coverage
+.coverage
+htmlcov/
+
+*.html
