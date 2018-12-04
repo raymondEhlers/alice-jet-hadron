@@ -1,0 +1,21 @@
+# Tests for jet-hadron analysis code
+
+These tests are by no means comprehensive, but they can at least help to test some more basic utilities and
+test cases. These tests are developed with `pytest`. To conform to their standards, tests must be named
+`test_NameOfTest.py` and each test function must start with `test`.
+
+The tests can be executed via `pytest -l testName.py` and all tests can be run via `pytests -l tests/`. Note
+that `-l` is also known as `--showlocals` and will print the local variables when a test fails.
+
+## Testing with coverage
+
+Using the `coverage` package to better code coverage, run the test with `pytest -l --cov-report html
+--cov=jetH tests/`.
+
+## Developing tests
+
+A few things to keep in mind when developing tests:
+
+- You can capture the logs from the modules via the logging mixin. The default level is set to debug
+  since I think it is most likely to be the right level to aid when tests fail.
+- Be certain to write docs to describe the tests!
