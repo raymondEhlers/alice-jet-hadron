@@ -309,11 +309,11 @@ histAxisRangesRestricted = (
 )
 
 # AAC = Additional Axis Cuts
-#@pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
-#        (None, True),
-#        (histAxisRanges.xAxis, True),
-#        (histAxisRangesWithNoEntries.xAxis, False)
-#    ], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
+@pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
+    (None, True),
+    (histAxisRanges.xAxis, True),
+    (histAxisRangesWithNoEntries.xAxis, False)
+], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
 # PDCA = Projection Dependent Cut Axes
 @pytest.mark.parametrize("projectionDependentCutAxes, expectedProjectionDependentCutAxes", [
     (None, True),
@@ -329,7 +329,7 @@ histAxisRangesRestricted = (
     (histAxisRangesWithNoEntries.zAxis, False)
 ], ids = ["PA with entries", "PA without entries"])
 def testTH3ToTH1Projection(loggingMixin, testRootHists,
-                           #additionalAxisCuts, expectedAdditionalAxisCuts,
+                           additionalAxisCuts, expectedAdditionalAxisCuts,
                            projectionDependentCutAxes, expectedProjectionDependentCutAxes,
                            projectionAxes, expectedProjectionAxes):
     """ Test projection from a TH3 to a TH1 derived class. """
@@ -342,8 +342,8 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
                                    projectionInformation = {})
 
     # Set the projection axes.
-    #if additionalAxisCuts is not None:
-    #    obj.additionalAxisCuts.append(additionalAxisCuts)
+    if additionalAxisCuts is not None:
+        obj.additionalAxisCuts.append(additionalAxisCuts)
     if projectionDependentCutAxes is not None:
         # We need to iterate here separately so that we can separate out the cuts
         # for the disconnected PDCAs.
@@ -351,30 +351,11 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
             obj.projectionDependentCutAxes.append([axisSet])
     obj.projectionAxes.append(projectionAxes)
 
-    ## Additional axis cut with entry at 1
-    #obj.additionalAxisCuts.append(histAxisRanges[0])
-    #obj.projectionAxes.append(histAxisRange[2])
-
-    ## Additional axis cut with entry at 1 (empty projection depednent cut axis)
-    #obj.additionalAxisCuts.append(histAxisRanges[0])
-    #obj.projectionDependentCutAxes.append([])
-    #obj.projectionAxes.append(histAxisRange[2])
-
-    ## Additional axis cut with no entries
-    #obj.additionalAxisCuts.append(histAxisRangesWithNoEntries[0])
-    #obj.projectionAxes.append(histAxisRange[2])
-
-    ## Additional aix cut with no entries (empty projection dependent cut axis)
-    #obj.additionalAxisCuts.append(histAxisRangesWithNoEntries[0])
-    #obj.projectionDependentCutAxes.append([])
-    #obj.projectionAxes.append(histAxisRange[2])
-
     # Perform the projection.
     obj.Project()
 
     # Check the output.
     assert len(observableList) == 1
-
     proj = next(iter(observableList.values()))
     assert proj.GetName() == "hist"
 
@@ -395,25 +376,13 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
 
     expectedCount = 0
     # It will only be non-zero if all of the expected values are true.
-    #expectedNonZeroCounts = all([expectedAdditionalAxisCuts, expectedProjectionDependentCutAxes, expectedProjectionAxes])
-    expectedNonZeroCounts = all([expectedProjectionDependentCutAxes, expectedProjectionAxes])
+    expectedNonZeroCounts = all([expectedAdditionalAxisCuts, expectedProjectionDependentCutAxes, expectedProjectionAxes])
     if expectedNonZeroCounts:
         expectedCount = 1
     assert len(nonZeroBins) == expectedCount
     if expectedCount != 0:
         # Only check if we actually expected a count
         assert next(iter(nonZeroBins)) == 1
-
-    #for x in range(1, proj.GetXaxis().GetNbins()+1):
-    #    for y in range(1, proj.GetYaxis().GetNbins()+1):
-    #        if proj.GetBinContent(proj.GetBin(x, y)) != 0:
-    #            logger.debug("x, y: ({}, {})".format(x, y))
-    #        #if x == 2 and y == 2:
-    #        #    assert proj.GetBinContent(proj.GetBin(x, y)) == 1
-    #        #else:
-    #        #    assert proj.GetBinContent(proj.GetBin(x, y)) == 0
-
-    #assert proj.GetBinContent(proj.GetBin(2, 2)) == 1
 
 def testTHnProjection(loggingMixin, testRootHists):
     """ Test projection of a THnSparse. """
