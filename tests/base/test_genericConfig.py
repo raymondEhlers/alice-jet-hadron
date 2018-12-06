@@ -8,6 +8,7 @@
 import collections
 import logging
 import pytest
+from io import StringIO
 import ruamel.yaml
 
 from jet_hadron.base import genericConfig
@@ -15,12 +16,11 @@ from jet_hadron.base import params
 
 logger = logging.getLogger(__name__)
 
-def logYAMLDump(s):
-    """ Simple function that transforms the yaml.dump() call to a stream
-    and redirects it to the logger.
-
-    Inspired by: https://stackoverflow.com/a/47617341
-    """
+def log_yaml_dump(yaml, config):
+    """ Helper function to log the YAML config. """
+    s = StringIO()
+    yaml.dump(config, s)
+    s.seek(0)
     logger.debug(s)
 
 @pytest.fixture
@@ -93,7 +93,7 @@ def overrideData(config):
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("Before override:")
-        yaml.dump(config, None, transform = logYAMLDump)
+        log_yaml_dump(yaml, config)
 
     # Override and simplify the values
     config = genericConfig.overrideOptions(config, (), ())
@@ -101,7 +101,7 @@ def overrideData(config):
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
-        yaml.dump(config, None, transform = logYAMLDump)
+        log_yaml_dump(yaml, config)
 
     return config
 

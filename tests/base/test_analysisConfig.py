@@ -11,6 +11,7 @@ import copy
 import logging
 import pytest
 import ruamel.yaml
+from io import StringIO
 
 from jet_hadron.base import analysisConfig
 from jet_hadron.base import genericConfig
@@ -73,12 +74,11 @@ def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expect
     assert returnedOptions.leadingHadronBias.value == expectedLeadingHadronBiasValue
     assert returnedOptions.leadingHadronBias.type == params.leadingHadronBiasType[biasType]
 
-def logYAMLDump(s):
-    """ Simple function that transforms the yaml.dump() call to a stream
-    and redirects it to the logger.
-
-    Inspired by: https://stackoverflow.com/a/47617341
-    """
+def log_yaml_dump(yaml, config):
+    """ Helper function to log the YAML config. """
+    s = StringIO()
+    yaml.dump(config, s)
+    s.seek(0)
     logger.debug(s)
 
 @pytest.fixture
@@ -156,7 +156,7 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
     yaml = ruamel.yaml.YAML()
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("Before override:")
-        yaml.dump(config, None, transform = logYAMLDump)
+        log_yaml_dump(yaml, config)
 
     config = analysisConfig.overrideOptions(config = config,
                                             selectedOptions = selectedOptions,
@@ -164,7 +164,7 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
-        yaml.dump(config, None, transform = logYAMLDump)
+        log_yaml_dump(yaml, config)
 
     return (config, selectedOptions)
 
