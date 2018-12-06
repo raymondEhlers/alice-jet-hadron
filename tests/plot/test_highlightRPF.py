@@ -6,7 +6,7 @@ import pytest  # noqa: F401
 import numpy
 import logging
 
-from jet_hadon.plot import highlightRPF
+from jet_hadron.plot import highlightRPF
 
 # Setup logger
 logger = logging.getLogger(__name__)

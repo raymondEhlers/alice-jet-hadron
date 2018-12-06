@@ -82,7 +82,7 @@ setup(
         # Not required at the moment, but hopefully for the future.
         #"uproot",
         "rootpy",
-        #"root_numpy",  # As of 29 July 2018, doesn't support py3.7, so install via fork. See requirements.txt
+        #"root_numpy",  # As of Dec 2018, they have a new tag, but it's not yet on PyPI
         "iminuit>=1.3",
         "probfit",
         "numdifftools"
