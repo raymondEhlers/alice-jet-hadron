@@ -20,3 +20,26 @@ htmlcov/
 
 # Virtual environments
 .py*/
+
+# Ignore filetypes
+*.root
+*.pdf
+*.m4
+*.log
+*.out
+*.err
+*.o
+*.so
+*.d
+G__*.h
+G__*.cxx
+*.lo
+*_Dict.*
+*.dirstamp
+*.png
+*.bak
+*.pyc
+*.swp
+.DS_Store
+.project
+.vscode
