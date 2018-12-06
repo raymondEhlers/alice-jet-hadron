@@ -8,16 +8,22 @@
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
-from os import path
+import os
+
+def get_version():
+    versionModule = {}
+    with open(os.path.join("jet_hadron", "version.py")) as f:
+        exec(f.read(), versionModule)
+    return versionModule["__version__"]
 
 # Get the long description from the README file
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name="aliceJetHCorrelations",
-    version="0.8",
+    name="alice_jet_hadron_correlations",
+    version=get_version(),
 
     description="ALICE jet-hadron correlations analysis",
     long_description=long_description,
@@ -26,7 +32,7 @@ setup(
     author="Raymond Ehlers",
     author_email="raymond.ehlers@cern.ch",
 
-    url="https://github.com/ALICEYale/alice-yale-dev",
+    url="https://github.com/raymondEhlers/alice-jet-hadron",
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -41,7 +47,6 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7'
     ],
@@ -74,7 +79,8 @@ setup(
         "numpy",
         "matplotlib",
         "seaborn",
-        "uproot",  # Not strictly required at the moment, but hopefully for the future.
+        # Not required at the moment, but hopefully for the future.
+        #"uproot",
         "rootpy",
         #"root_numpy",  # As of 29 July 2018, doesn't support py3.7, so install via fork. See requirements.txt
         "iminuit>=1.3",

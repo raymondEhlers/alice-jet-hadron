@@ -3,7 +3,7 @@ output/
 .ipynb_checkpoints/
 
 # Ignore setup.py related folder
-jet_hadron.egg-info/
+alice_jet_hadron_correlations.egg-info/
 
 # Ignore pytests cache
 .pytest_cache/
@@ -15,4 +15,8 @@ prof/
 .coverage
 htmlcov/
 
+# Generated html files
 *.html
+
+# Virtual environments
+.py*/
