@@ -18,10 +18,7 @@ def testRootHists():
     Returns:
         tuple: (TH1F, TH2F, TH3F) for testing
     """
-    import warnings
-    # Handle rootpy warning
-    warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-    import rootpy.ROOT as ROOT
+    import ROOT
     import collections
 
     rootHists = collections.namedtuple("rootHists", ["hist1D", "hist2D", "hist3D"])
