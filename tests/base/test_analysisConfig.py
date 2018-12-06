@@ -7,16 +7,17 @@
 # Py2/3
 from future.utils import iteritems
 
-import pytest
 import copy
-import ruamel.yaml
 import logging
+import pytest
+import ruamel.yaml
+
+from jet_hadron.base import analysisConfig
+from jet_hadron.base import genericConfig
+from jet_hadron.base import params
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-from jetH.base import params
-from jetH.base import genericConfig
-from jetH.base import analysisConfig
 
 @pytest.fixture
 def leadingHadronBiasConfig():
@@ -446,7 +447,7 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
     # Mock reading the config
     #loadConfigurationMock = mocker.MagicMock(spec_set = ["filename"], return_value = config)
     # Needs the full path to the module.
-    loadConfigurationMock = mocker.patch("jetH.base.analysisConfig.genericConfig.loadConfiguration", return_value = config)
+    loadConfigurationMock = mocker.patch("jet_hadron.base.analysisConfig.genericConfig.loadConfiguration", return_value = config)
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 

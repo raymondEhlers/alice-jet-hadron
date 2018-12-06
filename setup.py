@@ -60,11 +60,11 @@ setup(
     # See: https://stackoverflow.com/a/8506532
     entry_points = {
         "console_scripts": [
-            "jetHAnalysis = jetH.analysis.correlations:runFromTerminal",
-            "jetHResponse = jetH.analysis.responseMatrix:runFromTerminal",
-            "plotEMCalCorrections = jetH.analysis.EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
-            "plotEMCalEmbedding = jetH.analysis.EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
-            "plotRPFRegions = jetH.plot.highlightRPF:runFromTerminal"
+            "jetHAnalysis = jet_hadron.analysis.correlations:runFromTerminal",
+            "jetHResponse = jet_hadron.analysis.responseMatrix:runFromTerminal",
+            "plotEMCalCorrections = jet_hadron.analysis.EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
+            "plotEMCalEmbedding = jet_hadron.analysis.EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
+            "plotRPFRegions = jet_hadron.plot.highlightRPF:runFromTerminal"
         ],
     },
 

@@ -8,15 +8,16 @@
 # Py2/3 compatibility
 from future.utils import iteritems
 
-import os
 import argparse
 import collections
 import logging
-logger = logging.getLogger(__name__)
+import os
 
-import jetH.base.genericConfig as genericConfig
-import jetH.base.genericClass as genericClass
-import jetH.base.params as params
+from jet_hadron.base import genericClass
+from jet_hadron.base import genericConfig
+from jet_hadron.base import params
+
+logger = logging.getLogger(__name__)
 
 def determineLeadingHadronBias(config, selectedAnalysisOptions):
     """ Determines the leading hadron bias based on the analysis options. It is then created and

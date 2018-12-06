@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-# Contains class to handle generic TH1 and THn projections
+""" Contains class to handle generic TH1 and THn projections
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # From the future package
 from future.utils import iteritems
@@ -8,12 +11,13 @@ from future.utils import iteritems
 import aenum
 import copy
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
-
-import jetH.base.genericClass as genericClass
 
 import rootpy.ROOT as ROOT
+
+from jet_hadron.base import genericClass
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 class TH1AxisType(aenum.Enum):
     """ Map from (x,y,z) axis to the axis number.

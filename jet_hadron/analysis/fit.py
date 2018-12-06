@@ -26,10 +26,10 @@ import probfit
 # For gradients
 import numdifftools as nd
 
-import jetH.base.params as params
-import jetH.base.analysisObjects as analysisObjects
-import jetH.base.analysisConfig as analysisConfig
-import jetH.plot.fit as plotFit
+from jet_hadron.base import params
+from jet_hadron.base import analysisObjects
+from jet_hadron.base import analysisConfig
+from jet_hadron.plot import fit as plotFit
 
 import rootpy.ROOT as ROOT
 

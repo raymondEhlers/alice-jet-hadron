@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 
-# Utilities for the jet-hadron anaylsis
-#
-# Author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# Date: 13 Jan 2017
+""" Utilities for the jet-hadron anaylsis
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # From the future package
 from builtins import super
 from future.utils import iteritems
 
-import os
 import aenum
 import copy
-import re
-import numpy as np
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
+import numpy as np
+import os
+import re
 
 import rootpy.ROOT as ROOT
 
-import jetH.base.utils as utils
+from jet_hadron.base import utils
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 class jetHCorrelationType(aenum.Enum):
     """ 1D correlation projection type """

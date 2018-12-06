@@ -38,20 +38,20 @@ import scipy.signal
 import scipy.interpolate
 import numpy as np
 
-import jetH.base.params as params
-import jetH.base.utils as utils
-from jetH.base.utils import epsilon
-import jetH.base.analysisObjects as analysisObjects
-import jetH.base.projectors as projectors
-from jetH.base.projectors import HistAxisRange
-import jetH.base.analysisConfig as analysisConfig
+from jet_hadron.base import params
+from jet_hadron.base import utils
+from jet_hadron.base.utils import epsilon
+from jet_hadron.base import analysisObjects
+from jet_hadron.base import projectors
+from jet_hadron.base.projectors import HistAxisRange
+from jet_hadron.base import analysisConfig
 
-import jetH.plot.general as plotGeneral
-import jetH.plot.correlations as plotCorrelations
-import jetH.plot.fit as plotFit
-import jetH.plot.extracted as plotExtracted
+from jet_hadron.plot import general as plotGeneral
+from jet_hadron.plot import correlations as plotCorrelations
+from jet_hadron.plot import fit as plotFit
+from jet_hadron.plot import extracted as plotExtracted
 
-import jetH.analysis.fit as fitting
+from jet_hadron.analysis import fit as fitting
 
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python

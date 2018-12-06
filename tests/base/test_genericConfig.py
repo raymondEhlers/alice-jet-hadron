@@ -5,14 +5,15 @@
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
 
-import pytest
 import collections
-import ruamel.yaml
 import logging
-logger = logging.getLogger(__name__)
+import pytest
+import ruamel.yaml
 
-import jetH.base.params as params
-import jetH.base.genericConfig as genericConfig
+from jet_hadron.base import genericConfig
+from jet_hadron.base import params
+
+logger = logging.getLogger(__name__)
 
 def logYAMLDump(s):
     """ Simple function that transforms the yaml.dump() call to a stream

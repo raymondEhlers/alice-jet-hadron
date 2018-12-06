@@ -5,12 +5,13 @@
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 8 May 2018
 
-import pytest
 import logging
+import pytest
+
+from jet_hadron.base import params
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-import jetH.base.params as params
 
 def getRangeFromBinArray(array):
     """ Helper function to return bin indices from an array.

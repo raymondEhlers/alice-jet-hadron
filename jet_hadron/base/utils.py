@@ -6,18 +6,18 @@
 from builtins import range
 from future.utils import iteritems
 
-import ruamel.yaml
 import collections
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
-
 import numpy as np
+import ruamel.yaml
 
 import root_numpy
 import rootpy
 import rootpy.io
 import rootpy.ROOT as ROOT
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 # Small value - epsilon
 # For use to offset from bin edges when finding bins for use with SetRange()

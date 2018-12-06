@@ -14,21 +14,25 @@ import os
 import sys
 import aenum
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
-import warnings
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-thisModule = sys.modules[__name__]
 
-import jetH.base.params as params
-import jetH.base.analysisConfig as analysisConfig
-import jetH.analysis.genericTasks as genericTasks
+import warnings
+
+from jet_hadron.base import params
+from jet_hadron.base import analysisConfig
+from jet_hadron.analysis import genericTasks
 
 import rootpy.ROOT as ROOT
+
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT and sometimes must be the first ROOT related import!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
+# Handle rootpy warning
+warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
+thisModule = sys.modules[__name__]
 
 class EMCalCorrectionsLabels(aenum.Enum):
     """ Label of possible EMCal correction tasks.

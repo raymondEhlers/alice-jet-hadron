@@ -14,8 +14,8 @@ import collections
 import logging
 logger = logging.getLogger(__name__)
 
-import jetH.base.params as params
-import jetH.plot.base as plotBase
+from jet_hadron.base import params as params
+from jet_hadron.plot import base as plotBase
 
 # Import plotting packages
 # Use matplotlib in some cases

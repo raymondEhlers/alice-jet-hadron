@@ -28,11 +28,11 @@ thisModule = sys.modules[__name__]
 
 import IPython
 
-import jetH.base.projectors as projectors
-from jetH.base.projectors import HistAxisRange
-import jetH.base.analysisObjects as analysisObjects
+from jet_hadron.base import projectors
+from jet_hadron.base.projectors import HistAxisRange
+from jet_hadron.base import analysisObjects
 
-import jetH.plot.rootBase as plotRootBase
+from jet_hadron.plot import rootBase as plotRootBase
 
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python

@@ -17,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-import jetH.base.params as params
-import jetH.base.utils as utils
-import jetH.base.analysisConfig as analysisConfig
-import jetH.base.analysisObjects as analysisObjects
-import jetH.plot.base as plotBase
+from jet_hadron.base import params
+from jet_hadron.base import utils
+from jet_hadron.base import analysisConfig
+from jet_hadron.base import analysisObjects
+from jet_hadron.plot import base as plotBase
 
 # Import plotting packages
 # Use matplotlib in some cases

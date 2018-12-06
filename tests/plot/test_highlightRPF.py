@@ -5,10 +5,11 @@
 import pytest  # noqa: F401
 import numpy
 import logging
+
+from jet_hadon.plot import highlightRPF
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-import jetH.plot.highlightRPF as highlightRPF
 
 def scaleColorToMax1(colors):
     """ Scale all colors to max 1 (from 255). """

@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-# Tests for jetH.base.utilClasses
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 8 May 2018
+""" Tests for generic class properties.
 
-import pytest
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
+
 import collections
 import logging
-logger = logging.getLogger(__name__)
+import pytest
 
-import jetH.base.genericClass as genericClass
+from jet_hadron.base import genericClass
+
+logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def setupEqualityMixin():

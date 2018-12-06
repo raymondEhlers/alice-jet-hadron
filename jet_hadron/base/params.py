@@ -6,15 +6,16 @@
 
 from builtins import range
 
-import math
-import numbers
-import re
 import aenum
 import collections
 import logging
-logger = logging.getLogger(__name__)
+import math
+import numbers
+import re
 
-import jetH.base.genericClass as genericClass
+from jet_hadron.base import genericClass
+
+logger = logging.getLogger(__name__)
 
 # Bins
 # eta is absolute value!

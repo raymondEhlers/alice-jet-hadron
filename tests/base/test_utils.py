@@ -4,15 +4,16 @@
 from builtins import range
 from future.utils import itervalues
 
-import pytest
-import os
-import numpy as np
 import collections
 import logging
+import os
+import numpy as np
+import pytest
+
+from jet_hadron.base import utils
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-import jetH.base.utils as utils
 
 @pytest.fixture
 def retrieveRootList(testRootHists):

@@ -12,7 +12,7 @@ from future.utils import iteritems
 import logging
 logger = logging.getLogger(__name__)
 
-import jetH.plot.base as plotBase
+from jet_hadron.plot import base as plotBase
 
 # Use matplitlib for some plots
 # And use ROOT in others

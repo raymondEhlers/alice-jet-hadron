@@ -7,16 +7,16 @@
 
 from future.utils import iteritems
 
-import pytest
-import os
-import ruamel.yaml
-import numpy as np
 import logging
+import numpy as np
+import os
+import pytest
+import ruamel.yaml
+
+from jet_hadron.base import analysisObjects
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-from jetH.base import analysisObjects
-
 # For reproducibility
 np.random.seed(1234)
 
@@ -192,7 +192,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
 
     # Make sure the file will be read
     mExists = mocker.MagicMock(return_value = True)
-    mocker.patch("jetH.base.analysisObjects.os.path.exists", mExists)
+    mocker.patch("jet_hadron.base.analysisObjects.os.path.exists", mExists)
 
     # Determine the filename and get the test data.
     # `inputData` contains the data for the test.
@@ -206,7 +206,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
 
     # Read
     mRead = mocker.mock_open(read_data = inputData)
-    mocker.patch("jetH.base.utils.open", mRead)
+    mocker.patch("jet_hadron.base.utils.open", mRead)
     testObj = obj.initFromYAML(**objArgs)
     # Check the expected read call.
     mRead.assert_called_once_with(dataFilename, "r")
@@ -224,9 +224,9 @@ def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType,
 
     # Write
     mWrite = mocker.mock_open()
-    mocker.patch("jetH.base.utils.open", mWrite)
+    mocker.patch("jet_hadron.base.utils.open", mWrite)
     mYaml = mocker.MagicMock()
-    mocker.patch("jetH.base.utils.ruamel.yaml.YAML.dump", mYaml)
+    mocker.patch("jet_hadron.base.utils.ruamel.yaml.YAML.dump", mYaml)
     testObj.saveToYAML(**objArgs)
     # Check the expected write and YAML calls.
     mWrite.assert_called_once_with(dataFilename, "w")

@@ -5,17 +5,18 @@
 # author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 # date: 6 June 2018
 
-import pytest
 import aenum
 import collections
 import logging
-logger = logging.getLogger(__name__)
-
-import jetH.base.utils as utils
-import jetH.base.projectors as projectors
+import pytest
 
 import numpy as np
 import rootpy.ROOT as ROOT
+
+from jet_hadron.base import projectors
+from jet_hadron.base import utils
+
+logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def createHistAxisRange():

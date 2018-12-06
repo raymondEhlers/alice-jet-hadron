@@ -31,8 +31,8 @@ thisModule = sys.modules[__name__]
 
 import numpy as np
 
-import jetH.base.utils as utils
-import jetH.plot.base as plotBase
+from jet_hadron.base import utils
+from jet_hadron.plot import base as plotBase
 
 # Import plotting packages
 import matplotlib

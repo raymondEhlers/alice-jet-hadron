@@ -11,19 +11,19 @@ from builtins import super
 from future.utils import iteritems
 from future.utils import itervalues
 
-import os
-import copy
 import collections
+import copy
 import logging
+import os
+import pprint
+
+from jet_hadron.base import analysisConfig
+from jet_hadron.plot import genericHist as plotGenericHist
+from jet_hadron.base import utils
+
 logger = logging.getLogger(__name__)
 # Quiet down the matplotlib logging
 logging.getLogger("matplotlib").setLevel(logging.INFO)
-
-import pprint
-
-import jetH.base.utils as utils
-import jetH.base.analysisConfig as analysisConfig
-import jetH.plot.genericHist as plotGenericHist
 
 class PlotTaskHists(analysisConfig.JetHBase):
     """ Generic class to plot hists in analysis task.

@@ -9,8 +9,8 @@ import logging
 # Setup logger
 logger = logging.getLogger(__name__)
 
-import jetH.base.params as params
-import jetH.plot.base as plotBase
+from jet_hadron.base import params
+from jet_hadron.plot import base as plotBase
 
 import matplotlib.pyplot as plt
 import matplotlib.colors

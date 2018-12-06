@@ -10,11 +10,10 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-import jetH.base.params as params
-import jetH.base.utils as utils
-
-import jetH.plot.base as plotBase
-import jetH.plot.highlightRPF as highlightRPF
+from jet_hadron.base import params
+from jet_hadron.base import utils
+from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import highlightRPF
 
 # Import plotting packages
 # Use matplotlib in some cases

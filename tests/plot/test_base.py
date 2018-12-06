@@ -8,10 +8,11 @@
 import pytest
 import os
 import logging
+
+from jet_hadron.plot import base as plotBase
+
 # Setup logger
 logger = logging.getLogger(__name__)
-
-import jetH.plot.base as plotBase
 
 @pytest.mark.parametrize("outputPrefix,printingExtensions", [
     ("a/b", ["png"]),
