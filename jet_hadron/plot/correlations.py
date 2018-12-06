@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 
+""" Correlations plotting module.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
+
 # Py2/3
 from future.utils import iteritems
 from future.utils import itervalues
 
-# Setup logger
 import logging
-logger = logging.getLogger(__name__)
-
 import numpy as np
-
-from jet_hadron.base import params
-from jet_hadron.base import utils
-from jet_hadron.plot import base as plotBase
-from jet_hadron.plot import highlightRPF
 
 # Import plotting packages
 # Use matplotlib in some cases
@@ -22,6 +19,14 @@ from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 # And use ROOT in others
 import rootpy.ROOT as ROOT
+
+from jet_hadron.base import params
+from jet_hadron.base import utils
+from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import highlightRPF
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 def plot2DCorrelations(jetH):
     """ Plot the 2D correlations. """

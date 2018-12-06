@@ -1,24 +1,28 @@
 #!/usr/bin/env python
 
-######################
-# Base plotting module
-######################
+""" Base plotting module.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 import os
-# Setup logger
 import logging
-logger = logging.getLogger(__name__)
 
 # Import and configure plotting packages
 import matplotlib
 import matplotlib.pyplot as plt
+
+import seaborn as sns
+
+# Setup logger
+logger = logging.getLogger(__name__)
 # Enable latex
 plt.rc('text', usetex=True)
 # Potentially improve the layout
 # See: https://stackoverflow.com/a/17390833
 #from matplotlib import rcParams
 #rcParams.update({'figure.autolayout': True})
-import seaborn as sns
+# Setup seaborn
 sns.set(context = "notebook", style = "white")
 
 # For sans serif fonts in LaTeX (required for setting the fonts below)

@@ -21,32 +21,32 @@ Dependencies:
 
 import argparse
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+# Needed for 3D plots
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
+import seaborn as sns
 import sys
 import warnings
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-thisModule = sys.modules[__name__]
 
-import numpy as np
+import rootpy
+import rootpy.io
+import rootpy.ROOT as ROOT
 
 from jet_hadron.base import utils
 from jet_hadron.plot import base as plotBase
 
-# Import plotting packages
-import matplotlib
-import matplotlib.pyplot as plt
-# Needed for 3D plots
-from mpl_toolkits.mplot3d import Axes3D  # noqa
-import seaborn as sns
-
-import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
-import rootpy
-import rootpy.io
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
+# Handle rootpy warning
+warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
+thisModule = sys.modules[__name__]
 
 ##########
 # Plotting

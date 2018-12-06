@@ -1,36 +1,33 @@
 #!/usr/bin/env python
 
-#######################
-# Plot fits
-#
-# Predominately related to RPF plots
-#######################
+""" Fit plotting module.
+
+Predominately related to RPF plots
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3
 from future.utils import iteritems
 
-import os
 import collections
-# Setup logger
+import os
 import logging
-logger = logging.getLogger(__name__)
-
-import numpy as np
-
-from jet_hadron.base import params
-from jet_hadron.base import utils
-from jet_hadron.base import analysisConfig
-from jet_hadron.base import analysisObjects
-from jet_hadron.plot import base as plotBase
-
-# Import plotting packages
-# Use matplotlib in some cases
 import matplotlib.pyplot as plt
 import matplotlib
-#from matplotlib.offsetbox import AnchoredText
+import numpy as np
 import seaborn as sns
-# And use ROOT in others
+
 import rootpy.ROOT as ROOT
+
+from jet_hadron.base import analysisConfig
+from jet_hadron.base import analysisObjects
+from jet_hadron.base import params
+from jet_hadron.base import utils
+from jet_hadron.plot import base as plotBase
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
     """ Plot showing iminuit QA.
@@ -152,8 +149,6 @@ def PlotRPF(epFitObj):
                         verticalalignment='center',
                         multialignment="left",
                         transform = ax.transAxes)
-                #anchorText = AnchoredText(text, loc=9, frameon=False)
-                #ax.add_artist(anchorText)
 
             if i == 1:
                 text = ""
@@ -166,14 +161,6 @@ def PlotRPF(epFitObj):
                         multialignment="left",
                         transform = ax.transAxes)
 
-                #anchorText = AnchoredText(text, loc=9, frameon=False)
-                #ax.add_artist(anchorText)
-                #anchorText = """Background: $0.8<|\Delta\eta|<1.2$\nSignal + Background: $|\Delta\eta|<0.6$\n"""
-                #anchorText += """{jetPtString}\n{trackPtString}""".format(jetPtString = params.generateJetPtRangeString(jetPtBin),
-                #        trackPtString = params.generateTrackPtRangeString(trackPtBin))
-                #fig.text(0.34, 0.78, anchorText, fontsize = 10, transform=ax.transAxes)
-                #ax.text(0.34, 0.78, anchorText, transform=ax.transAxes)
-
             if i == 2:
                 #text = ""
                 #text += "Background: $0.8<|\Delta\eta|<1.2$\n"
@@ -183,9 +170,6 @@ def PlotRPF(epFitObj):
                 #        multialignment="left",
                 #        transform = ax.transAxes)
                 pass
-
-                #anchorText = AnchoredText(text, loc=9, frameon=False)
-                #ax.add_artist(anchorText)
 
             for correlationType, correlationDict in [(analysisObjects.jetHCorrelationType.signalDominated, jetH.dPhiArray),
                                                      (analysisObjects.jetHCorrelationType.backgroundDominated, jetH.dPhiSideBandArray)]:

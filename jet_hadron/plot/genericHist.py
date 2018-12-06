@@ -1,29 +1,34 @@
 #!/usr/bin/env python
 
+""" Generic histograms plotting module.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
+
 # Py2/3
 from builtins import range
 from future.utils import iteritems
 
-import re
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors
+import matplotlib.ticker
+# For 3D plots
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
+import re
+import seaborn as sns
+
+import rootpy.ROOT as ROOT
+import root_numpy
 
 from jet_hadron.base import params
 from jet_hadron.plot import base as plotBase
 
-import matplotlib.pyplot as plt
-import matplotlib.colors
+# Setup logger
+logger = logging.getLogger(__name__)
+# Use latex in matplotlib.
 plt.rc('text', usetex=True)
-import matplotlib.ticker
-# For 3D plots
-from mpl_toolkits.mplot3d import Axes3D  # noqa: 21 . Needed for 3D plots, even if not directly called.
-import seaborn as sns
-
-import numpy as np
-
-import rootpy.ROOT as ROOT
-import root_numpy
 
 class HistPlotter(object):
     def __init__(self,

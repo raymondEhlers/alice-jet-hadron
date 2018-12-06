@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 
-######################
-# General plotting module
-#
-# Contains brief plotting functions which don't belong elsewhere
-######################
+""" General plotting module.
+
+Contains brief plotting functions which don't belong elsewhere
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3
 from future.utils import iteritems
 
 import logging
-logger = logging.getLogger(__name__)
+
+import rootpy.ROOT as ROOT
 
 from jet_hadron.plot import base as plotBase
 
-# Use matplitlib for some plots
-# And use ROOT in others
-import rootpy.ROOT as ROOT
+logger = logging.getLogger(__name__)
 
 ####
 # General plots

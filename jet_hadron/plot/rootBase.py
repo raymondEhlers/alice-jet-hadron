@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-# ROOT based plotting utilities. They are kept separately to avoid importing ROOT.
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 29 July 2018
+""" ROOT based plotting utilities.
+
+They are kept separately to avoid importing ROOT.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 def drawVerticalLine(xValue, ROOT = None):
     """ Draw a vertical line on a hist which will display properly on a log scale.

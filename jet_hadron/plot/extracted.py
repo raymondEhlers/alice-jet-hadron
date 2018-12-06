@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-#######################
-# Plot extracted values
-#
-# Includes quantities such as widths and yields
-#######################
+""" Extracted values plotting module.
+
+Includes quantities such as widths and yields.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3
 from future.utils import iteritems
@@ -12,16 +13,17 @@ from future.utils import itervalues
 
 import collections
 import logging
-logger = logging.getLogger(__name__)
-
-from jet_hadron.base import params as params
-from jet_hadron.plot import base as plotBase
 
 # Import plotting packages
 # Use matplotlib in some cases
 import matplotlib.pyplot as plt
 # And use ROOT in others
 import rootpy.ROOT as ROOT
+
+from jet_hadron.base import params as params
+from jet_hadron.plot import base as plotBase
+
+logger = logging.getLogger(__name__)
 
 def plotYields(jetH):
     """ Plot extracted yields. """
