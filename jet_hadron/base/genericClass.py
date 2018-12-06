@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# Contains generic classes
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 8 May 2018
+""" Contains generic classes
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 class EqualityMixin(object):
     """ Defines generic comparison operations using `__dict__`, which can

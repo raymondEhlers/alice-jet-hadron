@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
-# Contains Jet-Hadron analysis parameters
-#
-# As well as ways to access that information
+""" Jet-Hadron analysis parameters.
+
+Also contains methods to access that information.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 from builtins import range
 

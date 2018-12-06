@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" Contains class to handle generic TH1 and THn projections
+""" Handle generic TH1 and THn projections.
 
 .. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """

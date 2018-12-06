@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-# (Mainly histogram) utilities
+""" (Mainly histogram) utilities.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # From the future package
 from builtins import range

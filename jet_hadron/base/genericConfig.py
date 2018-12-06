@@ -1,20 +1,25 @@
 #!/usr/bin/env python
 
-# Analysis configuration base module. For usage information,
-# see JetHConfig
+""" Analysis configuration base module.
+
+For usage information, see ``jet_hadron.base.analysisConfig``.
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # py2/3
 import future.utils
 from future.utils import iteritems
 from future.utils import itervalues
 
-import copy
-import string
-import collections
-import itertools
 import aenum
-import ruamel.yaml
+import collections
+import copy
+import itertools
 import logging
+import string
+import ruamel.yaml
+
 logger = logging.getLogger(__name__)
 
 def loadConfiguration(filename):

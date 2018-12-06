@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-# Manages configuration of the jet-hadron analysis
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 8 May 2018
+""" Manages configuration of the jet-hadron analysis
+
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3 compatibility
 from future.utils import iteritems
