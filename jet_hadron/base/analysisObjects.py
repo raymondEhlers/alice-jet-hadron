@@ -16,8 +16,6 @@ import numpy as np
 import os
 import re
 
-import rootpy.ROOT as ROOT
-
 from jet_hadron.base import utils
 
 # Setup logger
@@ -168,14 +166,13 @@ class HistContainer(object):
         """
         # The first bin should always exist!
         binWidthScaleFactor = self.hist.GetXaxis().GetBinWidth(1)
-
-        # Recall that TH3 _does not_ inherit from TH2, so we need to explicitly
-        # check for it here to ensure that it is scaled by the Y axis bin width
-        # (as well the z axis bin width scaling that is after this if statement).
-        if isinstance(self.hist, ROOT.TH2) or isinstance(self.hist, ROOT.TH3):
-            binWidthScaleFactor *= self.hist.GetYaxis().GetBinWidth(1)
-        if isinstance(self.hist, ROOT.TH3):
-            binWidthScaleFactor *= self.hist.GetZaxis().GetBinWidth(1)
+        # Because of a ROOT quirk, even a TH1* hist has a Y and Z axis, with 1 bin
+        # each. This bin has bin width 1, so it doesn't change anything if we multiply
+        # by that bin width. So we just do it for all histograms.
+        # This has the benefit that we don't need explicit dependence on an imported
+        # ROOT package.
+        binWidthScaleFactor *= self.hist.GetYaxis().GetBinWidth(1)
+        binWidthScaleFactor *= self.hist.GetZaxis().GetBinWidth(1)
 
         finalScaleFactor = additionalScaleFactor / binWidthScaleFactor
 
