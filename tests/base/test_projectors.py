@@ -272,9 +272,87 @@ histAxisRangesRestricted = (
         maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 - utils.epsilon))
 )
 
-def testTH2Projection(loggingMixin, testRootHists):
-    """ Test projection of a TH2. """
-    assert False
+# Other axes:
+# AAC = Additional Axis Cuts
+# PDCA = Projection Dependent Cut Axes
+@pytest.mark.parametrize("use_PDCA, additionalCuts, expectedAdditionalCuts", [
+    (False, None, True),
+    (False, histAxisRanges.yAxis, True),
+    (False, histAxisRangesWithNoEntries.yAxis, False),
+    (True, None, True),
+    (True, [], True),
+    (True, [histAxisRanges.yAxis], True),
+    (True, [histAxisRangesWithNoEntries.yAxis], False),
+    (True, [histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
+], ids = [
+    "No AAC selection", "AAC with entries", "AAC with no entries",
+    "None PDCA", "Empty PDCA", "PDCA",
+    "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"
+])
+# PA = Projection Axes
+@pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
+    (histAxisRanges.xAxis, True),
+    (histAxisRangesWithNoEntries.xAxis, False),
+], ids = ["PA with entries", "PA without entries"])
+def testTH2Projection(loggingMixin, testRootHists,
+                      use_PDCA, additionalCuts, expectedAdditionalCuts,
+                      projectionAxes, expectedProjectionAxes):
+    """ Test projection of a TH2 to a TH1. """
+    observableList = {}
+    observableToProjectFrom = {"hist2D": testRootHists.hist2D}
+    projectionNameFormat = "hist"
+    obj = projectors.HistProjector(observableList = observableList,
+                                   observableToProjectFrom = observableToProjectFrom,
+                                   projectionNameFormat = projectionNameFormat,
+                                   projectionInformation = {})
+
+    # Set the projection axes.
+    # Using additional cut axes or PDCA is mutually exclusive because we only have one
+    # non-projection axis to work with.
+    if use_PDCA:
+        if additionalCuts is not None:
+            # We need to iterate here separately so that we can separate out the cuts
+            # for the disconnected PDCAs.
+            for axisSet in additionalCuts:
+                obj.projectionDependentCutAxes.append([axisSet])
+    else:
+        if additionalCuts is not None:
+            obj.additionalAxisCuts.append(additionalCuts)
+    obj.projectionAxes.append(projectionAxes)
+
+    # Perform the projection.
+    obj.Project()
+
+    # Check the output.
+    assert len(observableList) == 1
+    proj = next(iter(observableList.values()))
+    assert proj.GetName() == "hist"
+
+    logger.debug("observableList: {}, proj.GetEntries(): {}".format(observableList, proj.GetEntries()))
+
+    # Check the axes (they should be in the same order that they are defined above).
+    # Use the axis max as a proxy (this function name sux).
+    assert proj.GetXaxis().GetXmax() == 0.8
+
+    # Check the bin content. There should be one entry at 10, which translates to
+    # the bin 1
+    nonZeroBins = []
+    for x in range(1, proj.GetNcells()):
+        if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
+            logger.debug(f"non-zero bin at {x}")
+            nonZeroBins.append(x)
+
+    expectedCount = 0
+    # It will only be non-zero if all of the expected values are true.
+    expectedNonZeroCounts = all([expectedAdditionalCuts, expectedProjectionAxes])
+    if expectedNonZeroCounts:
+        expectedCount = 1
+    assert len(nonZeroBins) == expectedCount
+    # Check the precise bin which was found.
+    if expectedCount != 0:
+        # Only check if we actually expected a count
+        assert next(iter(nonZeroBins)) == 1
 
 # AAC = Additional Axis Cuts
 @pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
@@ -352,31 +430,33 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
         # Only check if we actually expected a count
         assert next(iter(nonZeroBins)) == 1
 
+# Other axes:
 # AAC = Additional Axis Cuts
-@pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
-    (None, True),
-    (histAxisRanges.xAxis, True),
-    (histAxisRangesWithNoEntries.xAxis, False)
-], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
 # PDCA = Projection Dependent Cut Axes
-@pytest.mark.parametrize("projectionDependentCutAxes, expectedProjectionDependentCutAxes", [
-    (None, True),
-    ([], True),
-    ([histAxisRanges.yAxis], True),
-    ([histAxisRangesWithNoEntries.yAxis], False),
-    ([histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
-    ([histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
-], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"])
+@pytest.mark.parametrize("use_PDCA, additionalCuts, expectedAdditionalCuts", [
+    (False, None, True),
+    (False, histAxisRanges.yAxis, True),
+    (False, histAxisRangesWithNoEntries.yAxis, False),
+    (True, None, True),
+    (True, [], True),
+    (True, [histAxisRanges.yAxis], True),
+    (True, [histAxisRangesWithNoEntries.yAxis], False),
+    (True, [histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
+], ids = [
+    "No AAC selection", "AAC with entries", "AAC with no entries",
+    "None PDCA", "Empty PDCA", "PDCA",
+    "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"
+])
 # PA = Projection Axes
 @pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
-    ([histAxisRanges.zAxis, histAxisRanges.yAxis], True),
-    ([histAxisRanges.zAxis, histAxisRangesWithNoEntries.yAxis], False),
-    ([histAxisRangesWithNoEntries.zAxis, histAxisRanges.yAxis], False),
-    ([histAxisRangesWithNoEntries.zAxis, histAxisRangesWithNoEntries.yAxis], False),
-], ids = ["PA with entries", "PA without entries due to y", "PA without entires due to z", "PA without entries"])
+    ([histAxisRanges.zAxis, histAxisRanges.xAxis], True),
+    ([histAxisRanges.zAxis, histAxisRangesWithNoEntries.xAxis], False),
+    ([histAxisRangesWithNoEntries.zAxis, histAxisRanges.xAxis], False),
+    ([histAxisRangesWithNoEntries.zAxis, histAxisRangesWithNoEntries.xAxis], False),
+], ids = ["PA with entries", "PA without entries due to x", "PA without entires due to z", "PA without entries"])
 def testTH3ToTH2Projection(loggingMixin, testRootHists,
-                           additionalAxisCuts, expectedAdditionalAxisCuts,
-                           projectionDependentCutAxes, expectedProjectionDependentCutAxes,
+                           use_PDCA, additionalCuts, expectedAdditionalCuts,
                            projectionAxes, expectedProjectionAxes):
     """ Test projection of a TH3 into a TH2. """
     observableList = {}
@@ -388,13 +468,17 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
                                    projectionInformation = {})
 
     # Set the projection axes.
-    if additionalAxisCuts is not None:
-        obj.additionalAxisCuts.append(additionalAxisCuts)
-    if projectionDependentCutAxes is not None:
-        # We need to iterate here separately so that we can separate out the cuts
-        # for the disconnected PDCAs.
-        for axisSet in projectionDependentCutAxes:
-            obj.projectionDependentCutAxes.append([axisSet])
+    # Using additional cut axes or PDCA is mutually exclusive because we only have one
+    # non-projection axis to work with.
+    if use_PDCA:
+        if additionalCuts is not None:
+            # We need to iterate here separately so that we can separate out the cuts
+            # for the disconnected PDCAs.
+            for axisSet in additionalCuts:
+                obj.projectionDependentCutAxes.append([axisSet])
+    else:
+        if additionalCuts is not None:
+            obj.additionalAxisCuts.append(additionalCuts)
     for ax in projectionAxes:
         obj.projectionAxes.append(ax)
 
@@ -411,14 +495,8 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
     # Check the axes (they should be in the same order that they are defined above).
     # Use the axis max as a proxy (this function name sux).
     assert proj.GetXaxis().GetXmax() == 60.0
-    assert proj.GetYaxis().GetXmax() == 12.0
+    assert proj.GetYaxis().GetXmax() == 0.8
     logger.debug(f"x axis min: {proj.GetXaxis().GetXmin()}, y axis min: {proj.GetYaxis().GetXmin()}")
-
-    expectedBins = 5
-    # If we don't expect a count, we've restricted the range further, so we need to reflect this in our check.
-    if expectedProjectionAxes is False:
-        expectedBins = 4
-    assert proj.GetXaxis().GetNbins() == expectedBins
 
     # Check the bin content. There should be one entry at 10, which translates to
     # the bin 1
@@ -430,7 +508,7 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
 
     expectedCount = 0
     # It will only be non-zero if all of the expected values are true.
-    expectedNonZeroCounts = all([expectedAdditionalAxisCuts, expectedProjectionDependentCutAxes, expectedProjectionAxes])
+    expectedNonZeroCounts = all([expectedAdditionalCuts, expectedProjectionAxes])
     if expectedNonZeroCounts:
         expectedCount = 1
     assert len(nonZeroBins) == expectedCount
@@ -442,4 +520,29 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
 def testTHnProjection(loggingMixin, testSparse):
     """ Test projection of a THnSparse. """
     assert False
+
+@pytest.mark.parametrize("PDCA_axis", [
+    histAxisRanges.xAxis,
+    histAxisRangesWithNoEntries.xAxis,
+], ids = ["Same range PDCA", "Different range PDCA"])
+def test_invalid_PDCA_axis(loggingMixin, testRootHists, PDCA_axis):
+    """ Test catching a PDCA on the same axis as the projection axis. """
+    observableList = {}
+    observableToProjectFrom = {"hist3D": testRootHists.hist3D}
+    projectionNameFormat = "hist"
+    obj = projectors.HistProjector(observableList = observableList,
+                                   observableToProjectFrom = observableToProjectFrom,
+                                   projectionNameFormat = projectionNameFormat,
+                                   projectionInformation = {})
+
+    # Set the projection axes.
+    # It is invalid even if the ranges are different
+    obj.projectionDependentCutAxes.append([PDCA_axis])
+    obj.projectionAxes.append(histAxisRanges.xAxis)
+
+    # Perform the projection.
+    with pytest.raises(ValueError) as exception_info:
+        obj.Project()
+
+    assert "This configuration is not allowed" in exception_info.value.args[0]
 
