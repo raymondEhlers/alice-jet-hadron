@@ -377,6 +377,12 @@ class HistProjector(object):
             if self.projectionDependentCutAxes == []:
                 self.projectionDependentCutAxes.append([])
 
+            # Validate the projection dependent cut axes
+            # It is invalid to have PDCA on the same axes as the projection axes.
+            duplicated_axes = [PDCA for PA in self.projectionAxes for PDCA_group in self.projectionDependentCutAxes for PDCA in PDCA_group if PDCA.axisType == PA.axisType]
+            if duplicated_axes:
+                raise ValueError(f"Axis {duplicated_axes} is in the projection axes and the projection dependent cut axes. This configuration is not allowed, as the range in the PCA will be overwritten by the projection axes! Please revise your configuration.")
+
             # Perform the projections
             hists = []
             for (i, axes) in enumerate(self.projectionDependentCutAxes):
