@@ -272,6 +272,10 @@ histAxisRangesRestricted = (
         maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 - utils.epsilon))
 )
 
+def testTH2Projection(loggingMixin, testRootHists):
+    """ Test projection of a TH2. """
+    assert False
+
 # AAC = Additional Axis Cuts
 @pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
     (None, True),
@@ -348,8 +352,94 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
         # Only check if we actually expected a count
         assert next(iter(nonZeroBins)) == 1
 
+# AAC = Additional Axis Cuts
+@pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
+    (None, True),
+    (histAxisRanges.xAxis, True),
+    (histAxisRangesWithNoEntries.xAxis, False)
+], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
+# PDCA = Projection Dependent Cut Axes
+@pytest.mark.parametrize("projectionDependentCutAxes, expectedProjectionDependentCutAxes", [
+    (None, True),
+    ([], True),
+    ([histAxisRanges.yAxis], True),
+    ([histAxisRangesWithNoEntries.yAxis], False),
+    ([histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    ([histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
+], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"])
+# PA = Projection Axes
+@pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
+    ([histAxisRanges.zAxis, histAxisRanges.yAxis], True),
+    ([histAxisRanges.zAxis, histAxisRangesWithNoEntries.yAxis], False),
+    ([histAxisRangesWithNoEntries.zAxis, histAxisRanges.yAxis], False),
+    ([histAxisRangesWithNoEntries.zAxis, histAxisRangesWithNoEntries.yAxis], False),
+], ids = ["PA with entries", "PA without entries due to y", "PA without entires due to z", "PA without entries"])
+def testTH3ToTH2Projection(loggingMixin, testRootHists,
+                           additionalAxisCuts, expectedAdditionalAxisCuts,
+                           projectionDependentCutAxes, expectedProjectionDependentCutAxes,
+                           projectionAxes, expectedProjectionAxes):
+    """ Test projection of a TH3 into a TH2. """
+    observableList = {}
+    observableToProjectFrom = {"hist3D": testRootHists.hist3D}
+    projectionNameFormat = "hist"
+    obj = projectors.HistProjector(observableList = observableList,
+                                   observableToProjectFrom = observableToProjectFrom,
+                                   projectionNameFormat = projectionNameFormat,
+                                   projectionInformation = {})
+
+    # Set the projection axes.
+    if additionalAxisCuts is not None:
+        obj.additionalAxisCuts.append(additionalAxisCuts)
+    if projectionDependentCutAxes is not None:
+        # We need to iterate here separately so that we can separate out the cuts
+        # for the disconnected PDCAs.
+        for axisSet in projectionDependentCutAxes:
+            obj.projectionDependentCutAxes.append([axisSet])
+    for ax in projectionAxes:
+        obj.projectionAxes.append(ax)
+
+    # Perform the projection.
+    obj.Project()
+
+    # Check the output.
+    assert len(observableList) == 1
+    proj = next(iter(observableList.values()))
+    assert proj.GetName() == "hist"
+
+    logger.debug("observableList: {}, proj.GetEntries(): {}".format(observableList, proj.GetEntries()))
+
+    # Check the axes (they should be in the same order that they are defined above).
+    # Use the axis max as a proxy (this function name sux).
+    assert proj.GetXaxis().GetXmax() == 60.0
+    assert proj.GetYaxis().GetXmax() == 12.0
+    logger.debug(f"x axis min: {proj.GetXaxis().GetXmin()}, y axis min: {proj.GetYaxis().GetXmin()}")
+
+    expectedBins = 5
+    # If we don't expect a count, we've restricted the range further, so we need to reflect this in our check.
+    if expectedProjectionAxes is False:
+        expectedBins = 4
+    assert proj.GetXaxis().GetNbins() == expectedBins
+
+    # Check the bin content. There should be one entry at 10, which translates to
+    # the bin 1
+    nonZeroBins = []
+    for x in range(1, proj.GetNcells()):
+        if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
+            logger.debug(f"non-zero bin at {x}")
+            nonZeroBins.append(x)
+
+    expectedCount = 0
+    # It will only be non-zero if all of the expected values are true.
+    expectedNonZeroCounts = all([expectedAdditionalAxisCuts, expectedProjectionDependentCutAxes, expectedProjectionAxes])
+    if expectedNonZeroCounts:
+        expectedCount = 1
+    assert len(nonZeroBins) == expectedCount
+    # Check the precise bin which was found.
+    if expectedCount != 0:
+        # Only check if we actually expected a count
+        assert next(iter(nonZeroBins)) == 8
+
 def testTHnProjection(loggingMixin, testSparse):
     """ Test projection of a THnSparse. """
-
     assert False
 
