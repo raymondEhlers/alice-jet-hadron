@@ -1,16 +1,13 @@
 # Tests for jet-hadron analysis code
 
-These tests are by no means comprehensive, but they can at least help to test some more basic utilities and
-test cases. These tests are developed with `pytest`. To conform to their standards, tests must be named
-`test_NameOfTest.py` and each test function must start with `test`.
+Tests are implemented using `pytest`. To execute the testing, I tend to use something like:
 
-The tests can be executed via `pytest -l testName.py` and all tests can be run via `pytests -l tests/`. Note
-that `-l` is also known as `--showlocals` and will print the local variables when a test fails.
+```bash
+$ pytest -l --cov=jet_hadron --cov-report html --cov-branch --durations=5 tests/
+```
 
-## Testing with coverage
-
-Using the `coverage` package to better code coverage, run the test with `pytest -l --cov-report html
---cov=jetH tests/`.
+These tests are not yet comprehensive (nor should they be for the main analysis modules), but they can at
+least help to test base functionality.
 
 ## Developing tests
 

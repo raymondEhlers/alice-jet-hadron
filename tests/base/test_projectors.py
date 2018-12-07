@@ -7,10 +7,10 @@
 
 import aenum
 import collections
+import dataclasses
 import logging
 import pytest
 
-import numpy as np
 import rootpy.ROOT as ROOT
 
 from jet_hadron.base import projectors
@@ -65,7 +65,7 @@ def testTH1AxisDetermination(loggingMixin, createHistAxisRange, axisType, axis, 
     # Insert the proepr axis type
     obj.axisType = axisType
     # Determine the test hist
-    hist = testRootHists[histToTest]
+    hist = dataclasses.astuple(testRootHists)[histToTest]
 
     # Check that the axis retrieved by the specified function is the same
     # as that retrieved by the HistAxisRange object.
@@ -75,46 +75,10 @@ def testTH1AxisDetermination(loggingMixin, createHistAxisRange, axisType, axis, 
     assert axis(hist) == obj.axis(hist)
 
 class selectedTestAxis(aenum.Enum):
-    """ Enum to map from our selected axes to their axis values. Goes along with the sparse created in testTHnSparse. """
+    """ Enum to map from our selected axes to their axis values. Goes along with the sparse created in testSparse. """
     axisOne = 2
     axisTwo = 4
     axisThree = 5
-
-@pytest.fixture
-def testTHnSparse():
-    """ Create a THnSparse for use in testing.
-
-    Returns:
-        tuple: (THnSparse, list of fill values)
-    """
-    # namedtuple is just for convenience
-    sparseAxis = collections.namedtuple("sparseAxis", ["nBins", "min", "max"])
-    ignoredAxis   = sparseAxis(nBins =  1, min =   0.0, max =  1.0)  # noqa: E221, E222
-    selectedAxis1 = sparseAxis(nBins = 10, min =   0.0, max = 20.0)  # noqa: E222
-    selectedAxis2 = sparseAxis(nBins = 20, min = -10.0, max = 10.0)  # noqa: E222
-    selectedAxis3 = sparseAxis(nBins = 30, min =   0.0, max = 30.0)  # noqa: E222
-    # We want to select axes 2, 4, 5
-    axes = [ignoredAxis, ignoredAxis, selectedAxis1, ignoredAxis, selectedAxis2, selectedAxis3, ignoredAxis]
-
-    # Create the actual sparse
-    bins = np.array([el.nBins for el in axes], dtype=np.int32)
-    mins = np.array([el.min for el in axes])
-    maxes = np.array([el.max for el in axes])
-    sparse = ROOT.THnSparseF("testSparse", "testSparse", len(axes),
-                             bins, mins, maxes)
-
-    # Fill in some strategic values.
-    # Wrapper function is for convenience.
-    def fillSparse(one, two, three):
-        sparse.Fill(np.array([0., 0., one, 0., two, three, 0.]))
-    fillValues = [
-        (2., 0., 10.),
-        (4., 0., 10.)
-    ]
-    for values in fillValues:
-        fillSparse(*values)
-
-    return (sparse, fillValues)
 
 @pytest.mark.parametrize("axisSelection", [
     selectedTestAxis.axisOne,
@@ -122,10 +86,10 @@ def testTHnSparse():
     selectedTestAxis.axisThree,
     2, 4, 5
 ], ids = ["axisOne", "axisTwo", "axisThree", "number for axis one", "number for axis two", "number for axis three"])
-def testTHnAxisDetermination(loggingMixin, axisSelection, createHistAxisRange, testTHnSparse):
+def testTHnAxisDetermination(loggingMixin, axisSelection, createHistAxisRange, testSparse):
     """ Test THn axis determination in the HistAxisRange object. """
     # Retrieve sparse.
-    sparse, _ = testTHnSparse
+    sparse, _ = testSparse
     # Retrieve object and setup.
     obj, objectArgs = createHistAxisRange
     obj.axisType = axisSelection
@@ -151,7 +115,7 @@ def testTHnAxisDetermination(loggingMixin, axisSelection, createHistAxisRange, t
         lambda x: projectors.HistAxisRange.ApplyFuncToFindBin(None, x),
         lambda axis, x, y: axis.SetRange(x, y))
 ], ids = ["0 - 10 with ApplyFuncToFindBin with FindBin", "1 - 9 (mid bin) with ApplyFuncToFindBin with FindBin", "1 - Nbins with ApplyFuncToFindBin (no under/overflow)", "0 - 10 with raw bin value passed ApplyFuncToFindBin"])
-def testApplyRangeSet(loggingMixin, minVal, maxVal, minValFunc, maxValFunc, expectedFunc, testTHnSparse):
+def testApplyRangeSet(loggingMixin, minVal, maxVal, minValFunc, maxValFunc, expectedFunc, testSparse):
     """ Test apply a range set to an axis via a HistAxisRange object.
 
     This is intentionally tested against SetRangeUser, so we can be certain that it reproduces
@@ -165,7 +129,7 @@ def testApplyRangeSet(loggingMixin, minVal, maxVal, minValFunc, maxValFunc, expe
         together (almost always).
     """
     selectedAxis = selectedTestAxis.axisOne
-    sparse, _ = testTHnSparse
+    sparse, _ = testSparse
     expectedAxis = sparse.GetAxis(selectedAxis.value).Clone("axis2")
     expectedFunc(expectedAxis, minVal, maxVal)
 
@@ -186,13 +150,13 @@ def testApplyRangeSet(loggingMixin, minVal, maxVal, minValFunc, maxValFunc, expe
     assert ax.GetNbins() == expectedAxis.GetNbins()
     assert ax.GetName() == expectedAxis.GetName()
 
-def testDisagreementWithSetRangeUser(loggingMixin, testTHnSparse):
+def testDisagreementWithSetRangeUser(loggingMixin, testSparse):
     """ Test the disagreement between SetRange and SetRangeUser when the epsilon shift is not included. """
     # Setup values
     selectedAxis = selectedTestAxis.axisOne
     minVal = 2
     maxVal = 8
-    sparse, _ = testTHnSparse
+    sparse, _ = testSparse
     # Detemine expected value (must be first to avoid interfering with applying the axis range)
     expectedAxis = sparse.GetAxis(selectedAxis.value).Clone("axis2")
     expectedAxis.SetRangeUser(minVal, maxVal)
@@ -223,10 +187,10 @@ def testDisagreementWithSetRangeUser(loggingMixin, testTHnSparse):
     (ROOT.TAxis.GetNbins, None, 10),
     (ROOT.TAxis.FindBin, 10 - utils.epsilon, 5)
 ], ids = ["Only value", "Func only", "Func with value"])
-def testRetrieveAxisValue(loggingMixin, func, value, expected, testTHnSparse):
+def testRetrieveAxisValue(loggingMixin, func, value, expected, testSparse):
     """ Test retrieving axis values using ApplyFuncToFindBin(). """
     selectedAxis = selectedTestAxis.axisOne
-    sparse, _ = testTHnSparse
+    sparse, _ = testSparse
     expectedAxis = sparse.GetAxis(selectedAxis.value)
 
     assert projectors.HistAxisRange.ApplyFuncToFindBin(func, value)(expectedAxis) == expected
@@ -384,7 +348,7 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
         # Only check if we actually expected a count
         assert next(iter(nonZeroBins)) == 1
 
-def testTHnProjection(loggingMixin, testRootHists):
+def testTHnProjection(loggingMixin, testSparse):
     """ Test projection of a THnSparse. """
 
     assert False

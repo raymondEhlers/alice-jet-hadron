@@ -7,6 +7,7 @@
 
 from future.utils import iteritems
 
+import dataclasses
 import logging
 import numpy as np
 import os
@@ -67,7 +68,7 @@ def testExtractedObservable(loggingMixin):
 
 def testHistContainer(loggingMixin, testRootHists):
     """ Test the hist container class function override. """
-    (hist, hist2D, hist3D) = testRootHists
+    (hist, hist2D, hist3D) = dataclasses.astuple(testRootHists)
 
     obj = analysisObjects.HistContainer(hist)
     # Test the basic properties.
@@ -82,7 +83,7 @@ def testHistContainer(loggingMixin, testRootHists):
 ], ids = ["hist1D", "hist2D", "hist3D"])
 def testHistContainerScaleFactor(loggingMixin, histIndex, expected, testRootHists):
     """ Test hist container scale factor calculation. """
-    obj = analysisObjects.HistContainer(testRootHists[histIndex])
+    obj = analysisObjects.HistContainer(dataclasses.astuple(testRootHists)[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
     additionalScaleFactor = 0.5
     assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"] * additionalScaleFactor
