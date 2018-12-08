@@ -12,8 +12,6 @@ import aenum
 import copy
 import logging
 
-import rootpy.ROOT as ROOT
-
 from jet_hadron.base import genericClass
 
 # Setup logger
@@ -84,23 +82,24 @@ class HistAxisRange(genericClass.EqualityMixin):
                 # Seems that we received an int, so just use that value
                 axisType = self.axisType
 
-            if isinstance(hist, ROOT.THnBase):
+            if hasattr(hist, "ProjectionND") and hasattr(hist, "Projection"):
+                # THnBase defines ProjectionND and Projection, so we will use those as proxies.
                 # Return the proper THn access
-                #logger.debug("From hist: {0}, axisType: {1}, axis: {2}".format(hist, self.axisType, ROOT.THnBase.GetAxis(hist, self.axisType.value)))
-                return ROOT.THnBase.GetAxis(hist, axisType)
+                #logger.debug("From hist: {0}, axisType: {1}, axis: {2}".format(hist, self.axisType, hist.GetAxis(self.axisType.value)))
+                return hist.GetAxis(axisType)
             else:
                 # If it's not a THn, then it must be a TH1 derived
                 # This effectively emuates THnBase.GetAxis(...)
                 axisFunctionMap = {
-                    TH1AxisType.xAxis.value: ROOT.TH1.GetXaxis,
-                    TH1AxisType.yAxis.value: ROOT.TH1.GetYaxis,
-                    TH1AxisType.zAxis.value: ROOT.TH1.GetZaxis
+                    TH1AxisType.xAxis.value: hist.GetXaxis,
+                    TH1AxisType.yAxis.value: hist.GetYaxis,
+                    TH1AxisType.zAxis.value: hist.GetZaxis
                 }
 
                 # Retrieve the axis function and execute it. It is done separately to
                 # clarify any possible errors.
                 returnFunc = axisFunctionMap[axisType]
-                return returnFunc(hist)
+                return returnFunc()
 
         return axisFunc
 
@@ -262,7 +261,8 @@ class HistProjector(object):
             axis.ApplyRangeSet(hist)
 
         projectedHist = None
-        if isinstance(hist, ROOT.THnBase):
+        if hasattr(hist, "ProjectionND") and hasattr(hist, "Projection"):
+            # THnBase defines ProjectionND and Projection, so we will use those as proxies.
             # THnBase projections args are given as a list of axes, followed by any possible options.
             projectionAxes = [axis.axisType.value for axis in self.projectionAxes]
 
@@ -280,11 +280,12 @@ class HistProjector(object):
 
             if len(projectionAxes) > 3:
                 # Project into a THnBase object.
-                projectedHist = ROOT.THnBase.ProjectionND(hist, *args)
+                projectedHist = hist.ProjectionND(*args)
             else:
                 # Project a TH1 derived object.
-                projectedHist = ROOT.THnBase.Projection(hist, *args)
-        elif isinstance(hist, ROOT.TH3):
+                projectedHist = hist.Projection(*args)
+        elif hasattr(hist, "ProjectionZ") and hasattr(hist, "Project3D"):
+            # TH3 defines ProjectionZ and Project3D, so we will use those as proxies.
             # Axis length validation
             if len(self.projectionAxes) < 1 or len(self.projectionAxes) > 2:
                 raise ValueError(len(self.projectionAxes), "Invalid number of axes")
@@ -306,8 +307,9 @@ class HistProjector(object):
 
             # Do the actual projection
             logger.info("Projecting onto axes \"{0}\" from hist {1}".format(projectionAxisName, hist.GetName()))
-            projectedHist = ROOT.TH3.Project3D(hist, projectionAxisName)
-        elif isinstance(hist, ROOT.TH2):
+            projectedHist = hist.Project3D(projectionAxisName)
+        elif hasattr(hist, "ProjectionX") and hasattr(hist, "ProjectionY"):
+            # TH2 defines ProjectionX and ProjectionY, so we will use those as proxies.
             if len(self.projectionAxes) != 1:
                 raise ValueError(len(self.projectionAxes), "Invalid number of axes")
 
@@ -316,8 +318,8 @@ class HistProjector(object):
             #       In particular, it doesn't respect the axis limits of axis onto which it is projected.
             #       So we have to separate the projection by histogram type as opposed to axis length.
             projectionFuncMap = {
-                TH1AxisType.xAxis.value: ROOT.TH2.ProjectionX,
-                TH1AxisType.yAxis.value: ROOT.TH2.ProjectionY
+                TH1AxisType.xAxis.value: hist.ProjectionX,
+                TH1AxisType.yAxis.value: hist.ProjectionY
             }
 
             # Determine the axisType value
@@ -335,9 +337,9 @@ class HistProjector(object):
 
             # Do the actual projection
             logger.info("Projecting onto axis range {} from hist {}".format(self.projectionAxes[0].name, hist.GetName()))
-            projectedHist = projectionFunc(hist)
+            projectedHist = projectionFunc()
         else:
-            raise TypeError(type(hist), "Could not recognize hist {0} of type {1}".format(hist, hist.GetClass().GetName()))
+            raise TypeError(type(hist), f"Could not recognize hist {hist} of type {hist.GetClass().GetName()}")
 
         # Cleanup restricted axes
         self.CleanupCuts(hist, cutAxes = self.projectionAxes)
