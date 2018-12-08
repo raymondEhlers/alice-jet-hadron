@@ -8,9 +8,5 @@
 __all__ = [
     "analysisConfig",
     "analysisObjects",
-    "genericClass",
-    "genericConfig",
     "params",
-    "projectors",
-    "utils",
 ]

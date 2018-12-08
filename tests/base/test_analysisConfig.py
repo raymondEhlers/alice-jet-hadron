@@ -14,7 +14,7 @@ import ruamel.yaml
 from io import StringIO
 
 from jet_hadron.base import analysisConfig
-from jet_hadron.base import genericConfig
+from jet_hadron.base import generic_config
 from jet_hadron.base import params
 
 # Setup logger
@@ -447,7 +447,7 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
     # Mock reading the config
     #loadConfigurationMock = mocker.MagicMock(spec_set = ["filename"], return_value = config)
     # Needs the full path to the module.
-    loadConfigurationMock = mocker.patch("jet_hadron.base.analysisConfig.genericConfig.loadConfiguration", return_value = config)
+    loadConfigurationMock = mocker.patch("jet_hadron.base.analysisConfig.generic_config.loadConfiguration", return_value = config)
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 
@@ -460,7 +460,7 @@ def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfi
     loadConfigurationMock.assert_called_once_with(configFilename)
 
     assert names == expectedNames
-    for unrolled in genericConfig.unrollNestedDict(objects):
+    for unrolled in generic_config.unrollNestedDict(objects):
         (values, obj) = unrolled
         res = checkJetHBaseObject(obj = obj,
                                   config = expectedConfig,

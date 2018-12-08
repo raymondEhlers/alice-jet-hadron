@@ -16,7 +16,7 @@ import math
 import numbers
 import re
 
-from jet_hadron.base import genericClass
+from jet_hadron.base import generic_class
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +346,7 @@ setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
 # These classes are used for final analysis # specification, building
 # on the analysis specification objects specified above.
 ########################
-class leadingHadronBias(genericClass.EqualityMixin):
+class leadingHadronBias(generic_class.EqualityMixin):
     """ Full leading hadron bias class, which specifies both the type as well as the value.
     The enum exists to be specified when creating an analysis object, and then the value is
     determined by the selected analysis options (including that enum). This object then

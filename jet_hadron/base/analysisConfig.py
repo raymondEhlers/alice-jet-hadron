@@ -13,8 +13,8 @@ import collections
 import logging
 import os
 
-from jet_hadron.base import genericClass
-from jet_hadron.base import genericConfig
+from pachyderm import generic_class
+from pachyderm import generic_config
 from jet_hadron.base import params
 
 logger = logging.getLogger(__name__)
@@ -31,9 +31,9 @@ def determineLeadingHadronBias(config, selectedAnalysisOptions):
         params.selectedAnalysisOptions: Selected analysis options with the determined leading hadron
             bias object.
     """
-    overrideOptions = genericConfig.determineOverrideOptions(selectedOptions = selectedAnalysisOptions,
-                                                             overrideOptions = config["leadingHadronBiasValues"],
-                                                             setOfPossibleOptions = params.setOfPossibleOptions)
+    overrideOptions = generic_config.determineOverrideOptions(selectedOptions = selectedAnalysisOptions,
+                                                              overrideOptions = config["leadingHadronBiasValues"],
+                                                              setOfPossibleOptions = params.setOfPossibleOptions)
     leadingHadronBiasValue = overrideOptions["value"]
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
@@ -56,10 +56,10 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
     Returns:
         dict: The updated configuration
     """
-    config = genericConfig.overrideOptions(config, selectedOptions,
-                                           setOfPossibleOptions = params.setOfPossibleOptions,
-                                           configContainingOverride = configContainingOverride)
-    config = genericConfig.simplifyDataRepresentations(config)
+    config = generic_config.overrideOptions(config, selectedOptions,
+                                            setOfPossibleOptions = params.setOfPossibleOptions,
+                                            configContainingOverride = configContainingOverride)
+    config = generic_config.simplifyDataRepresentations(config)
 
     return config
 
@@ -189,7 +189,7 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
         additionalPossibleIterables = collections.OrderedDict()
 
     # Load configuration
-    config = genericConfig.loadConfiguration(configFilename)
+    config = generic_config.loadConfiguration(configFilename)
     config = overrideOptions(config, selectedAnalysisOptions,
                              configContainingOverride = config[taskName])
     # We (re)define the task config here after we have overridden the relevant values.
@@ -211,8 +211,8 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     possibleIterables.update(additionalPossibleIterables)
     # NOTE: These requested iterators should be passed by the task,
     #       but then the values should be selected in the YAML config.
-    iterables = genericConfig.determineSelectionOfIterableValuesFromConfig(config = config,
-                                                                           possibleIterables = possibleIterables)
+    iterables = generic_config.determineSelectionOfIterableValuesFromConfig(config = config,
+                                                                            possibleIterables = possibleIterables)
 
     # Determine formatting options
     logger.debug("selectedAnalysisOptions: {}".format(selectedAnalysisOptions._asdict()))
@@ -240,16 +240,16 @@ def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOpt
     formattingOptions.update({k: v.str() for k, v in iteritems(selectedAnalysisOptions._asdict())})
 
     # Iterate over the iterables defined above to create the objects.
-    (names, objects) = genericConfig.createObjectsFromIterables(obj = obj,
-                                                                args = args,
-                                                                iterables = iterables,
-                                                                formattingOptions = formattingOptions)
+    (names, objects) = generic_config.createObjectsFromIterables(obj = obj,
+                                                                 args = args,
+                                                                 iterables = iterables,
+                                                                 formattingOptions = formattingOptions)
 
     #logger.debug("objects: {objects}".format(objects = objects))
 
     return (names, objects)
 
-class JetHBase(genericClass.EqualityMixin):
+class JetHBase(generic_class.EqualityMixin):
     """ Base class for shared jet-hadron configuration values.
 
     Args:

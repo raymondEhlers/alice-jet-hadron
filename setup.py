@@ -85,7 +85,8 @@ setup(
         #"root_numpy",  # As of Dec 2018, they have a new tag, but it's not yet on PyPI
         "iminuit>=1.3",
         "probfit",
-        "numdifftools"
+        "numdifftools",
+        "pachyderm",
     ],
 
     # Include additional files
