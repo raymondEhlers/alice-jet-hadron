@@ -6,6 +6,7 @@
 # date: 6 June 2018
 
 import aenum
+import enum
 import collections
 import dataclasses
 import logging
@@ -254,6 +255,7 @@ histAxisRangesWithNoEntries = histAxisRangesNamedTuple(
         maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 60 - utils.epsilon))
 )
 
+# This abuses the names of the axes within the named tuple, but it is rather convenient, so we keep it.
 histAxisRangesRestricted = (
     projectors.HistAxisRange(
         axisType = projectors.TH1AxisType.yAxis,
@@ -336,8 +338,7 @@ def testTH2Projection(loggingMixin, testRootHists,
     # Use the axis max as a proxy (this function name sux).
     assert proj.GetXaxis().GetXmax() == 0.8
 
-    # Check the bin content. There should be one entry at 10, which translates to
-    # the bin 1
+    # Check the bin content.
     nonZeroBins = []
     for x in range(1, proj.GetNcells()):
         if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
@@ -350,10 +351,12 @@ def testTH2Projection(loggingMixin, testRootHists,
     if expectedNonZeroCounts:
         expectedCount = 1
     assert len(nonZeroBins) == expectedCount
-    # Check the precise bin which was found.
+    # Check the precise bin which was found and the bin value.
     if expectedCount != 0:
         # Only check if we actually expected a count
-        assert next(iter(nonZeroBins)) == 1
+        nonZeroBinLocation = next(iter(nonZeroBins))
+        assert nonZeroBinLocation == 1
+        assert proj.GetBinContent(nonZeroBinLocation) == 1
 
 # AAC = Additional Axis Cuts
 @pytest.mark.parametrize("additionalAxisCuts, expectedAdditionalAxisCuts", [
@@ -428,9 +431,12 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
     if expectedNonZeroCounts:
         expectedCount = 1
     assert len(nonZeroBins) == expectedCount
+    # Check the precise bin which was found and the bin value.
     if expectedCount != 0:
         # Only check if we actually expected a count
-        assert next(iter(nonZeroBins)) == 1
+        nonZeroBinLocation = next(iter(nonZeroBins))
+        assert nonZeroBinLocation == 1
+        assert proj.GetBinContent(nonZeroBinLocation) == 1
 
 # Other axes:
 # AAC = Additional Axis Cuts
@@ -515,14 +521,12 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
     if expectedNonZeroCounts:
         expectedCount = 1
     assert len(nonZeroBins) == expectedCount
-    # Check the precise bin which was found.
+    # Check the precise bin which was found and the bin value.
     if expectedCount != 0:
         # Only check if we actually expected a count
-        assert next(iter(nonZeroBins)) == 8
-
-def testTHnProjection(loggingMixin, testSparse):
-    """ Test projection of a THnSparse. """
-    assert False
+        nonZeroBinLocation = next(iter(nonZeroBins))
+        assert nonZeroBinLocation == 8
+        assert proj.GetBinContent(nonZeroBinLocation) == 1
 
 @pytest.mark.parametrize("PDCA_axis", [
     histAxisRanges.xAxis,
@@ -548,4 +552,143 @@ def test_invalid_PDCA_axis(loggingMixin, testRootHists, PDCA_axis):
         obj.Project()
 
     assert "This configuration is not allowed" in exception_info.value.args[0]
+
+class SparseAxisLabels(enum.Enum):
+    axis_two = 2
+    axis_four = 4
+    axis_five = 5
+
+# Define similar axis structures for the THnSparse.
+sparse_hist_axis_ranges = histAxisRangesNamedTuple(
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_two,
+        axisRangeName = "axis_two",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 2 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 18 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -8 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 8 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_five,
+        axisRangeName = "axis_five",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 2 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20 - utils.epsilon))
+)
+sparse_hist_axis_ranges_with_no_entries = histAxisRangesNamedTuple(
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_two,
+        axisRangeName = "axis_two_no_entries",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 18 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four_no_entries",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 8 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_five,
+        axisRangeName = "axis_five_no_entires",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 12 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20 - utils.epsilon))
+)
+# This abuses the names of the axes within the named tuple, but it is rather convenient, so we keep it.
+sparse_hist_axis_ranges_restricted = [
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four_lower",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -8 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -4 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four_lower_middle",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -4 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four_upper_middle",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 - utils.epsilon)),
+    projectors.HistAxisRange(
+        axisType = SparseAxisLabels.axis_four,
+        axisRangeName = "axis_four_upper",
+        minVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 4 + utils.epsilon),
+        maxVal = projectors.HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 8 - utils.epsilon)),
+]
+
+# AAC = Additional Axis Cuts
+@pytest.mark.parametrize("additional_axis_cuts, expected_additional_axis_cuts_counts", [
+    (None, 1),
+    (sparse_hist_axis_ranges.xAxis, 1),
+    (sparse_hist_axis_ranges_with_no_entries.xAxis, 0)
+], ids = ["No AAC selection", "AAC with entries", "AAC with no entries"])
+# PDCA = Projection Dependent Cut Axes
+@pytest.mark.parametrize("projection_dependent_cut_axes, expected_projection_dependent_cut_axes_counts", [
+    (None, 2),
+    ([], 2),
+    ([sparse_hist_axis_ranges.yAxis], 2),
+    ([sparse_hist_axis_ranges_with_no_entries.yAxis], 0),
+    ([sparse_hist_axis_ranges_restricted[1], sparse_hist_axis_ranges_restricted[3]], 1),
+    ([sparse_hist_axis_ranges_restricted[2], sparse_hist_axis_ranges_restricted[0]], 1),
+    ([sparse_hist_axis_ranges_restricted[0], sparse_hist_axis_ranges_restricted[3]], 0)
+], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Reversed and disconnected PDCA with entries", "Disconnected PDCA with no entries"])
+# PA = Projection Axes
+@pytest.mark.parametrize("projection_axes, expected_projection_axes_counts", [
+    (sparse_hist_axis_ranges.zAxis, 1),
+    (sparse_hist_axis_ranges_with_no_entries.zAxis, 0)
+], ids = ["PA with entries", "PA without entries"])
+def testTHnProjection(loggingMixin, testSparse,
+                      additional_axis_cuts, expected_additional_axis_cuts_counts,
+                      projection_dependent_cut_axes, expected_projection_dependent_cut_axes_counts,
+                      projection_axes, expected_projection_axes_counts):
+    """ Test projection of a THnSparse. """
+    sparse, fill_values = testSparse
+    observableList = {}
+    observableToProjectFrom = {"histSparse": sparse}
+    projectionNameFormat = "hist"
+    obj = projectors.HistProjector(observableList = observableList,
+                                   observableToProjectFrom = observableToProjectFrom,
+                                   projectionNameFormat = projectionNameFormat,
+                                   projectionInformation = {})
+
+    # Set the projection axes.
+    if additional_axis_cuts is not None:
+        obj.additionalAxisCuts.append(additional_axis_cuts)
+    if projection_dependent_cut_axes is not None:
+        # We need to iterate here separately so that we can separate out the cuts
+        # for the disconnected PDCAs.
+        for axisSet in projection_dependent_cut_axes:
+            obj.projectionDependentCutAxes.append([axisSet])
+    obj.projectionAxes.append(projection_axes)
+
+    # Perform the projection.
+    obj.Project()
+
+    # Check the output.
+    assert len(observableList) == 1
+    proj = next(iter(observableList.values()))
+    assert proj.GetName() == "hist"
+
+    logger.debug("observableList: {}, proj.GetEntries(): {}".format(observableList, proj.GetEntries()))
+
+    # Check the bin content.
+    non_zero_bins = []
+    for x in range(1, proj.GetNcells()):
+        if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
+            logger.debug(f"non-zero bin at {x}")
+            non_zero_bins.append(x)
+
+    # The expected value can be more than one. We find it by multiply the expected values. We can get away with
+    # this because the largest value will be a single 2.
+    expected_count = expected_additional_axis_cuts_counts * expected_projection_dependent_cut_axes_counts * expected_projection_axes_counts
+    # However, we will only find one non-zero bin regardless of the value, so we just check for the one bin if
+    # we have a non-zero value.
+    assert len(non_zero_bins) == (1 if expected_count else 0)
+    # Check the precise bin which was found and the bin value.
+    if expected_count != 0:
+        # Only check if we actually expected a count
+        non_zero_bin_location = next(iter(non_zero_bins))
+        assert non_zero_bin_location == 9
+        assert proj.GetBinContent(non_zero_bin_location) == expected_count
 

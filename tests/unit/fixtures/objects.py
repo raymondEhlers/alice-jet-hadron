@@ -80,24 +80,16 @@ def testSparse():
     #logger.debug("bins: {}, mins: {}, maxs: {}".format(bins, mins, maxes))
     sparse = ROOT.THnSparseF("testSparse", "testSparse", len(axes), bins, mins, maxes)
 
-    # Fill some values in the axes of interest
-    # NOTE: dtype is required here for the sparse to be created successfully.
-    arr1 = np.array([0, 0, 10, 0, 0, 10, 0], dtype = np.float64)
-    sparse.Fill(arr1)
-
     # Fill in some strategic values.
     # Wrapper function is for convenience.
     def fill_sparse(one, two, three):
-        fill_value = np.array([0., 0., one, 0., two, three, 0.], dtype = np.float64)
-        sparse.Fill(fill_value)
-        return fill_value
+        sparse.Fill(np.array([0., 0., one, 0., two, three, 0.], dtype = np.float64))
     fill_values = [
-        (2., 0., 10.),
-        (4., 0., 10.)
+        (4., -2., 10.),
+        (4., 2., 10.)
     ]
-    return_values = []
     for values in fill_values:
-        return_values.append(fill_sparse(*values))
+        fill_sparse(*values)
 
-    return (sparse, arr1)
+    return (sparse, fill_values)
 
