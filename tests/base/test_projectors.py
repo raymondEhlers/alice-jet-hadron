@@ -284,11 +284,12 @@ histAxisRangesRestricted = (
     (True, [histAxisRanges.yAxis], True),
     (True, [histAxisRangesWithNoEntries.yAxis], False),
     (True, [histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[0]], True),
     (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
 ], ids = [
     "No AAC selection", "AAC with entries", "AAC with no entries",
     "None PDCA", "Empty PDCA", "PDCA",
-    "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"
+    "PDCA with no entries", "Disconnected PDCA with entries", "Reversed and disconnected PDCA with entries", "Disconnected PDCA with no entries",
 ])
 # PA = Projection Axes
 @pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
@@ -367,8 +368,9 @@ def testTH2Projection(loggingMixin, testRootHists,
     ([histAxisRanges.yAxis], True),
     ([histAxisRangesWithNoEntries.yAxis], False),
     ([histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    ([histAxisRangesRestricted[1], histAxisRangesRestricted[0]], True),
     ([histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
-], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"])
+], ids = ["None PDCA", "Empty PDCA", "PDCA", "PDCA with no entries", "Disconnected PDCA with entries", "Reversed and disconnected PDCA with entries", "Disconnected PDCA with no entries"])
 # PA = Projection Axes
 @pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
     (histAxisRanges.zAxis, True),
@@ -442,11 +444,12 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
     (True, [histAxisRanges.yAxis], True),
     (True, [histAxisRangesWithNoEntries.yAxis], False),
     (True, [histAxisRangesRestricted[0], histAxisRangesRestricted[1]], True),
+    (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[0]], True),
     (True, [histAxisRangesRestricted[1], histAxisRangesRestricted[2]], False)
 ], ids = [
     "No AAC selection", "AAC with entries", "AAC with no entries",
     "None PDCA", "Empty PDCA", "PDCA",
-    "PDCA with no entries", "Disconnected PDCA with entries", "Disconnected PDCA with no entries"
+    "PDCA with no entries", "Disconnected PDCA with entries", "Reversed and disconnected PDCA with entries", "Disconnected PDCA with no entries",
 ])
 # PA = Projection Axes
 @pytest.mark.parametrize("projectionAxes, expectedProjectionAxes", [
