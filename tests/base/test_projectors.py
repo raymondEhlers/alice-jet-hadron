@@ -336,7 +336,7 @@ def testTH2Projection(loggingMixin, testRootHists,
     # Use the axis max as a proxy (this function name sux).
     assert proj.GetXaxis().GetXmax() == 0.8
 
-    # Check the bin content.
+    # Find the non-zero bin content so that it can be checked below.
     nonZeroBins = []
     for x in range(1, proj.GetNcells()):
         if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
@@ -353,6 +353,7 @@ def testTH2Projection(loggingMixin, testRootHists,
     if expectedCount != 0:
         # Only check if we actually expected a count
         nonZeroBinLocation = next(iter(nonZeroBins))
+        # I determined the expected value empirically by looking at the projection.
         assert nonZeroBinLocation == 1
         assert proj.GetBinContent(nonZeroBinLocation) == 1
 
@@ -382,6 +383,7 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
                            projectionDependentCutAxes, expectedProjectionDependentCutAxes,
                            projectionAxes, expectedProjectionAxes):
     """ Test projection from a TH3 to a TH1 derived class. """
+    # Setup
     observableList = {}
     observableToProjectFrom = {"hist3D": testRootHists.hist3D}
     projectionNameFormat = "hist"
@@ -403,7 +405,7 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
     # Perform the projection.
     obj.Project()
 
-    # Check the output.
+    # Check the basic output.
     assert len(observableList) == 1
     proj = next(iter(observableList.values()))
     assert proj.GetName() == "hist"
@@ -416,8 +418,7 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
         expectedBins = 4
     assert proj.GetXaxis().GetNbins() == expectedBins
 
-    # Check the bin content. There should be one entry at 10, which translates to
-    # the bin 1
+    # Find the non-zero bin content so that it can be checked below.
     nonZeroBins = []
     for x in range(1, proj.GetXaxis().GetNbins() + 1):
         if proj.GetBinContent(x) != 0:
@@ -433,6 +434,7 @@ def testTH3ToTH1Projection(loggingMixin, testRootHists,
     if expectedCount != 0:
         # Only check if we actually expected a count
         nonZeroBinLocation = next(iter(nonZeroBins))
+        # I determined the expected value empirically by looking at the projection.
         assert nonZeroBinLocation == 1
         assert proj.GetBinContent(nonZeroBinLocation) == 1
 
@@ -466,6 +468,7 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
                            use_PDCA, additionalCuts, expectedAdditionalCuts,
                            projectionAxes, expectedProjectionAxes):
     """ Test projection of a TH3 into a TH2. """
+    # Setup
     observableList = {}
     observableToProjectFrom = {"hist3D": testRootHists.hist3D}
     projectionNameFormat = "hist"
@@ -492,7 +495,7 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
     # Perform the projection.
     obj.Project()
 
-    # Check the output.
+    # Check the basic output.
     assert len(observableList) == 1
     proj = next(iter(observableList.values()))
     assert proj.GetName() == "hist"
@@ -505,8 +508,7 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
     assert proj.GetYaxis().GetXmax() == 0.8
     logger.debug(f"x axis min: {proj.GetXaxis().GetXmin()}, y axis min: {proj.GetYaxis().GetXmin()}")
 
-    # Check the bin content. There should be one entry at 10, which translates to
-    # the bin 1
+    # Find the non-zero bin content so that it can be checked below.
     nonZeroBins = []
     for x in range(1, proj.GetNcells()):
         if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
@@ -523,6 +525,7 @@ def testTH3ToTH2Projection(loggingMixin, testRootHists,
     if expectedCount != 0:
         # Only check if we actually expected a count
         nonZeroBinLocation = next(iter(nonZeroBins))
+        # I determined the expected value empirically by looking at the projection.
         assert nonZeroBinLocation == 8
         assert proj.GetBinContent(nonZeroBinLocation) == 1
 
@@ -551,12 +554,14 @@ def test_invalid_PDCA_axis(loggingMixin, testRootHists, PDCA_axis):
 
     assert "This configuration is not allowed" in exception_info.value.args[0]
 
+# Define similar axis and axis seletion structures for the THnSparse.
 class SparseAxisLabels(enum.Enum):
+    """ Defines the relevant axis values for testing the sparse projection. """
     axis_two = 2
     axis_four = 4
     axis_five = 5
 
-# Define similar axis structures for the THnSparse.
+# We use some subset of nearly all of these options in the various THn tests.
 sparse_hist_axis_ranges = histAxisRangesNamedTuple(
     projectors.HistAxisRange(
         axisType = SparseAxisLabels.axis_two,
@@ -636,12 +641,14 @@ sparse_hist_axis_ranges_restricted = [
     (sparse_hist_axis_ranges.zAxis, 1),
     (sparse_hist_axis_ranges_with_no_entries.zAxis, 0)
 ], ids = ["PA with entries", "PA without entries"])
-def testTHnProjection(loggingMixin, testSparse,
-                      additional_axis_cuts, expected_additional_axis_cuts_counts,
-                      projection_dependent_cut_axes, expected_projection_dependent_cut_axes_counts,
-                      projection_axes, expected_projection_axes_counts):
-    """ Test projection of a THnSparse. """
-    sparse, fill_values = testSparse
+def test_THn_projection(loggingMixin, testSparse,
+                        additional_axis_cuts, expected_additional_axis_cuts_counts,
+                        projection_dependent_cut_axes, expected_projection_dependent_cut_axes_counts,
+                        projection_axes, expected_projection_axes_counts):
+    """ Test projection of a THnSparse into a TH1. """
+    # Setup object
+    sparse, _ = testSparse
+    # Setup projector
     observableList = {}
     observableToProjectFrom = {"histSparse": sparse}
     projectionNameFormat = "hist"
@@ -663,14 +670,13 @@ def testTHnProjection(loggingMixin, testSparse,
     # Perform the projection.
     obj.Project()
 
-    # Check the output.
+    # Basic output checks.
     assert len(observableList) == 1
     proj = next(iter(observableList.values()))
     assert proj.GetName() == "hist"
-
     logger.debug("observableList: {}, proj.GetEntries(): {}".format(observableList, proj.GetEntries()))
 
-    # Check the bin content.
+    # Find the non-zero bin content so that it can be checked below.
     non_zero_bins = []
     for x in range(1, proj.GetNcells()):
         if proj.GetBinContent(x) != 0 and not proj.IsBinUnderflow(x) and not proj.IsBinOverflow(x):
@@ -687,6 +693,7 @@ def testTHnProjection(loggingMixin, testSparse,
     if expected_count != 0:
         # Only check if we actually expected a count
         non_zero_bin_location = next(iter(non_zero_bins))
+        # I determined the expected value empirically by looking at the projection.
         assert non_zero_bin_location == 9
         assert proj.GetBinContent(non_zero_bin_location) == expected_count
 
