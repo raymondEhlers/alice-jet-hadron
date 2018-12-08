@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 
-# Test projector functionality
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 6 June 2018
+""" Test projector functionality
 
-import aenum
+.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
+
 import enum
-import collections
 import dataclasses
 import logging
 import pytest
@@ -75,7 +73,7 @@ def testTH1AxisDetermination(loggingMixin, createHistAxisRange, axisType, axis, 
     #       don't really make sense in terms of a hist's dimensions.
     assert axis(hist) == obj.axis(hist)
 
-class selectedTestAxis(aenum.Enum):
+class selectedTestAxis(enum.Enum):
     """ Enum to map from our selected axes to their axis values. Goes along with the sparse created in testSparse. """
     axisOne = 2
     axisTwo = 4
@@ -95,7 +93,7 @@ def testTHnAxisDetermination(loggingMixin, axisSelection, createHistAxisRange, t
     obj, objectArgs = createHistAxisRange
     obj.axisType = axisSelection
 
-    axisValue = axisSelection.value if isinstance(axisSelection, aenum.Enum) else axisSelection
+    axisValue = axisSelection.value if isinstance(axisSelection, enum.Enum) else axisSelection
     assert sparse.GetAxis(axisValue) == obj.axis(sparse)
 
 @pytest.mark.parametrize("minVal, maxVal, minValFunc, maxValFunc, expectedFunc", [
@@ -217,7 +215,7 @@ def testProjectors(loggingMixin, testRootHists):
                           inputObservable = testRootHists.hist2D) == testRootHists.hist1D
 
 # Global to allow easier definition of the parametrization
-histAxisRangesNamedTuple = collections.namedtuple("histAxisRanges", ["xAxis", "yAxis", "zAxis"])
+histAxisRangesNamedTuple = dataclasses.make_dataclass("histAxisRanges", ["xAxis", "yAxis", "zAxis"])
 
 histAxisRanges = histAxisRangesNamedTuple(
     projectors.HistAxisRange(
