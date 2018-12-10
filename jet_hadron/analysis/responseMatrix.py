@@ -108,8 +108,8 @@ class RMNormalizationType(aenum.Enum):
 
 class JetHResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse. """
-    def __init__(self, observableList, observableToProjectFrom, projectionNameFormat):
-        super(JetHResponseMatrixProjector, self).__init__(observableList, observableToProjectFrom, projectionNameFormat)
+    def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat):
+        super(JetHResponseMatrixProjector, self).__init__(observable_dict, observables_to_project_from, projectionNameFormat)
 
     def ProjectionName(self, **kwargs):
         """ Define the projection name for the JetH RM projector """
@@ -252,8 +252,8 @@ class JetHResponseMatrix(object):
         #################
         # Response matrix
         #################
-        responseMatrixProjector = JetHResponseMatrixProjector(observableList = self.hists["responseMatrixPtHard"],
-                                               observableToProjectFrom = self.hists["responseMatrixPtHardSparse"],
+        responseMatrixProjector = JetHResponseMatrixProjector(observable_dict = self.hists["responseMatrixPtHard"],
+                                               observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
                                                projectionNameFormat = "responseMatrixPtHard_{ptHardBin}")
         responseMatrixProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axisRangeName = "detLevelLeadingParticle",
@@ -285,8 +285,8 @@ class JetHResponseMatrix(object):
         ###################
         # Unmatched part level jet pt
         ###################
-        unmatchedPartLevelJetSpectraProjector = JetHResponseMatrixProjector(observableList = self.hists["unmatchedJetSpectraPartLevelPtHard"],
-                                                    observableToProjectFrom = self.hists["unmatchedPartLevelJetsPtHardSparse"],
+        unmatchedPartLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
+                                                    observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
                                                     projectionNameFormat = "unmatchedJetSpectraPartLevelPtHard_{ptHardBin}")
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         unmatchedPartLevelJetSpectraProjector.projectionDependentCutAxes.append([])
@@ -298,8 +298,8 @@ class JetHResponseMatrix(object):
         ###################
         # (Matched) Part level jet pt
         ###################
-        partLevelJetSpectraProjector = JetHResponseMatrixProjector(observableList = self.hists["jetSpectraPartLevelPtHard"],
-                                                    observableToProjectFrom = self.hists["responseMatrixPtHardSparse"],
+        partLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["jetSpectraPartLevelPtHard"],
+                                                    observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
                                                     projectionNameFormat = "jetSpectraPartLevelPtHard_{ptHardBin}")
         if self.eventPlaneSelection:
             partLevelJetSpectraProjector.additionalAxisCuts.append(eventPlaneSelectionProjectorAxis)
@@ -313,8 +313,8 @@ class JetHResponseMatrix(object):
         ##################
         # Unmatched det level jet pt
         ##################
-        unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(observableList = self.hists["unmatchedJetSpectraDetLevelPtHard"],
-                                                   observableToProjectFrom = self.hists["unmatchedDetLevelJetsPtHardSparse"],
+        unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
+                                                   observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
                                                    projectionNameFormat = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}")
         unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysisObjects.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
                 axisRangeName = "unmatchedDetLevelLeadingParticle",
@@ -329,8 +329,8 @@ class JetHResponseMatrix(object):
         ##################
         # (Matched) Det level jet pt
         ##################
-        detLevelJetSpectraProjector = JetHResponseMatrixProjector(observableList = self.hists["jetSpectraDetLevelPtHard"],
-                                                   observableToProjectFrom = self.hists["responseMatrixPtHardSparse"],
+        detLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["jetSpectraDetLevelPtHard"],
+                                                   observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
                                                    projectionNameFormat = "jetSpectraDetLevelPtHard_{ptHardBin}")
         detLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axisRangeName = "detLevelLeadingParticle",
@@ -428,8 +428,8 @@ class JetHResponseMatrix(object):
         # Define the projector
         # This is admittedly a bit more complicated than a standard projection, but it ensures that we are using
         # consistent methods throughout, which should reduce bugs.
-        partSpectraProjector = JetHResponseMatrixProjector(observableList = outputDict,
-                                                    observableToProjectFrom = inputDict,
+        partSpectraProjector = JetHResponseMatrixProjector(observable_dict = outputDict,
+                                                    observables_to_project_from = inputDict,
                                                     projectionNameFormat = "partSpectraProjection")
         partSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = projectors.TH1AxisType.xAxis,
                 axisRangeName = "partSpectraProjectionDetLimits",

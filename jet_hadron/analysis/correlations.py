@@ -95,8 +95,8 @@ class JetHCorrelationAxis(aenum.Enum):
 
 class JetHObservableSparseProjector(projectors.HistProjector):
     """ Projector for THnSparse into analysisObjects.Observable objects. """
-    def __init__(self, observableList, observableToProjectFrom, projectionNameFormat, projectionInformation):
-        super().__init__(observableList, observableToProjectFrom, projectionNameFormat, projectionInformation)
+    def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation):
+        super().__init__(observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation)
 
     def OutputHist(self, outputHist, projectionName, *args, **kwargs):
         """ Creates a HistContainer in a Observable to store the output. """
@@ -107,8 +107,8 @@ class JetHObservableSparseProjector(projectors.HistProjector):
 
 class JetHCorrelationSparseProjector(projectors.HistProjector):
     """ Projector for THnSparse into analysisObjects.CorrelationObservable objects. """
-    def __init__(self, observableList, observableToProjectFrom, projectionNameFormat, projectionInformation):
-        super().__init__(observableList, observableToProjectFrom, projectionNameFormat, projectionInformation)
+    def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation):
+        super().__init__(observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation)
 
     def OutputHist(self, outputHist, projectionName, *args, **kwargs):
         """ Creates a HistContainer in a CorrelationObservable to store the output. """
@@ -121,8 +121,8 @@ class JetHCorrelationSparseProjector(projectors.HistProjector):
 
 class JetHCorrelationProjector(projectors.HistProjector):
     """ Projector for the Jet-h 2D correlation hists to 1D correlation hists. """
-    def __init__(self, observableList, observableToProjectFrom, projectionNameFormat, projectionInformation):
-        super().__init__(observableList, observableToProjectFrom, projectionNameFormat, projectionInformation)
+    def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation):
+        super().__init__(observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation)
 
     def ProjectionName(self,  **kwargs):
         """ Define the projection name for the JetH RM projector """
@@ -535,8 +535,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
         projectionInformation = {}
         # Attempt to format for consistency, although it doesn't do anything for the trigger projection
         triggerInputDict = {self.histNameFormatTrigger.format(**projectionInformation) : self.inputHists["fhnTrigger"]}
-        triggerProjector = JetHObservableSparseProjector(observableList = self.triggerJetPt,
-                observableToProjectFrom = triggerInputDict,
+        triggerProjector = JetHObservableSparseProjector(observable_dict = self.triggerJetPt,
+                observables_to_project_from = triggerInputDict,
                 projectionNameFormat = self.histNameFormatTrigger,
                 projectionInformation = projectionInformation)
         # Take advantage of existing centrality and event plane object, but need to copy and modify the axis type
@@ -568,8 +568,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
             ###########################
             projectionInformation["tag"] = "raw"
             rawSignalInputDict = {self.histNameFormat2D.format(**projectionInformation) : self.inputHists["fhnJH"]}
-            rawSignalProjector = JetHCorrelationSparseProjector(observableList = self.rawSignal2D,
-                    observableToProjectFrom = rawSignalInputDict,
+            rawSignalProjector = JetHCorrelationSparseProjector(observable_dict = self.rawSignal2D,
+                    observables_to_project_from = rawSignalInputDict,
                     projectionNameFormat = self.histNameFormat2D,
                     projectionInformation = projectionInformation)
             if self.collisionSystem != params.collisionSystem.pp:
@@ -595,8 +595,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
             ###########################
             projectionInformation["tag"] = "mixed"
             mixedEventInputDict = {self.histNameFormat2D.format(**projectionInformation) : self.inputHists["fhnMixedEvents"]}
-            mixedEventProjector = JetHCorrelationSparseProjector(observableList = self.mixedEvents2D,
-                    observableToProjectFrom = mixedEventInputDict,
+            mixedEventProjector = JetHCorrelationSparseProjector(observable_dict = self.mixedEvents2D,
+                    observables_to_project_from = mixedEventInputDict,
                     projectionNameFormat = self.histNameFormat2D,
                     projectionInformation = projectionInformation)
             if self.collisionSystem != params.collisionSystem.pp:
@@ -627,8 +627,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
         projectionInformation = {"correlationType" : analysisObjects.jetHCorrelationType.signalDominated,
                                  "axis" : JetHCorrelationAxis.kDeltaPhi}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiSignalProjector = JetHCorrelationProjector(observableList = self.dPhi,
-                observableToProjectFrom = self.signal2D,
+        dPhiSignalProjector = JetHCorrelationProjector(observable_dict = self.dPhi,
+                observables_to_project_from = self.signal2D,
                 projectionNameFormat = self.histNameFormatDPhi,
                 projectionInformation = projectionInformation)
         # Select signal dominated region in eta
@@ -652,8 +652,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
         projectionInformation = {"correlationType" : analysisObjects.jetHCorrelationType.backgroundDominated,
                                  "axis" : JetHCorrelationAxis.kDeltaPhi}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiBackgroundProjector = JetHCorrelationProjector(observableList = self.dPhiSideBand,
-                observableToProjectFrom = self.signal2D,
+        dPhiBackgroundProjector = JetHCorrelationProjector(observable_dict = self.dPhiSideBand,
+                observables_to_project_from = self.signal2D,
                 projectionNameFormat = self.histNameFormatDPhi,
                 projectionInformation = projectionInformation)
         # Select background dominated region in eta
@@ -677,8 +677,8 @@ class JetHAnalysis(analysisConfig.JetHBase):
         projectionInformation = {"correlationType" : analysisObjects.jetHCorrelationType.nearSide,
                                  "axis" : JetHCorrelationAxis.kDeltaEta}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dEtaNSProjector = JetHCorrelationProjector(observableList = self.dEtaNS,
-                observableToProjectFrom = self.signal2D,
+        dEtaNSProjector = JetHCorrelationProjector(observable_dict = self.dEtaNS,
+                observables_to_project_from = self.signal2D,
                 projectionNameFormat = self.histNameFormatDEta,
                 projectionInformation = projectionInformation)
         # Select near side in delta phi
@@ -843,14 +843,14 @@ class JetHAnalysis(analysisConfig.JetHBase):
                                                                                 value = fit.GetParameter(parameterNumber),
                                                                                 error = fit.GetParError(parameterNumber))
 
-    def writeToRootFile(self, observableList, mode = "UPDATE"):
+    def writeToRootFile(self, observable_dict, mode = "UPDATE"):
         """ Write output list to a file """
         filename = os.path.join(self.outputPrefix, self.outputFilename)
 
         logger.info("Saving correlations to {}".format(filename))
 
         with root_open(filename, mode) as fOut:
-            for histCollection in observableList:
+            for histCollection in observable_dict:
                 for name, observable in iteritems(histCollection):
                     if isinstance(observable, analysisObjects.Observable):
                         hist = observable.hist
@@ -859,12 +859,12 @@ class JetHAnalysis(analysisConfig.JetHBase):
 
                     hist.Write()
 
-    def writeHistsToYAML(self, observableList, mode = "wb"):
+    def writeHistsToYAML(self, observable_dict, mode = "wb"):
         """ Write hist to YAML file. """
 
         logger.info("Saving hist arrays!")
 
-        for histCollection in observableList:
+        for histCollection in observable_dict:
             for name, observable in iteritems(histCollection):
                 if isinstance(observable, analysisObjects.Observable):
                     hist = observable.hist
