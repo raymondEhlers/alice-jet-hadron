@@ -19,7 +19,7 @@ import warnings
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import params
-from jet_hadron.analysis import genericTasks
+from jet_hadron.analysis import generic_tasks
 
 import rootpy.ROOT as ROOT
 
@@ -57,7 +57,7 @@ class EMCalCorrectionsLabels(aenum.Enum):
         """ Filename safe string. Return the name of the label. """
         return self.name
 
-class PlotEMCalCorrections(genericTasks.PlotTaskHists):
+class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
     """ Task to steer plotting of EMCal embedding hists.
 
     Args:
@@ -274,7 +274,7 @@ def runEMCalCorrectionsHistsFromTerminal():
 
     return analyses
 
-class PlotEMCalEmbedding(genericTasks.PlotTaskHists):
+class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
     """ Task to steer plotting of EMCal embedding hists.
 
     Args:
