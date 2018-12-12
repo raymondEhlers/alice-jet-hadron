@@ -17,8 +17,8 @@ import logging
 
 import warnings
 
+from jet_hadron.base import analysis_config
 from jet_hadron.base import params
-from jet_hadron.base import analysisConfig
 from jet_hadron.analysis import genericTasks
 
 import rootpy.ROOT as ROOT
@@ -137,9 +137,9 @@ class PlotEMCalCorrections(genericTasks.PlotTaskHists):
             configFilename (str): Filename of the yaml config.
             selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """
-        return analysisConfig.constructFromConfigurationFile(
+        return analysis_config.constructFromConfigurationFile(
             taskName = "EMCalCorrections",
             configFilename = configFilename,
             selectedAnalysisOptions = selectedAnalysisOptions,
@@ -266,9 +266,9 @@ def runEMCalCorrectionsHistsFromTerminal():
     """ Create and run objects to plot EMCal Corrections hists from the terminal.
 
     Returns:
-        nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
+        nested tuple: Tuple of nested analysis objects as described in analysis_config.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(description = "EMCal corrections plotting.")
+    (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(description = "EMCal corrections plotting.")
     analyses = PlotEMCalCorrections.run(configFilename = configFilename,
                                         selectedAnalysisOptions = terminalArgs)
 
@@ -293,9 +293,9 @@ class PlotEMCalEmbedding(genericTasks.PlotTaskHists):
             configFilename (str): Filename of the yaml config.
             selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """
-        return analysisConfig.constructFromConfigurationFile(
+        return analysis_config.constructFromConfigurationFile(
             taskName = "EMCalEmbedding",
             configFilename = configFilename,
             selectedAnalysisOptions = selectedAnalysisOptions,
@@ -307,9 +307,9 @@ def runEMCalEmbeddingHistsFromTerminal():
     """ Create and run objects to plot EMCal Embedding hists from the terminal.
 
     Returns:
-        nested tuple: Tuple of nested analysis objects as described in analysisConfig.determineSelectedOptionsFromKwargs().
+        nested tuple: Tuple of nested analysis objects as described in analysis_config.determineSelectedOptionsFromKwargs().
     """
-    (configFilename, terminalArgs, additionalArgs) = analysisConfig.determineSelectedOptionsFromKwargs(taskName = "EMCal embedding plotting.")
+    (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(taskName = "EMCal embedding plotting.")
     analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
                                       selectedAnalysisOptions = terminalArgs)
 

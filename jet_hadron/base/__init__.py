@@ -6,7 +6,7 @@
 """
 
 __all__ = [
-    "analysisConfig",
-    "analysisObjects",
+    "analysis_config",
+    "analysis_objects",
     "params",
 ]

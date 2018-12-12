@@ -20,8 +20,9 @@ import seaborn as sns
 
 import rootpy.ROOT as ROOT
 
-from jet_hadron.base import analysisConfig
-from jet_hadron.base import analysisObjects
+from pachyderm import generic_config
+
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.base import utils
 from jet_hadron.plot import base as plotBase
@@ -70,18 +71,18 @@ def PlotRPF(epFitObj):
 
     colorIter = iter(colors)
     colorsMap = {
-        (analysisObjects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
-        (analysisObjects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)
+        (analysis_objects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
+        (analysis_objects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
+        (analysis_objects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
+        (analysis_objects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)
     }
     zOrder = {
-        (analysisObjects.jetHCorrelationType.signalDominated, "Fit"): 10,
-        (analysisObjects.jetHCorrelationType.signalDominated, "FitErrorBars"): 9,
-        (analysisObjects.jetHCorrelationType.signalDominated, "Data"): 6,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): 8,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "FitErrorBars"): 7,
-        (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): 5
+        (analysis_objects.jetHCorrelationType.signalDominated, "Fit"): 10,
+        (analysis_objects.jetHCorrelationType.signalDominated, "FitErrorBars"): 9,
+        (analysis_objects.jetHCorrelationType.signalDominated, "Data"): 6,
+        (analysis_objects.jetHCorrelationType.backgroundDominated, "Fit"): 8,
+        (analysis_objects.jetHCorrelationType.backgroundDominated, "FitErrorBars"): 7,
+        (analysis_objects.jetHCorrelationType.backgroundDominated, "Data"): 5
     }
 
     for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
@@ -98,8 +99,8 @@ def PlotRPF(epFitObj):
         labelsResidual = []
 
         # Store the all angles data generated from the other angles
-        allAnglesSummedFromFit = {analysisObjects.jetHCorrelationType.backgroundDominated: None,
-                                  analysisObjects.jetHCorrelationType.signalDominated: None}
+        allAnglesSummedFromFit = {analysis_objects.jetHCorrelationType.backgroundDominated: None,
+                                  analysis_objects.jetHCorrelationType.signalDominated: None}
 
         # Put the all angles at the end for consistnecy
         epAngles = [angle for angle in params.eventPlaneAngle]
@@ -107,7 +108,7 @@ def PlotRPF(epFitObj):
 
         for i, (epAngle, ax, axResidual) in enumerate(zip(epAngles, axes, axesResidual)):
             # Main analysis object
-            _, jetH = next(analysisConfig.unrollNestedDict(epFitObj.analyses[epAngle]))
+            _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
             assert jetH.eventPlaneAngle == epAngle
 
             # Set labels in individual panels
@@ -171,21 +172,21 @@ def PlotRPF(epFitObj):
                 #        transform = ax.transAxes)
                 pass
 
-            for correlationType, correlationDict in [(analysisObjects.jetHCorrelationType.signalDominated, jetH.dPhiArray),
-                                                     (analysisObjects.jetHCorrelationType.backgroundDominated, jetH.dPhiSideBandArray)]:
+            for correlationType, correlationDict in [(analysis_objects.jetHCorrelationType.signalDominated, jetH.dPhiArray),
+                                                     (analysis_objects.jetHCorrelationType.backgroundDominated, jetH.dPhiSideBandArray)]:
                 # Observable name
                 observableName = jetH.histNameFormatDPhiArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = correlationType)
                 observable = correlationDict[observableName]
 
                 # Plot data
                 # Plot S+B, B for all angles, but only B for EP angles
-                if (correlationType == analysisObjects.jetHCorrelationType.backgroundDominated and epAngle != params.eventPlaneAngle.all) or (correlationType == analysisObjects.jetHCorrelationType.signalDominated and epAngle == params.eventPlaneAngle.all):
+                if (correlationType == analysis_objects.jetHCorrelationType.backgroundDominated and epAngle != params.eventPlaneAngle.all) or (correlationType == analysis_objects.jetHCorrelationType.signalDominated and epAngle == params.eventPlaneAngle.all):
                     x = observable.hist.x
                     y = observable.hist.array
                     errors = observable.hist.errors
                     # TODO: This should move to the enum
                     label = correlationType.displayStr()
-                    if correlationType == analysisObjects.jetHCorrelationType.backgroundDominated:
+                    if correlationType == analysis_objects.jetHCorrelationType.backgroundDominated:
                         label = correlationType.displayStr() + ":\n" + r"$0.8<|\Delta\eta|<1.2$"
                     else:
                         label = correlationType.displayStr() + ":\n" + r"$|\Delta\eta|<0.6$"
@@ -196,7 +197,7 @@ def PlotRPF(epFitObj):
                 if retVal is False:
                     # Also plot the fit in the case of background dominated in all angles
                     # Although need to clarify that we didn't actually fit - this is just showing that component
-                    if not (correlationType == analysisObjects.jetHCorrelationType.backgroundDominated and epAngle == params.eventPlaneAngle.all):
+                    if not (correlationType == analysis_objects.jetHCorrelationType.backgroundDominated and epAngle == params.eventPlaneAngle.all):
                         continue
                     else:
                         plotLabel = "Background (Simultaneous Fit)"
@@ -316,10 +317,10 @@ def PlotSubtractedEPHists(epFitObj):
 
     # TODO: Use the color map defined in PlotRPF (it's the same, just copied here)
     colorIter = iter(colors)
-    colorsMap = {(analysisObjects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
-                 (analysisObjects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
-                 (analysisObjects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
-                 (analysisObjects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)}
+    colorsMap = {(analysis_objects.jetHCorrelationType.signalDominated, "Fit"): next(colorIter),
+                 (analysis_objects.jetHCorrelationType.signalDominated, "Data"): next(colorIter),
+                 (analysis_objects.jetHCorrelationType.backgroundDominated, "Fit"): next(colorIter),
+                 (analysis_objects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)}
 
     # Iterate over the data and subtract the hists
     for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
@@ -349,9 +350,9 @@ def PlotSubtractedEPHists(epFitObj):
                 ax.set_ylabel(r"1/$\mathrm{N}_{\mathrm{trig}}$d(N-B)/d$\Delta\varphi$", fontsize = 17)
 
             # Main analysis object
-            _, jetH = next(analysisConfig.unrollNestedDict(epFitObj.analyses[epAngle]))
+            _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
 
-            observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysisObjects.jetHCorrelationType.signalDominated)
+            observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysis_objects.jetHCorrelationType.signalDominated)
             logger.debug("Processing observable {}".format(observableName))
             logger.debug("Subtracted hist arrays: {}".format(jetH.dPhiSubtractedArray))
             observable = jetH.dPhiSubtractedArray[observableName]
@@ -362,11 +363,11 @@ def PlotSubtractedEPHists(epFitObj):
             xForFitFunc = observable.hist.binCenters
 
             # Retrieve fit data
-            #fit = epFitObj.EvaluateFit(epAngle = epAngle, fitType = analysisObjects.jetHCorrelationType.backgroundDominated, xValue = xForFitFunc, fitContainer = fitCont)
+            #fit = epFitObj.EvaluateFit(epAngle = epAngle, fitType = analysis_objects.jetHCorrelationType.backgroundDominated, xValue = xForFitFunc, fitContainer = fitCont)
             # We want to subtract the background function for each EP angle, so we need the errors from the background dominated fit params
             #logger.debug("fitCont.errors: {}".format(fitCont.errors))
             # TODO: Is it right to be retrieving the background errors here?? I'm not so certain for the all angles case that this is right...
-            fitErrors = fitCont.errors[(epAngle.str(), analysisObjects.jetHCorrelationType.backgroundDominated.str())]
+            fitErrors = fitCont.errors[(epAngle.str(), analysis_objects.jetHCorrelationType.backgroundDominated.str())]
 
             ax.errorbar(xForFitFunc, observable.hist.array, yerr = observable.hist.errors, zorder = 5, color = colorsMap[(observable.correlationType, "Data")], label = observable.correlationType.displayStr() + " Subtracted")
             # Following Joel's example, plot the fit error on the same points as the correlation error
@@ -509,15 +510,15 @@ def CompareToJoel(epFitObj):
         ax.set_ylabel(r"dN/d$\Delta\varphi$")
 
         epAngle = params.eventPlaneAngle.all
-        #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysisObjects.jetHCorrelationType.signalDominated]
-        _, jetH = next(analysisConfig.unrollNestedDict(epFitObj.analyses[epAngle]))
-        observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysisObjects.jetHCorrelationType.signalDominated)
+        #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysis_objects.jetHCorrelationType.signalDominated]
+        _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
+        observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysis_objects.jetHCorrelationType.signalDominated)
         observable = jetH.dPhiSubtractedArray[observableName]
 
         # Plot my dada
         myDataPlot = ax.errorbar(observable.hist.binCenters, observable.hist.array, yerr = observable.hist.errors, label = "This analysis")
         myDataPlotColor = myDataPlot[0].get_color()
-        fitErrors = fitCont.errors[(epAngle.str(), analysisObjects.jetHCorrelationType.signalDominated.str())]
+        fitErrors = fitCont.errors[(epAngle.str(), analysis_objects.jetHCorrelationType.signalDominated.str())]
         ax.fill_between(observable.hist.binCenters, observable.hist.array - fitErrors, observable.hist.array + fitErrors, facecolor = myDataPlotColor, zorder = 10, alpha = 0.8)
 
         # Plot joel data

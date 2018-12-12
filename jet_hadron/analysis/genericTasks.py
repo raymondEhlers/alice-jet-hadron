@@ -17,15 +17,17 @@ import logging
 import os
 import pprint
 
-from jet_hadron.base import analysisConfig
+from pachyderm import utils
+from pachyderm import generic_config
+
+from jet_hadron.base import analysis_config
 from jet_hadron.plot import generic_hist as plot_generic_hist
-from jet_hadron.base import utils
 
 logger = logging.getLogger(__name__)
 # Quiet down the matplotlib logging
 logging.getLogger("matplotlib").setLevel(logging.INFO)
 
-class PlotTaskHists(analysisConfig.JetHBase):
+class PlotTaskHists(analysis_config.JetHBase):
     """ Generic class to plot hists in analysis task.
 
     Hists are selected and configured by a configuration file.
@@ -272,7 +274,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
             selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
             runPlotting (bool): If true, run plotting after the processing.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """
         # Create logger
         logging.basicConfig(level=logging.DEBUG)
@@ -285,7 +287,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
 
         # Run the analysis
         logger.info("About to process")
-        for keys, task in analysisConfig.unrollNestedDict(tasks):
+        for keys, task in generic_config.unrollNestedDict(tasks):
             # Print the task selected analysis options
             opts = ["{name}: \"{value}\"".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
             logger.info("Processing plotting task {} with options:\n\t{}".format(task.taskName, "\n\t".join(opts)))
@@ -305,14 +307,14 @@ class PlotTaskHists(analysisConfig.JetHBase):
         """ Helper function to construct plotting objects.
 
         Must be implemented by the derived class. Usually, this is a simple wrapper around
-        analysisConfig.constructFromConfigurationFile(...) that is filled in with options
+        analysis_config.constructFromConfigurationFile(...) that is filled in with options
         specific to the particular task.
 
         Args:
             configFilename (str): Filename of the yaml config.
             selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysisConfig.constructFromConfigurationFile(...).
+            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """
         raise NotImplementedError("Need to implement the constructFromConfigurationFile.")
 
