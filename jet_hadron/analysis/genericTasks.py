@@ -18,7 +18,7 @@ import os
 import pprint
 
 from jet_hadron.base import analysisConfig
-from jet_hadron.plot import genericHist as plotGenericHist
+from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.base import utils
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
             histOptions = self.histOptionsSpecificProcessing(histOptionsName, histOptions)
             logger.debug("Post processing: hist options name: {}, histOptions: {}".format(histOptionsName, histOptions))
 
-            componentHistsConfigurationOptions[histOptionsName] = plotGenericHist.HistPlotter(**histOptions)
+            componentHistsConfigurationOptions[histOptionsName] = plot_generic_hist.HistPlotter(**histOptions)
 
         return (componentHistsConfigurationOptions, plotAdditional)
 
@@ -205,7 +205,7 @@ class PlotTaskHists(analysisConfig.JetHBase):
             if not foundMatch:
                 if plotAdditional:
                     logger.debug("No hist config options match found. Using default options...")
-                    componentHists[hist.GetName()] = plotGenericHist.HistPlotter(hist = hist)
+                    componentHists[hist.GetName()] = plot_generic_hist.HistPlotter(hist = hist)
                 else:
                     logger.debug("No match found and not plotting additional, so hist {} will not be plotted.".format(hist.GetName()))
 

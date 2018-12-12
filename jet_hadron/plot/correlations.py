@@ -23,7 +23,7 @@ import rootpy.ROOT as ROOT
 from jet_hadron.base import params
 from jet_hadron.base import utils
 from jet_hadron.plot import base as plotBase
-from jet_hadron.plot import highlightRPF
+from jet_hadron.plot import highlight_RPF
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -239,7 +239,7 @@ def defineHighlightRegions():
     # NOTE: Blue really doesn't look good with ROOT_kBird, so for that case, the
     #       signal fit color, seaborn green, should be used.
     signalColor = palette[0] + (1.0,)
-    signalRegion = highlightRPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signalColor)
+    signalRegion = highlight_RPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signalColor)
     signalRegion.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
     highlightRegions.append(signalRegion)
 
@@ -247,7 +247,7 @@ def defineHighlightRegions():
     # Red used for background data color
     backgroundColor = palette[2] + (1.0,)
     backgroundPhiRange = (-np.pi / 2, np.pi / 2)
-    backgroundRegion = highlightRPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", backgroundColor)
+    backgroundRegion = highlight_RPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", backgroundColor)
     backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
     backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))  # noqa: E201, E241
     highlightRegions.append(backgroundRegion)
@@ -270,9 +270,9 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
         # TODO: Determmine if color overlays are better here!
-        (fig, ax) = highlightRPF.plotRPFFitRegions(utils.getArrayFromHist2D(observable.hist.hist),
-                                                   highlightRegions = defineHighlightRegions(),
-                                                   useColorOverlay = False)
+        (fig, ax) = highlight_RPF.plotRPFFitRegions(utils.getArrayFromHist2D(observable.hist.hist),
+                                                    highlightRegions = defineHighlightRegions(),
+                                                    useColorOverlay = False)
 
         # Add additional labeling
         # Axis

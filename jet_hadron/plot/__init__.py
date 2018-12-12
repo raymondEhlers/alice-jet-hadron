@@ -11,7 +11,7 @@ __all__ = [
     "extracted",
     "fit",
     "general",
-    "genericHist",
-    "highlightRPF",
-    "rootBase",
+    "generic_hist",
+    "highlight_RPF",
+    "root_base",
 ]

@@ -32,7 +32,7 @@ from jet_hadron.base import projectors
 from jet_hadron.base.projectors import HistAxisRange
 from jet_hadron.base import analysisObjects
 
-from jet_hadron.plot import rootBase as plotRootBase
+from jet_hadron.plot import root_base as plot_root_base
 
 import rootpy.ROOT as ROOT
 # Tell ROOT to ignore command line options so args are passed to python
@@ -1189,7 +1189,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas.Update()
         canvas.Modified()
         # GetUymax() doesn't work on log scale....
-        line = plotRootBase.drawVerticalLine(label)
+        line = plot_root_base.drawVerticalLine(label)
 
         # Save plot
         canvas.SaveAs(os.path.join(outputPath, "singleDetectorBin.pdf"))
