@@ -375,6 +375,7 @@ class leadingHadronBias(generic_class.EqualityMixin):
 
         In the case of the bias as NA, it simply returns "NA".
         """
+        # TODO: Remove if not needed in generic_config
         if self.type != leadingHadronBiasType.NA:
             return "{type}Bias{value}".format(type = self.type, value = self.value)
         else:
@@ -405,6 +406,7 @@ class eventPlaneAngle(aenum.Enum):
 
     def filenameStr(self):
         """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
+        # TODO: Remove if not needed in generic_config
         return "eventPlane{}".format(uppercaseFirstLetter(self.str()))
 
     def displayStr(self):
@@ -439,6 +441,7 @@ class qVector(aenum.Enum):
 
     def filenameStr(self):
         """ Helper class that returns a filename self value. """
+        # TODO: Remove if not needed in generic_config
         return "qVector{}".format(uppercaseFirstLetter(self.str()))
 
     def displayStr(self):
