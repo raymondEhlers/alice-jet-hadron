@@ -61,10 +61,10 @@ setup(
     entry_points = {
         "console_scripts": [
             "jetHAnalysis = jet_hadron.analysis.correlations:runFromTerminal",
-            "jetHResponse = jet_hadron.analysis.responseMatrix:runFromTerminal",
-            "plotEMCalCorrections = jet_hadron.analysis.EMCalAnalysisTasks:runEMCalCorrectionsHistsFromTerminal",
-            "plotEMCalEmbedding = jet_hadron.analysis.EMCalAnalysisTasks:runEMCalEmbeddingHistsFromTerminal",
-            "plotRPFRegions = jet_hadron.plot.highlightRPF:runFromTerminal"
+            "jetHResponse = jet_hadron.analysis.response_matrix:runFromTerminal",
+            "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalCorrectionsHistsFromTerminal",
+            "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalEmbeddingHistsFromTerminal",
+            "plotRPFRegions = jet_hadron.plot.highlight_RPF:runFromTerminal"
         ],
     },
 
