@@ -1,37 +1,26 @@
 #!/usr/bin/env python
 
-# Main jet-hadron plotting macro
-#
-# Author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# Date: 8 Jun 2016
+""" Main jet-hadron correlations analysis module
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3 compatibility
-from __future__ import print_function
-from builtins import super
 from future.utils import iteritems
 from future.utils import itervalues
 
-import os
-import sys
-import ctypes
-import math
-import copy
-import itertools
-import collections
-import ruamel.yaml as yaml
 import aenum
-import argparse
+import collections
+import copy
+import ctypes
+#import IPython
 import logging
-# Setup logger
-logger = logging.getLogger(__name__)
-# Quiet down the matplotlib logging
-logging.getLogger("matplotlib").setLevel(logging.INFO)
-import warnings
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-
+import os
 import pprint
-import IPython
+import math
+#import ruamel.yaml as yaml
+import sys
+import warnings
 
 import scipy
 import scipy.signal
@@ -47,21 +36,26 @@ from pachyderm.utils import epsilon
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-
 from jet_hadron.plot import general as plot_general
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
-
 from jet_hadron.analysis import fit as fitting
 
 import rootpy.ROOT as ROOT
+from rootpy.io import root_open
+import root_numpy
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
-import rootpy
-from rootpy.io import root_open
-import root_numpy
+
+# Handle rootpy warning
+warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
+
+# Setup logger
+logger = logging.getLogger(__name__)
+# Quiet down the matplotlib logging
+logging.getLogger("matplotlib").setLevel(logging.INFO)
 
 # Run in batch mode
 ROOT.gROOT.SetBatch(True)
@@ -116,9 +110,11 @@ class JetHCorrelationSparseProjector(projectors.HistProjector):
         """ Creates a HistContainer in a CorrelationObservable to store the output. """
         # In principle, we could pass `**kwargs`, but this could get dangerous if names changes later and
         # initialize something unexpected in the constructor, so instead we'll be explicit
-        outputObservable = analysis_objects.CorrelationObservable(jetPtBin = kwargs["jetPtBin"],
-                trackPtBin = kwargs["trackPtBin"],
-                hist = analysis_objects.HistContainer(outputHist))
+        outputObservable = analysis_objects.CorrelationObservable(
+            jetPtBin = kwargs["jetPtBin"],
+            trackPtBin = kwargs["trackPtBin"],
+            hist = analysis_objects.HistContainer(outputHist)
+        )
         return outputObservable
 
 class JetHCorrelationProjector(projectors.HistProjector):
@@ -126,7 +122,7 @@ class JetHCorrelationProjector(projectors.HistProjector):
     def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation):
         super().__init__(observable_dict, observables_to_project_from, projectionNameFormat, projectionInformation)
 
-    def ProjectionName(self,  **kwargs):
+    def ProjectionName(self, **kwargs):
         """ Define the projection name for the JetH RM projector """
         observable = kwargs["inputObservable"]
         trackPtBin = observable.trackPtBin
@@ -143,11 +139,13 @@ class JetHCorrelationProjector(projectors.HistProjector):
         # In principle, we could pass `**kwargs`, but this could get dangerous if names changes later and initialize something
         # unexpected in the constructor, so instead we'll be explicit
         inputObservable = kwargs["inputObservable"]
-        outputObservable = analysis_objects.CorrelationObservable1D(jetPtBin = inputObservable.jetPtBin,
-                trackPtBin = inputObservable.trackPtBin,
-                axis = kwargs["axis"],
-                correlationType = kwargs["correlationType"],
-                hist = analysis_objects.HistContainer(outputHist))
+        outputObservable = analysis_objects.CorrelationObservable1D(
+            jetPtBin = inputObservable.jetPtBin,
+            trackPtBin = inputObservable.trackPtBin,
+            axis = kwargs["axis"],
+            correlationType = kwargs["correlationType"],
+            hist = analysis_objects.HistContainer(outputHist)
+        )
         return outputObservable
 
 class JetHAnalysis(analysis_config.JetHBase):
@@ -156,12 +154,12 @@ class JetHAnalysis(analysis_config.JetHBase):
     # Properties
     # Define as static variables since they don't depend on any particular instance
     histNameFormat = "jetH%(label)s_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}"
-    histNameFormat2D = histNameFormat % {"label" : "DEtaDPhi"}
+    histNameFormat2D = histNameFormat % {"label": "DEtaDPhi"}
     # Standard 1D hists
-    histNameFormatDPhi = histNameFormat % {"label" : "DPhi"}
-    histNameFormatDPhiArray = histNameFormat % {"label" : "DPhi"} + "Array"
-    histNameFormatDEta = histNameFormat % {"label" : "DEta"}
-    histNameFormatDEtaArray = histNameFormat % {"label" : "DEta"} + "Array"
+    histNameFormatDPhi = histNameFormat % {"label": "DPhi"}
+    histNameFormatDPhiArray = histNameFormat % {"label": "DPhi"} + "Array"
+    histNameFormatDEta = histNameFormat % {"label": "DEta"}
+    histNameFormatDEtaArray = histNameFormat % {"label": "DEta"} + "Array"
     # Subtracted 1D hists
     histNameFormatDPhiSubtracted = histNameFormatDPhi + "_subtracted"
     histNameFormatDPhiSubtractedArray = histNameFormatDPhiArray + "_subtracted"
@@ -171,7 +169,7 @@ class JetHAnalysis(analysis_config.JetHBase):
     # These is nothing here to format - it's just the jet spectra
     # However, the variable name will stay the same for clarity
     histNameFormatTrigger = "jetHTriggerPt"
-    fitNameFormat = histNameFormat % {"label" : "Fit"}
+    fitNameFormat = histNameFormat % {"label": "Fit"}
 
     def __init__(self, *args, **kwargs):
         """ """
@@ -214,7 +212,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         self.dPhi = collections.OrderedDict()
         self.dPhiArray = collections.OrderedDict()
         self.dPhiSubtracted = collections.OrderedDict()
-        self.dPhiSubtractedArray= collections.OrderedDict()
+        self.dPhiSubtractedArray = collections.OrderedDict()
         self.dPhiSideBand = collections.OrderedDict()
         self.dPhiSideBandArray = collections.OrderedDict()
         self.dEtaNS = collections.OrderedDict()
@@ -238,7 +236,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         self.dPhiSideBandFit = collections.OrderedDict()
         self.dPhiSubtractedFit = collections.OrderedDict()
         self.dEtaNSFit = collections.OrderedDict()
-        self.dEtaNSSubtractedFit= collections.OrderedDict()
+        self.dEtaNSSubtractedFit = collections.OrderedDict()
 
         # All 1D fits
         self.fits1D = [self.dPhiFit, self.dPhiSideBandFit, self.dPhiSubtractedFit, self.dEtaNSFit, self.dEtaNSSubtractedFit]
@@ -282,26 +280,26 @@ class JetHAnalysis(analysis_config.JetHBase):
         if processingOptions["generalHistograms"]:
             # 1D hists
             hists1D = {
-                    "zVertex" : "fHistZVertex",
-                    "centrality" : "fHistCentrality",
-                    "eventPlane" : "fHistEventPlane",
-                    "jetMatchingSameEvent" : "fHistJetMatchingSameEventCuts",
-                    "jetMatchingMixedEvent" : "fHistJetMatchingMixedEventCuts",
-                    # The following track and jet pt hists look better with logy
-                    # They will be selected by the "Pt" in their name to apply logy in the plotting function
-                    "trackPt" : "fHistTrackPt",
-                    # Just 0-10%
-                    "jetPt" : "fHistJetPt_0",
-                    "jetPtBias" : "fHistJetPtBias_0"
-                }
+                "zVertex": "fHistZVertex",
+                "centrality": "fHistCentrality",
+                "eventPlane": "fHistEventPlane",
+                "jetMatchingSameEvent": "fHistJetMatchingSameEventCuts",
+                "jetMatchingMixedEvent": "fHistJetMatchingMixedEventCuts",
+                # The following track and jet pt hists look better with logy
+                # They will be selected by the "Pt" in their name to apply logy in the plotting function
+                "trackPt": "fHistTrackPt",
+                # Just 0-10%
+                "jetPt": "fHistJetPt_0",
+                "jetPtBias": "fHistJetPtBias_0"
+            }
             self.assignGeneralHistsFromDict(histDict = hists1D, outputDict = self.generalHists1D)
             # 2D hists
             # All of the jets in "jetEtaPhi" are in the EMCal
             hists2D = {
-                    "jetEtaPhi" : "fHistJetEtaPhi",
-                    # Eta-phi of charged hadrons used for jet-hadron correlations
-                    "jetHEtaPhi" : "fHistJetHEtaPhi"
-                }
+                "jetEtaPhi": "fHistJetEtaPhi",
+                # Eta-phi of charged hadrons used for jet-hadron correlations
+                "jetHEtaPhi": "fHistJetHEtaPhi"
+            }
             self.assignGeneralHistsFromDict(histDict = hists2D, outputDict = self.generalHists2D)
 
             # Plots all hists
@@ -338,42 +336,47 @@ class JetHAnalysis(analysis_config.JetHBase):
             NOTE: The bin + epsilon on the lower bin is not strictly necessary, but it is used for consistency.
             """
             triggerHist = triggerObservable.hist
-            logger.debug("Find bin({}+epsilon): {} to Find bin({}-epsilon): {}".format(params.jetPtBins[iJetPtBin],
-                    triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
-                    params.jetPtBins[iJetPtBin+1],
-                    triggerHist.FindBin(params.jetPtBins[iJetPtBin+1] - epsilon)))
-            nTrigInJetPtBin = triggerHist.Integral(triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
-                                         triggerHist.FindBin(params.jetPtBins[iJetPtBin+1] - epsilon))
-            logger.info("nTrig for [{}, {}): {}".format(params.jetPtBins[iJetPtBin], params.jetPtBins[iJetPtBin+1], nTrigInJetPtBin))
+            logger.debug("Find bin({}+epsilon): {} to Find bin({}-epsilon): {}".format(
+                params.jetPtBins[iJetPtBin],
+                triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
+                params.jetPtBins[iJetPtBin + 1],
+                triggerHist.FindBin(params.jetPtBins[iJetPtBin + 1] - epsilon))
+            )
+            nTrigInJetPtBin = triggerHist.Integral(
+                triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
+                triggerHist.FindBin(params.jetPtBins[iJetPtBin + 1] - epsilon)
+            )
+            logger.info("nTrig for [{}, {}): {}".format(params.jetPtBins[iJetPtBin], params.jetPtBins[iJetPtBin + 1], nTrigInJetPtBin))
             nTrig[iJetPtBin] = nTrigInJetPtBin
 
         # TODO: Use a broader range of pt for mixed events like Joel?
         for (rawObservable, mixedEventObservable) in zip(itervalues(self.rawSignal2D), itervalues(self.mixedEvents2D)):
             # Check to ensure that we've zipped properly
             if rawObservable.jetPtBin != mixedEventObservable.jetPtBin or rawObservable.trackPtBin != mixedEventObservable.trackPtBin:
-                logger.critical("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(rawObservable.jetPtBin,
+                raise ValueError("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(
+                    rawObservable.jetPtBin,
                     rawObservable.trackPtBin,
                     mixedEventObservable.jetPtBin,
-                    mixedEventObservable.trackPtBin))
-                sys.exit(1)
+                    mixedEventObservable.trackPtBin)
+                )
 
             logger.debug("Processing correlations raw: {} (hist: {}), and mixed: {} (hist: {})".format(rawObservable, rawObservable.hist.hist, mixedEventObservable, mixedEventObservable.hist.hist))
 
             # Helper dict
-            binningDict = {"trackPtBin" : rawObservable.trackPtBin, "jetPtBin" : rawObservable.jetPtBin}
+            binningDict = {"trackPtBin": rawObservable.trackPtBin, "jetPtBin": rawObservable.jetPtBin}
 
             # Normalize and post process the raw observable
-            postProcessingArgs = {"observable" : rawObservable,
-                                  "normalizationFactor" : nTrig[binningDict["jetPtBin"]],
-                                  "titleLabel" : "Raw signal"}
+            postProcessingArgs = {"observable": rawObservable,
+                                  "normalizationFactor": nTrig[binningDict["jetPtBin"]],
+                                  "titleLabel": "Raw signal"}
             postProcessingArgs.update(binningDict)
             JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
 
             # Normalize and post process the mixed event observable
             normalizationFactor = self.measureMixedEventNormalization(mixedEvent = mixedEventObservable.hist, **binningDict)
-            postProcessingArgs.update({"observable" : mixedEventObservable,
-                                       "normalizationFactor" : normalizationFactor,
-                                       "titleLabel" : "Mixed Event"})
+            postProcessingArgs.update({"observable": mixedEventObservable,
+                                       "normalizationFactor": normalizationFactor,
+                                       "titleLabel": "Mixed Event"})
             JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
 
             # Rebin
@@ -387,31 +390,34 @@ class JetHAnalysis(analysis_config.JetHBase):
         for (rawObservable, mixedEventObservable) in zip(itervalues(self.rawSignal2D), itervalues(self.mixedEvents2D)):
             # Check to ensure that we've zipped properly
             if rawObservable.jetPtBin != mixedEventObservable.jetPtBin or rawObservable.trackPtBin != mixedEventObservable.trackPtBin:
-                logger.critical("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(rawObservable.jetPtBin,
+                raise ValueError("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(
+                    rawObservable.jetPtBin,
                     rawObservable.trackPtBin,
                     mixedEventObservable.jetPtBin,
-                    mixedEventObservable.trackPtBin))
-                sys.exit(1)
+                    mixedEventObservable.trackPtBin)
+                )
 
             # Define for convenience
             jetPtBin = rawObservable.jetPtBin
             trackPtBin = rawObservable.trackPtBin
-            binningDict = {"trackPtBin" : trackPtBin, "jetPtBin" : jetPtBin}
+            binningDict = {"trackPtBin": trackPtBin, "jetPtBin": jetPtBin}
 
             # Correlation - Divide signal by mixed events
             correlation = rawObservable.hist.Clone(self.histNameFormat2D.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = "corr"))
             correlation.Divide(mixedEventObservable.hist.hist)
 
             # Create the observable
-            signal2DObservable = analysis_objects.CorrelationObservable(jetPtBin = jetPtBin,
-                                                                 trackPtBin = trackPtBin,
-                                                                 hist = analysis_objects.HistContainer(correlation))
+            signal2DObservable = analysis_objects.CorrelationObservable(
+                jetPtBin = jetPtBin,
+                trackPtBin = trackPtBin,
+                hist = analysis_objects.HistContainer(correlation)
+            )
 
             # Post process the signal 2D hist
             postProcessingArgs = {}
-            postProcessingArgs.update({"observable" : signal2DObservable,
-                                       "normalizationFactor" : 1.0,
-                                       "titleLabel" : "Correlation"})
+            postProcessingArgs.update({"observable": signal2DObservable,
+                                       "normalizationFactor": 1.0,
+                                       "titleLabel": "Correlation"})
             postProcessingArgs.update(binningDict)
             JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
 
@@ -434,7 +440,7 @@ class JetHAnalysis(analysis_config.JetHBase):
                 # Define for convenience
                 jetPtBin = observable.jetPtBin
                 trackPtBin = observable.trackPtBin
-                binningDict = {"trackPtBin" : trackPtBin, "jetPtBin" : jetPtBin}
+                binningDict = {"trackPtBin": trackPtBin, "jetPtBin": jetPtBin}
 
                 # Determine normalization factor
                 # We only apply this so we don't unnecessarily scale the signal region.
@@ -447,22 +453,22 @@ class JetHAnalysis(analysis_config.JetHBase):
                 # Ranges are multiplied by 2 because the ranges are symmetric
                 signalMinVal = params.etaBins[params.etaBins.index(0.0)]
                 signalMaxVal = params.etaBins[params.etaBins.index(0.6)]
-                signalRange = (signalMaxVal - signalMinVal)*2
+                signalRange = (signalMaxVal - signalMinVal) * 2
                 backgroundMinVal = params.etaBins[params.etaBins.index(0.8)]
                 backgroundMaxVal = params.etaBins[params.etaBins.index(1.2)]
-                backgroundRange = (backgroundMaxVal - backgroundMinVal)*2
+                backgroundRange = (backgroundMaxVal - backgroundMinVal) * 2
 
-                    ################
-                    # If we wanted to plug into the projectors (it would take some work), we could do something like:
-                    ## Determine the min and max values
-                    #axis = projector.axis(observable.hist.hist)
-                    #minVal = rangeSet.minVal(axis)
-                    #maxVal = rangeSet.maxVal(axis)
-                    ## Determine the projection range for proper scaling.
-                    #projectionRange += (axis.GetBinUpEdge(maxVal) - axis.GetBinLowEdge(minVal))
-                    ################
-                    # Could also consider trying to get the projector directly and apply it to a hist
-                    ################
+                ################
+                # If we wanted to plug into the projectors (it would take some work), we could do something like:
+                ## Determine the min and max values
+                #axis = projector.axis(observable.hist.hist)
+                #minVal = rangeSet.minVal(axis)
+                #maxVal = rangeSet.maxVal(axis)
+                ## Determine the projection range for proper scaling.
+                #projectionRange += (axis.GetBinUpEdge(maxVal) - axis.GetBinLowEdge(minVal))
+                ################
+                # Could also consider trying to get the projector directly and apply it to a hist
+                ################
 
                 if observable.correlationType == analysis_objects.jetHCorrelationType.backgroundDominated:
                     # Scale by (signal region)/(background region)
@@ -476,18 +482,18 @@ class JetHAnalysis(analysis_config.JetHBase):
 
                 # Post process and scale
                 postProcessingArgs = {}
-                postProcessingArgs.update({"observable" : observable,
-                                           "normalizationFactor" : normalizationFactor,
-                                           "rebinFactor" : 2,
-                                           "titleLabel" : "{}, {}".format(observable.correlationType.name, str(observable.axis))})
+                postProcessingArgs.update({"observable": observable,
+                                           "normalizationFactor": normalizationFactor,
+                                           "rebinFactor": 2,
+                                           "titleLabel": "{}, {}".format(observable.correlationType.name, str(observable.axis))})
                 postProcessingArgs.update(binningDict)
                 JetHAnalysis.postProjectionProcessing1DCorrelation(**postProcessingArgs)
 
     def post1DProjectionScaling(self):
         """ Perform post projection scalings.
 
-        In particular, scale the 1D hists by their bin widths so no further scaling is necessary. """
-
+        In particular, scale the 1D hists by their bin widths so no further scaling is necessary.
+        """
         for hists in self.hists1DStandard:
             #logger.debug("len(hists): {}, hists.keys(): {}".format(len(hists), hists.keys()))
             for name, observable in iteritems(hists):
@@ -498,15 +504,17 @@ class JetHAnalysis(analysis_config.JetHBase):
     def generateSparseProjectors(self):
         """ Generate sparse projectors """
         # Helper which defines the full axis range
-        fullAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(None, 1),
-                         "maxVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
+        fullAxisRange = {"minVal": HistAxisRange.ApplyFuncToFindBin(None, 1),
+                         "maxVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
 
         # Define common axes
         # Centrality axis
-        centralityCutAxis = HistAxisRange(axisType = JetHCorrelationSparse.kCentrality,
-                axisRangeName = "centrality",
-                minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 - epsilon))
+        centralityCutAxis = HistAxisRange(
+            axisType = JetHCorrelationSparse.kCentrality,
+            axisRangeName = "centrality",
+            minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + epsilon),
+            maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 - epsilon)
+        )
         # Event plane selection
         eventPlaneAngleCutAxis = None
         if self.eventPlaneAngle:
@@ -515,18 +523,20 @@ class JetHAnalysis(analysis_config.JetHBase):
                 logger.info("Using full EP angle range")
             else:
                 # TODO: Update enum to have both axis number and range of the selection.
-                eventPlaneAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value),
-                                       "maxVal" : HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value)}
-                logger.info("Using selected EP angle range {0}".format(self.eventPlaneAngle.name))
+                eventPlaneAxisRange = {
+                    "minVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value),
+                    "maxVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value)
+                }
+                logger.info("Using selected EP angle range {self.eventPlaneAngle.name}")
 
             eventPlaneAngleCutAxis = HistAxisRange(axisType = JetHCorrelationSparse.kEventPlaneAngle,
-                    axisRangeName = "eventPlane", **eventPlaneAxisRange)
+                                                   axisRangeName = "eventPlane", **eventPlaneAxisRange)
         # dPhi full axis
         dPhiAxis = HistAxisRange(axisType = JetHCorrelationSparse.kDeltaPhi,
-                axisRangeName = "deltaPhi", **fullAxisRange)
+                                 axisRangeName = "deltaPhi", **fullAxisRange)
         # dEta full axis
         dEtaAxis = HistAxisRange(axisType = JetHCorrelationSparse.kDeltaEta,
-                axisRangeName = "deltaEta", **fullAxisRange)
+                                 axisRangeName = "deltaEta", **fullAxisRange)
 
         ###########################
         # Trigger projector
@@ -536,11 +546,13 @@ class JetHAnalysis(analysis_config.JetHBase):
         ###########################
         projectionInformation = {}
         # Attempt to format for consistency, although it doesn't do anything for the trigger projection
-        triggerInputDict = {self.histNameFormatTrigger.format(**projectionInformation) : self.inputHists["fhnTrigger"]}
-        triggerProjector = JetHObservableSparseProjector(observable_dict = self.triggerJetPt,
-                observables_to_project_from = triggerInputDict,
-                projectionNameFormat = self.histNameFormatTrigger,
-                projectionInformation = projectionInformation)
+        triggerInputDict = {self.histNameFormatTrigger.format(**projectionInformation): self.inputHists["fhnTrigger"]}
+        triggerProjector = JetHObservableSparseProjector(
+            observable_dict = self.triggerJetPt,
+            observables_to_project_from = triggerInputDict,
+            projectionNameFormat = self.histNameFormatTrigger,
+            projectionInformation = projectionInformation
+        )
         # Take advantage of existing centrality and event plane object, but need to copy and modify the axis type
         if self.collisionSystem != params.collisionSystem.pp:
             triggerCentralityCutAxis = copy.deepcopy(centralityCutAxis)
@@ -553,27 +565,38 @@ class JetHAnalysis(analysis_config.JetHBase):
         # No projection dependent cut axes
         triggerProjector.projectionDependentCutAxes.append([])
         # Projection axis
-        triggerProjector.projectionAxes.append(HistAxisRange(axisType = JetHTriggerSparse.kJetPt,
-                axisRangeName = "jetPt", **fullAxisRange) )
+        triggerProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetHTriggerSparse.kJetPt,
+                axisRangeName = "jetPt",
+                **fullAxisRange
+            )
+        )
         self.sparseProjectors.append(triggerProjector)
 
         # Jet and track pt bin dependent cuts
         for (iJetPtBin, iTrackPtBin) in params.iterateOverJetAndTrackPtBins(self.config):
-            jetAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.jetPtBins[iJetPtBin] + epsilon),
-                            "maxVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.jetPtBins[iJetPtBin+1] - epsilon)}
-            trackAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.trackPtBins[iTrackPtBin] + epsilon),
-                              "maxVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.trackPtBins[iTrackPtBin+1] - epsilon)}
-            projectionInformation = {"jetPtBin" : iJetPtBin, "trackPtBin" : iTrackPtBin}
+            jetAxisRange = {
+                "minVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.jetPtBins[iJetPtBin] + epsilon),
+                "maxVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.jetPtBins[iJetPtBin + 1] - epsilon)
+            }
+            trackAxisRange = {
+                "minVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.trackPtBins[iTrackPtBin] + epsilon),
+                "maxVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.trackPtBins[iTrackPtBin + 1] - epsilon)
+            }
+            projectionInformation = {"jetPtBin": iJetPtBin, "trackPtBin": iTrackPtBin}
 
             ###########################
             # Raw signal projector
             ###########################
             projectionInformation["tag"] = "raw"
-            rawSignalInputDict = {self.histNameFormat2D.format(**projectionInformation) : self.inputHists["fhnJH"]}
-            rawSignalProjector = JetHCorrelationSparseProjector(observable_dict = self.rawSignal2D,
-                    observables_to_project_from = rawSignalInputDict,
-                    projectionNameFormat = self.histNameFormat2D,
-                    projectionInformation = projectionInformation)
+            rawSignalInputDict = {self.histNameFormat2D.format(**projectionInformation): self.inputHists["fhnJH"]}
+            rawSignalProjector = JetHCorrelationSparseProjector(
+                observable_dict = self.rawSignal2D,
+                observables_to_project_from = rawSignalInputDict,
+                projectionNameFormat = self.histNameFormat2D,
+                projectionInformation = projectionInformation
+            )
             if self.collisionSystem != params.collisionSystem.pp:
                 rawSignalProjector.additionalAxisCuts.append(centralityCutAxis)
             if eventPlaneAngleCutAxis:
@@ -581,10 +604,20 @@ class JetHAnalysis(analysis_config.JetHBase):
             # TODO: Do these projectors really need projection dependent cut axes?
             #       It seems like additionalAxisCuts would be sufficient.
             projectionDependentCutAxes = []
-            projectionDependentCutAxes.append(HistAxisRange(axisType = JetHCorrelationSparse.kJetPt,
-                    axisRangeName = "jetPt{}".format(iJetPtBin), **jetAxisRange) )
-            projectionDependentCutAxes.append(HistAxisRange(axisType = JetHCorrelationSparse.kTrackPt,
-                    axisRangeName = "trackPt{}".format(iTrackPtBin), **trackAxisRange) )
+            projectionDependentCutAxes.append(
+                HistAxisRange(
+                    axisType = JetHCorrelationSparse.kJetPt,
+                    axisRangeName = "jetPt{}".format(iJetPtBin),
+                    **jetAxisRange
+                )
+            )
+            projectionDependentCutAxes.append(
+                HistAxisRange(
+                    axisType = JetHCorrelationSparse.kTrackPt,
+                    axisRangeName = "trackPt{}".format(iTrackPtBin),
+                    **trackAxisRange
+                )
+            )
             # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be applied on the same projection!
             rawSignalProjector.projectionDependentCutAxes.append(projectionDependentCutAxes)
             # Projection Axes
@@ -596,20 +629,32 @@ class JetHAnalysis(analysis_config.JetHBase):
             # Mixed Event projector
             ###########################
             projectionInformation["tag"] = "mixed"
-            mixedEventInputDict = {self.histNameFormat2D.format(**projectionInformation) : self.inputHists["fhnMixedEvents"]}
-            mixedEventProjector = JetHCorrelationSparseProjector(observable_dict = self.mixedEvents2D,
-                    observables_to_project_from = mixedEventInputDict,
-                    projectionNameFormat = self.histNameFormat2D,
-                    projectionInformation = projectionInformation)
+            mixedEventInputDict = {self.histNameFormat2D.format(**projectionInformation): self.inputHists["fhnMixedEvents"]}
+            mixedEventProjector = JetHCorrelationSparseProjector(
+                observable_dict = self.mixedEvents2D,
+                observables_to_project_from = mixedEventInputDict,
+                projectionNameFormat = self.histNameFormat2D,
+                projectionInformation = projectionInformation
+            )
             if self.collisionSystem != params.collisionSystem.pp:
                 mixedEventProjector.additionalAxisCuts.append(centralityCutAxis)
             if eventPlaneAngleCutAxis:
                 mixedEventProjector.additionalAxisCuts.append(eventPlaneAngleCutAxis)
             projectionDependentCutAxes = []
-            projectionDependentCutAxes.append(HistAxisRange(axisType = JetHCorrelationSparse.kJetPt,
-                    axisRangeName = "jetPt{}".format(iJetPtBin), **jetAxisRange) )
-            projectionDependentCutAxes.append(HistAxisRange(axisType = JetHCorrelationSparse.kTrackPt,
-                    axisRangeName = "trackPt{}".format(iTrackPtBin), **trackAxisRange) )
+            projectionDependentCutAxes.append(
+                HistAxisRange(
+                    axisType = JetHCorrelationSparse.kJetPt,
+                    axisRangeName = "jetPt{}".format(iJetPtBin),
+                    **jetAxisRange
+                )
+            )
+            projectionDependentCutAxes.append(
+                HistAxisRange(
+                    axisType = JetHCorrelationSparse.kTrackPt,
+                    axisRangeName = "trackPt{}".format(iTrackPtBin),
+                    **trackAxisRange
+                )
+            )
             # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be applied on the same projection!
             mixedEventProjector.projectionDependentCutAxes.append(projectionDependentCutAxes)
             # Projection Axes
@@ -620,90 +665,135 @@ class JetHAnalysis(analysis_config.JetHBase):
     def generateCorrelationProjectors(self):
         """ Generate correlation projectors (2D -> 1D) """
         # Helper which defines the full axis range
-        fullAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(None, 1),
-                         "maxVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
+        fullAxisRange = {"minVal": HistAxisRange.ApplyFuncToFindBin(None, 1),
+                         "maxVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
 
         ###########################
         # dPhi Signal
         ###########################
-        projectionInformation = {"correlationType" : analysis_objects.jetHCorrelationType.signalDominated,
-                                 "axis" : JetHCorrelationAxis.kDeltaPhi}
+        projectionInformation = {"correlationType": analysis_objects.jetHCorrelationType.signalDominated,
+                                 "axis": JetHCorrelationAxis.kDeltaPhi}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiSignalProjector = JetHCorrelationProjector(observable_dict = self.dPhi,
-                observables_to_project_from = self.signal2D,
-                projectionNameFormat = self.histNameFormatDPhi,
-                projectionInformation = projectionInformation)
+        dPhiSignalProjector = JetHCorrelationProjector(
+            observable_dict = self.dPhi,
+            observables_to_project_from = self.signal2D,
+            projectionNameFormat = self.histNameFormatDPhi,
+            projectionInformation = projectionInformation
+        )
         # Select signal dominated region in eta
-        # Could be a single range, but this is conceptually clearer when compared to the background dominated region
-        # Need to do this as projection dependent cuts because it is selecting different ranges on the same axis
-        dPhiSignalProjector.projectionDependentCutAxes.append([HistAxisRange(axisType = JetHCorrelationAxis.kDeltaEta,
+        # Could be a single range, but this is conceptually clearer when compared to the background
+        # dominated region. Need to do this as projection dependent cuts because it is selecting different
+        # ranges on the same axis
+        dPhiSignalProjector.projectionDependentCutAxes.append([
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaEta,
                 axisRangeName = "NegativeEtaSignalDominated",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.6)] + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0)] - epsilon)) ])
-        dPhiSignalProjector.projectionDependentCutAxes.append([HistAxisRange(axisType = JetHCorrelationAxis.kDeltaEta,
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0)] - epsilon)
+            )
+        ])
+        dPhiSignalProjector.projectionDependentCutAxes.append([
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaEta,
                 axisRangeName = "PositiveEtaSignalDominated",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0)] + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.6)] - epsilon)) ])
-        dPhiSignalProjector.projectionAxes.append(HistAxisRange(axisType = JetHCorrelationAxis.kDeltaPhi,
-                axisRangeName = "deltaPhi", **fullAxisRange) )
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.6)] - epsilon)
+            )
+        ])
+        dPhiSignalProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaPhi,
+                axisRangeName = "deltaPhi",
+                **fullAxisRange
+            )
+        )
         self.correlationProjectors.append(dPhiSignalProjector)
 
         ###########################
         # dPhi Background dominated
         ###########################
-        projectionInformation = {"correlationType" : analysis_objects.jetHCorrelationType.backgroundDominated,
-                                 "axis" : JetHCorrelationAxis.kDeltaPhi}
+        projectionInformation = {"correlationType": analysis_objects.jetHCorrelationType.backgroundDominated,
+                                 "axis": JetHCorrelationAxis.kDeltaPhi}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiBackgroundProjector = JetHCorrelationProjector(observable_dict = self.dPhiSideBand,
-                observables_to_project_from = self.signal2D,
-                projectionNameFormat = self.histNameFormatDPhi,
-                projectionInformation = projectionInformation)
+        dPhiBackgroundProjector = JetHCorrelationProjector(
+            observable_dict = self.dPhiSideBand,
+            observables_to_project_from = self.signal2D,
+            projectionNameFormat = self.histNameFormatDPhi,
+            projectionInformation = projectionInformation
+        )
         # Select background dominated region in eta
         # Redundant to find the index, but it helps check that it is actually in the list!
-        # Need to do this as projection dependent cuts because it is selecting different ranges on the same axis
-        dPhiBackgroundProjector.projectionDependentCutAxes.append([HistAxisRange(axisType = JetHCorrelationAxis.kDeltaEta,
+        # Need to do this as projection dependent cuts because it is selecting different ranges
+        # on the same axis
+        dPhiBackgroundProjector.projectionDependentCutAxes.append([
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaEta,
                 axisRangeName = "NegativeEtaBackgroundDominated",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(1.2)] + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.8)] - epsilon)) ])
-        dPhiBackgroundProjector.projectionDependentCutAxes.append([HistAxisRange(axisType = JetHCorrelationAxis.kDeltaEta,
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.8)] - epsilon)
+            )
+        ])
+        dPhiBackgroundProjector.projectionDependentCutAxes.append([
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaEta,
                 axisRangeName = "PositiveEtaBackgroundDominated",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.8)] + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(1.2)] - epsilon)) ])
-        dPhiBackgroundProjector.projectionAxes.append(HistAxisRange(axisType = JetHCorrelationAxis.kDeltaPhi,
-                axisRangeName = "deltaPhi", **fullAxisRange) )
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(1.2)] - epsilon)
+            )
+        ])
+        dPhiBackgroundProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaPhi,
+                axisRangeName = "deltaPhi",
+                **fullAxisRange
+            )
+        )
         self.correlationProjectors.append(dPhiBackgroundProjector)
 
         ###########################
         # dEta NS
         ###########################
-        projectionInformation = {"correlationType" : analysis_objects.jetHCorrelationType.nearSide,
-                                 "axis" : JetHCorrelationAxis.kDeltaEta}
+        projectionInformation = {"correlationType": analysis_objects.jetHCorrelationType.nearSide,
+                                 "axis": JetHCorrelationAxis.kDeltaEta}
         projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dEtaNSProjector = JetHCorrelationProjector(observable_dict = self.dEtaNS,
-                observables_to_project_from = self.signal2D,
-                projectionNameFormat = self.histNameFormatDEta,
-                projectionInformation = projectionInformation)
+        dEtaNSProjector = JetHCorrelationProjector(
+            observable_dict = self.dEtaNS,
+            observables_to_project_from = self.signal2D,
+            projectionNameFormat = self.histNameFormatDEta,
+            projectionInformation = projectionInformation
+        )
         # Select near side in delta phi
-        dEtaNSProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetHCorrelationAxis.kDeltaPhi,
+        dEtaNSProjector.additionalAxisCuts.append(
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaPhi,
                 axisRangeName = "deltaPhiNearSide",
-                minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(-1.*math.pi/2.)] + epsilon),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index( 1.*math.pi/2.)] - epsilon)) )
+                minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(-1. * math.pi / 2.)] + epsilon),
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(1. * math.pi / 2.)] - epsilon)
+            )
+        )
         # No projection dependent cut axes
         dEtaNSProjector.projectionDependentCutAxes.append([])
-        dEtaNSProjector.projectionAxes.append(HistAxisRange(axisType = JetHCorrelationAxis.kDeltaEta,
-                axisRangeName = "deltaEta", **fullAxisRange) )
+        dEtaNSProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetHCorrelationAxis.kDeltaEta,
+                axisRangeName = "deltaEta",
+                **fullAxisRange
+            )
+        )
         self.correlationProjectors.append(dEtaNSProjector)
 
     def convert1DRootHistsToArray(self, inputHists, outputHists):
         """ Convert requested 1D hists to hist array format. """
         for observable in itervalues(inputHists):
-            outputHistName =  self.histNameFormatDPhiArray.format(jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin, tag = observable.correlationType.str())
+            outputHistName = self.histNameFormatDPhiArray.format(jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin, tag = observable.correlationType.str())
             histArray = analysis_objects.HistArray.initFromRootHist(observable.hist.hist)
-            outputHists[outputHistName] = analysis_objects.CorrelationObservable1D(jetPtBin = observable.jetPtBin,
-                    trackPtBin = observable.trackPtBin,
-                    correlationType = observable.correlationType,
-                    axis = observable.axis,
-                    hist = histArray)
+            outputHists[outputHistName] = analysis_objects.CorrelationObservable1D(
+                jetPtBin = observable.jetPtBin,
+                trackPtBin = observable.trackPtBin,
+                correlationType = observable.correlationType,
+                axis = observable.axis,
+                hist = histArray
+            )
 
     def convertDPhiHists(self):
         """ Convert dPhi hists to hist arrays. """
@@ -727,14 +817,14 @@ class JetHAnalysis(analysis_config.JetHBase):
 
     def fitBackgroundDominatedRegion(self):
         """ Fit the background dominated 1D correlations. """
-        fitFunctions = { params.collisionSystem.pp: fitting.fitDeltaPhiBackground,
-                         params.collisionSystem.PbPb: fitting.fitDeltaPhiBackground}
+        fitFunctions = {params.collisionSystem.pp: fitting.fitDeltaPhiBackground,
+                        params.collisionSystem.PbPb: fitting.fitDeltaPhiBackground}
         self.fit1DCorrelations(hists = self.dPhiSideBand, fits = self.dPhiSideBandFit, fitFunction = fitFunctions[self.collisionSystem])
 
     def fitSignalRegion(self):
         """ Fit the signal dominated 1D correlations. """
-        fitFunctions = { params.collisionSystem.pp : fitting.fitDeltaPhi,
-                         params.collisionSystem.PbPb : fitting.ReactionPlaneFit }
+        fitFunctions = {params.collisionSystem.pp: fitting.fitDeltaPhi,
+                        params.collisionSystem.PbPb: fitting.ReactionPlaneFit}
         self.fit1DCorrelations(hists = self.dPhi, fits = self.dPhiFit, fitFunction = fitFunctions[self.collisionSystem])
 
     def fitDEtaCorrelations(self):
@@ -781,12 +871,13 @@ class JetHAnalysis(analysis_config.JetHBase):
             # Remove background
             # Already have the background fits, so remove it
             subtractedHist.Add(bgFit, -1)
-            subtractedHists["{}_subtracted".format(name)] = analysis_objects.CorrelationObservable1D(jetPtBin = observable.jetPtBin,
-                                                                                              trackPtBin = observable.trackPtBin,
-                                                                                              correlationType = observable.correlationType,
-                                                                                              axis = observable.axis,
-                                                                                              hist = analysis_objects.HistContainer(subtractedHist))
-
+            subtractedHists["{}_subtracted".format(name)] = analysis_objects.CorrelationObservable1D(
+                jetPtBin = observable.jetPtBin,
+                trackPtBin = observable.trackPtBin,
+                correlationType = observable.correlationType,
+                axis = observable.axis,
+                hist = analysis_objects.HistContainer(subtractedHist)
+            )
 
             # Create subtracted fit from previous fits
             # TODO: This should be improved! This should actually do the fit!
@@ -826,11 +917,12 @@ class JetHAnalysis(analysis_config.JetHBase):
                 yieldError /= trackPtBinWidth
 
                 # Store yield
-                yields["{}_yield".format(name)] = analysis_objects.ExtractedObservable(jetPtBin = observable.jetPtBin,
-                                                                                trackPtBin = observable.trackPtBin,
-                                                                                value = yieldValue,
-                                                                                error = yieldError)
-
+                yields["{}_yield".format(name)] = analysis_objects.ExtractedObservable(
+                    jetPtBin = observable.jetPtBin,
+                    trackPtBin = observable.trackPtBin,
+                    value = yieldValue,
+                    error = yieldError
+                )
 
     def extractWidths(self):
         """ Extract widths from the fits. """
@@ -840,10 +932,12 @@ class JetHAnalysis(analysis_config.JetHBase):
 
         for location, (parameterNumber, widths, hists, fits) in iteritems(parameters):
             for (name, observable), fit in zip(iteritems(hists), itervalues(fits)):
-                widths["{}_width".format(name)] = analysis_objects.ExtractedObservable(jetPtBin = observable.jetPtBin,
-                                                                                trackPtBin = observable.trackPtBin,
-                                                                                value = fit.GetParameter(parameterNumber),
-                                                                                error = fit.GetParError(parameterNumber))
+                widths["{}_width".format(name)] = analysis_objects.ExtractedObservable(
+                    jetPtBin = observable.jetPtBin,
+                    trackPtBin = observable.trackPtBin,
+                    value = fit.GetParameter(parameterNumber),
+                    error = fit.GetParError(parameterNumber)
+                )
 
     def writeToRootFile(self, observable_dict, mode = "UPDATE"):
         """ Write output list to a file """
@@ -851,7 +945,7 @@ class JetHAnalysis(analysis_config.JetHBase):
 
         logger.info("Saving correlations to {}".format(filename))
 
-        with root_open(filename, mode) as fOut:
+        with root_open(filename, mode) as fOut:  # noqa: 854
             for histCollection in observable_dict:
                 for name, observable in iteritems(histCollection):
                     if isinstance(observable, analysis_objects.Observable):
@@ -874,10 +968,10 @@ class JetHAnalysis(analysis_config.JetHBase):
                     hist = observable
 
                 hist.saveToYAML(prefix = self.outputPrefix,
-                        objType = observable.correlationType,
-                        jetPtBin = observable.jetPtBin,
-                        trackPtBin = observable.trackPtBin,
-                        fileAccessMode = mode)
+                                objType = observable.correlationType,
+                                jetPtBin = observable.jetPtBin,
+                                trackPtBin = observable.trackPtBin,
+                                fileAccessMode = mode)
 
     def writeGeneralHistograms(self):
         """ Write general histograms to file. """
@@ -960,9 +1054,11 @@ class JetHAnalysis(analysis_config.JetHBase):
                         histName = self.histNameFormat2D.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = tag)
                         hist = fIn.Get(histName)
                         if hist:
-                            storedDict[histName] =analysis_objects.CorrelationObservable(jetPtBin = jetPtBin,
-                                                                                  trackPtBin = trackPtBin,
-                                                                                  hist = analysis_objects.HistContainer(hist))
+                            storedDict[histName] = analysis_objects.CorrelationObservable(
+                                jetPtBin = jetPtBin,
+                                trackPtBin = trackPtBin,
+                                hist = analysis_objects.HistContainer(hist)
+                            )
                             # Ensure that the hist doesn't disappear when the file closes
                             hist.SetDirectory(0)
                         else:
@@ -976,22 +1072,22 @@ class JetHAnalysis(analysis_config.JetHBase):
                     hists1D = []
                     retrieveArray = False
                     if Correlations1D:
-                        hists1D.append([self.dPhi,         self.histNameFormatDPhi, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dPhiSideBand, self.histNameFormatDPhi, analysis_objects.jetHCorrelationType.backgroundDominated, JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dEtaNS,       self.histNameFormatDEta, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAxis.kDeltaEta])
+                        hists1D.append([self.dPhi,         self.histNameFormatDPhi, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dPhiSideBand, self.histNameFormatDPhi, analysis_objects.jetHCorrelationType.backgroundDominated, JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dEtaNS,       self.histNameFormatDEta, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAxis.kDeltaEta])  # noqa: E241
                     if Correlations1DSubtracted:
-                        hists1D.append([self.dPhiSubtracted,   self.histNameFormatDPhiSubtracted, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dEtaNSSubtracted, self.histNameFormatDEtaSubtracted, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAixs.kDeltaEta])
+                        hists1D.append([self.dPhiSubtracted,   self.histNameFormatDPhiSubtracted, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dEtaNSSubtracted, self.histNameFormatDEtaSubtracted, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAxis.kDeltaEta])  # noqa: E241
                     if Correlations1DArray:
                         logger.debug("Correlations1DArray hists")
                         retrieveArray = True
-                        hists1D.append([self.dPhiArray,         self.histNameFormatDPhiArray, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dPhiSideBandArray, self.histNameFormatDPhiArray, analysis_objects.jetHCorrelationType.backgroundDominated, JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dEtaNS,            self.histNameFormatDEtaArray, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAxis.kDeltaEta])
+                        hists1D.append([self.dPhiArray,         self.histNameFormatDPhiArray, analysis_objects.jetHCorrelationType.signalDominated,     JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dPhiSideBandArray, self.histNameFormatDPhiArray, analysis_objects.jetHCorrelationType.backgroundDominated, JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dEtaNS,            self.histNameFormatDEtaArray, analysis_objects.jetHCorrelationType.nearSide,            JetHCorrelationAxis.kDeltaEta])  # noqa: E241
                     if Correlations1DSubtractedArray:
                         retrieveArray = True
-                        hists1D.append([self.dPhiSubtractedArray,   self.histNameFormatDPhiSubtractedArray, analysis_objects.jetHCorrelationType.signalDominated, JetHCorrelationAxis.kDeltaPhi])
-                        hists1D.append([self.dEtaNSSubtractedArray, self.histNameFormatDEtaSubtractedArray, analysis_objects.jetHCorrelationType.nearSide,        JetHCorrelationAixs.kDeltaEta])
+                        hists1D.append([self.dPhiSubtractedArray,   self.histNameFormatDPhiSubtractedArray, analysis_objects.jetHCorrelationType.signalDominated, JetHCorrelationAxis.kDeltaPhi])  # noqa: E241
+                        hists1D.append([self.dEtaNSSubtractedArray, self.histNameFormatDEtaSubtractedArray, analysis_objects.jetHCorrelationType.nearSide,        JetHCorrelationAxis.kDeltaEta])  # noqa: E241
 
                     for (storedDict, nameFormat, correlationType, axis) in hists1D:
                         # 1D hists
@@ -1004,8 +1100,8 @@ class JetHAnalysis(analysis_config.JetHBase):
                             hist = analysis_objects.HistArray.initFromYAML(prefix = self.outputPrefix, objType = correlationType, jetPtBin = jetPtBin, trackPtBin = trackPtBin)
                             if hist:
                                 actualHistName = hist.outputFilename.format(type = correlationType.str(),
-                                        jetPtBin = jetPtBin,
-                                        trackPtBin = trackPtBin)
+                                                                            jetPtBin = jetPtBin,
+                                                                            trackPtBin = trackPtBin)
                         else:
                             hist = fIn.Get(histName)
                             if hist:
@@ -1016,14 +1112,17 @@ class JetHAnalysis(analysis_config.JetHBase):
                                 hist = analysis_objects.HistContainer(hist)
 
                         if hist:
-                            storedDict[histName] = analysis_objects.CorrelationObservable1D(jetPtBin = jetPtBin,
-                                                                                     trackPtBin = trackPtBin,
-                                                                                     correlationType = correlationType,
-                                                                                     axis = axis,
-                                                                                     hist = hist)
+                            storedDict[histName] = analysis_objects.CorrelationObservable1D(
+                                jetPtBin = jetPtBin,
+                                trackPtBin = trackPtBin,
+                                correlationType = correlationType,
+                                axis = axis,
+                                hist = hist
+                            )
                         else:
-                            # By default, we explicitly ask for a hist, so we should be aware if it doesn't exist!
-                            logger.critical("Failed to retrieve hist {0} from the ROOT input file!".format(histName))
+                            # By default, we explicitly ask for a hist, so we should be aware if it doesn't
+                            # exist!
+                            logger.critical(f"Failed to retrieve hist {histName} from the ROOT input file!")
                             if exitOnFailure:
                                 sys.exit(1)
                             else:
@@ -1039,18 +1138,18 @@ class JetHAnalysis(analysis_config.JetHBase):
         """ Determine normalization of the mixed event.
         """
         # Project to 1D dPhi so it can be used with the signal finder
-        # We need to project over a range of constant eta to be able to use the extracted max in the 2D mixed event.
-        # Joel uses [-0.4, 0.4], but it really seems to drop in the 0.4 bin, so instead I'll use 0.3
-        # This value also depends on the max track eta. For 0.9, it should be 0.4 (0.9-0.5), but for 0.8,
-        # it should be 0.3 (0.8-0.5)
+        # We need to project over a range of constant eta to be able to use the extracted max in the 2D
+        # mixed event. Joel uses [-0.4, 0.4], but it really seems to drop in the 0.4 bin, so instead I'll
+        # use 0.3 This value also depends on the max track eta. For 0.9, it should be 0.4 (0.9-0.5), but
+        # for 0.8, it should be 0.3 (0.8-0.5)
         etaLimits = self.taskConfig["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
         # Scale the 1D norm by the eta range.
         etaLimitBins = [mixedEvent.GetYaxis().FindBin(etaLimits[0] + epsilon), mixedEvent.GetYaxis().FindBin(etaLimits[1] - epsilon)]
         # This is basically just a sanity check that the selected values align with the binning
         projectionLength = mixedEvent.GetYaxis().GetBinUpEdge(etaLimitBins[1]) - mixedEvent.GetYaxis().GetBinLowEdge(etaLimitBins[0])
-        logger.info("Scale factor from 1D to 2D: {}".format(mixedEvent.GetYaxis().GetBinWidth(1)/projectionLength))
+        logger.info("Scale factor from 1D to 2D: {}".format(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength))
         peakFindingHist = mixedEvent.ProjectionX("{}_peakFindingHist".format(mixedEvent.GetName()), etaLimitBins[0], etaLimitBins[1])
-        peakFindingHist.Scale(mixedEvent.GetYaxis().GetBinWidth(1)/projectionLength)
+        peakFindingHist.Scale(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength)
         peakFindingArray = root_numpy.hist2array(peakFindingHist)
         #logger.debug("peakFindingArray: {}".format(peakFindingArray))
 
@@ -1061,11 +1160,13 @@ class JetHAnalysis(analysis_config.JetHBase):
         compareNormalizationOptions = self.taskConfig["mixedEventNormalizationOptions"].get("compareOptions", False)
         if compareNormalizationOptions:
             logger.info("Comparing mixed event normalization options!")
-            self.compareMixedEventNormalizationOptions(mixedEvent = mixedEvent, jetPtBin = jetPtBin, trackPtBin = trackPtBin,
-                    etaLimits = etaLimits,
-                    peakFindingHist = peakFindingHist,
-                    peakFindingArray = peakFindingArray,
-                    maxMovingAvg = maxMovingAvg)
+            self.compareMixedEventNormalizationOptions(
+                mixedEvent = mixedEvent, jetPtBin = jetPtBin, trackPtBin = trackPtBin,
+                etaLimits = etaLimits,
+                peakFindingHist = peakFindingHist,
+                peakFindingArray = peakFindingArray,
+                maxMovingAvg = maxMovingAvg
+            )
 
         mixedEventNormalization = maxMovingAvg
         if not mixedEventNormalization != 0:
@@ -1080,11 +1181,11 @@ class JetHAnalysis(analysis_config.JetHBase):
         The large window over which the normalization is extracted seems to be important to avoid fluctatuions.
 
         Also allows for comparison of:
-            - Continuous wave transform with width ~ \pi
+            - Continuous wave transform with width ~ pi
             - Smoothing data assuming the points are distributed as a gaussian with options of:
                 - Max of smoothed function
-                - Moving average over \pi of smoothed function
-            - Moving average over \pi
+                - Moving average over pi of smoothed function
+            - Moving average over pi
             - Linear 1D fit
             - Linear 2D fit
 
@@ -1094,15 +1195,15 @@ class JetHAnalysis(analysis_config.JetHBase):
         # The rebinned hist may be less susceptible to noise, so it should be compared.
         # Only rebin the 2D in dPhi because otherwise the dEta bins will not align with the limits
         mixedEventRebin = mixedEvent.Rebin2D(2, 1, mixedEvent.GetName() + "Rebin")
-        mixedEventRebin.Scale(1./(2.*1.))
+        mixedEventRebin.Scale(1. / (2. * 1.))
         peakFindingHistRebin = peakFindingHist.Rebin(2, peakFindingHist.GetName() + "Rebin")
-        peakFindingHistRebin.Scale(1./2.)
+        peakFindingHistRebin.Scale(1. / 2.)
         # Note that peak finding will only be performed on the 1D hist
         peakFindingArrayRebin = root_numpy.hist2array(peakFindingHistRebin)
 
         # Define points where the plots and functions can be evaluted
-        linSpace = np.linspace(-0.5*np.pi, 3./2*np.pi, len(peakFindingArray))
-        linSpaceRebin = np.linspace(-0.5*np.pi, 3./2*np.pi, len(peakFindingArrayRebin))
+        linSpace = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peakFindingArray))
+        linSpaceRebin = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peakFindingArrayRebin))
 
         # Using CWT
         # See: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.signal.find_peaks_cwt.html
@@ -1115,16 +1216,16 @@ class JetHAnalysis(analysis_config.JetHBase):
         # See: https://stackoverflow.com/a/22291860
         f = scipy.interpolate.interp1d(linSpace, peakFindingArray)
         # Resample for higher resolution
-        linSpaceResample = np.linspace(-0.5*np.pi, 3./2*np.pi, 7200)
+        linSpaceResample = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, 7200)
         fResample = f(linSpaceResample)
         # Gaussian
         # std deviation is in x!
         window = scipy.signal.gaussian(1000, 300)
-        smoothedArray = scipy.signal.convolve(fResample, window/window.sum(), mode="same")
-        maxSmoothed = np.amax(smoothedArray)
+        smoothedArray = scipy.signal.convolve(fResample, window / window.sum(), mode="same")
+        #maxSmoothed = np.amax(smoothedArray)
         #logger.debug("maxSmoothed: {}".format(maxSmoothed))
         # Moving average on smoothed curve
-        smoothedMovingAvg = utils.movingAverage(smoothedArray, n = int(len(smoothedArray)//2))
+        smoothedMovingAvg = utils.movingAverage(smoothedArray, n = int(len(smoothedArray) // 2))
         maxSmoothedMovingAvg = max(smoothedMovingAvg)
 
         # Moving average with rebin
@@ -1133,45 +1234,46 @@ class JetHAnalysis(analysis_config.JetHBase):
 
         # Fit using TF1 over some range
         # Fit the deltaPhi away side
-        fit1D = fitting.fit1DMixedEventNormalization(peakFindingHist, [1./2.*np.pi, 3./2.*np.pi])
+        fit1D = fitting.fit1DMixedEventNormalization(peakFindingHist, [1. / 2. * np.pi, 3. / 2. * np.pi])
         maxLinearFit1D = fit1D.GetParameter(0)
-        fit1DRebin = fitting.fit1DMixedEventNormalization(peakFindingHistRebin, [1./2.*np.pi, 3./2.*np.pi])
+        fit1DRebin = fitting.fit1DMixedEventNormalization(peakFindingHistRebin, [1. / 2. * np.pi, 3. / 2. * np.pi])
         maxLinearFit1DRebin = fit1DRebin.GetParameter(0)
-        fit2D = fitting.fit2DMixedEventNormalization(mixedEvent, [1./2.*np.pi, 3./2.*np.pi], etaLimits)
+        fit2D = fitting.fit2DMixedEventNormalization(mixedEvent, [1. / 2. * np.pi, 3. / 2. * np.pi], etaLimits)
         maxLinearFit2D = fit2D.GetParameter(0)
-        fit2DRebin = fitting.fit2DMixedEventNormalization(mixedEventRebin, [1./2.*np.pi, 3./2.*np.pi], etaLimits)
+        fit2DRebin = fitting.fit2DMixedEventNormalization(mixedEventRebin, [1. / 2. * np.pi, 3. / 2. * np.pi], etaLimits)
         maxLinearFit2DRebin = fit2DRebin.GetParameter(0)
 
         logger.debug("linear1D: {}, linear1DRebin: {}".format(maxLinearFit1D, maxLinearFit1DRebin))
         logger.debug("linear2D: {}, linear2DRebin: {}".format(maxLinearFit2D, maxLinearFit2DRebin))
 
-        plot_correlations.mixedEventNormalization(self,
-                # For labeling purposes
-                histName = peakFindingHist.GetName(),
-                etaLimits = etaLimits,
-                jetPtTitle = params.generateJetPtRangeString(jetPtBin),
-                trackPtTitle = params.generateTrackPtRangeString(trackPtBin),
-                # Basic data
-                linSpace = linSpace,
-                peakFindingArray = peakFindingArray,
-                linSpaceRebin = linSpaceRebin,
-                peakFindingArrayRebin = peakFindingArrayRebin,
-                # CWT
-                peakLocations = peakLocations,
-                peakLocationsRebin = peakLocationsRebin,
-                # Moving Average
-                maxMovingAvg = maxMovingAvg,
-                maxMovingAvgRebin = maxMovingAvgRebin,
-                # Smoothed gaussian
-                linSpaceResample = linSpaceResample,
-                smoothedArray = smoothedArray,
-                maxSmoothedMovingAvg = maxSmoothedMovingAvg,
-                # Linear fits
-                maxLinearFit1D = maxLinearFit1D,
-                maxLinearFit1DRebin = maxLinearFit1DRebin,
-                maxLinearFit2D = maxLinearFit2D,
-                maxLinearFit2DRebin = maxLinearFit2DRebin,
-                )
+        plot_correlations.mixedEventNormalization(
+            self,
+            # For labeling purposes
+            histName = peakFindingHist.GetName(),
+            etaLimits = etaLimits,
+            jetPtTitle = params.generateJetPtRangeString(jetPtBin),
+            trackPtTitle = params.generateTrackPtRangeString(trackPtBin),
+            # Basic data
+            linSpace = linSpace,
+            peakFindingArray = peakFindingArray,
+            linSpaceRebin = linSpaceRebin,
+            peakFindingArrayRebin = peakFindingArrayRebin,
+            # CWT
+            peakLocations = peakLocations,
+            peakLocationsRebin = peakLocationsRebin,
+            # Moving Average
+            maxMovingAvg = maxMovingAvg,
+            maxMovingAvgRebin = maxMovingAvgRebin,
+            # Smoothed gaussian
+            linSpaceResample = linSpaceResample,
+            smoothedArray = smoothedArray,
+            maxSmoothedMovingAvg = maxSmoothedMovingAvg,
+            # Linear fits
+            maxLinearFit1D = maxLinearFit1D,
+            maxLinearFit1DRebin = maxLinearFit1DRebin,
+            maxLinearFit2D = maxLinearFit2D,
+            maxLinearFit2DRebin = maxLinearFit2DRebin,
+        )
 
     #################################
     # Utility functions for the class
@@ -1184,13 +1286,13 @@ class JetHAnalysis(analysis_config.JetHBase):
         # Of the form (name, tag, caption)
         histsToWriteOut = collections.OrderedDict()
         # Raw
-        histsToWriteOut["raw"] = (self.histNameFormat2D, "raw","Raw correlation function with the efficiency correction $\epsilon(\pT{},\eta{})$ applied, but before acceptance correction via the mixed events. This correlation is for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}." )
+        histsToWriteOut["raw"] = (self.histNameFormat2D, "raw", "Raw correlation function with the efficiency correction $\epsilon(\pT{},\eta{})$ applied, but before acceptance correction via the mixed events. This correlation is for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # Mixed
-        histsToWriteOut["mixed"] = (self.histNameFormat2D, "mixed", "Mixed event correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}. Note that this correlation has already been normalized to unity at the region of maximum efficiency." )
+        histsToWriteOut["mixed"] = (self.histNameFormat2D, "mixed", "Mixed event correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}. Note that this correlation has already been normalized to unity at the region of maximum efficiency.")
         # Corrected 2D
-        histsToWriteOut["corr"] = (self.histNameFormat2D, "corr", "Acceptance corrected correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}." )
+        histsToWriteOut["corr"] = (self.histNameFormat2D, "corr", "Acceptance corrected correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # Mixed event norm
-        histsToWriteOut["mixedEventNorm"] = (self.histNameFormat2D, "mixed_peakFindingHist", "Mixed event normalization comparison for a variety of possible functions to find the maximum. This mixed event corresponds to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}." )
+        histsToWriteOut["mixedEventNorm"] = (self.histNameFormat2D, "mixed_peakFindingHist", "Mixed event normalization comparison for a variety of possible functions to find the maximum. This mixed event corresponds to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # dPhi correlations
         # TODO: Depend on the type of fit here instead of assuming signal dominated
         histsToWriteOut["dPhiCorrelations"] = (self.fitNameFormat, analysis_objects.jetHCorrelationType.signalDominated.str(), "\dPhi{} correlation with the all angles signal and event plane dependent background fit components. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
@@ -1213,25 +1315,25 @@ class JetHAnalysis(analysis_config.JetHBase):
             out = ""
 
             # Add section description
-            descriptionDict = {"jetPtLow" : params.jetPtBins[jetPtBin], "jetPtHigh" : params.jetPtBins[jetPtBin + 1], "trackPtLow" : params.trackPtBins[trackPtBin], "trackPtHigh" : params.trackPtBins[trackPtBin + 1]}
+            descriptionDict = {"jetPtLow": params.jetPtBins[jetPtBin], "jetPtHigh": params.jetPtBins[jetPtBin + 1], "trackPtLow": params.trackPtBins[trackPtBin], "trackPtHigh": params.trackPtBins[trackPtBin + 1]}
             out += "\n"
             out += r"\subsubsection{$%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$, $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$}" % descriptionDict
 
             # Iterate over the hists to be included
-            binDict = {"jetPtBin" : jetPtBin, "trackPtBin" : trackPtBin }
+            binDict = {"jetPtBin": jetPtBin, "trackPtBin": trackPtBin}
             for (name, tag, description) in itervalues(histsToWriteOut):
                 # Define name
-                baseDict = {"tag" : tag}
+                baseDict = {"tag": tag}
                 baseDict.update(binDict)
                 name = name.format(**baseDict)
                 # Fill in description
-                descriptionDict.update({"name" : name})
+                descriptionDict.update({"name": name})
                 descriptionDict.update(baseDict)
                 description = description % descriptionDict
 
                 # Define values needed for figure template
-                figDict = {"eventPlaneAngle" : self.eventPlaneAngle.filenameStr(),
-                           "description" : description,
+                figDict = {"eventPlaneAngle": self.eventPlaneAngle.filenameStr(),
+                           "description": description,
                            "collisionSystem": self.collisionSystem.str()}
                 figDict.update(descriptionDict)
 
@@ -1254,7 +1356,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         hist = observable.hist
 
         # Scale
-        hist.Scale(1.0/normalizationFactor)
+        hist.Scale(1.0 / normalizationFactor)
 
         # Set title, labels
         jetPtBinsTitle = params.generateJetPtRangeString(jetPtBin)
@@ -1270,10 +1372,10 @@ class JetHAnalysis(analysis_config.JetHBase):
 
         # Rebin to decrease the fluctuations in the correlations
         hist.Rebin(rebinFactor)
-        hist.Scale(1.0/rebinFactor)
+        hist.Scale(1.0 / rebinFactor)
 
         # Scale
-        hist.Scale(1.0/normalizationFactor)
+        hist.Scale(1.0 / normalizationFactor)
 
         # Set title, labels
         jetPtBinsTitle = params.generateJetPtRangeString(jetPtBin)
@@ -1297,10 +1399,12 @@ class JetHAnalysis(analysis_config.JetHBase):
         Returns:
             nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """
-        return analysis_config.constructFromConfigurationFile(taskName = "JetHAnalysis",
-                configFilename = configFilename,
-                selectedAnalysisOptions = selectedAnalysisOptions,
-                obj = JetHAnalysis)
+        return analysis_config.constructFromConfigurationFile(
+            taskName = "JetHAnalysis",
+            configFilename = configFilename,
+            selectedAnalysisOptions = selectedAnalysisOptions,
+            obj = JetHAnalysis
+        )
 
     @classmethod
     def run(cls, configFilename, selectedAnalysisOptions):
@@ -1324,8 +1428,10 @@ class JetHAnalysis(analysis_config.JetHBase):
         ROOT.gStyle.SetOptStat(0)
 
         # Construct analysis tasks
-        (selectedOptionNames, analyses) = cls.constructFromConfigurationFile(configFilename = configFilename,
-                selectedAnalysisOptions = selectedAnalysisOptions)
+        (selectedOptionNames, analyses) = cls.constructFromConfigurationFile(
+            configFilename = configFilename,
+            selectedAnalysisOptions = selectedAnalysisOptions
+        )
 
         # Run the analysis
         logger.info("About to run the jet-h correlations analysis")
@@ -1363,7 +1469,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         else:
             # Finish the analysis
             for keys, task in generic_config.unrollNestedDict(analyses):
-                logger.info("Running {} post fit analysis".format(str(label)))
+                logger.info(f"Running {keys} post fit analysis")
                 jetH.postFitProcessing()
                 jetH.yieldsAndWidths()
 
@@ -1616,5 +1722,9 @@ def printFitParameters(fit):
 
 def runFromTerminal():
     (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(taskName = "correlations analysis")
-    analyses = JetHAnalysis.run(configFilename = configFilename,
-            selectedAnalysisOptions = terminalArgs)
+    analyses = JetHAnalysis.run(
+        configFilename = configFilename,
+        selectedAnalysisOptions = terminalArgs
+    )
+
+    return analyses
