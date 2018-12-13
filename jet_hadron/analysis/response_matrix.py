@@ -1,51 +1,47 @@
 #!/usr/bin/env python
 
-# Create the response matrix, with proper scaling by pt hard bins
-#
-# Author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# Date: 29 Dec 2016
+""" Create the response matrix, with proper scaling by pt hard bins
 
-from builtins import range
+.. codeauthor: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
-import ctypes
-import os
-import sys
-import copy
+import aenum
 import argparse
 import collections
-import itertools
-import ruamel.yaml as yaml
-import aenum
-import re
-import pprint
-import logging
-# Setup logger
-logger = logging.getLogger(__name__)
-import warnings
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-thisModule = sys.modules[__name__]
-
+import ctypes
 import IPython
+import itertools
+import logging
+import numpy as np
+import os
+import pprint
+import re
+import ruamel.yaml as yaml
+import seaborn as sns
+import sys
 
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
+from pachyderm import utils
 
 from jet_hadron.base import analysis_objects
+from jet_hadron.base.params import eventPlaneAngle as EventPlaneAngle
 from jet_hadron.plot import root_base as plot_root_base
 
-import rootpy.ROOT as ROOT
+from rootpy.io import root_open
+import ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
-import rootpy
-from rootpy.io import root_open
 
 # Configure ROOT
 # Run in batch mode
 ROOT.gROOT.SetBatch(True)
 # Disable stats box
 ROOT.gStyle.SetOptStat(False)
+
+# Setup logger
+logger = logging.getLogger(__name__)
 
 class JetResponseMakerMatchingSparse(aenum.Enum):
     """ Defines the axes in the AliJetResponseMaker fMatching THnSparse. """
@@ -142,21 +138,21 @@ class JetHResponseMatrix(object):
             self.config = yaml.safe_load(f)
         self.productionRootFile = productionRootFile
 
-        if collisionSystem == None:
+        if collisionSystem is None:
             collisionSystem = self.config.get("collisionSystem", str(analysis_objects.CollisionSystem.kNA))
         if collisionSystem[:1] != "k":
             collisionSystem = "k" + collisionSystem
         self.collisionSystem = analysis_objects.CollisionSystem[collisionSystem]
 
-        if useFloatHists == None:
+        if useFloatHists is None:
             useFloatHists = self.config.get("useFloatHists", False)
         self.useFloatHists = useFloatHists
 
-        if responseMatrixBaseName == None:
+        if responseMatrixBaseName is None:
             responseMatrixBaseName = self.config.get("responseMatrixBaseName", "JESCorrection")
         self.responseMatrixBaseName = responseMatrixBaseName
 
-        if clusterBias == None:
+        if clusterBias is None:
             clusterBias = self.config.get("clusterBias", 6)
         self.clusterBias = clusterBias
 
@@ -175,7 +171,7 @@ class JetHResponseMatrix(object):
         # If not, we need to handle it a bit more carefully
         self.ptHardBinProduction = self.config.get("ptHardBinProduction", True)
 
-        if outputPath == None:
+        if outputPath is None:
             outputPath = self.config.get("outputPath", "")
             outputPath = outputPath.format(eventActivity = str(self.eventActivity),
                                            rmNormalizationType = str(self.rmNormalizationType))
@@ -210,17 +206,17 @@ class JetHResponseMatrix(object):
                       "jetSpectraDetLevelPtHard": collections.OrderedDict(),
                       "detLevelJetsPtHardSparse": collections.OrderedDict(),
                       "ptHardSpectra": None, "ptHardSpectraAfterEventSelection": None,
-                      "ptHardSpectraPtHard" : collections.OrderedDict(),
-                      "ptHardSpectraAfterEventSelectionPtHard" : collections.OrderedDict(),
-                      "crossSection" : None, "crossSectionAfterEventSelection" : None,
+                      "ptHardSpectraPtHard": collections.OrderedDict(),
+                      "ptHardSpectraAfterEventSelectionPtHard": collections.OrderedDict(),
+                      "crossSection": None, "crossSectionAfterEventSelection": None,
                       "crossSectionPtHard": collections.OrderedDict(),
-                      "crossSectionAfterEventSelectionPtHard" : collections.OrderedDict(),
-                      "nTrials" : None, "nTrialsAfterEventSelection": None,
+                      "crossSectionAfterEventSelectionPtHard": collections.OrderedDict(),
+                      "nTrials": None, "nTrialsAfterEventSelection": None,
                       "nTrialsPtHard": collections.OrderedDict(),
-                      "nTrialsAfterEventSelectionPtHard" : collections.OrderedDict(),
+                      "nTrialsAfterEventSelectionPtHard": collections.OrderedDict(),
                       "nEvents": None, "nEventsAfterEventSelection": None,
                       "nEventsPtHard": collections.OrderedDict(),
-                      "nEventsAfterEventSelectionPtHard" : collections.OrderedDict()}
+                      "nEventsAfterEventSelectionPtHard": collections.OrderedDict()}
 
         # Scale factors
         self.scaleFactors = collections.OrderedDict()
@@ -246,101 +242,155 @@ class JetHResponseMatrix(object):
         # Define projectors
 
         # Helper range
-        fullAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(None, 1),
-                         "maxVal" : HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
+        fullAxisRange = {"minVal": HistAxisRange.ApplyFuncToFindBin(None, 1),
+                         "maxVal": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
 
         #################
         # Response matrix
         #################
-        responseMatrixProjector = JetHResponseMatrixProjector(observable_dict = self.hists["responseMatrixPtHard"],
-                                               observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-                                               projectionNameFormat = "responseMatrixPtHard_{ptHardBin}")
-        responseMatrixProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+        responseMatrixProjector = JetHResponseMatrixProjector(
+            observable_dict = self.hists["responseMatrixPtHard"],
+            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            projectionNameFormat = "responseMatrixPtHard_{ptHardBin}"
+        )
+        responseMatrixProjector.additionalAxisCuts.append(
+            HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axisRangeName = "detLevelLeadingParticle",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.clusterBias),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)
+            )
+        )
         if self.eventPlaneSelection:
             logger.debug("self.eventPlaneSelection.value: {0}".format(self.eventPlaneSelection.value))
             if self.eventPlaneSelection == EventPlaneAngle.kAll:
                 eventPlaneAxisRange = fullAxisRange
                 logger.info("Using full EP angle range")
             else:
-                eventPlaneAxisRange = {"minVal" : HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneSelection.value),
-                                       "maxVal" : HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneSelection.value)}
-                logger.info("Using selected EP angle range {0}".format(self.eventPlaneSelection.name))
+                eventPlaneAxisRange = {
+                    "minVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneSelection.value),
+                    "maxVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneSelection.value)
+                }
+                logger.info(f"Using selected EP angle range {self.eventPlaneSelection.name}")
 
-            eventPlaneSelectionProjectorAxis = HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelEventPlaneAngle,
-                            axisRangeName = "detLevelEventPlaneAngle", **eventPlaneAxisRange)
+            eventPlaneSelectionProjectorAxis = HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kDetLevelEventPlaneAngle,
+                axisRangeName = "detLevelEventPlaneAngle",
+                **eventPlaneAxisRange
+            )
             responseMatrixProjector.additionalAxisCuts.append(eventPlaneSelectionProjectorAxis)
 
         # No additional cuts for the projection dependent axes
         responseMatrixProjector.projectionDependentCutAxes.append([])
-        responseMatrixProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelJetPt,
-                            axisRangeName = "detLevelJetPt", **fullAxisRange) )
-        responseMatrixProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kPartLevelJetPt,
-                            axisRangeName = "partLevelJetPt", **fullAxisRange) )
+        responseMatrixProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kDetLevelJetPt,
+                axisRangeName = "detLevelJetPt",
+                **fullAxisRange
+            )
+        )
+        responseMatrixProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kPartLevelJetPt,
+                axisRangeName = "partLevelJetPt",
+                **fullAxisRange
+            )
+        )
         # Save the projector for later use
         self.projectors.append(responseMatrixProjector)
 
         ###################
         # Unmatched part level jet pt
         ###################
-        unmatchedPartLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
-                                                    observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
-                                                    projectionNameFormat = "unmatchedJetSpectraPartLevelPtHard_{ptHardBin}")
+        unmatchedPartLevelJetSpectraProjector = JetHResponseMatrixProjector(
+            observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
+            observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
+            projectionNameFormat = "unmatchedJetSpectraPartLevelPtHard_{ptHardBin}"
+        )
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         unmatchedPartLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        unmatchedPartLevelJetSpectraProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kJetPt,
-                axisRangeName = "unmatchedPartLevelJetSpectra", **fullAxisRange) )
+        unmatchedPartLevelJetSpectraProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetResponseMakerJetsSparse.kJetPt,
+                axisRangeName = "unmatchedPartLevelJetSpectra",
+                **fullAxisRange
+            )
+        )
         # Save the projector for later use
         self.projectors.append(unmatchedPartLevelJetSpectraProjector)
 
         ###################
         # (Matched) Part level jet pt
         ###################
-        partLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["jetSpectraPartLevelPtHard"],
-                                                    observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-                                                    projectionNameFormat = "jetSpectraPartLevelPtHard_{ptHardBin}")
+        partLevelJetSpectraProjector = JetHResponseMatrixProjector(
+            observable_dict = self.hists["jetSpectraPartLevelPtHard"],
+            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            projectionNameFormat = "jetSpectraPartLevelPtHard_{ptHardBin}"
+        )
         if self.eventPlaneSelection:
             partLevelJetSpectraProjector.additionalAxisCuts.append(eventPlaneSelectionProjectorAxis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         partLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        partLevelJetSpectraProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kPartLevelJetPt,
-                axisRangeName = "partLevelJetSpectra", **fullAxisRange) )
+        partLevelJetSpectraProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kPartLevelJetPt,
+                axisRangeName = "partLevelJetSpectra",
+                **fullAxisRange
+            )
+        )
         # Save the projector for later use
         self.projectors.append(partLevelJetSpectraProjector)
 
         ##################
         # Unmatched det level jet pt
         ##################
-        unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
-                                                   observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
-                                                   projectionNameFormat = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}")
-        unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysis_objects.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
+        unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(
+            observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
+            observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
+            projectionNameFormat = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}"
+        )
+        unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(
+            HistAxisRange(
+                axisType = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysis_objects.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
                 axisRangeName = "unmatchedDetLevelLeadingParticle",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.clusterBias),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)
+            )
+        )
         unmatchedDetLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        unmatchedDetLevelJetSpectraProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerJetsSparse.kJetPt,
-                axisRangeName = "unmatchedDetLevelJetSpectra", **fullAxisRange) )
+        unmatchedDetLevelJetSpectraProjector.projectionAxes.append(
+            HistAxisRange(
+                axisType = JetResponseMakerJetsSparse.kJetPt,
+                axisRangeName = "unmatchedDetLevelJetSpectra",
+                **fullAxisRange
+            )
+        )
         # Save the projector for later use
         self.projectors.append(unmatchedDetLevelJetSpectraProjector)
 
         ##################
         # (Matched) Det level jet pt
         ##################
-        detLevelJetSpectraProjector = JetHResponseMatrixProjector(observable_dict = self.hists["jetSpectraDetLevelPtHard"],
-                                                   observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-                                                   projectionNameFormat = "jetSpectraDetLevelPtHard_{ptHardBin}")
-        detLevelJetSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+        detLevelJetSpectraProjector = JetHResponseMatrixProjector(
+            observable_dict = self.hists["jetSpectraDetLevelPtHard"],
+            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            projectionNameFormat = "jetSpectraDetLevelPtHard_{ptHardBin}"
+        )
+        detLevelJetSpectraProjector.additionalAxisCuts.append(
+            HistAxisRange(
+                axisType = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axisRangeName = "detLevelLeadingParticle",
                 minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.clusterBias),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
+                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)
+            )
+        )
         if self.eventPlaneSelection:
             detLevelJetSpectraProjector.additionalAxisCuts.append(eventPlaneSelectionProjectorAxis)
         detLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        detLevelJetSpectraProjector.projectionAxes.append(HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelJetPt,
-                axisRangeName = "detLevelJetSpectra", **fullAxisRange) )
+        detLevelJetSpectraProjector.projectionAxes.append(
+            HistAxisRange(axisType = JetResponseMakerMatchingSparse.kDetLevelJetPt,
+                          axisRangeName = "detLevelJetSpectra", **fullAxisRange)
+        )
         # Save the projector for later use
         self.projectors.append(detLevelJetSpectraProjector)
 
@@ -380,10 +430,10 @@ class JetHResponseMatrix(object):
             # Assign scale factors from the configuration
             # NOTE: that this assumes that the scale factors are ordered by pt hard bin (which is not so unreasonable)
             for i, factor in enumerate(scaleFactors):
-                logger.debug("ptHardBin: {0}, scaleFactor: {1}".format(i+1, factor))
+                logger.debug("ptHardBin: {0}, scaleFactor: {1}".format(i + 1, factor))
                 self.scaleFactors[str(i + 1)] = factor
             return True
-        
+
         return False
 
     def Process(self, scaleHists = True):
@@ -422,24 +472,30 @@ class JetHResponseMatrix(object):
     def ProjectPostScaledAndMergedHists(self):
         """ Project histograms after scaling and merging pt hard hists, but before any overall normalization is applied. """
         # Initialize the dicts for the input and output
-        inputDict = {"partSpectraProjection" : self.hists["responseMatrix"]}
+        inputDict = {"partSpectraProjection": self.hists["responseMatrix"]}
         outputDict = {}
 
         # Define the projector
-        # This is admittedly a bit more complicated than a standard projection, but it ensures that we are using
-        # consistent methods throughout, which should reduce bugs.
-        partSpectraProjector = JetHResponseMatrixProjector(observable_dict = outputDict,
-                                                    observables_to_project_from = inputDict,
-                                                    projectionNameFormat = "partSpectraProjection")
-        partSpectraProjector.additionalAxisCuts.append(HistAxisRange(axisType = projectors.TH1AxisType.xAxis,
-                axisRangeName = "partSpectraProjectionDetLimits",
-                minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 40)) )
+        # This is admittedly a bit more complicated than a standard projection, but it ensures that we
+        # are using consistent methods throughout, which should reduce bugs.
+        partSpectraProjector = JetHResponseMatrixProjector(
+            observable_dict = outputDict,
+            observables_to_project_from = inputDict,
+            projectionNameFormat = "partSpectraProjection"
+        )
+        partSpectraProjector.additionalAxisCuts.append(HistAxisRange(
+            axisType = projectors.TH1AxisType.xAxis,
+            axisRangeName = "partSpectraProjectionDetLimits",
+            minVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 20),
+            maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 40))
+        )
         partSpectraProjector.projectionDependentCutAxes.append([])
-        partSpectraProjector.projectionAxes.append(HistAxisRange(axisType = projectors.TH1AxisType.yAxis,
-                axisRangeName = "partSpectraProjection",
-                minVal = HistAxisRange.ApplyFuncToFindBin(None, 1),
-                maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)) )
+        partSpectraProjector.projectionAxes.append(HistAxisRange(
+            axisType = projectors.TH1AxisType.yAxis,
+            axisRangeName = "partSpectraProjection",
+            minVal = HistAxisRange.ApplyFuncToFindBin(None, 1),
+            maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins))
+        )
 
         # Perform the actual projection
         partSpectraProjector.Project()
@@ -447,7 +503,7 @@ class JetHResponseMatrix(object):
         # Retrieve projection output and scale properly
         self.hists["partSpectraProjection"] = next(outputDict.itervalues())
         # Scale because we project over 20 1 GeV bins
-        self.hists["partSpectraProjection"].Scale(1.0/20.0)
+        self.hists["partSpectraProjection"].Scale(1.0 / 20.0)
         self.hists["partSpectraProjection"].SetDirectory(0)
         logger.debug("N jets in partSpectraProjection: {}".format(self.hists["partSpectraProjection"].Integral()))
 
@@ -533,7 +589,7 @@ class JetHResponseMatrix(object):
         responseMatrix.GetMinimumAndMaximum(minVal, maxVal)
         # * 1.1 to put it slightly above the max value
         # minVal doesn't work here, because there are some entries at 0
-        responseMatrix.GetZaxis().SetRangeUser(10e-7, maxVal.value*1.1)
+        responseMatrix.GetZaxis().SetRangeUser(10e-7, maxVal.value * 1.1)
         canvas.SaveAs(os.path.join(self.outputPath, "{0}.pdf".format(responseMatrixSaveName)))
         canvas.SetLogz(0)
 
@@ -575,7 +631,7 @@ class JetHResponseMatrix(object):
         """ Save the processed histograms to a ROOT file. """
         logger.info("Saving root file to {0}".format(os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))))
         outputFilename = os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))
-        with root_open(outputFilename, "RECREATE") as fOut:
+        with root_open(outputFilename, "RECREATE") as fOut:  # noqa: F841
             self.hists["responseMatrix"].Write()
             self.hists["responseMatrixErrors"].Write()
             if not self.productionRootFile:
@@ -595,7 +651,7 @@ class JetHResponseMatrix(object):
         inputFilename = os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))
         logger.info("Loading histograms from ROOT file located at \"{}\"".format(inputFilename))
         with root_open(inputFilename, "READ") as f:
-            histNames = {"responseMatrix" : self.GetResponseMatrixName(), "responseMatrixErrors" : None}
+            histNames = {"responseMatrix": self.GetResponseMatrixName(), "responseMatrixErrors": None}
             for dictName, histName in histNames.iteritems():
                 if not histName:
                     histName = dictName
@@ -604,7 +660,7 @@ class JetHResponseMatrix(object):
                 hist.SetDirectory(0)
                 self.hists[dictName] = hist
             if not self.productionRootFile:
-                histNames = {"partSpectraProjection" : None, "ptHardSpectra" : None, "sampleTaskJetSpectraPartLevel" : None, "jetSpectraPartLevel" : None, "jetSpectraDetLevel" : None}
+                histNames = {"partSpectraProjection": None, "ptHardSpectra": None, "sampleTaskJetSpectraPartLevel": None, "jetSpectraPartLevel": None, "jetSpectraDetLevel": None}
                 for dictName, histName in histNames.iteritems():
                     if not histName:
                         histName = dictName
@@ -617,7 +673,7 @@ class JetHResponseMatrix(object):
                 del histNames["partSpectraProjection"]
                 # Add or change the name for the individual pt hard spectra
                 histNames["responseMatrix"] = None
-                histNames["ptHardSpectra"] = "fHist" # Leave out "PtHard" here since it will be added back in below
+                histNames["ptHardSpectra"] = "fHist"  # Leave out "PtHard" here since it will be added back in below
                 for dictName, histName in histNames.iteritems():
                     if not histName:
                         histName = dictName
@@ -710,7 +766,7 @@ class JetHResponseMatrix(object):
             sampleTaskParticleLevel = analysis_objects.getHistogramsInList(filename, taskConfiguration["sampleTaskParticleLevelTaskName"])
             sampleTaskParticleLevelJetsName = taskConfiguration.get("sampleTaskParticleLevelJetsName", "truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme")
             # Get the sample task (to check the jet spectra independently)
-            sampleTaskDetLevel = analysis_objects.getHistogramsInList(filename, taskConfiguration["sampleTaskDetLevelTaskName"])
+            #sampleTaskDetLevel = analysis_objects.getHistogramsInList(filename, taskConfiguration["sampleTaskDetLevelTaskName"])
 
             if pythiaInfoTaskName:
                 # Get N events
@@ -778,12 +834,12 @@ class JetHResponseMatrix(object):
             if self.collisionSystem == analysis_objects.CollisionSystem.kpp and ptHardBin == "9":
                 logger.warning("Handling special case for pt hard bin 9 in LHC15g1a! Careful if this isn't expected!")
                 # To merge cross sections, they need to be averaged
-                xSec = (xSecHist.GetBinContent(int(ptHardBin) + 1) + xSecHist.GetBinContent(int(ptHardBin) + 2))/2. * xSecHist.GetEntries()
+                xSec = (xSecHist.GetBinContent(int(ptHardBin) + 1) + xSecHist.GetBinContent(int(ptHardBin) + 2)) / 2. * xSecHist.GetEntries()
                 nTrials = nTrialsHist.GetBinContent(int(ptHardBin) + 1) + nTrialsHist.GetBinContent(int(ptHardBin) + 2)
 
             logger.debug("xSec: {0}, nTrials: {1}".format(xSec, nTrials))
             if nTrials > 0:
-                scaleFactor = xSec/nTrials
+                scaleFactor = xSec / nTrials
             else:
                 logger.error("nTrials is 0! Cannot calculate it, so setting to 0 (ie won't contribute)!")
                 scaleFactor = 0
@@ -805,10 +861,10 @@ class JetHResponseMatrix(object):
             nEventsPtHard[ptHardBin] = nEvents
             nTotalEvents += nEvents
 
-        nEventsAvg = nTotalEvents/len(self.scaleFactors)
+        nEventsAvg = nTotalEvents / len(self.scaleFactors)
 
         for ptHardBin, scaleFactor in self.scaleFactors.iteritems():
-            self.scaleFactors[ptHardBin] = scaleFactor * nEventsAvg/nEventsPtHard[ptHardBin]
+            self.scaleFactors[ptHardBin] = scaleFactor * nEventsAvg / nEventsPtHard[ptHardBin]
 
     def ProjectSparses(self):
         """ Perform the actual THnSparse projections. """
@@ -832,12 +888,12 @@ class JetHResponseMatrix(object):
         histsToScaleAndMerge = [("unmatchedJetSpectraPartLevelPtHard", "unmatchedJetSpectraPartLevel", "unmatchedJetSpectraPartLevel"),
                                 ("jetSpectraPartLevelPtHard", "jetSpectraPartLevel", "jetSpectraPartLevel"),
                                 ("unmatchedJetSpectraDetLevelPtHard", "unmatchedJetSpectraDetLevel", "unmatchedJetSpectraDetLevel"),
-                                ("jetSpectraDetLevelPtHard",  "jetSpectraDetLevel",  "jetSpectraDetLevel"),
+                                ("jetSpectraDetLevelPtHard", "jetSpectraDetLevel", "jetSpectraDetLevel"),
                                 ("sampleTaskJetSpectraPartLevelPtHard", "sampleTaskJetSpectraPartLevel", "sampleTaskJetSpectraPartLevel"),
-                                ("responseMatrixPtHard",       responseMatrixName,   "responseMatrix")]
+                                ("responseMatrixPtHard", responseMatrixName, "responseMatrix")]
         if self.ptHardBinProduction:
             # Handle explicit pt hard bins
-            histsToScaleAndMerge.append(("ptHardSpectraPtHard",       "ptHardSpectra",       "ptHardSpectra"))
+            histsToScaleAndMerge.append(("ptHardSpectraPtHard", "ptHardSpectra", "ptHardSpectra"))
             histsToScaleAndMerge.append(("ptHardSpectraAfterEventSelectionPtHard", "ptHardSpectraAfterEventSelection", "ptHardSpectraAfterEventSelection"))
 
         for ptHardHistsName, mergedHistName, outputHistName in histsToScaleAndMerge:
@@ -909,13 +965,13 @@ class JetHResponseMatrix(object):
                 #    logger.debug("Error > 1 before scaling: {0}, bin content: {1}, bin error: {2}, ({3}, {4})".format(fillValue, responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x,y), x, y))
                 if responseMatrix.GetBinContent(x, y) > 0:
                     if responseMatrix.GetBinContent(x, y) < responseMatrix.GetBinError(x, y):
-                        logger.error("Bin content < bin error. bin content: {0}, bin error: {1}, ({2}, {3})".format(responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x,y), x, y))
-                    fillValue = fillValue/responseMatrix.GetBinContent(x, y)
+                        logger.error("Bin content < bin error. bin content: {0}, bin error: {1}, ({2}, {3})".format(responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x, y), x, y))
+                    fillValue = fillValue / responseMatrix.GetBinContent(x, y)
                 else:
                     if responseMatrix.GetBinError(x, y) > analysis_objects.epsilon:
                         logger.warning("No bin content, but associated error is non-zero. Content: {0}, error: {1}".format(responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x, y)))
                 if fillValue > 1:
-                    logger.error("Error > 1 after scaling: {0}, bin content: {1}, bin error: {2}, ({3}, {4})".format(fillValue, responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x,y), x, y))
+                    logger.error("Error > 1 after scaling: {0}, bin content: {1}, bin error: {2}, ({3}, {4})".format(fillValue, responseMatrix.GetBinContent(x, y), responseMatrix.GetBinError(x, y), x, y))
 
                 # Fill hist
                 binNumber = responseMatrixErrors.Fill(responseMatrixErrors.GetXaxis().GetBinCenter(x), responseMatrixErrors.GetYaxis().GetBinCenter(y), fillValue)
@@ -976,7 +1032,7 @@ class JetHResponseMatrix(object):
             printProperty(key, val)
 
         # Define arguments
-        #jetHArgs = {"configFile" : args.configFile, "clusterBias" : args.clusterBias, "productionRootFile": args.productionRootFile, "useFloatHists": args.useFloatHists, "collisionSystem": args.collisionSystem}
+        #jetHArgs = {"configFile": args.configFile, "clusterBias": args.clusterBias, "productionRootFile": args.productionRootFile, "useFloatHists": args.useFloatHists, "collisionSystem": args.collisionSystem}
         jetHArgs = args
 
         JetHResponseEP = collections.OrderedDict()
@@ -1022,9 +1078,9 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         super(JetHEmbeddingToyExample, self).Process()
 
         # Create embedding toy specific plots
-        CreateEmbeddingExampleProjections()
+        self.CreateEmbeddingExampleProjections()
 
-    def CreateEmbeddingExampleProjections():
+    def CreateEmbeddingExampleProjections(self):
         """ """
         # Store projections
         detLevel = collections.OrderedDict()
@@ -1037,7 +1093,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             #ptYProjection = self.hists["responseMatrix"].ProjectionY("pt%0.fYProjection" % ptBinValue, ptBin, ptBin)
 
             # Normalize
-            ptYProjection.Scale(1.0/ptYProjection.Integral())
+            ptYProjection.Scale(1.0 / ptYProjection.Integral())
             # Titles
             ptYProjection.SetTitle("Truth level jet #mathit{p}_{#mathrm{T}} for detector level jets")
             ptYProjection.GetYaxis().SetTitle("Probability")
@@ -1057,7 +1113,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
             #ptXProjection = self.hists["responseMatrix"].ProjectionY("pt%0.fYProjection" % ptBinValue, ptBin, ptBin)
 
             # Normalize
-            ptXProjection.Scale(1.0/ptYProjection.Integral())
+            ptXProjection.Scale(1.0 / ptYProjection.Integral())
             # Titles
             ptXProjection.SetTitle("Detector level jet #mathit{p}_{#mathrm{T}} for truth level jets")
             ptXProjection.GetYaxis().SetTitle("Probability")
@@ -1072,9 +1128,9 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas = super(JetHEmbeddingToyExample, self).PlotHists(plotIndividualPtHardBins = False)
 
         # Plot embedding example specific plots
-        PlotEmbeddingExamplePlots(canvas = canvas)
+        self.PlotEmbeddingExamplePlots(canvas = canvas)
 
-    def PlotEmbeddingExamplePlots(canvas):
+    def PlotEmbeddingExamplePlots(self, canvas):
         """ """
         # Setup output folder (if necessary)
         outputPath = os.path.join(self.outputPath, "embeddingExamples")
@@ -1088,7 +1144,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas.SetLogy(True)
 
         # Create legend
-        leg = ROOT.TLegend(0.65, 0.65, 0.85, 0.87);
+        leg = ROOT.TLegend(0.65, 0.65, 0.85, 0.87)
         leg.SetFillColorAlpha(0, 0)
 
         #############################################
@@ -1134,7 +1190,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         #############################################
         inputDictTruthLevel = self.hists["embeddingExamplePlotsTruthLevel"]
         # Create legend
-        leg = ROOT.TLegend(0.65, 0.65, 0.85, 0.87);
+        leg = ROOT.TLegend(0.65, 0.65, 0.85, 0.87)
         leg.SetFillColorAlpha(0, 0)
 
         drawFlag = False
@@ -1189,7 +1245,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas.Update()
         canvas.Modified()
         # GetUymax() doesn't work on log scale....
-        line = plot_root_base.drawVerticalLine(label)
+        line = plot_root_base.drawVerticalLine(label)  # noqa: F841
 
         # Save plot
         canvas.SaveAs(os.path.join(outputPath, "singleDetectorBin.pdf"))
@@ -1205,7 +1261,7 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
         canvas.SetLogy(True)
 
         # Use the histogram selected above
-        hist.SetLineColor(ROOT.kRed +2)
+        hist.SetLineColor(ROOT.kRed + 2)
         hist.SetTitle("Truth level jet p_{{T}} distribution for {0} GeV/c detector level jet".format(label))
         hist.Draw("hist")
 
@@ -1215,24 +1271,24 @@ class JetHEmbeddingToyExample(JetHResponseMatrix):
 
         # Setup possible colors
         # We must call list because we don't iterate over it below.
-        colors = list(itertools.starmap(ROOT.TColor.GetColor, sns.husl_palette(n_colors=len(inputDictDetLevel)) ))
+        colors = list(itertools.starmap(ROOT.TColor.GetColor, sns.husl_palette(n_colors=len(inputDictDetLevel))))
 
         clones = []
         # NOTE: Need underflow bins to equal 1!
         #logger.debug("integral: {0}".format(hist.Integral(0, hist.GetNbinsX()+1)))
         #val = 0
         leg = ROOT.TLegend(0.52, 0.55, 0.75, 0.87)
-        for iSelectionBin in range(0, len(selections)-1):
+        for iSelectionBin in range(0, len(selections) - 1):
             # NOTE: Could integrate these values to get some sense of the size
             histClone = hist.Clone("{0}_{1}".format(hist.GetName(), iSelectionBin))
-            logger.info("Setting pt range: {0}-{1}".format(selections[iSelectionBin], selections[iSelectionBin+1]))
-            histClone.GetXaxis().SetRangeUser(selections[iSelectionBin], selections[iSelectionBin+1])
+            logger.info("Setting pt range: {0}-{1}".format(selections[iSelectionBin], selections[iSelectionBin + 1]))
+            histClone.GetXaxis().SetRangeUser(selections[iSelectionBin], selections[iSelectionBin + 1])
 
             #histClone.SetFillColorAlpha(colors[iSelectionBin], .30)
             histClone.SetFillColor(colors[iSelectionBin])
             histClone.Draw("same hist")
             histClone.SetDirectory(0)
-            leg.AddEntry(histClone, "{0}<=p_{{T,jet}}^{{Truth}}<{1} Weight: {2:.3f}".format(selections[iSelectionBin], selections[iSelectionBin+1], histClone.Integral()), "F")
+            leg.AddEntry(histClone, "{0}<=p_{{T,jet}}^{{Truth}}<{1} Weight: {2:.3f}".format(selections[iSelectionBin], selections[iSelectionBin + 1], histClone.Integral()), "F")
             #logger.info("cloneIntegral: {0}".format(histClone.Integral()))
             #val = val + histClone.Integral()
             clones.append(histClone)
@@ -1262,13 +1318,13 @@ class JetHTestResponseMatrix(JetHResponseMatrix):
             self.rmNormalizationType = RMNormalizationType.kNone
 
     def GetHists(self):
-        CreateTestResponseMatrix(responseMatrix = self.hists["responseMatrix"])
+        self.CreateTestResponseMatrix(responseMatrix = self.hists["responseMatrix"])
 
     def Process(self):
         super(JetHTestResponseMatrix, self).Process(scaleHists = False)
 
     def PlotHists(self):
-        canvas = super(JetHTestResponseMatrix, self).PlotHists(plotIndividualPtHardBins = False, responseMatrixSaveName = "testMatrix")
+        super(JetHTestResponseMatrix, self).PlotHists(plotIndividualPtHardBins = False, responseMatrixSaveName = "testMatrix")
 
     def CreateTestResponseMatrix(self, weight):
         """ Create an identiy response matrix with a given weight """
@@ -1319,11 +1375,13 @@ def accessSetOfValuesAssociatedWithABin(hist, binOfInterest, rmNormalizationType
     getBin = None
     if rmNormalizationType == RMNormalizationType.kNormalizeEachDetectorBin:
         axis = ROOT.TH1.GetYaxis
+
         def GetBin(hist, binOfInterest, index):
             return hist.GetBin(binOfInterest, index)
         getBin = GetBin
     elif rmNormalizationType == RMNormalizationType.kNormalizeEachTruthBin:
         axis = ROOT.TH1.GetXaxis
+
         def GetBin(hist, binOfInterest, index):
             return hist.GetBin(index, binOfInterest)
         getBin = GetBin
@@ -1342,8 +1400,8 @@ def accessSetOfValuesAssociatedWithABin(hist, binOfInterest, rmNormalizationType
         if (scaleFactor >= 0):
             # -1 since index starts at 1
             # NOTE: If the above for loop is changed to 0 to Nbins+1, then the -1 should be removed!
-            hist.SetBinContent(getBin(hist, binOfInterest, index), setOfBinsContent[index-1]/scaleFactor)
-            hist.SetBinError(getBin(hist, binOfInterest, index), setOfBinsError[index-1]/scaleFactor)
+            hist.SetBinContent(getBin(hist, binOfInterest, index), setOfBinsContent[index - 1] / scaleFactor)
+            hist.SetBinError(getBin(hist, binOfInterest, index), setOfBinsError[index - 1] / scaleFactor)
 
     return setOfBinsContent
 
@@ -1375,9 +1433,9 @@ def normalizeResponseMatrix(hist, rmNormalizationType):
         # Sanity checks
         # NOTE: The upper bound on integrals is inclusive!
         # NOTE: Integral() == Integral(1, proj.GetXaxis().GetNbins())
-        if not generalUtils.isclose(norm, ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())):
+        if not np.isclose(norm, ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())):
             logger.error("Mismatch between sum and integral! norm: {0}, integral: {1}".format(norm, ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())))
-        if not generalUtils.isclose(ptYProjection.Integral(), ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())):
+        if not np.isclose(ptYProjection.Integral(), ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())):
             logger.error("Integral mismatch! Full: {0} 1-nBins: {1}".format(ptYProjection.Integral(), ptYProjection.Integral(1, ptYProjection.GetXaxis().GetNbins())))
 
         # Avoid scaling by 0
@@ -1385,7 +1443,7 @@ def normalizeResponseMatrix(hist, rmNormalizationType):
             continue
 
         # normalization by sum
-        tempContent = accessSetOfValuesAssociatedWithABin(hist, index, rmNormalizationType, scaleFactor = norm)
+        accessSetOfValuesAssociatedWithABin(hist, index, rmNormalizationType, scaleFactor = norm)
 
 def checkNormalization(hist, rmNormalizationType, useFloatHists):
     """ Check to ensure that the normalization was successful. """
@@ -1402,13 +1460,13 @@ def checkNormalization(hist, rmNormalizationType, useFloatHists):
             # Otherwise, it will freqeuntly fail
             comparisonLimit = 1e-7
         else:
-            # Same as in the default function defined in generalUtils
+            # Preferred value
             comparisonLimit = 1e-9
-        if not generalUtils.isclose(norm, 0, comparisonLimit) and not generalUtils.isclose(norm, 1, comparisonLimit):
+        if not np.isclose(norm, 0, atol = comparisonLimit) and not np.isclose(norm, 1, atol = comparisonLimit):
             logger.error("Normalization not successful for bin {0}. Norm: {1}".format(index, norm))
 
 def removeOutliers(hist, limit, outputPath):
-    if isinsatnce(hist, ROOT.TH3):
+    if isinstance(hist, ROOT.TH3):
         raise TypeError(type(hist), "Outlier removal does not work on TH3")
 
     # Project a TH2 to a TH1 to simplfy the algorithm
@@ -1467,7 +1525,8 @@ def removeOutliers(hist, limit, outputPath):
         with open(outlierLimitsFilename, "rb") as f:
             #logger.info("Loading existing outlier limits reference values")
             outlierLimits = yaml.safe_load(f)
-    except:
+    except IOError:
+        # The file didn't exist, so just define the limits as an empty dict.
         outlierLimits = {}
 
     #logger.debug("outlierLimits read from file: {}".format(outlierLimits))
@@ -1592,10 +1651,10 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
         legend.SetNColumns(2)
         legend.SetBorderSize(0)
 
-    for (ptHardBin, spectra), color in zip(ptHardList.iteritems(), sns.husl_palette(n_colors=len(ptHardList)) ):
+    for (ptHardBin, spectra), color in zip(ptHardList.iteritems(), sns.husl_palette(n_colors=len(ptHardList))):
         color = ROOT.TColor.GetColor(*color)
         #logger.debug("Color: {0}".format(color))
-        spectra.SetMarkerStyle(ROOT.kFullCircle+int(ptHardBin))
+        spectra.SetMarkerStyle(ROOT.kFullCircle + int(ptHardBin))
         spectra.SetMarkerColor(color)
         spectra.SetLineColor(color)
         spectra.SetMarkerSize(1)
@@ -1605,7 +1664,7 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
 
         if ptHardBinning:
             #legend.AddEntry(spectra, "p_{{T}}^{{Hard}} Bin: {0}".format(ptHardBin))
-            legend.AddEntry(spectra, "{0}<=p_{{T}}<{1}".format(ptHardBinning[int(ptHardBin)-1], ptHardBinning[int(ptHardBin)]))
+            legend.AddEntry(spectra, "{0}<=p_{{T}}<{1}".format(ptHardBinning[int(ptHardBin) - 1], ptHardBinning[int(ptHardBin)]))
 
         drawOptions = "same"
         spectra.Draw(drawOptions)
@@ -1616,12 +1675,9 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
     canvas.SaveAs(os.path.join(outputPath, "{0}.pdf".format(full.GetName())))
 
 def plotParticleSpectraProjection(JetHResponseEP):
-    #settings = OrderedDict()
-    #settings[EventPlaneAngle.kAll] = 
-    #settings[EventPlaneAngle.kInPlane] = 
-    #settings[EventPlaneAngle.kMidPlane] = 
-    #settings[EventPlaneAngle.kOutOfPlane] = 
+    """
 
+    """
     includeAllAngles = True
     normalizeByNJets = True
 
@@ -1640,7 +1696,7 @@ def plotParticleSpectraProjection(JetHResponseEP):
     latexLabels = []
     latexLabels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
     # TODO: Grab the centrality from the config.
-    latexLabels.append(ROOT.TLatex(0.475, 0.84, "30-50\% Pb-Pb Embedded PYTHIA"))
+    latexLabels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
     latexLabels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
     latexLabels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
     latexLabels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
@@ -1690,7 +1746,7 @@ def plotParticleSpectraProjection(JetHResponseEP):
         if True:
             newBinWidth = 5
             hist.Rebin(newBinWidth)
-            hist.Scale(1.0/newBinWidth)
+            hist.Scale(1.0 / newBinWidth)
 
             # Cut below 5 GeV
             #for i in range(0, hist.GetNcells()):
@@ -1716,9 +1772,9 @@ def plotParticleSpectraProjection(JetHResponseEP):
         # number to extract because of all of the scalings related to pt hard bins
         if normalizeByNJets:
             # 1e-5 is to ensure we do the integral from [0, 100) (ie not inclusive of the bin beyond 100)
-            entries = hist.Integral(hist.FindBin(0), hist.FindBin(maxViewableRange-1e-5))
+            entries = hist.Integral(hist.FindBin(0), hist.FindBin(maxViewableRange - utils.epsilon))
             logger.debug("entries: {}, integral: {}".format(hist.GetEntries(), entries))
-            hist.Scale(1.0/entries)
+            hist.Scale(1.0 / entries)
             # Update the y axis title to represent the change
             hist.GetYaxis().SetTitle("(1/N_{jets})dN/d#mathit{p}_{T}")
 
@@ -1735,7 +1791,7 @@ def plotParticleSpectraProjection(JetHResponseEP):
         # Offset points
         # See: https://root.cern.ch/root/roottalk/roottalk03/2765.html
         if False:
-            shift = i*0.1*hist.GetBinWidth(1)
+            shift = i * 0.1 * hist.GetBinWidth(1)
             xAxis = hist.GetXaxis()
             xAxis.SetLimits(xAxis.GetXmin() + shift, xAxis.GetXmax() + shift)
 
@@ -1833,7 +1889,7 @@ def packageMatricesIntoOneFile(JetHResponseEP):
 
     outputFilename = os.path.join(outputPath, "JESCorrection.root")
     logger.info("Writing merged output to {0}".format(outputFilename))
-    with root_open(outputFilename, "RECREATE") as f:
+    with root_open(outputFilename, "RECREATE") as f:  # noqa: F841
         for h in hists.itervalues():
             h.Write()
 
@@ -1845,11 +1901,11 @@ def parseArguments():
     group = parser.add_mutually_exclusive_group(required = False)
     # Possible operation modes
     group.add_argument("-e", "--embeddingExamplePlots",
-                        action="store_true",
-                        help="Plot example plots used to explain the usage of the response matrix for embedding.")
+                       action="store_true",
+                       help="Plot example plots used to explain the usage of the response matrix for embedding.")
     group.add_argument("-t", "--testMatrix",
-                        action="store_true",
-                        help="Create a testing response matrix.")
+                       action="store_true",
+                       help="Create a testing response matrix.")
 
     # General options
     parser.add_argument("-c", "--configFile", metavar="configFile",
@@ -1886,15 +1942,15 @@ def parseArguments():
     args = parser.parse_args()
 
     return {"embeddingExamplePlots": args.embeddingExamplePlots,
-            "testMatrix" : args.testMatrix,
-            "configFile" : args.configFile,
-            "clusterBias" : args.clusterBias,
-            "productionRootFile" : args.productionRootFile,
-            "useFloatHists" : args.useFloatHists,
-            "collisionSystem" : args.collisionSystem,
-            "nonInteractive" : args.nonInteractive,
-            "runAllAngles" : args.runAllAngles,
-            "initFromRootFile" : args.initFromRootFile
+            "testMatrix": args.testMatrix,
+            "configFile": args.configFile,
+            "clusterBias": args.clusterBias,
+            "productionRootFile": args.productionRootFile,
+            "useFloatHists": args.useFloatHists,
+            "collisionSystem": args.collisionSystem,
+            "nonInteractive": args.nonInteractive,
+            "runAllAngles": args.runAllAngles,
+            "initFromRootFile": args.initFromRootFile
             }
 
 def validateArguments(args):
