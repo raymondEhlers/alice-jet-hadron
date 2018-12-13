@@ -38,6 +38,7 @@ import scipy.signal
 import scipy.interpolate
 import numpy as np
 
+from pachyderm import generic_config
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
