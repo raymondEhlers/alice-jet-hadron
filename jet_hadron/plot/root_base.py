@@ -4,7 +4,7 @@
 
 They are kept separately to avoid importing ROOT.
 
-.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
 def drawVerticalLine(xValue, ROOT = None):

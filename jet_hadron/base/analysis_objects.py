@@ -2,7 +2,7 @@
 
 """ Utilities for the jet-hadron anaylsis
 
-.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
 # From the future package

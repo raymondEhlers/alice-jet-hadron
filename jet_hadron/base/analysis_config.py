@@ -2,7 +2,7 @@
 
 """ Manages configuration of the jet-hadron analysis
 
-.. code-author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
 # Py2/3 compatibility
