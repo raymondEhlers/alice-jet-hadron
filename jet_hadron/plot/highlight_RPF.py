@@ -12,7 +12,6 @@ Note:
 Dependencies:
   - rootpy
   - numpy
-  - root_numpy
   - matplotlib
   - seaborn
 

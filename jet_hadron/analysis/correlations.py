@@ -28,6 +28,7 @@ import scipy.interpolate
 import numpy as np
 
 from pachyderm import generic_config
+from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
@@ -44,7 +45,6 @@ from jet_hadron.analysis import fit as fitting
 
 import rootpy.ROOT as ROOT
 from rootpy.io import root_open
-import root_numpy
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -1150,7 +1150,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         logger.info("Scale factor from 1D to 2D: {}".format(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength))
         peakFindingHist = mixedEvent.ProjectionX("{}_peakFindingHist".format(mixedEvent.GetName()), etaLimitBins[0], etaLimitBins[1])
         peakFindingHist.Scale(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength)
-        peakFindingArray = root_numpy.hist2array(peakFindingHist)
+        peakFindingArray = histogram.Histogram1D(peakFindingHist).y
         #logger.debug("peakFindingArray: {}".format(peakFindingArray))
 
         # Using moving average
@@ -1199,7 +1199,7 @@ class JetHAnalysis(analysis_config.JetHBase):
         peakFindingHistRebin = peakFindingHist.Rebin(2, peakFindingHist.GetName() + "Rebin")
         peakFindingHistRebin.Scale(1. / 2.)
         # Note that peak finding will only be performed on the 1D hist
-        peakFindingArrayRebin = root_numpy.hist2array(peakFindingHistRebin)
+        peakFindingArrayRebin = histogram.Histogram1D(peakFindingHistRebin).y
 
         # Define points where the plots and functions can be evaluted
         linSpace = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peakFindingArray))
