@@ -44,3 +44,6 @@ G__*.cxx
 .DS_Store
 .project
 .vscode
+
+# mypy
+.mypy_cache/
