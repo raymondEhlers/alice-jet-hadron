@@ -14,6 +14,7 @@ import dataclasses
 import logging
 import os
 import pprint
+from typing import Dict
 
 from pachyderm import generic_config
 from pachyderm import histogram
@@ -90,7 +91,8 @@ class PlotTaskHists(analysis_config.JetHBase):
             componentHistsOptions (dict): Hist options for a particular component.
         Returns:
             (dict, bool): (Component hists configuration options contained in HistPlotter objects, whether
-                other hists in the component that are not configured by HistPlotter objects should also be plotted).
+                other hists in the component that are not configured by HistPlotter objects should also be
+                plotted).
         """
         # Make the output directory for the component.
         componentOutputPath = os.path.join(self.outputPrefix, componentName)
@@ -124,92 +126,122 @@ class PlotTaskHists(analysis_config.JetHBase):
 
         return (componentHistsConfigurationOptions, plotAdditional)
 
-    def assignHistsToPlotObjects(self, componentHistsInFile, histsConfigurationOptions, plotAdditional):
+    def determine_whether_hist_is_in_hist_object(self, found_match: bool, hist, hist_object_name: str, hist_object: plot_generic_hist.HistPlotter, component_hists: dict) -> bool:
+        """ Determine whether the given histogram belongs in the given hist object.
+
+        Args:
+            found_match: True if a match has been found.
+            hist (ROOT.TH1): Histogram being added to a hist object.
+            hist_object_name: The name of the current hist
+            hist_object: Histogram plotting configuration.
+            component_hists: Where the match hist objects that are relevant to the component are stored.
+        Returns:
+            The value of found_match. Note that component_hists is modified in place.
+        Raises:
+            ValueError: If there is more than one set of values associated with a given hist_label.
+                This is invalid because each hist object should only have one configuration object
+                per key.
+        """
+        # Iterate over the hist names stored in the config object to determine whether the current
+        # hist belongs. Note that ``CommentedMapItemsView`` apparently returns items when directly
+        # iterated over, so we get the value a bit further later.
+        for hist_label in hist_object.histNames:
+            # There should only be one key in the hist label
+            if len(hist_label) > 1:
+                raise ValueError(f"Too many entries in the hist_label object! Should only be 1! Object: {hist_label}")
+            histName, histTitle = next(iter(hist_label.items()))
+
+            #logger.debug(f"Considering histName from hist_object: {histName}, hist.GetName(): {hist.GetName()} with exactNameMatch: {hist_object.exactNameMatch}")
+
+            # Check for match between the config object and the current hist
+            # The name can be required to be exact, but by default, it doesn't need to be
+            if (hist_object.exactNameMatch and histName == hist.GetName()) or (not hist_object.exactNameMatch and histName in hist.GetName()):
+                logger.debug(f"Found match of hist name: {hist.GetName()} and options config name {hist_object_name}")
+                found_match = True
+                # Keep the title as the hist name if we haven't specified it so we don't lose
+                # information
+                histTitle = histTitle if histTitle != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
+
+                # Check if object is already in the component hists
+                obj = component_hists.get(hist_object_name, None)
+                if obj:
+                    # If the object already exists, we should add the hist to the list if there
+                    # are multiple hists requested for the object. If not, just ignore it
+                    if len(hist_object.histNames) > 1:
+                        logger.debug("Adding hist to existing config")
+                        # Set the hist title (for legend, plotting, etc)
+                        hist.SetTitle(histTitle)
+
+                        obj.hists.append(hist)
+                        logger.debug("Hists after adding: {}".format(obj.hists))
+                    else:
+                        logger.critical("Skipping hist because this object is only supposed to have one hist")
+                        continue
+                else:
+                    # Create a copy to store this particular histogram if we haven't already created
+                    # an object with this type of histogram because we can have multiple hists covered
+                    # by the same configurations options set
+                    obj = copy.deepcopy(hist_object)
+
+                    # Name will be from outputName if it is defined. If not, use hist_object_name if
+                    # thereare multiple hists, or just the hist name if it only relates to one hist.
+                    name = obj.outputName if obj.outputName != "" else hist.GetName() if len(obj.histNames) == 1 else hist_object_name
+                    logger.debug("Creating config for hist stored under {}".format(name))
+                    component_hists[name] = obj
+
+                    # Set the hist title (for legend, plotting, etc)
+                    hist.SetTitle(histTitle)
+                    # Store the hist in the object
+                    obj.hists.append(hist)
+
+        return found_match
+
+    def assignHistsToPlotObjects(self, componentHistsInFile: dict, histsConfigurationOptions: dict, plotAdditional: bool) -> dict:
         """ Assign input hists retrieved from a file to the defined Hist Plotters.
 
         Args:
             componentHistsInFile (dict): Hists that are in a particular component. Keys are hist names
-            histsConfigurationOptions (dict): HistPlotter hist configuration objects for a particular component.
-            plotAdditional (bool): If true, plot additional histograms in the component that are not specified in the config.
+            histsConfigurationOptions (dict): HistPlotter hist configuration objects for a particular
+                component.
+            plotAdditional (bool): If true, plot additional histograms in the component that are not
+                specified in the config.
         Returns:
-            dict: HistPlotter configuration objects with input hists assigned to each object according to the configuration.
+            HistPlotter configuration objects with input hists assigned to each object according to
+                the configuration.
         """
-        componentHists = {}
+        component_hists: Dict[str, plot_generic_hist.HistPlotter] = {}
         # First iterate over the available hists
         for hist in itervalues(componentHistsInFile):
-            logger.debug("Looking for match to hist {}".format(hist.GetName()))
-            foundMatch = False
+            logger.debug(f"Looking for match to hist {hist.GetName()}")
+            found_match = False
             # Then iterate over the Hist Plotter configurations in the particular component.
             # We are looking for the hists which belong in a particular config
-            for histObjectName, histObject in iteritems(histsConfigurationOptions):
+            for hist_object_name, hist_object in iteritems(histsConfigurationOptions):
                 if logger.isEnabledFor(logging.DEBUG):
-                    debugHistNames = [next(iter(histLabel)) for histLabel in histObject.histNames]
+                    debug_hist_names = [next(iter(histLabel)) for histLabel in hist_object.histNames]
                     # Only print the first five items so we aren't overwhelmed with information
                     # "..." indicates that there are more than 5
-                    debugHistNamesLen = len(debugHistNames)
-                    debugHistNames = ", ".join(debugHistNames[:5]) if len(debugHistNames) < 5 else ", ".join(debugHistNames[:5] + ["..."])
-                    logger.debug("Considering histObject \"{}\" for exactNameMatch: {}, histNames (len {}): {}".format(histObjectName, histObject.exactNameMatch, debugHistNamesLen, debugHistNames))
+                    debug_hist_names_trimmed = ", ".join(debug_hist_names[:5]) if len(debug_hist_names) < 5 else ", ".join(debug_hist_names[:5] + ["..."])
+                    logger.debug(f"Considering hist_object \"{hist_object_name}\" for exactNameMatch: {hist_object_name.exactNameMatch}, histNames (len {len(debug_hist_names)}): {debug_hist_names_trimmed}")
 
-                # Iterate over the hist names stored in the config object
-                # CommentedMapItemsView apparently returns items when accessed
-                # directly iterated over, so we ignore the value.
-                for histLabel in histObject.histNames:
-                    # There should only be one key in the hist label
-                    if len(histLabel) > 1:
-                        logger.critical("Too many entries in the histLabel object! Should only be 1! Object: {}".format(histLabel))
-                    histName, histTitle = next(iter(iteritems(histLabel)))
-
-                    #logger.debug("Considering histName from histObject: {}, hist.GetName(): {} with exactNameMatch: {}".format(histName, hist.GetName(), histObject.exactNameMatch))
-
-                    # Check for match between the config object and the current hist
-                    # The name can be required to be exact, but by default, it doesn't need to be
-                    if (histObject.exactNameMatch and histName == hist.GetName()) or (not histObject.exactNameMatch and histName in hist.GetName()):
-                        logger.debug("Found match of hist name: {} and options config name {}".format(hist.GetName(), histObjectName))
-                        foundMatch = True
-                        # Keep the title as the hist name if we haven't specified it so we don't lose information
-                        histTitle = histTitle if histTitle != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
-
-                        # Check if object is already in the component hists
-                        obj = componentHists.get(histObjectName, None)
-                        if obj:
-                            # If the object already exists, we should add the hist to the list if there are multiple
-                            # hists requested for the object. If not, just ignore it
-                            if len(histObject.histNames) > 1:
-                                logger.debug("Adding hist to existing config")
-                                # Set the hist title (for legend, plotting, etc)
-                                hist.SetTitle(histTitle)
-
-                                obj.hists.append(hist)
-                                logger.debug("Hists after adding: {}".format(obj.hists))
-                            else:
-                                logger.critical("Skipping hist because this object is only supposed to have one hist")
-                                continue
-                        else:
-                            # Create a copy to store this particular histogram if we haven't already created
-                            # an object with this type of histogram because we can have multiple hists covered
-                            # by the same configurations options set
-                            obj = copy.deepcopy(histObject)
-
-                            # Name will be from outputName if it is defined. If not, use histObjectName if there
-                            # are multiple hists, or just the hist name if it only relates to one hist.
-                            name = obj.outputName if obj.outputName != "" else hist.GetName() if len(obj.histNames) == 1 else histObjectName
-                            logger.debug("Creating config for hist stored under {}".format(name))
-                            componentHists[name] = obj
-
-                            # Set the hist title (for legend, plotting, etc)
-                            hist.SetTitle(histTitle)
-                            # Store the hist in the object
-                            obj.hists.append(hist)
+                # Determine whether the hist belongs in the current hist object.
+                found_match = self.determine_whether_hist_is_in_hist_object(
+                    found_match = found_match,
+                    hist = hist,
+                    hist_object_name = hist_object_name,
+                    hist_object = hist_object,
+                    component_hists = component_hists
+                )
 
             # Create a default hist object
-            if not foundMatch:
+            if not found_match:
                 if plotAdditional:
                     logger.debug("No hist config options match found. Using default options...")
-                    componentHists[hist.GetName()] = plot_generic_hist.HistPlotter(hist = hist)
+                    component_hists[hist.GetName()] = plot_generic_hist.HistPlotter(hist = hist)
                 else:
                     logger.debug("No match found and not plotting additional, so hist {} will not be plotted.".format(hist.GetName()))
 
-        return componentHists
+        return component_hists
 
     def matchHistsToHistConfigurations(self):
         """ Match retrieved histograms to components and their plotting options.
