@@ -18,6 +18,7 @@ import matplotlib.ticker
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
 import re
 import seaborn as sns
+from typing import Dict, Union
 
 import rootpy.ROOT as ROOT
 import root_numpy
@@ -387,17 +388,17 @@ class HistPlotter(object):
         """ Plot (a collection of) 1D histograms. """
         # TODO: Update to use object oriented `ax` instead of just `plt`.
         # Set colors before plotting because it's not handled automatically
-        colorPaletteArgs = {}
+        color_palette_args: Dict[str, Union[str, int]] = {}
         if len(self.hists) > 6:
             # The default seaborn color palette is 6 - beyond that, we need to set the palette ourselves
             # Resources include: https://seaborn.pydata.org/generated/seaborn.color_palette.html
             # and https://seaborn.pydata.org/tutorial/color_palettes.html#palette-tutorial
             # NOTE: "Blues_d" is also a nice scheme for sequential data
             # NOTE: "husl" is preferred to "hls" because it is even in color space AND in perception!
-            colorPaletteArgs["palette"] = "husl"
-            colorPaletteArgs["n_colors"] = len(self.hists)
-            logger.debug("Color palette args: {}".format(colorPaletteArgs))
-        currentColorPalette = iter(sns.color_palette(**colorPaletteArgs))
+            color_palette_args["palette"] = "husl"
+            color_palette_args["n_colors"] = len(self.hists)
+            logger.debug(f"Color palette args: {color_palette_args}")
+        currentColorPalette = iter(sns.color_palette(**color_palette_args))
 
         for hist in self.hists:
             logger.debug("Plotting hist: {}, title: {}".format(hist.GetName(), hist.GetTitle()))
