@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-# Tests for the JetH configuration functionality defined in the analysisConfig module.
-#
-# date: 8 May 2018
+""" Tests for the JetH configuration functionality defined in the analysis_config module.
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3
 from future.utils import iteritems
@@ -13,8 +14,9 @@ import pytest
 import ruamel.yaml
 from io import StringIO
 
-from jet_hadron.base import analysisConfig
-from jet_hadron.base import generic_config
+from pachyderm import generic_config
+
+from jet_hadron.base import analysis_config
 from jet_hadron.base import params
 
 # Setup logger
@@ -64,7 +66,7 @@ def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expect
         kwargs["eventActivity"] = params.eventActivity[eventActivity]
         selectedAnalysisOptions = params.selectedAnalysisOptions(**kwargs)
 
-    returnedOptions = analysisConfig.determineLeadingHadronBias(config = config, selectedAnalysisOptions = selectedAnalysisOptions)
+    returnedOptions = analysis_config.determineLeadingHadronBias(config = config, selectedAnalysisOptions = selectedAnalysisOptions)
     # Check that we still got these right.
     assert returnedOptions.collisionEnergy == selectedAnalysisOptions.collisionEnergy
     assert returnedOptions.collisionSystem == selectedAnalysisOptions.collisionSystem
@@ -141,7 +143,7 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
     Args:
         config (CommentedMap): dict-like object containing the configuration to be overridden.
         selectedOptions (params.selectedAnalysisOptions): The options selected for this analysis, in
-            the order defined used with analysisConfig.overrideOptions() and in the configuration file.
+            the order defined used with analysis_config.overrideOptions() and in the configuration file.
         configContainingOverride (CommentedMap): dict-like object containing the override options.
     Returns:
         tuple: (dict-like CommentedMap object containing the overridden configuration, selected analysis
@@ -158,9 +160,9 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
         logger.debug("Before override:")
         log_yaml_dump(yaml, config)
 
-    config = analysisConfig.overrideOptions(config = config,
-                                            selectedOptions = selectedOptions,
-                                            configContainingOverride = configContainingOverride)
+    config = analysis_config.overrideOptions(config = config,
+                                             selectedOptions = selectedOptions,
+                                             configContainingOverride = configContainingOverride)
 
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("After override:")
@@ -194,9 +196,9 @@ def testIgnoreUnselectedOptions(loggingMixin, basicConfig):
     #       lists to just the single entry.
     assert config["responseTaskName"] == "baseName"
 
-def testArgumentParsing():
+def test_argument_parsing():
     """ Test argument parsing.  """
-    testArgs = ["-c", "analysisConfigArg.yaml",
+    testArgs = ["-c", "analysis_configArg.yaml",
                 "-e", "5.02",
                 "-s", "embedPP",
                 "-a", "semiCentral",
@@ -209,9 +211,9 @@ def testArgumentParsing():
 
     # Test both in the defined order and in a different order (just for completeness).
     for args in [testArgs, reversedTestArgs]:
-        (configFilename, selectedAnalysisOptions, returnedArgs) = analysisConfig.determineSelectedOptionsFromKwargs(args = args)
+        (configFilename, selectedAnalysisOptions, returnedArgs) = analysis_config.determine_selected_options_from_kwargs(args = args)
 
-        assert configFilename == "analysisConfigArg.yaml"
+        assert configFilename == "analysis_configArg.yaml"
         assert selectedAnalysisOptions.collisionEnergy == 5.02
         assert selectedAnalysisOptions.collisionSystem == "embedPP"
         assert selectedAnalysisOptions.eventActivity == "semiCentral"
@@ -219,7 +221,7 @@ def testArgumentParsing():
 
         # Strictly speaking, this is adding some complication, but it will consistently be used with this option,
         # so it's worth doing the integration test.
-        validatedAnalysisOptions, _ = analysisConfig.validateArguments(selectedAnalysisOptions)
+        validatedAnalysisOptions, _ = analysis_config.validateArguments(selectedAnalysisOptions)
 
         assert validatedAnalysisOptions.collisionEnergy == params.collisionEnergy.fiveZeroTwo
         assert validatedAnalysisOptions.collisionSystem == params.collisionSystem.embedPP
@@ -258,44 +260,45 @@ def testValidateArguments(loggingMixin, args, expected):
                     params.leadingHadronBiasType.track)
 
     args = params.selectedAnalysisOptions(*args)
-    args, _ = analysisConfig.validateArguments(args)
+    args, _ = analysis_config.validateArguments(args)
     expected = params.selectedAnalysisOptions(*expected)
     assert args.collisionEnergy == expected.collisionEnergy
     assert args.collisionSystem == expected.collisionSystem
     assert args.eventActivity == expected.eventActivity
     assert args.leadingHadronBias == expected.leadingHadronBias
 
-def checkJetHBaseObject(obj, config, selectedAnalysisOptions, eventPlaneAngle, **kwargs):
-    """ Helper function to check JetHBase properties. The values are asserted
-    in this function.
+def check_jetH_base_object(obj, config, selected_analysis_options, event_plane_angle, **kwargs):
+    """ Helper function to check JetHBase properties.
 
-    NOTE: The default values correspond to those in the objectConfig config, so
-          they don't need to be specified in each function.
+    The values are asserted in this function.
+
+    Note:
+        The default values correspond to those in the objectConfig config, so they don't
+        need to be specified in each function.
 
     Args:
-        obj (analysisConfig.JetHBase): JetHBase object to compare values against.
+        obj (analysis_config.JetHBase): JetHBase object to compare values against.
         config (CommentedMap): dict-like configuration file.
-        selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
-        eventPlaneAngle (params.eventPlaneAngle): Selected event plane angle.
-        kwargs (dict): All other values to compare against for which the default
-            value defined in this function is not sufficient.
+        selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+        event_plane_angle (params.eventPlaneAngle): Selected event plane angle.
+        kwargs (dict): All other values to compare against for which the default value defined
+            in this function is not sufficient.
     Returns:
         bool: True if it successfully make it to the end of the assertions.
     """
-
     # Determine default values
-    taskName = "taskName"
-    defaultValues = {
-        "taskName": taskName,
-        "configFilename": "configFilename.yaml",
+    task_name = "taskName"
+    default_values = {
+        "task_name": task_name,
+        "config_filename": "configFilename.yaml",
         "config": config,
-        "taskConfig": config[taskName],
-        "eventPlaneAngle": eventPlaneAngle
+        "task_config": config[task_name],
+        "eventPlaneAngle": event_plane_angle
     }
     # Add these afterwards so we don't have to do each value by hand.
-    defaultValues.update(selectedAnalysisOptions._asdict())
+    default_values.update(selected_analysis_options._asdict())
     # NOTE: All other values will be taken from the config when constructing the object.
-    for k, v in iteritems(defaultValues):
+    for k, v in iteritems(default_values):
         if k not in kwargs:
             kwargs[k] = v
 
@@ -303,10 +306,10 @@ def checkJetHBaseObject(obj, config, selectedAnalysisOptions, eventPlaneAngle, *
     # constructed object, so we also have other tests, which are performed below.
     # However, we keep the test to provide a check for the equality operators.
     # We perform the actual test later because it is not very verbose.
-    comparison = analysisConfig.JetHBase(**kwargs)
+    comparison = analysis_config.JetHBase(**kwargs)
 
     # We need to retrieve these values so we can test them directly.
-    # `defaultValues` will now be used as the set of reference values.
+    # `default_values` will now be used as the set of reference values.
     valueNames = ["inputFilename", "inputListName", "outputPrefix", "outputFilename", "printingExtensions", "aliceLabel"]
     for k in valueNames:
         # The aliceLabel gets converted to the enum in the object, so we need to do the conversion here.
@@ -314,14 +317,14 @@ def checkJetHBaseObject(obj, config, selectedAnalysisOptions, eventPlaneAngle, *
             val = params.aliceLabel[config[k]]
         else:
             val = config[k]
-        defaultValues[k] = val
-    defaultValues.update(kwargs)
+        default_values[k] = val
+    default_values.update(kwargs)
 
     # Directly compare against the available values
     # NOTE: This isn't wholly independent because the object comparison relies on comparing values
     #       in obj.__dict__, but it is still an improvement on the above.
     for prop, val in iteritems(obj.__dict__):
-        assert val == defaultValues[prop]
+        assert val == default_values[prop]
 
     # Perform the comparison test.
     assert obj == comparison
@@ -379,93 +382,102 @@ taskName:
 def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig, mocker):
     """ Test construction of the JetHBase object. """
     objectConfig, taskName = objectConfig
-    (config, selectedAnalysisOptions) = overrideOptionsHelper(objectConfig,
-                                                              configContainingOverride = objectConfig[taskName])
+    (config, selected_analysis_options) = overrideOptionsHelper(
+        objectConfig,
+        configContainingOverride = objectConfig[taskName]
+    )
 
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 
     configFilename = "configFilename.yaml"
     taskConfig = config[taskName]
-    eventPlaneAngle = params.eventPlaneAngle.all
-    configBase = analysisConfig.JetHBase(taskName = taskName,
-                                         configFilename = configFilename,
-                                         config = config,
-                                         taskConfig = taskConfig,
-                                         collisionEnergy = selectedAnalysisOptions.collisionEnergy,
-                                         collisionSystem = selectedAnalysisOptions.collisionSystem,
-                                         eventActivity = selectedAnalysisOptions.eventActivity,
-                                         leadingHadronBias = selectedAnalysisOptions.leadingHadronBias,
-                                         eventPlaneAngle = eventPlaneAngle)
+    event_plane_angle = params.eventPlaneAngle.all
+    config_base = analysis_config.JetHBase(
+        task_name = taskName,
+        config_filename = configFilename,
+        config = config,
+        task_config = taskConfig,
+        collisionEnergy = selected_analysis_options.collisionEnergy,
+        collisionSystem = selected_analysis_options.collisionSystem,
+        eventActivity = selected_analysis_options.eventActivity,
+        leadingHadronBias = selected_analysis_options.leadingHadronBias,
+        eventPlaneAngle = event_plane_angle
+    )
 
     # We need values to compare against. However, namedtuples are immutable,
     # so we have to create a new one with the proper value.
-    tempSelectedOptions = selectedAnalysisOptions._asdict()
-    tempSelectedOptions["leadingHadronBias"] = leadingHadronBias
-    selectedAnalysisOptions = params.selectedAnalysisOptions(**tempSelectedOptions)
+    temp_selected_options = selected_analysis_options._asdict()
+    temp_selected_options["leadingHadronBias"] = leadingHadronBias
+    selected_analysis_options = params.selectedAnalysisOptions(**temp_selected_options)
     # Only need for the case of leadingHadronBiasType!
     if isinstance(leadingHadronBias, params.leadingHadronBiasType):
-        selectedAnalysisOptions = analysisConfig.determineLeadingHadronBias(config, selectedAnalysisOptions)
+        selected_analysis_options = analysis_config.determineLeadingHadronBias(config, selected_analysis_options)
 
     # Assertions are performed in this function
-    res = checkJetHBaseObject(obj = configBase,
-                              config = config,
-                              selectedAnalysisOptions = selectedAnalysisOptions,
-                              eventPlaneAngle = eventPlaneAngle)
+    res = check_jetH_base_object(
+        obj = config_base,
+        config = config,
+        selected_analysis_options = selected_analysis_options,
+        event_plane_angle = event_plane_angle
+    )
     assert res is True
 
     # Just to be safe
     mocker.stopall()
 
-@pytest.mark.parametrize("additionalIterables", [
+@pytest.mark.parametrize("additional_iterables", [
     None,
     {"iterable1": params.collisionEnergy, "iterable2": params.collisionSystem}
 ], ids = ["No additional iterables", "Two additional iterables"])
-def testConstructObjectFromConfig(loggingMixin, additionalIterables, objectConfig, mocker):
+def test_construct_object_from_config(loggingMixin, additional_iterables, objectConfig, mocker):
     """ Test construction of objects through a configuration file.
 
     NOTE: This is an integration test. """
     # Basic setup
     # We need both the input and the expected out.
     # NOTE: We only want to override the options of the expected config because
-    #       constructFromConfigurationFile() applies the overriding itself.
-    config, taskName = objectConfig
+    #       construct_from_configuration_file() applies the overriding itself.
+    config, task_name = objectConfig
     expectedNames = ["eventPlaneAngle", "qVector"]
-    if additionalIterables:
-        for iterable in additionalIterables:
+    if additional_iterables:
+        for iterable in additional_iterables:
             expectedNames.extend([iterable])
-            config[taskName]["override"]["iterables"][iterable] = True
+            config[task_name]["override"]["iterables"][iterable] = True
     expectedConfig = copy.deepcopy(config)
-    (expectedConfig, selectedAnalysisOptions) = overrideOptionsHelper(expectedConfig,
-                                                                      configContainingOverride = expectedConfig[taskName])
-    expectedAnalysisOptions = analysisConfig.determineLeadingHadronBias(config = expectedConfig, selectedAnalysisOptions = selectedAnalysisOptions)
+    (expectedConfig, selected_analysis_options) = overrideOptionsHelper(
+        expectedConfig,
+        configContainingOverride = expectedConfig[task_name]
+    )
+    expected_analysis_options = analysis_config.determineLeadingHadronBias(config = expectedConfig, selectedAnalysisOptions = selected_analysis_options)
 
     # Task arguments
-    configFilename = "configFilename.yaml"
-    obj = analysisConfig.JetHBase
+    config_filename = "configFilename.yaml"
+    obj = analysis_config.JetHBase
 
     # Mock reading the config
     #loadConfigurationMock = mocker.MagicMock(spec_set = ["filename"], return_value = config)
     # Needs the full path to the module.
-    loadConfigurationMock = mocker.patch("jet_hadron.base.analysisConfig.generic_config.loadConfiguration", return_value = config)
+    loadConfigurationMock = mocker.patch("jet_hadron.base.analysis_config.generic_config.loadConfiguration", return_value = config)
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 
-    (names, objects) = analysisConfig.constructFromConfigurationFile(taskName = taskName,
-                                                                     configFilename = configFilename,
-                                                                     selectedAnalysisOptions = selectedAnalysisOptions,
-                                                                     obj = obj,
-                                                                     additionalPossibleIterables = additionalIterables)
+    (_, names, objects) = analysis_config.construct_from_configuration_file(
+        task_name = task_name,
+        config_filename = config_filename,
+        selected_analysis_options = selected_analysis_options,
+        obj = obj,
+        additional_possible_iterables = additional_iterables
+    )
     # Check the opening the config file was called properly.
-    loadConfigurationMock.assert_called_once_with(configFilename)
+    loadConfigurationMock.assert_called_once_with(config_filename)
 
     assert names == expectedNames
-    for unrolled in generic_config.unrollNestedDict(objects):
-        (values, obj) = unrolled
-        res = checkJetHBaseObject(obj = obj,
-                                  config = expectedConfig,
-                                  selectedAnalysisOptions = expectedAnalysisOptions,
-                                  eventPlaneAngle = values[0])
+    for values, obj in generic_config.iterate_with_selected_objects(objects):
+        res = check_jetH_base_object(obj = obj,
+                                     config = expectedConfig,
+                                     selected_analysis_options = expected_analysis_options,
+                                     event_plane_angle = values.eventPlaneAngle)
         assert res is True
 
     # Just to be safe

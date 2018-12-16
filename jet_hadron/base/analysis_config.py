@@ -9,7 +9,6 @@
 from future.utils import iteritems
 
 import argparse
-import collections
 import logging
 import os
 
@@ -31,10 +30,12 @@ def determineLeadingHadronBias(config, selectedAnalysisOptions):
         params.selectedAnalysisOptions: Selected analysis options with the determined leading hadron
             bias object.
     """
-    overrideOptions = generic_config.determineOverrideOptions(selectedOptions = selectedAnalysisOptions,
-                                                              overrideOptions = config["leadingHadronBiasValues"],
-                                                              setOfPossibleOptions = params.setOfPossibleOptions)
-    leadingHadronBiasValue = overrideOptions["value"]
+    override_options = generic_config.determineOverrideOptions(
+        selectedOptions = selectedAnalysisOptions,
+        override_opts = config["leadingHadronBiasValues"],
+        setOfPossibleOptions = params.setOfPossibleOptions
+    )
+    leadingHadronBiasValue = override_options["value"]
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
     returnOptions = selectedAnalysisOptions._asdict()
@@ -63,7 +64,7 @@ def overrideOptions(config, selectedOptions, configContainingOverride = None):
 
     return config
 
-def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {taskName}.", addOptionsFunction = None, **kwargs):
+def determine_selected_options_from_kwargs(args = None, description = "Jet-hadron {task_name}.", add_options_function = None, **kwargs):
     """ Determine the selected analysis options from the command line arguments.
 
     Defaults are equivalent to None or False so values can be added in the validation
@@ -72,17 +73,17 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
     Args:
         args (list): Arguments to parse. Default: None (which will then use sys.argv)
         description (str): Help description for arguments
-        addOptionsFunction (func): Function which takes the ArgumentParser() object, adds
+        add_options_function (func): Function which takes the ArgumentParser() object, adds
             arguments, and returns the object.
-        kwargs (dict): Additional arguments to format the help description. Often contains "taskName" to specify
-            the task name.
+        kwargs (dict): Additional arguments to format the help description. Often contains ``task_name``
+            to specify the task name.
     Returns:
         tuple: (configFilename, energy, collisionSystem, eventActivity, biasType, argparse.namespace). The args
             are return for handling custom arguments added with addOptionsFunction.
     """
     # Make sure there is always a task name
-    if "taskName" not in kwargs:
-        kwargs["taskName"] = "analysis"
+    if "task_name" not in kwargs:
+        kwargs["task_name"] = "analysis"
 
     # Setup parser
     parser = argparse.ArgumentParser(description = description.format(**kwargs))
@@ -104,19 +105,19 @@ def determineSelectedOptionsFromKwargs(args = None, description = "Jet-hadron {t
                         help = "Leading hadron bias type")
 
     # Extension for additional arguments
-    if addOptionsFunction:
-        args = addOptionsFunction(parser)
+    if add_options_function:
+        args = add_options_function(parser)
 
     # Parse arguments
     args = parser.parse_args(args)
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
-    selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = args.energy,
-                                                             collisionSystem = args.collisionSystem,
-                                                             eventActivity = args.eventActivity,
-                                                             leadingHadronBias = args.biasType)
-    return (args.configFilename, selectedAnalysisOptions, args)
+    selected_analysis_options = params.selectedAnalysisOptions(collisionEnergy = args.energy,
+                                                               collisionSystem = args.collisionSystem,
+                                                               eventActivity = args.eventActivity,
+                                                               leadingHadronBias = args.biasType)
+    return (args.configFilename, selected_analysis_options, args)
 
 def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
@@ -167,113 +168,117 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
                                                              leadingHadronBias = leadingHadronBiasType)
     return (selectedAnalysisOptions, additionalValidatedArgs)
 
-def constructFromConfigurationFile(taskName, configFilename, selectedAnalysisOptions, obj, additionalPossibleIterables = None):
+def construct_from_configuration_file(task_name, config_filename, selected_analysis_options, obj, additional_possible_iterables = None):
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
-        taskName (str): Name of the analysis task.
-        configFilename (str): Filename of the yaml config.
-        selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+        task_name (str): Name of the analysis task.
+        config_filename (str): Filename of the yaml config.
+        selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
         obj (object): The object to be constructed.
-        additionalPossibleIterables(collections.OrderedDict): Additional iterators to use when creating
+        additional_possible_iterables(collections.OrderedDict): Additional iterators to use when creating
             the objects, in the form of "name" : list(values). Default: None.
     Returns:
-        (list, collections.OrderedDict): Roughly, (names, objects). Specifically, the list is the names
-            of the iterables used. The ordered dict entries are of the form of a nested dict, with each
-            object available at the iterable values used to constructed it. For example,
-            output["a"]["b"] == obj(a = "a", b = "b", ...). For a full example, see above.
+        (object, list, dict): Roughly, (KeyIndex, names, objects). Specifically, the key_index is a
+            new dataclass which defines the parameters used to create the object, names is the names
+            of the iterables used. The dictionary keys are KeyIndex objects which describe the iterable
+            arguments passed to the object, while the values are the newly constructed arguments. See
+            ``pachyderm.generic_config.create_objects_from_iterables(...)`` for more.
     """
     # Validate arguments
-    (selectedAnalysisOptions, additionalValidatedArgs) = validateArguments(selectedAnalysisOptions)
-    if additionalPossibleIterables is None:
-        additionalPossibleIterables = collections.OrderedDict()
+    (selected_analysis_options, additional_validated_args) = validateArguments(selected_analysis_options)
+    if additional_possible_iterables is None:
+        additional_possible_iterables = {}
 
     # Load configuration
-    config = generic_config.loadConfiguration(configFilename)
-    config = overrideOptions(config, selectedAnalysisOptions,
-                             configContainingOverride = config[taskName])
+    config = generic_config.loadConfiguration(config_filename)
+    config = overrideOptions(config, selected_analysis_options,
+                             configContainingOverride = config[task_name])
     # We (re)define the task config here after we have overridden the relevant values.
-    taskConfig = config[taskName]
+    task_config = config[task_name]
 
     # Now that the values have been overrideen, we can determine the full leading hadron bias
-    selectedAnalysisOptions = determineLeadingHadronBias(config = config, selectedAnalysisOptions = selectedAnalysisOptions)
-    logger.debug("Selected analysis options: {}".format(selectedAnalysisOptions))
+    selected_analysis_options = determineLeadingHadronBias(config = config, selectedAnalysisOptions = selected_analysis_options)
+    logger.debug(f"Selected analysis options: {selected_analysis_options}")
 
     # Iteration options
     # Selected on event plane and q vector are required since they are included in
     # the output prefix for consistency (event if a task doesn't select in one or
     # both of them)
-    possibleIterables = collections.OrderedDict()
-    possibleIterables["eventPlaneAngle"] = params.eventPlaneAngle
-    possibleIterables["qVector"] = params.qVector
+    possible_iterables = {}
+    possible_iterables["eventPlaneAngle"] = params.eventPlaneAngle
+    possible_iterables["qVector"] = params.qVector
     # NOTE: Careful here - in principle, this could overwrite the EP or qVector iterators. However,
     #       it is unlikely.
-    possibleIterables.update(additionalPossibleIterables)
+    possible_iterables.update(additional_possible_iterables)
     # NOTE: These requested iterators should be passed by the task,
     #       but then the values should be selected in the YAML config.
     iterables = generic_config.determineSelectionOfIterableValuesFromConfig(config = config,
-                                                                            possibleIterables = possibleIterables)
+                                                                            possibleIterables = possible_iterables)
 
     # Determine formatting options
-    logger.debug("selectedAnalysisOptions: {}".format(selectedAnalysisOptions._asdict()))
+    logger.debug(f"selectedAnalysisOptions: {selected_analysis_options._asdict()}")
     # TODO: Do we want to modify str() to something like recreationString() or something in conjunction
     #       with renaming filenameStr()?
-    formattingOptions = {}
-    formattingOptions["taskName"] = taskName
-    formattingOptions["trainNumber"] = config.get("trainNumber", "trainNo")
+    formatting_options = {}
+    formatting_options["task_name"] = task_name
+    formatting_options["trainNumber"] = config.get("trainNumber", "trainNo")
 
     # Determine task arguments
-    args = collections.OrderedDict()
-    args.update(formattingOptions)
-    args["configFilename"] = configFilename
+    args = {}
+    args.update(formatting_options)
+    args["config_filename"] = config_filename
     args["config"] = config
-    args["taskConfig"] = taskConfig
+    args["task_config"] = task_config
 
     # Add the selected analysis options into the args and formatting options
-    # NOTE: We don't want to update the formattingOptions and then use that to update the args
+    # NOTE: We don't want to update the formatting_options and then use that to update the args
     #       because otherwise we will have strings for the selected analysis options instead
     #       of the actual enumeration values.
     # NOTE: `_asdict()` is a public method - it has an underscore to avoid namespace conflicts.
     #       See: https://stackoverflow.com/a/26180604
-    args.update(selectedAnalysisOptions._asdict())
+    args.update(selected_analysis_options._asdict())
     # We want to convert the enum values into strs for formatting. Performed with a dict comprehension.
-    formattingOptions.update({k: v.str() for k, v in iteritems(selectedAnalysisOptions._asdict())})
+    formatting_options.update({k: v.str() for k, v in iteritems(selected_analysis_options._asdict())})
 
     # Iterate over the iterables defined above to create the objects.
-    (names, objects) = generic_config.createObjectsFromIterables(obj = obj,
-                                                                 args = args,
-                                                                 iterables = iterables,
-                                                                 formattingOptions = formattingOptions)
+    (KeyIndex, names, objects) = generic_config.create_objects_from_iterables(
+        obj = obj,
+        args = args,
+        iterables = iterables,
+        formatting_options = formatting_options,
+    )
 
-    #logger.debug("objects: {objects}".format(objects = objects))
+    logger.debug(f"KeyIndex: {KeyIndex}, objects: {objects}")
 
-    return (names, objects)
+    return (KeyIndex, names, objects)
 
 class JetHBase(generic_class.EqualityMixin):
     """ Base class for shared jet-hadron configuration values.
 
     Args:
-        taskName (str): Name of the task.
-        configFilename (str): Filename of the YAML configuration.
+        task_name (str): Name of the task.
+        config_filename (str): Filename of the YAML configuration.
         config (dict-like object): Contains the analysis configuration. Note that it must already be
             fully configured and overridden.
-        taskConfig (dict-like object): Contains the task specific configuration. Note that it must already be
-            fully configured and overridden. Also note that by convention it is also available at `config[taskName]`.
+        task_config (dict-like object): Contains the task specific configuration. Note that it must already be
+            fully configured and overridden. Also note that by convention it is also available at
+            ``config[task_name]``.
         collisionEnergy (params.collisionEnergy): Selected collision energy.
         collisionSystem (params.collisionSystem): Selected collision system.
         eventActivity (params.eventActivity): Selected event activity.
-        leadingHadronBias (params.leadingHadronBias or params.leadingHadronBiasType): Selected leading hadron bias. The
-            class member will contain both the type and the value.
+        leadingHadronBias (params.leadingHadronBias or params.leadingHadronBiasType): Selected leading hadron
+            bias. The class member will contain both the type and the value.
         eventPlaneAngle (params.eventPlaneAngle): Selected event plane angle.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
-    def __init__(self, taskName, configFilename, config, taskConfig, collisionEnergy, collisionSystem, eventActivity, leadingHadronBias, eventPlaneAngle, *args, **kwargs):
+    def __init__(self, task_name, config_filename, config, task_config, collisionEnergy, collisionSystem, eventActivity, leadingHadronBias, eventPlaneAngle, *args, **kwargs):
         # Store the configuration
-        self.taskName = taskName
-        self.configFilename = configFilename
+        self.task_name = task_name
+        self.config_filename = config_filename
         self.config = config
-        self.taskConfig = taskConfig
+        self.task_config = task_config
         self.collisionEnergy = collisionEnergy
         self.collisionSystem = collisionSystem
         self.eventActivity = eventActivity
@@ -317,26 +322,29 @@ class JetHBase(generic_class.EqualityMixin):
 
         # TODO: Implement writing this out
 
-def createFromTerminal(obj, taskName, additionalPossibleIterables = None):
+def create_from_terminal(obj, task_name, additional_possible_iterables = None):
     """ Main function to create an object from the terminal.
 
     Args:
         obj (object): Object to be created.
-        taskName (str): Name of the task to be created.
-        additionalPossibleIterables(collections.OrderedDict): Additional iterators to use when creating
+        task_name (str): Name of the task to be created.
+        additional_possible_iterables(dict): Additional iterators to use when creating
             the objects, in the form of "name" : list(values). Default: None.
     Returns:
-        (list, collections.OrderedDict): Roughly, (names, objects). Specifically, the list is the names
-            of the iterables used. The ordered dict entries are of the form of a nested dict, with each
-            object available at the iterable values used to constructed it. For example,
-            output["a"]["b"] == obj(a = "a", b = "b", ...). For a full example, see above.
+        (object, list, dict): Roughly, (KeyIndex, names, objects). Specifically, the key_index is a
+            new dataclass which defines the parameters used to create the object, names is the names
+            of the iterables used. The dictionary keys are KeyIndex objects which describe the iterable
+            arguments passed to the object, while the values are the newly constructed arguments. See
+            ``pachyderm.generic_config.create_objects_from_iterables(...)`` for more.
     """
-    (configFilename, terminalArgs, additionalArgs) = determineSelectedOptionsFromKwargs(taskName = taskName)
-    return constructFromConfigurationFile(taskName = taskName,
-                                          configFilename = configFilename,
-                                          selectedAnalysisOptions = terminalArgs,
-                                          obj = obj,
-                                          additionalPossibleIterables = additionalPossibleIterables)
+    (config_filename, terminal_args, additional_args) = determine_selected_options_from_kwargs(task_name = task_name)
+    return construct_from_configuration_file(
+        task_name = task_name,
+        config_filename = config_filename,
+        selected_analysis_options = terminal_args,
+        obj = obj,
+        additional_possible_iterables = additional_possible_iterables
+    )
 
 # TODO: Create a list of pt hard objects based on the YAML config.
 #       Loop over that list to create objects.
