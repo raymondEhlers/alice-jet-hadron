@@ -190,7 +190,7 @@ class HistPlotter(object):
             if self.textLabel.get("cellLabel", False):
                 # Handled separately because it is long enough that it has to be
                 # on a separate line
-                text += r"\nCell $E_{\mathrm{seed}} = 100$ MeV, $E_{\mathrm{cell}} = 50$ MeV"
+                text += "\n" + r"Cell $E_{\mathrm{seed}} = 100$ MeV, $E_{\mathrm{cell}} = 50$ MeV"
             if self.textLabel.get("clusterLabel", False):
                 propertyLabels.append(r"$E_{cluster} > 300$ MeV")
             if self.textLabel.get("trackLabel", False):

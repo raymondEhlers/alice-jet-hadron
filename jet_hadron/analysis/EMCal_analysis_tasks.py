@@ -130,21 +130,22 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         return options
 
     @staticmethod
-    def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
+    def construct_from_configuration_file(config_filename, selected_analysis_options):
         """ Helper function to construct EMCal corrections plotting objects.
 
         Args:
-            configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+            config_filename (str): Filename of the yaml config.
+            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
+            dict: Analysis dictionary of created objects utilizing the specified iterators as described
+                in ``analysis_config.construct_from_configuration_file(...)``.
         """
-        return analysis_config.constructFromConfigurationFile(
-            taskName = "EMCalCorrections",
-            configFilename = configFilename,
-            selectedAnalysisOptions = selectedAnalysisOptions,
+        return analysis_config.construct_from_configuration_file(
+            task_name = "EMCalCorrections",
+            config_filename = config_filename,
+            selected_analysis_options = selected_analysis_options,
             obj = PlotEMCalCorrections,
-            additionalPossibleIterables = {"taskLabel": EMCalCorrectionsLabels}
+            additional_possible_iterables = {"taskLabel": EMCalCorrectionsLabels}
         )
 
 def etaPhiMatchHistNames(histOptionsName, options):
@@ -226,7 +227,7 @@ def determineAngleLabel(angle):
     returnValue += r"\%s$" % (angle)
     return returnValue
 
-def scaleCPUTime(hist):
+def scaleCPUTime(hist) -> None:
     """ Time is only reported in increments of 10 ms.
 
     So we rebin by those 10 bins (since each bin is 1 ms) and then
@@ -243,7 +244,7 @@ def scaleCPUTime(hist):
     """
     logger.debug("Performing CPU time hist scaling.")
     timeIncrement = 10
-    hist.rebin(timeIncrement)
+    hist.Rebin(timeIncrement)
     hist.Scale(1.0 / timeIncrement)
 
 def etaPhiRemoved(histName, beforeHist, afterHist):
@@ -266,11 +267,12 @@ def runEMCalCorrectionsHistsFromTerminal():
     """ Create and run objects to plot EMCal Corrections hists from the terminal.
 
     Returns:
-        nested tuple: Tuple of nested analysis objects as described in analysis_config.determineSelectedOptionsFromKwargs().
+        dict: Analysis dictionary of created objects utilizing the specified iterators as described
+                in ``analysis_config.construct_from_configuration_file(...)``.
     """
-    (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(description = "EMCal corrections plotting.")
-    analyses = PlotEMCalCorrections.run(configFilename = configFilename,
-                                        selectedAnalysisOptions = terminalArgs)
+    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(description = "EMCal corrections plotting.")
+    analyses = PlotEMCalCorrections.run(config_filename = config_filename,
+                                        selected_analysis_options = terminal_args)
 
     return analyses
 
@@ -286,32 +288,34 @@ class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
+    def construct_from_configuration_file(config_filename, selected_analysis_options):
         """ Helper function to construct EMCal embedding plotting objects.
 
         Args:
-            configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+            config_filename (str): Filename of the yaml config.
+            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
+            dict: Analysis dictionary of created objects utilizing the specified iterators as described
+                in ``analysis_config.construct_from_configuration_file(...)``.
         """
-        return analysis_config.constructFromConfigurationFile(
-            taskName = "EMCalEmbedding",
-            configFilename = configFilename,
-            selectedAnalysisOptions = selectedAnalysisOptions,
+        return analysis_config.construct_from_configuration_file(
+            task_name = "EMCalEmbedding",
+            config_filename = config_filename,
+            selected_analysis_options = selected_analysis_options,
             obj = PlotEMCalEmbedding,
-            additionalPossibleIterables = {}
+            additional_possible_iterables = {}
         )
 
 def runEMCalEmbeddingHistsFromTerminal():
     """ Create and run objects to plot EMCal Embedding hists from the terminal.
 
     Returns:
-        nested tuple: Tuple of nested analysis objects as described in analysis_config.determineSelectedOptionsFromKwargs().
+        dict: Analysis dictionary of created objects utilizing the specified iterators as described
+            in ``analysis_config.construct_from_configuration_file(...)``.
     """
-    (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(taskName = "EMCal embedding plotting.")
-    analyses = PlotEMCalEmbedding.run(configFilename = configFilename,
-                                      selectedAnalysisOptions = terminalArgs)
+    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(task_name = "EMCal embedding plotting.")
+    analyses = PlotEMCalEmbedding.run(config_filename = config_filename,
+                                      selected_analysis_options = terminal_args)
 
     return analyses
 

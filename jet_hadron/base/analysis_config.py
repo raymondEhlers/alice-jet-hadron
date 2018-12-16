@@ -176,8 +176,8 @@ def construct_from_configuration_file(task_name, config_filename, selected_analy
         config_filename (str): Filename of the yaml config.
         selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
         obj (object): The object to be constructed.
-        additional_possible_iterables(collections.OrderedDict): Additional iterators to use when creating
-            the objects, in the form of "name" : list(values). Default: None.
+        additional_possible_iterables(dict): Additional iterators to use when creating the objects,
+            in the form of "name" : list(values). Default: None.
     Returns:
         (object, list, dict): Roughly, (KeyIndex, names, objects). Specifically, the key_index is a
             new dataclass which defines the parameters used to create the object, names is the names

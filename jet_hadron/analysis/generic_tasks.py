@@ -1,24 +1,22 @@
 #!/usr/bin/env python
 
-# Generic task hist plotting code
-#
-# Author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# Date: 01 June 2018
+""" Generic task hist plotting code.
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # Py2/3 compatibility
-from __future__ import print_function
-from builtins import super
 from future.utils import iteritems
 from future.utils import itervalues
 
-import collections
 import copy
+import dataclasses
 import logging
 import os
 import pprint
 
-from pachyderm import utils
 from pachyderm import generic_config
+from pachyderm import histogram
 
 from jet_hadron.base import analysis_config
 from jet_hadron.plot import generic_hist as plot_generic_hist
@@ -42,17 +40,17 @@ class PlotTaskHists(analysis_config.JetHBase):
 
         self.taskLabel = taskLabel
         # These are the objects for each component stored in the YAML config
-        self.componentsFromYAML = self.taskConfig.get("componentsToPlot")
-        if self.componentsFromYAML is None:
+        self.components_from_YAML = self.task_config.get("componentsToPlot")
+        if self.components_from_YAML is None:
             raise KeyError("Were \"componentsToPlot\" defined in the task configuration?")
         # Contain the actual components, which consist of lists of hist configs
-        self.components = collections.OrderedDict()
+        self.components = {}
         # Store the input histograms
         self.hists = {}
 
     def getHistsFromInputFile(self):
         """ Retrieve hists corresponding to the task name. They are stored in the object. """
-        self.hists = utils.getHistogramsInList(self.inputFilename, self.inputListName)
+        self.hists = histogram.get_histograms_in_list(self.inputFilename, self.inputListName)
 
         # Don't process this line unless we are debugging because pprint may be slow
         # see: https://stackoverflow.com/a/11093247
@@ -228,7 +226,7 @@ class PlotTaskHists(analysis_config.JetHBase):
         # componentNameInFile is the name of the componentHistsInFile to which we want to compare
         for componentNameInFile, componentHistsInFile in iteritems(self.hists):
             # componentHistsOptions are the config options for a component
-            for componentName, componentHistsOptions in iteritems(self.componentsFromYAML):
+            for componentName, componentHistsOptions in iteritems(self.components_from_YAML):
                 if componentName in componentNameInFile:
                     # We've now matched the component name and and can move on to dealing with
                     # the individual hists
@@ -266,55 +264,58 @@ class PlotTaskHists(analysis_config.JetHBase):
                 histObj.plot(self, outputName = os.path.join(componentName, histName))
 
     @classmethod
-    def run(cls, configFilename, selectedAnalysisOptions, runPlotting = True):
+    def run(cls, config_filename, selected_analysis_options, run_plotting = True):
         """ Main driver function to create, process, and plot task hists.
 
         Args:
-            configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
-            runPlotting (bool): If true, run plotting after the processing.
+            config_filename (str): Filename of the yaml config.
+            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+            run_plotting (bool): If true, run plotting after the processing.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
+            analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
+                as described in ``analysis_config.construct_from_configuration_file(...)``.
         """
         # Create logger
         logging.basicConfig(level=logging.DEBUG)
 
         # Construct tasks
-        (selectedOptionNames, tasks) = cls.constructFromConfigurationFile(
-            configFilename = configFilename,
-            selectedAnalysisOptions = selectedAnalysisOptions
+        (_, selected_option_names, tasks) = cls.construct_from_configuration_file(
+            config_filename = config_filename,
+            selected_analysis_options = selected_analysis_options
         )
 
         # Run the analysis
         logger.info("About to process")
-        for keys, task in generic_config.unrollNestedDict(tasks):
+        for keys, task in generic_config.iterate_with_selected_objects(tasks):
             # Print the task selected analysis options
-            opts = ["{name}: \"{value}\"".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
-            logger.info("Processing plotting task {} with options:\n\t{}".format(task.taskName, "\n\t".join(opts)))
+            opts = [f"{name}: \"{value.str()}\""for name, value in dataclasses.asdict(keys).items()]
+            options = "\n\t".join(opts)
+            logger.info(f"Processing plotting task {task.task_name} with options:\n\t{options}")
 
             # Setup and run the processing
             task.getHistsFromInputFile()
             task.histSpecificProcessing()
             task.matchHistsToHistConfigurations()
             # Plot
-            if runPlotting:
+            if run_plotting:
                 task.plotHistograms()
 
         return tasks
 
     @staticmethod
-    def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
+    def construct_from_configuration_file(config_filename, selected_analysis_options):
         """ Helper function to construct plotting objects.
 
         Must be implemented by the derived class. Usually, this is a simple wrapper around
-        analysis_config.constructFromConfigurationFile(...) that is filled in with options
+        ``analysis_config.construct_from_configuration_file(...)`` that is filled in with options
         specific to the particular task.
 
         Args:
-            configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+            config_filename (str): Filename of the yaml config.
+            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
         Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
+            analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
+                as described in ``analysis_config.construct_from_configuration_file(...)``.
         """
-        raise NotImplementedError("Need to implement the constructFromConfigurationFile.")
+        raise NotImplementedError("Need to implement the construct_from_configuration_file.")
 
