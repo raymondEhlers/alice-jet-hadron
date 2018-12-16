@@ -16,7 +16,8 @@ import numpy as np
 import os
 import re
 
-from jet_hadron.base import utils
+from pachyderm import histogram
+from pachyderm import utils
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -355,8 +356,8 @@ class HistArray(YAMLStorableObject):
         Returns:
             HistArray: HistArray created from the passed TH1.
         """
-        arr = utils.getArrayFromHist(hist)
-        return cls(_binCenters = arr["binCenters"], _array = arr["y"], _errors = arr["errors"])
+        h = histogram.Histogram1D.from_existing_hist(hist)
+        return cls(_binCenters = h.x, _array = h.y, _errors = h.errors)
 
     @property
     def array(self):

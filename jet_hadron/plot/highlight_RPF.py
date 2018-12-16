@@ -33,7 +33,8 @@ import rootpy
 import rootpy.io
 import rootpy.ROOT as ROOT
 
-from jet_hadron.base import utils
+from pachyderm import histogram
+
 from jet_hadron.plot import base as plotBase
 
 # Tell ROOT to ignore command line options so args are passed to python
@@ -431,7 +432,7 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
         #highlightArgs = {"useColorScreen" : True}
         highlightArgs = {}
         # Call plotting functions
-        (fig, ax) = plotRPFFitRegions(utils.getArrayFromHist2D(hist),
+        (fig, ax) = plotRPFFitRegions(histogram.get_array_from_hist2D(hist),
                                       highlightRegions = defineHighlightRegions(),
                                       colormap = "ROOT_kBird",
                                       **highlightArgs)

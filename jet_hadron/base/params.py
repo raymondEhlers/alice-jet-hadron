@@ -16,7 +16,7 @@ import math
 import numbers
 import re
 
-from jet_hadron.base import generic_class
+from pachyderm import generic_class
 
 logger = logging.getLogger(__name__)
 
