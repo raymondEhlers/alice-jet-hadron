@@ -1,0 +1,60 @@
+# xenial is needed for python 3.7
+dist: xenial
+language: python
+sudo: required
+_testScript: &testScript
+    language: python
+    # Use cache with pip to save time.
+    cache: pip
+    install:
+        - pip install --upgrade -e .[tests,dev,docs]
+    script:
+        # Check code quality
+        - flake8 .
+        # Static type checking
+        - mypy --ignore-missing-imports jet_hadron
+        # Tests rely on ROOT, so we can only run in a docker container.
+        # Check that the docs build successfully
+        - pushd docs && make html && popd
+        # Skip sending the coverage here because it will be rather low due to skipping the ROOT tests.
+        # We will instead send that coverage report.
+jobs:
+    include:
+        # Tests which require ROOT, coverage
+        - stage: test
+          python: 3.6
+          before_script:
+              # Build the docker image
+              - docker build -t rehlers/alice-jet-hadron .
+              # So we can see that the have the expected images
+              - docker images
+          script:
+              # Other tests (flake8, mpypy, etc) are covered by the test stage, so we just want to test and
+              # uplaod coverage here.
+              # Setup coverage
+              - ci_env=`bash <(curl -s https://codecov.io/env)`
+              # Run tests and upload coverage
+              # jet_hadron was installed when the image was created above, so we don't need to install
+              # it again.
+              - docker run $ci_env rehlers/alice-jet-hadron /bin/bash -c "pytest -l -vv --cov=jet_hadron --cov-branch --durations=5 tests/ && bash <(curl -s https://codecov.io/bash)"
+              # We could now push the image to docker hub. However, we don't really need it for anything, so we skip this step for now.
+        # Standard tests without ROOT
+        # We give these the same name so the tests will run in parallel
+        - stage: test
+          <<: *testScript
+          python: 3.6
+        - stage: test
+          <<: *testScript
+          python: 3.7
+        - stage: deploy
+          python: 3.7
+          # Always need a script to make Travis happy, so we effectively use a no-op.
+          script: true
+          deploy:
+              provider: pypi
+              user: rehlers
+              password:
+                  secure: LVc+M8EHuxZ0lGLrk3KIk25GoArbA7YqMCf1GmpiCU435UKstSCzTZkyCkT0V+DmvpXZxatFDBr+/D+NPdUejaD7h4ZIIduaQQ8+VvaHk9bohZ7y0klU6IPz1IIMgYDN+Bx3kbCerN0QP4CiTA8vfX6BroVfBicu8akG1PjMXdYU/7xj8x4dd3C51p04RsVXOJpcJv7z8ram0qnUoBKcVEQvMdMqDIhLmQUXx8mDLZGBcKov+pNrL6GUTdMEJmRrtpq/0KpwnMJUYmIBebNjyuDzZAay06/oCwPkHQdyuIAGXnLQDxU+cdqR/e0ovGer40l+Pj5cjKAfmeMonWRhE49SnoirZ2D5soN7ADYXRtk5gD3ktFN9pq8yCondpgGwl4bojxcZh+SoBD52JLIfQt2Spj1wThsmh+cLLTVQIHGZWkuEax32M7MAEXR13NM+IDLGKlDksNhvKAtSwUwt2UswYV38S9o784mWr4/eFNluio7W0GjiA0c3rK3mKABXKJ7lz65kFDOthHujnf9opXQIF+j0hLO/SX/7dcSeqA/WcCACGkNhkB0wV0lIn21mylS0nfHdys19mlP1RJGElBgxKw2FZ0IN3lXiEX0p7nnLeWsXM+F+7WXUTJ7yH1w/z+0M7eRmBuO/4KZtn/i1h32c3tpRx6B98IwfgARU2WI=
+              distributions: sdist bdist_wheel
+              on:
+                  tags: true
