@@ -5,10 +5,10 @@
 .. codeauthor: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-import aenum
 import argparse
 import collections
 import ctypes
+import enum
 import IPython
 import logging
 import numpy as np
@@ -41,7 +41,7 @@ ROOT.gStyle.SetOptStat(False)
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class JetResponseMakerMatchingSparse(aenum.Enum):
+class JetResponseMakerMatchingSparse(enum.Enum):
     """ Defines the axes in the AliJetResponseMaker fMatching THnSparse. """
     kDetLevelJetPt = 0
     kPartLevelJetPt = 1
@@ -51,7 +51,7 @@ class JetResponseMakerMatchingSparse(aenum.Enum):
     kDetLevelEventPlaneAngle = 9
     kPartLevelEventPlaneAngle = 10
 
-class JetResponseMakerJetsSparse(aenum.Enum):
+class JetResponseMakerJetsSparse(enum.Enum):
     """ Defines the axes in the AliJetResponseMaker fJets THnSparse """
     kPhi = 0
     kEta = 1
@@ -62,7 +62,7 @@ class JetResponseMakerJetsSparse(aenum.Enum):
     kLeadingParticlePP = 4
     kLeadingParticlePbPb = 5
 
-class EventActivity(aenum.Enum):
+class EventActivity(enum.Enum):
     kUndefined = -1
     kCentral = 0
     kSemiCentral = 2
@@ -85,7 +85,7 @@ class EventActivity(aenum.Enum):
         tempList = re.findall('[A-Z][^A-Z]*', tempStr)
         return "-".join(tempList)
 
-class RMNormalizationType(aenum.Enum):
+class RMNormalizationType(enum.Enum):
     """ Selects the type of normalization to apply to the RM """
     kNone = 0
     kNormalizeEachDetectorBin = 1

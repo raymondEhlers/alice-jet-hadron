@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 
-# EMCal corrections and embedding plotting code
-#
-# Author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# Date: 24 Mar 2018
+""" EMCal corrections and embedding plotting code
+
+.. codeauthor: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 # This must be at the start
-from __future__ import print_function
-from builtins import super
 from future.utils import iteritems
 
+import enum
+import logging
 import os
 import sys
-import aenum
-import logging
-
 import warnings
 
 from jet_hadron.base import analysis_config
@@ -34,7 +31,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
 thisModule = sys.modules[__name__]
 
-class EMCalCorrectionsLabels(aenum.Enum):
+class EMCalCorrectionsLabels(enum.Enum):
     """ Label of possible EMCal correction tasks.
 
     The standard case is not labeled, but this label is important for when multiple

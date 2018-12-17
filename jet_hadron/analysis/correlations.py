@@ -9,10 +9,10 @@
 from future.utils import iteritems
 from future.utils import itervalues
 
-import aenum
 import collections
 import copy
 import ctypes
+import enum
 #import IPython
 import logging
 import os
@@ -61,7 +61,7 @@ logging.getLogger("matplotlib").setLevel(logging.INFO)
 ROOT.gROOT.SetBatch(True)
 
 # TODO: Update these enums to lower case names and remove the "k"!!
-class JetHCorrelationSparse(aenum.Enum):
+class JetHCorrelationSparse(enum.Enum):
     """ Defines the axes in the Jet-Hadron THn Sparses. """
     kCentrality = 0
     kJetPt = 1
@@ -72,13 +72,13 @@ class JetHCorrelationSparse(aenum.Enum):
     kJetHadronDeltaR = 6
     kEventPlaneAngle = 7
 
-class JetHTriggerSparse(aenum.Enum):
+class JetHTriggerSparse(enum.Enum):
     """ Define the axes in the Jet-Hadron Trigger Sparse. """
     kCentrality = 0
     kJetPt = 1
     kEventPlaneAngle = 2
 
-class JetHCorrelationAxis(aenum.Enum):
+class JetHCorrelationAxis(enum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
     kDeltaPhi = projectors.TH1AxisType.xAxis.value
     kDeltaEta = projectors.TH1AxisType.yAxis.value

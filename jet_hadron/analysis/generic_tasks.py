@@ -32,7 +32,7 @@ class PlotTaskHists(analysis_config.JetHBase):
     Hists are selected and configured by a configuration file.
 
     Args:
-        taskLabel (aenum.Enum): Enum which labels the task and can be converted into a string.
+        taskLabel (enum.Enum): Enum which labels the task and can be converted into a string.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """

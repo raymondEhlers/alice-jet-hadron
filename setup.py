@@ -74,7 +74,6 @@ setup(
     install_requires=[
         "future",
         "ruamel.yaml",
-        "aenum",
         "IPython",
         "scipy",
         "numpy",
