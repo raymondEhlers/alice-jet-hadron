@@ -216,22 +216,22 @@ def testCollisionSystem(loggingMixin, system, expected):
     (params.eventActivity["inclusive"],
         {"str": "inclusive",
             "displayStr": "",
-            "range": params.selectedRange(min = -1, max = -1)}),
+            "range": params.SelectedRange(min = -1, max = -1)}),
     (params.eventActivity["central"],
         {"str": "central",
             "displayStr": r",\:0\mbox{-}10\mbox{\%}",
-            "range": params.selectedRange(min = 0, max = 10)}),
+            "range": params.SelectedRange(min = 0, max = 10)}),
     (params.eventActivity["semiCentral"],
         {"str": "semiCentral",
             "displayStr": r",\:30\mbox{-}50\mbox{\%}",
-            "range": params.selectedRange(min = 30, max = 50)})
+            "range": params.SelectedRange(min = 30, max = 50)})
 ], ids = ["inclusive", "central", "semiCentral"])
 def testEventActivity(loggingMixin, activity, expected):
     """ Test event activity values. """
     assert str(activity) == expected["str"]
     assert activity.str() == expected["str"]
     assert activity.displayStr() == expected["displayStr"]
-    assert activity.range() == expected["range"]
+    assert activity.value_range == expected["range"]
 
 @pytest.mark.parametrize("bias, expected", [
     ("NA", {"str": "NA"}),
@@ -285,12 +285,12 @@ def testEventPlaneAngleStrings(loggingMixin, epAngle, expected):
         {"str": "all",
             "filenameStr": "qVectorAll",
             "displayStr": "All",
-            "range": params.selectedRange(min = 0, max = 100)}),
+            "range": params.SelectedRange(min = 0, max = 100)}),
     ("bottom10",
         {"str": "bottom10",
             "filenameStr": "qVectorBottom10",
             "displayStr": "Bottom 10%",
-            "range": params.selectedRange(min = 0, max = 10)})
+            "range": params.SelectedRange(min = 0, max = 10)})
 ], ids = ["qVectorAll", "qVectorBottom10"])
 def testQVectorStrings(loggingMixin, qVector, expected):
     """ Test q vector strings. """
@@ -299,5 +299,5 @@ def testQVectorStrings(loggingMixin, qVector, expected):
     assert qVector.str() == expected["str"]
     assert qVector.filenameStr() == expected["filenameStr"]
     assert qVector.displayStr() == expected["displayStr"]
-    assert qVector.range() == expected["range"]
+    assert qVector.value_range == expected["range"]
 

@@ -1395,7 +1395,7 @@ class JetHAnalysis(analysis_config.JetHBase):
 
         Args:
             configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+            selectedAnalysisOptions (params.SelectedAnalysisOptions): Selected analysis options.
         Returns:
             nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
         """

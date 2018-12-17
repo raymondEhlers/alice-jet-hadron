@@ -135,7 +135,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
 
         Args:
             config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         Returns:
             dict: Analysis dictionary of created objects utilizing the specified iterators as described
                 in ``analysis_config.construct_from_configuration_file(...)``.
@@ -293,7 +293,7 @@ class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
 
         Args:
             config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         Returns:
             dict: Analysis dictionary of created objects utilizing the specified iterators as described
                 in ``analysis_config.construct_from_configuration_file(...)``.

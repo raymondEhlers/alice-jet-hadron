@@ -9,7 +9,7 @@
 from builtins import super
 from future.utils import iteritems
 
-import aenum
+import enum
 import copy
 import logging
 import numpy as np
@@ -22,7 +22,7 @@ from pachyderm import utils
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class jetHCorrelationType(aenum.Enum):
+class jetHCorrelationType(enum.Enum):
     """ 1D correlation projection type """
     fullRange = 0
     # dPhi specialized

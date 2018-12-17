@@ -25,9 +25,9 @@ def determineLeadingHadronBias(config, selectedAnalysisOptions):
     Args:
         config (dict-like object): Contains the analysis configuration. Note that it must already be
             fully configured and overridden.
-        selectedAnalysisOptions (params.selectedAnalysisOptions): Selected analysis options.
+        selectedAnalysisOptions (params.SelectedAnalysisOptions): Selected analysis options.
     Returns:
-        params.selectedAnalysisOptions: Selected analysis options with the determined leading hadron
+        params.SelectedAnalysisOptions: Selected analysis options with the determined leading hadron
             bias object.
     """
     override_options = generic_config.determineOverrideOptions(
@@ -38,9 +38,9 @@ def determineLeadingHadronBias(config, selectedAnalysisOptions):
     leadingHadronBiasValue = override_options["value"]
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
-    returnOptions = selectedAnalysisOptions._asdict()
+    returnOptions = selectedAnalysisOptions.asdict()
     returnOptions["leadingHadronBias"] = params.leadingHadronBias(type = selectedAnalysisOptions.leadingHadronBias, value = leadingHadronBiasValue)
-    return params.selectedAnalysisOptions(**returnOptions)
+    return params.SelectedAnalysisOptions(**returnOptions)
 
 def overrideOptions(config, selectedOptions, configContainingOverride = None):
     """ Override options for the jet-hadron analysis.
@@ -113,7 +113,7 @@ def determine_selected_options_from_kwargs(args = None, description = "Jet-hadro
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
-    selected_analysis_options = params.selectedAnalysisOptions(collisionEnergy = args.energy,
+    selected_analysis_options = params.SelectedAnalysisOptions(collisionEnergy = args.energy,
                                                                collisionSystem = args.collisionSystem,
                                                                eventActivity = args.eventActivity,
                                                                leadingHadronBias = args.biasType)
@@ -123,13 +123,14 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
 
     Note:
-        If the selections are not specified, it will define to 2.76 TeV central PbPb collisions with a track bias!
+        If the selections are not specified, it will define to 2.76 TeV central PbPb collisions with a
+        track bias!
 
     Args:
-        selectedArgs (params.selectedAnalysisOptions): Selected analysis options from args or otherwise.
-        validateExtraArgsFunc (func): Function to validate additional args that were added using addOptionsFunction().
-            It should be a closure with the args returned from initial parsing and return a dict containing
-            the validated args.
+        selectedArgs (params.SelectedAnalysisOptions): Selected analysis options from args or otherwise.
+        validateExtraArgsFunc (func): Function to validate additional args that were added using
+            ``addOptionsFunction()``. It should be a closure with the args returned from initial parsing
+            and return a dict containing the validated args.
     Returns:
         tuple: (validatedSelectedOptions, additionalValidatedArgs)
     """
@@ -162,7 +163,7 @@ def validateArguments(selectedArgs, validateExtraArgsFunc = None):
     if validateExtraArgsFunc:
         additionalValidatedArgs.update(validateExtraArgsFunc())
 
-    selectedAnalysisOptions = params.selectedAnalysisOptions(collisionEnergy = energy,
+    selectedAnalysisOptions = params.SelectedAnalysisOptions(collisionEnergy = energy,
                                                              collisionSystem = collisionSystem,
                                                              eventActivity = eventActivity,
                                                              leadingHadronBias = leadingHadronBiasType)
@@ -174,7 +175,7 @@ def construct_from_configuration_file(task_name, config_filename, selected_analy
     Args:
         task_name (str): Name of the analysis task.
         config_filename (str): Filename of the yaml config.
-        selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+        selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         obj (object): The object to be constructed.
         additional_possible_iterables(dict): Additional iterators to use when creating the objects,
             in the form of "name" : list(values). Default: None.
@@ -217,7 +218,7 @@ def construct_from_configuration_file(task_name, config_filename, selected_analy
                                                                             possibleIterables = possible_iterables)
 
     # Determine formatting options
-    logger.debug(f"selectedAnalysisOptions: {selected_analysis_options._asdict()}")
+    logger.debug(f"selected_analysis_options: {selected_analysis_options.asdict()}")
     # TODO: Do we want to modify str() to something like recreationString() or something in conjunction
     #       with renaming filenameStr()?
     formatting_options = {}
@@ -235,11 +236,9 @@ def construct_from_configuration_file(task_name, config_filename, selected_analy
     # NOTE: We don't want to update the formatting_options and then use that to update the args
     #       because otherwise we will have strings for the selected analysis options instead
     #       of the actual enumeration values.
-    # NOTE: `_asdict()` is a public method - it has an underscore to avoid namespace conflicts.
-    #       See: https://stackoverflow.com/a/26180604
-    args.update(selected_analysis_options._asdict())
+    args.update(selected_analysis_options.asdict())
     # We want to convert the enum values into strs for formatting. Performed with a dict comprehension.
-    formatting_options.update({k: v.str() for k, v in iteritems(selected_analysis_options._asdict())})
+    formatting_options.update({k: v.str() for k, v in iteritems(selected_analysis_options.asdict())})
 
     # Iterate over the iterables defined above to create the objects.
     (KeyIndex, names, objects) = generic_config.create_objects_from_iterables(
@@ -287,7 +286,7 @@ class JetHBase(generic_class.EqualityMixin):
         # Handle leading hadron bias depending on the type.
         if isinstance(leadingHadronBias, params.leadingHadronBiasType):
             leadingHadronBias = determineLeadingHadronBias(config = self.config,
-                                                           selectedAnalysisOptions = params.selectedAnalysisOptions(
+                                                           selectedAnalysisOptions = params.SelectedAnalysisOptions(
                                                                collisionEnergy = self.collisionEnergy,
                                                                collisionSystem = self.collisionSystem,
                                                                eventActivity = self.eventActivity,

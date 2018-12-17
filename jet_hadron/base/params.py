@@ -9,12 +9,14 @@ Also contains methods to access that information.
 
 from builtins import range
 
-import aenum
-import collections
+import dataclasses
+from dataclasses import dataclass
+import enum
 import logging
 import math
 import numbers
 import re
+from typing import Union
 
 from pachyderm import generic_class
 
@@ -103,7 +105,7 @@ def uppercaseFirstLetter(s):
 #########
 # Parameter information (access and display)
 #########
-class aliceLabel(aenum.Enum):
+class aliceLabel(enum.Enum):
     """ ALICE label types. """
     workInProgress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -230,18 +232,15 @@ def jetPropertiesLabel(jetPtBin):
 #########################
 ## Helpers and containers
 #########################
-# NOTE: The leadingHadronBias field is often the leadingHadronBiasType enum, but it can also
-#       be the `leadingHadronBias` class
-selectedAnalysisOptions = collections.namedtuple("selectedAnalysisOptions", ["collisionEnergy",
-                                                                             "collisionSystem",
-                                                                             "eventActivity",
-                                                                             "leadingHadronBias"])
-selectedRange = collections.namedtuple("selectedRange", ["min", "max"])
+@dataclass
+class SelectedRange:
+    min: float
+    max: float
 
 #########
 # Classes
 #########
-class collisionEnergy(aenum.Enum):
+class collisionEnergy(enum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
     fiveZeroTwo = 5.02
@@ -261,7 +260,7 @@ class collisionEnergy(aenum.Enum):
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"
 
-class collisionSystem(aenum.Enum):
+class collisionSystem(enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
@@ -283,22 +282,23 @@ class collisionSystem(aenum.Enum):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return self.value
 
-class eventActivity(aenum.Enum):
+class eventActivity(enum.Enum):
     """ Define the event activity.
 
     Object value are of the form (index, (centLow, centHigh)), where index is the expected
     enumeration index, and cent{low,high} define the low and high values of the centrality.
     -1 is defined as the full range!
     """
-    inclusive = selectedRange(min = -1, max = -1)
-    central = selectedRange(min = 0, max = 10)
-    semiCentral = selectedRange(min = 30, max = 50)
+    inclusive = SelectedRange(min = -1, max = -1)
+    central = SelectedRange(min = 0, max = 10)
+    semiCentral = SelectedRange(min = 30, max = 50)
 
-    def range(self):
+    @property
+    def value_range(self):
         """ Return the event activity range.
 
         Returns:
-            selectedRange : namedtuple containing the mix and max of the range.
+            SelectedRange : namedtuple containing the mix and max of the range.
         """
         return self.value
 
@@ -315,11 +315,11 @@ class eventActivity(aenum.Enum):
         retVal = ""
         # For inclusive, we want to return an empty string.
         if self != eventActivity.inclusive:
-            logger.debug("asdict: {}".format(self.range()._asdict()))
-            retVal = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % self.range()._asdict()
+            logger.debug(f"asdict: {dataclasses.asdict(self.value_range)}")
+            retVal = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
         return retVal
 
-class leadingHadronBiasType(aenum.Enum):
+class leadingHadronBiasType(enum.Enum):
     """ Leading hadron bias type """
     NA = -1
     track = 0
@@ -334,16 +334,10 @@ class leadingHadronBiasType(aenum.Enum):
         """ Helper function to return str by calling explicitly """
         return self.__str__()
 
-# For use with overriding configuration values
-setOfPossibleOptions = selectedAnalysisOptions(collisionEnergy,
-                                               collisionSystem,
-                                               eventActivity,
-                                               leadingHadronBiasType)
-
 ########################
 # Final anaylsis options
 ########################
-# These classes are used for final analysis # specification, building
+# These classes are used for final analysis specification, building
 # on the analysis specification objects specified above.
 ########################
 class leadingHadronBias(generic_class.EqualityMixin):
@@ -381,6 +375,25 @@ class leadingHadronBias(generic_class.EqualityMixin):
         else:
             return "{type}".format(type = self.type, value = self.value)
 
+@dataclass
+class SelectedAnalysisOptions:
+    collisionEnergy: collisionEnergy
+    collisionSystem: collisionSystem
+    eventActivity: eventActivity
+    leadingHadronBias: Union[leadingHadronBias, leadingHadronBiasType]
+
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    def __iter__(self):
+        return iter(dataclasses.astuple(self))
+
+# For use with overriding configuration values
+setOfPossibleOptions = SelectedAnalysisOptions(collisionEnergy,
+                                               collisionSystem,
+                                               eventActivity,
+                                               leadingHadronBiasType)
+
 ##############################
 # Additional selection options
 ##############################
@@ -389,7 +402,7 @@ class leadingHadronBias(generic_class.EqualityMixin):
 # Instead, they are stored in a particular analysis object and used as
 # analysis options.
 ##############################
-class eventPlaneAngle(aenum.Enum):
+class eventPlaneAngle(enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1
@@ -417,17 +430,18 @@ class eventPlaneAngle(aenum.Enum):
         tempList = re.findall("[a-zA-Z][^A-Z]*", self.str())
         return "-".join(tempList).capitalize()
 
-class qVector(aenum.Enum):
+class qVector(enum.Enum):
     """ Selection based on the Q vector. """
-    all = selectedRange(min = 0, max = 100)
-    bottom10 = selectedRange(min = 0, max = 10)
-    top10 = selectedRange(min = 90, max = 100)
+    all = SelectedRange(min = 0, max = 100)
+    bottom10 = SelectedRange(min = 0, max = 10)
+    top10 = SelectedRange(min = 90, max = 100)
 
-    def range(self):
+    @property
+    def value_range(self):
         """ Return the q vector range.
 
         Returns:
-            selectedRange : namedtuple containing the mix and max of the range.
+            SelectedRange : namedtuple containing the mix and max of the range.
         """
         return self.value
 

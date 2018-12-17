@@ -58,13 +58,13 @@ def testDetermineLeadingHadronBias(loggingMixin, biasType, eventActivity, expect
     if biasType:
         # Both options will lead here. Doing this with "track" doesn't change the values, but
         # also doesn't hurt anything, so it's fine.
-        kwargs = selectedAnalysisOptions._asdict()
+        kwargs = selectedAnalysisOptions.asdict()
         kwargs["leadingHadronBias"] = params.leadingHadronBiasType[biasType]
-        selectedAnalysisOptions = params.selectedAnalysisOptions(**kwargs)
+        selectedAnalysisOptions = params.SelectedAnalysisOptions(**kwargs)
     if eventActivity:
-        kwargs = selectedAnalysisOptions._asdict()
+        kwargs = selectedAnalysisOptions.asdict()
         kwargs["eventActivity"] = params.eventActivity[eventActivity]
-        selectedAnalysisOptions = params.selectedAnalysisOptions(**kwargs)
+        selectedAnalysisOptions = params.SelectedAnalysisOptions(**kwargs)
 
     returnedOptions = analysis_config.determineLeadingHadronBias(config = config, selectedAnalysisOptions = selectedAnalysisOptions)
     # Check that we still got these right.
@@ -142,7 +142,7 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
 
     Args:
         config (CommentedMap): dict-like object containing the configuration to be overridden.
-        selectedOptions (params.selectedAnalysisOptions): The options selected for this analysis, in
+        selectedOptions (params.SelectedAnalysisOptions): The options selected for this analysis, in
             the order defined used with analysis_config.overrideOptions() and in the configuration file.
         configContainingOverride (CommentedMap): dict-like object containing the override options.
     Returns:
@@ -150,7 +150,7 @@ def overrideOptionsHelper(config, selectedOptions = None, configContainingOverri
                     options used with the config)
     """
     if selectedOptions is None:
-        selectedOptions = params.selectedAnalysisOptions(collisionEnergy = params.collisionEnergy.twoSevenSix,
+        selectedOptions = params.SelectedAnalysisOptions(collisionEnergy = params.collisionEnergy.twoSevenSix,
                                                          collisionSystem = params.collisionSystem.PbPb,
                                                          eventActivity = params.eventActivity.central,
                                                          leadingHadronBias = params.leadingHadronBiasType.track)
@@ -259,9 +259,9 @@ def testValidateArguments(loggingMixin, args, expected):
                     params.eventActivity.central,
                     params.leadingHadronBiasType.track)
 
-    args = params.selectedAnalysisOptions(*args)
+    args = params.SelectedAnalysisOptions(*args)
     args, _ = analysis_config.validateArguments(args)
-    expected = params.selectedAnalysisOptions(*expected)
+    expected = params.SelectedAnalysisOptions(*expected)
     assert args.collisionEnergy == expected.collisionEnergy
     assert args.collisionSystem == expected.collisionSystem
     assert args.eventActivity == expected.eventActivity
@@ -279,7 +279,7 @@ def check_jetH_base_object(obj, config, selected_analysis_options, event_plane_a
     Args:
         obj (analysis_config.JetHBase): JetHBase object to compare values against.
         config (CommentedMap): dict-like configuration file.
-        selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+        selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         event_plane_angle (params.eventPlaneAngle): Selected event plane angle.
         kwargs (dict): All other values to compare against for which the default value defined
             in this function is not sufficient.
@@ -296,7 +296,7 @@ def check_jetH_base_object(obj, config, selected_analysis_options, event_plane_a
         "eventPlaneAngle": event_plane_angle
     }
     # Add these afterwards so we don't have to do each value by hand.
-    default_values.update(selected_analysis_options._asdict())
+    default_values.update(selected_analysis_options.asdict())
     # NOTE: All other values will be taken from the config when constructing the object.
     for k, v in iteritems(default_values):
         if k not in kwargs:
@@ -407,9 +407,9 @@ def testJetHBaseObjectConstruction(loggingMixin, leadingHadronBias, objectConfig
 
     # We need values to compare against. However, namedtuples are immutable,
     # so we have to create a new one with the proper value.
-    temp_selected_options = selected_analysis_options._asdict()
+    temp_selected_options = selected_analysis_options.asdict()
     temp_selected_options["leadingHadronBias"] = leadingHadronBias
-    selected_analysis_options = params.selectedAnalysisOptions(**temp_selected_options)
+    selected_analysis_options = params.SelectedAnalysisOptions(**temp_selected_options)
     # Only need for the case of leadingHadronBiasType!
     if isinstance(leadingHadronBias, params.leadingHadronBiasType):
         selected_analysis_options = analysis_config.determineLeadingHadronBias(config, selected_analysis_options)

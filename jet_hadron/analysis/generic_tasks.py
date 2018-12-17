@@ -301,7 +301,7 @@ class PlotTaskHists(analysis_config.JetHBase):
 
         Args:
             config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
             run_plotting (bool): If true, run plotting after the processing.
         Returns:
             analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
@@ -344,7 +344,7 @@ class PlotTaskHists(analysis_config.JetHBase):
 
         Args:
             config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.selectedAnalysisOptions): Selected analysis options.
+            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         Returns:
             analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
                 as described in ``analysis_config.construct_from_configuration_file(...)``.
