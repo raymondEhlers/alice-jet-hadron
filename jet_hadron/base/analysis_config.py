@@ -11,7 +11,7 @@ from future.utils import iteritems
 import argparse
 import logging
 import os
-from typing import Any, Dict, Iterable, Optional, Mapping, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Mapping, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -44,7 +44,7 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
     return_options["leading_hadron_bias"] = params.LeadingHadronBias(type = selected_analysis_options.leading_hadron_bias, value = leading_hadron_bias_value)
     return params.SelectedAnalysisOptions(**return_options)
 
-def override_options(config: generic_config.DictLike, selected_options: tuple, config_containing_override: generic_config.DictLike = None) -> generic_config.DictLike:
+def override_options(config: generic_config.DictLike, selected_options: params.SelectedAnalysisOptions, config_containing_override: generic_config.DictLike = None) -> generic_config.DictLike:
     """ Override options for the jet-hadron analysis.
 
     Selected options include: (energy, collision_system, event_activity, leading_hadron_bias). Note
@@ -53,7 +53,7 @@ def override_options(config: generic_config.DictLike, selected_options: tuple, c
 
     Args:
         config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
-        selected_options (tuple): The selected analysis options. They will be checked in the order with which
+        selected_options: The selected analysis options. They will be checked in the order with which
             they are passed, so make certain that it matches the order in the configuration file!
         config_containing_override (CommentedMap): The dict-like config containing the override options in
             a map called "override". If it is not specified, it will look for it in the main config.

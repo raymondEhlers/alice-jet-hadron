@@ -16,7 +16,7 @@ import logging
 import numbers
 import numpy as np
 import re
-from typing import Dict, Iterable, Optional, Sequence, Tuple, Type, Union
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from pachyderm import generic_class
 
@@ -372,10 +372,10 @@ class LeadingHadronBias(generic_class.EqualityMixin):
 
 @dataclass
 class SelectedAnalysisOptions:
-    collision_energy: Type[CollisionEnergy]
-    collision_system: Type[CollisionSystem]
-    event_activity: Type[EventActivity]
-    leading_hadron_bias: Union[Type[LeadingHadronBias], Type[LeadingHadronBiasType]]
+    collision_energy: CollisionEnergy
+    collision_system: CollisionSystem
+    event_activity: EventActivity
+    leading_hadron_bias: Union[LeadingHadronBias, LeadingHadronBiasType]
 
     def asdict(self):
         return dataclasses.asdict(self)
@@ -384,7 +384,7 @@ class SelectedAnalysisOptions:
         return iter(dataclasses.astuple(self))
 
 # For use with overriding configuration values
-SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,
+SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
                                                CollisionSystem,
                                                EventActivity,
                                                LeadingHadronBiasType)
