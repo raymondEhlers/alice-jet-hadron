@@ -32,20 +32,19 @@ np.random.seed(1234)
         {"str": "nearSide",
             "displayStr": "Near Side"})
 ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
-def testCorrelationTypes(loggingMixin, corrType, expected):
+def testCorrelationTypes(logging_mixin, corrType, expected):
     """ Test jet-hadron correlation types. """
-    obj = analysis_objects.jetHCorrelationType[corrType]
+    obj = analysis_objects.JetHCorrelationType[corrType]
 
     assert str(obj) == expected["str"]
-    assert obj.str() == expected["str"]
     assert obj.displayStr() == expected["displayStr"]
 
-def testCorrelationObservable1D(loggingMixin, mocker):
+def testCorrelationObservable1D(logging_mixin, mocker):
     """ Tests for CorrelationObservable1D. Implicitly tests Observable and CorrelationObservable. """
     # Arguments are not selected for any particular reason
     values = {"hist": mocker.MagicMock(), "jetPtBin": 2, "trackPtBin": 3,
               "axis": mocker.MagicMock(),
-              "correlationType": analysis_objects.jetHCorrelationType.signalDominated}
+              "correlationType": analysis_objects.JetHCorrelationType.signalDominated}
 
     obj = analysis_objects.CorrelationObservable1D(**values)
     assert obj.hist == values["hist"]
@@ -54,7 +53,7 @@ def testCorrelationObservable1D(loggingMixin, mocker):
     assert obj.axis == values["axis"]
     assert obj.correlationType == values["correlationType"]
 
-def testExtractedObservable(loggingMixin):
+def testExtractedObservable(logging_mixin):
     """ Tests for ExtractedObservable. """
     # Arguments are not selected for any particular reason
     values = {"jetPtBin": 2, "trackPtBin": 3,
@@ -66,9 +65,9 @@ def testExtractedObservable(loggingMixin):
     assert obj.value == values["value"]
     assert obj.error == values["error"]
 
-def testHistContainer(loggingMixin, testRootHists):
+def testHistContainer(logging_mixin, test_root_hists):
     """ Test the hist container class function override. """
-    (hist, hist2D, hist3D) = dataclasses.astuple(testRootHists)
+    (hist, hist2D, hist3D) = dataclasses.astuple(test_root_hists)
 
     obj = analysis_objects.HistContainer(hist)
     # Test the basic properties.
@@ -81,17 +80,17 @@ def testHistContainer(loggingMixin, testRootHists):
     (1, {"scaleFactor": 5.0}),
     (2, {"scaleFactor": 0.5}),
 ], ids = ["hist1D", "hist2D", "hist3D"])
-def testHistContainerScaleFactor(loggingMixin, histIndex, expected, testRootHists):
+def testHistContainerScaleFactor(logging_mixin, histIndex, expected, test_root_hists):
     """ Test hist container scale factor calculation. """
-    obj = analysis_objects.HistContainer(dataclasses.astuple(testRootHists)[histIndex])
+    obj = analysis_objects.HistContainer(dataclasses.astuple(test_root_hists)[histIndex])
     assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
     additionalScaleFactor = 0.5
     assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"] * additionalScaleFactor
 
-def testHistContainerCloneAndScale(loggingMixin, testRootHists):
+def testHistContainerCloneAndScale(logging_mixin, test_root_hists):
     """ Test hist container cloning and scaling by bin width. """
     # Test only a 1D hist because we test scaling of different hist dimensions elsewhere.
-    hist = testRootHists.hist1D
+    hist = test_root_hists.hist1D
     # Add an additional entry so there is a bit more to test.
     hist.Fill(.2)
 
@@ -119,7 +118,7 @@ def createHistArray():
 
     return (obj, args)
 
-def testHistArray(loggingMixin, createHistArray):
+def testHistArray(logging_mixin, createHistArray):
     """ Test basic HistArray functionality. """
     (obj, args) = createHistArray
 
@@ -129,9 +128,9 @@ def testHistArray(loggingMixin, createHistArray):
     assert np.array_equal(obj.x, args["_binCenters"])
     assert np.array_equal(obj.errors, args["_errors"])
 
-def testHistArrayFromRootHist(loggingMixin, testRootHists):
+def testHistArrayFromRootHist(logging_mixin, test_root_hists):
     """ Test creating a HistArray from a ROOT hist. """
-    hist = testRootHists.hist1D
+    hist = test_root_hists.hist1D
     obj = analysis_objects.HistArray.initFromRootHist(hist)
 
     xAxis = hist.GetXaxis()
@@ -152,7 +151,7 @@ def createFitContainer(mocker):
         tuple: (FitContainer, dict of args used to create the hist array)
     """
     values = {"jetPtBin": 1, "trackPtBin": 3,
-              "fitType": analysis_objects.jetHCorrelationType.signalDominated,
+              "fitType": analysis_objects.JetHCorrelationType.signalDominated,
               "values": {"B": 1, "BG": 2},
               "params": {"B": 1, "limit_v3": [-0.1, 0.5]},
               "covarianceMatrix": {("a", "b"): 1.234},
@@ -161,7 +160,7 @@ def createFitContainer(mocker):
 
     return (obj, values)
 
-def testFitContainer(loggingMixin, createFitContainer):
+def testFitContainer(logging_mixin, createFitContainer):
     """ Test FitContainer initialization. """
     (obj, values) = createFitContainer
 
@@ -175,13 +174,13 @@ def testFitContainer(loggingMixin, createFitContainer):
 
 @pytest.mark.parametrize("objType", [
     "signalDominated",
-    analysis_objects.jetHCorrelationType.signalDominated
+    analysis_objects.JetHCorrelationType.signalDominated
 ], ids = ["str obj type", "enum obj type"])
 @pytest.mark.parametrize("obj, objArgs", [
     (analysis_objects.HistArray, {"jetPtBin": 1, "trackPtBin": 3}),
     (analysis_objects.FitContainer, {"jetPtBin": 1, "trackPtBin": 4})
 ], ids = ["HistArray", "FitContainer"])
-def testAnalysisObjectsWithYAMLReadAndWrite(loggingMixin, obj, objArgs, objType, mocker):
+def testAnalysisObjectsWithYAMLReadAndWrite(logging_mixin, obj, objArgs, objType, mocker):
     """ Test initializing and writing objects to/from YAML files. Tests both HistArray and FitContainer objects.
 
     NOTE: This test uses real files, which are opened through mocked open() objects. The mocking is

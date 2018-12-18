@@ -13,10 +13,10 @@ import dataclasses
 from dataclasses import dataclass
 import enum
 import logging
-import math
 import numbers
+import numpy as np
 import re
-from typing import Union
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from pachyderm import generic_class
 
@@ -24,31 +24,34 @@ logger = logging.getLogger(__name__)
 
 # Bins
 # eta is absolute value!
-etaBins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
-trackPtBins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
-jetPtBins = [15.0, 20.0, 40.0, 60.0, 200.0]
-phiBins = [-1. * math.pi / 2., math.pi / 2., 3. * math.pi / 2]
+eta_bins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
+track_pt_bins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
+jet_pt_bins = [15.0, 20.0, 40.0, 60.0, 200.0]
+phi_bins = [-1. * np.pi / 2., np.pi / 2., 3. * np.pi / 2]
 
 ########
 # Utility functions
 #######
-def iterateOverPtBins(name, bins, config = None):
+PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
+def iterate_over_pt_bins(name: str, bins: Union[np.ndarray, Sequence[float]], config: PtBinIteratorConfig = None) -> Iterable[float]:
     """ Create a generator of the bins in a requested list.
 
     Bin skipping should be specified as:
 
-    ```
-    config = {
-        "skipPtBins" : {
-            "name" : [bin1, bin2]
-        }
-    }
-    ```
+    .. code-block:: python
+
+        >>> config = {
+        ...     "skipPtBins" : {
+        ...         "name" : [bin1, bin2]
+        ...     }
+        ... }
 
     Args:
-        name (str): Name of the skip bin entries in the config.
-        bins (list): Bin edges for determining the bin indices.
-        config (dict): Containing information regarding bins to skip, as specified above.
+        name: Name of the skip bin entries in the config.
+        bins: Bin edges for determining the bin indices.
+        config: Containing information regarding bins to skip, as specified above.
+    Returns:
+        pt bins generated according to the given arguments.
     """
     # Create a default dict if none is available
     if not config:
@@ -65,162 +68,173 @@ def iterateOverPtBins(name, bins, config = None):
 
         yield ptBin
 
-def iterateOverJetPtBins(config = None):
+def iterate_over_jet_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[float]:
     """ Iterate over the available jet pt bins. """
-    return iterateOverPtBins(config = config, name = "jet", bins = jetPtBins)
+    return iterate_over_pt_bins(config = config, name = "jet", bins = jet_pt_bins)
 
-def iterateOverTrackPtBins(config = None):
+def iterate_over_track_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[float]:
     """ Iterate over the available track pt bins. """
-    return iterateOverPtBins(config = config, name = "track", bins = trackPtBins)
+    return iterate_over_pt_bins(config = config, name = "track", bins = track_pt_bins)
 
-def iterateOverJetAndTrackPtBins(config = None):
+def iterate_over_jet_and_track_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[Tuple[float, float]]:
     """ Iterate over all possible combinations of jet and track pt bins. """
-    for jetPtBin in iterateOverJetPtBins(config):
-        for trackPtBin in iterateOverTrackPtBins(config):
-            yield (jetPtBin, trackPtBin)
+    for jet_pt_bin in iterate_over_jet_pt_bins(config):
+        for track_pt_bin in iterate_over_track_pt_bins(config):
+            yield (jet_pt_bin, track_pt_bin)
 
-def useLabelWithRoot(label):
-    """ Function to automatically convert LaTeX to something that is mostly ROOT compatiable.
+def use_label_with_root(label: str) -> str:
+    """ Automatically convert LaTeX to something that is mostly ROOT compatiable.
 
     Args:
-        label (str): Label to be converted.
+        label: Label to be converted.
     Returns:
-        str: Convert label.
+        Converted label.
     """
     # Remove "$" and map "\" -> "#""
     return label.replace("$", "").replace("\\", "#")
 
-def uppercaseFirstLetter(s):
+def uppercase_first_letter(s: str) -> str:
     """ Convert the first letter to uppercase.
 
     NOTE: Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
 
     Args:
-        s (str): String to be convert
+        s: String to be convert
     Returns:
-        str: String with first letter converted to uppercase.
+        String with first letter converted to uppercase.
     """
     return s[:1].upper() + s[1:]
 
 #########
 # Parameter information (access and display)
 #########
-class aliceLabel(enum.Enum):
+class AliceLabel(enum.Enum):
     """ ALICE label types. """
-    workInProgress = "ALICE Work in Progress"
+    work_in_progress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
     final = "ALICE"
     thesis = "This thesis"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Return the value. This is just a convenience function.
 
-        Note that this is backwards of the usual convention of returning the name, but the value is
-        more meaningful here. The name can always be accessed with `.name`. """
+        Note:
+            This is backwards of the usual convention of returning the name, but the value is
+            more meaningful here. The name can always be accessed with ``.name``.
+        """
         return str(self.value)
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-def systemLabel(energy, system, activity):
+def system_label(energy: Union[float, "CollisionEnergy"], system: Union[str, "CollisionSystem"], activity: Union[str, "EventActivity"]) -> str:
     """ Generates the collision system, event activity, and energy label.
 
     Args:
-        energy (float or collisionEnergy): The collision energy
-        system (str or collisionSystem): The collision system.
-        activity (str or eventActivity): The event activity selection.
+        energy: The collision energy
+        system: The collision system.
+        activity: The event activity selection.
     Returns:
-        str: Label for the entire system, combining the avaialble information.
+        Label for the entire system, combining the avaialble information.
     """
     # Handle energy
     if isinstance(energy, numbers.Number):
-        energy = collisionEnergy(energy)
+        energy = CollisionEnergy(energy)
     elif isinstance(energy, str):
         try:
             e = float(energy)
-            energy = collisionEnergy(e)
+            energy = CollisionEnergy(e)
         except ValueError:
-            energy = collisionEnergy[energy]
+            energy = CollisionEnergy[energy]  # type: ignore
+    # Ensure that we've done our conversion correctly. This also helps the type system.
+    assert isinstance(energy, CollisionEnergy)
 
     # Handle collision system
     if isinstance(system, str):
-        system = collisionSystem[system]
+        system = CollisionSystem[system]  # type: ignore
 
     # Handle event activity
     if isinstance(activity, str):
-        activity = eventActivity[activity]
+        activity = EventActivity[activity]  # type: ignore
 
-    systemLabel = r"$\mathrm{%(system)s}\:%(energy)s%(eventActivity)s$" % {"energy": energy.displayStr(),
-                                                                           "eventActivity": activity.displayStr(),
-                                                                           "system": system.displayStr()}
+    system_label = r"$\mathrm{%(system)s}\:%(energy)s%(event_activity)s$" % {
+        "energy": energy.display_str(),
+        "event_activity": activity.display_str(),
+        "system": system.display_str(),
+    }
 
-    logger.debug("systemLabel: {}".format(systemLabel))
+    logger.debug("system_label: {}".format(system_label))
 
-    return systemLabel
+    return system_label
 
-def generatePtRangeString(arr, binVal, lowerLabel, upperLabel, onlyShowLowerValueForLastBin = False):
+def generate_pt_range_string(arr: Union[np.ndarray, Sequence[float]], bin_val: int, lower_label: str, upper_label: str, only_show_lower_value_for_last_bin: bool = False) -> str:
     """ Generate string to describe pt ranges for a given list.
 
     Args:
-        arr (list): Bin edges for use in determining the values lower and upper values
-        binVal (int): Generate the range for this bin
-        lowerLabel (str): Subscript label for pT
-        upperLabel (str): Superscript labe for pT
-        onlyShowLowerValueForLastBin (bool): If True, skip show the upper value.
+        arr: Bin edges for use in determining the values lower and upper values.
+        bin_val: Generate the range for this bin.
+        lower_label: Subscript label for pT.
+        upper_label: Superscript labe for pT.
+        only_show_lower_value_for_last_bin: If True, skip show the upper value.
     Returns:
-        str: The pt range label
+        The pt range label.
     """
     # Cast as string so we don't have to deal with formatting the extra digits
-    lower = "%(lower)s < " % {"lower": arr[binVal]}
-    upper = " < %(upper)s" % {"upper": arr[binVal + 1]}
-    if onlyShowLowerValueForLastBin and binVal == len(arr) - 2:
+    lower = "%(lower)s < " % {"lower": arr[bin_val]}
+    upper = " < %(upper)s" % {"upper": arr[bin_val + 1]}
+    if only_show_lower_value_for_last_bin and bin_val == len(arr) - 2:
         upper = ""
-    ptRange = r"$%(lower)s\mathit{p}_{%(lowerLabel)s}^{%(upperLabel)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": lower, "upper": upper, "lowerLabel": lowerLabel, "upperLabel": upperLabel}
+    pt_range = r"$%(lower)s\mathit{p}_{%(lower_label)s}^{%(upper_label)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {
+        "lower": lower,
+        "upper": upper,
+        "lower_label": lower_label,
+        "upper_label": upper_label,
+    }
 
-    return ptRange
+    return pt_range
 
-def generateJetPtRangeString(jetPtBin):
+def generate_jet_pt_range_string(jet_pt_bin: int) -> str:
     """ Generate a label for the jet pt range based on the jet pt bin.
 
     Args:
-        jetPtBin (int): Jet pt bin
+        jet_pt_bin: Jet pt bin.
     Returns:
-        str: Jet pt range label
+        Jet pt range label.
     """
-    return generatePtRangeString(arr = jetPtBins,
-                                 binVal = jetPtBin,
-                                 lowerLabel = r"\mathrm{T \,unc,jet}",
-                                 upperLabel = r"\mathrm{ch+ne}",
-                                 onlyShowLowerValueForLastBin = True)
+    return generate_pt_range_string(
+        arr = jet_pt_bins,
+        bin_val = jet_pt_bin,
+        lower_label = r"\mathrm{T \,unc,jet}",
+        upper_label = r"\mathrm{ch+ne}",
+        only_show_lower_value_for_last_bin = True,
+    )
 
-def generateTrackPtRangeString(trackPtBin, ptBins = None):
+def generate_track_pt_range_string(track_pt_bin: int, pt_bins: Optional[Union[np.ndarray, Sequence[float]]] = None) -> str:
     """ Generate a label for the track pt range based on the track pt bin.
 
     Args:
-        trackPtBin (int): Track pt bin.
-        ptBins (list): Track pt bins. Defaults to the default jet-h track pt bins if not specified.
+        track_pt_bin: Track pt bin.
+        pt_bins: Track pt bins. Defaults to the default jet-h track pt bins if not specified.
     Returns:
-        str: Track pt range label.
+        Track pt range label.
     """
-    return generatePtRangeString(arr = ptBins if ptBins is not None else trackPtBins,
-                                 binVal = trackPtBin,
-                                 lowerLabel = r"\mathrm{T}",
-                                 upperLabel = r"\mathrm{assoc}")
+    return generate_pt_range_string(
+        arr = pt_bins if pt_bins is not None else track_pt_bins,
+        bin_val = track_pt_bin,
+        lower_label = r"\mathrm{T}",
+        upper_label = r"\mathrm{assoc}",
+    )
 
-def jetPropertiesLabel(jetPtBin):
+def jet_properties_label(jet_pt_bin: int) -> Tuple[str, str, str, str]:
     """ Return the jet finding properties based on the jet pt bin.
 
     Args:
-        jetPtBin (int): Jet pt bin
+        jet_pt_bin (int): Jet pt bin
     Returns:
-        tuple: (jetFinding, constituentCuts, leadingHadron, jetPt)
+        tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
     """
-    jetFinding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
-    constituentCuts = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
-    leadingHadron = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$"
-    jetPt = generateJetPtRangeString(jetPtBin)
-    return (jetFinding, constituentCuts, leadingHadron, jetPt)
+    jet_finding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
+    constituent_cuts = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
+    leading_hadron = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$"
+    jet_pt = generate_jet_pt_range_string(jet_pt_bin)
+    return (jet_finding, constituent_cuts, leading_hadron, jet_pt)
 
 ##################
 # Analysis Options
@@ -240,27 +254,23 @@ class SelectedRange:
 #########
 # Classes
 #########
-class collisionEnergy(enum.Enum):
+class CollisionEnergy(enum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
     fiveZeroTwo = 5.02
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Returns a string of the value. """
         return str(self.value)
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def displayStr(self):
+    def display_str(self) -> str:
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy": self.value}
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"
 
-class collisionSystem(enum.Enum):
+class CollisionSystem(enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
@@ -270,19 +280,15 @@ class collisionSystem(enum.Enum):
     pPb = r"pPb"
     PbPb = "%(PbPb)s" % {"PbPb": PbPbLatexLabel}
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Return a string of the name of the system. """
         return self.name
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def displayStr(self):
+    def display_str(self) -> str:
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return self.value
 
-class eventActivity(enum.Enum):
+class EventActivity(enum.Enum):
     """ Define the event activity.
 
     Object value are of the form (index, (centLow, centHigh)), where index is the expected
@@ -294,7 +300,7 @@ class eventActivity(enum.Enum):
     semiCentral = SelectedRange(min = 30, max = 50)
 
     @property
-    def value_range(self):
+    def value_range(self) -> SelectedRange:
         """ Return the event activity range.
 
         Returns:
@@ -302,37 +308,29 @@ class eventActivity(enum.Enum):
         """
         return self.value
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Name of the event activity range. """
         return str(self.name)
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def displayStr(self):
+    def display_str(self) -> str:
         """ Get the event activity range as a formatted string. Includes latex formatting. """
-        retVal = ""
+        ret_val = ""
         # For inclusive, we want to return an empty string.
-        if self != eventActivity.inclusive:
+        if self != EventActivity.inclusive:
             logger.debug(f"asdict: {dataclasses.asdict(self.value_range)}")
-            retVal = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
-        return retVal
+            ret_val = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
+        return ret_val
 
-class leadingHadronBiasType(enum.Enum):
+class LeadingHadronBiasType(enum.Enum):
     """ Leading hadron bias type """
     NA = -1
     track = 0
     cluster = 1
     both = 2
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Return the name of the bias. It must be just the name for the config override to work properly. """
         return self.name
-
-    def str(self):
-        """ Helper function to return str by calling explicitly """
-        return self.__str__()
 
 ########################
 # Final anaylsis options
@@ -340,9 +338,10 @@ class leadingHadronBiasType(enum.Enum):
 # These classes are used for final analysis specification, building
 # on the analysis specification objects specified above.
 ########################
-class leadingHadronBias(generic_class.EqualityMixin):
+class LeadingHadronBias(generic_class.EqualityMixin):
     """ Full leading hadron bias class, which specifies both the type as well as the value.
-    The enum exists to be specified when creating an analysis object, and then the value is
+
+    The class exists to be specified when creating an analysis object, and then the value is
     determined by the selected analysis options (including that enum). This object then
     supercedes the leadingHadronBiasType enum, storing both the type and value.
 
@@ -356,31 +355,27 @@ class leadingHadronBias(generic_class.EqualityMixin):
         self.type = type
         # If the leadingHadronBias is disabled, then the value is irrelevant and
         # should be set to 0.
-        if self.type == leadingHadronBiasType.NA:
+        if self.type == LeadingHadronBiasType.NA:
             value = 0
         self.value = value
 
-    def str(self):
-        """ Return a string representation. """
-        return self.filenameStr()
+    def __str__(self) -> str:
+        """ Return a string representation.
 
-    def filenameStr(self):
-        """ Return the type and value, such as "clusterBias6" or "trackBias5".
-
-        In the case of the bias as NA, it simply returns "NA".
+        Return the type and value, such as "clusterBias6" or "trackBias5". In the case of the bias
+        as NA, it simply returns "NA".
         """
-        # TODO: Remove if not needed in generic_config
-        if self.type != leadingHadronBiasType.NA:
+        if self.type != LeadingHadronBiasType.NA:
             return "{type}Bias{value}".format(type = self.type, value = self.value)
         else:
             return "{type}".format(type = self.type, value = self.value)
 
 @dataclass
 class SelectedAnalysisOptions:
-    collisionEnergy: collisionEnergy
-    collisionSystem: collisionSystem
-    eventActivity: eventActivity
-    leadingHadronBias: Union[leadingHadronBias, leadingHadronBiasType]
+    collision_energy: Type[CollisionEnergy]
+    collision_system: Type[CollisionSystem]
+    event_activity: Type[EventActivity]
+    leading_hadron_bias: Union[Type[LeadingHadronBias], Type[LeadingHadronBiasType]]
 
     def asdict(self):
         return dataclasses.asdict(self)
@@ -389,10 +384,10 @@ class SelectedAnalysisOptions:
         return iter(dataclasses.astuple(self))
 
 # For use with overriding configuration values
-setOfPossibleOptions = SelectedAnalysisOptions(collisionEnergy,
-                                               collisionSystem,
-                                               eventActivity,
-                                               leadingHadronBiasType)
+SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,
+                                               CollisionSystem,
+                                               EventActivity,
+                                               LeadingHadronBiasType)
 
 ##############################
 # Additional selection options
@@ -402,69 +397,63 @@ setOfPossibleOptions = SelectedAnalysisOptions(collisionEnergy,
 # Instead, they are stored in a particular analysis object and used as
 # analysis options.
 ##############################
-class eventPlaneAngle(enum.Enum):
+class EventPlaneAngle(enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1
     midPlane = 2
     outOfPlane = 3
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Returns the event plane angle name, as is. """
         return self.name
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def filenameStr(self):
+    def filename_str(self):
         """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
         # TODO: Remove if not needed in generic_config
-        return "eventPlane{}".format(uppercaseFirstLetter(self.str()))
+        return f"eventPlane{uppercase_first_letter(str(self))}"
 
-    def displayStr(self):
+    def display_str(self):
         """ For example, turns outOfPlane into "Out-of-plane".
 
-        NOTE: We want the capitalize call to lowercase all other letters."""
+        Note:
+            We want the capitalize call to lowercase all other letters.
+        """
         # See: https://stackoverflow.com/a/2277363
-        tempList = re.findall("[a-zA-Z][^A-Z]*", self.str())
+        tempList = re.findall("[a-zA-Z][^A-Z]*", str(self))
         return "-".join(tempList).capitalize()
 
-class qVector(enum.Enum):
+class QVector(enum.Enum):
     """ Selection based on the Q vector. """
     all = SelectedRange(min = 0, max = 100)
     bottom10 = SelectedRange(min = 0, max = 10)
     top10 = SelectedRange(min = 90, max = 100)
 
     @property
-    def value_range(self):
+    def value_range(self) -> SelectedRange:
         """ Return the q vector range.
 
         Returns:
-            SelectedRange : namedtuple containing the mix and max of the range.
+            dataclass containing the mix and max of the range.
         """
         return self.value
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Returns the name of the selection range. """
         return self.name
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def filenameStr(self):
+    def filename_str(self):
         """ Helper class that returns a filename self value. """
         # TODO: Remove if not needed in generic_config
-        return "qVector{}".format(uppercaseFirstLetter(self.str()))
+        return f"qVector{uppercase_first_letter(str(self))}"
 
-    def displayStr(self):
+    def display_str(self):
         """ Turns "bottom10" into "Bottom 10%". """
         # This also works for "all" -> "All"
-        tempList = re.match("([a-z]*)([0-9]*)", self.name).groups()
-        retVal = uppercaseFirstLetter(" ".join(tempList))
+        temp_list = re.match("([a-z]*)([0-9]*)", self.name).groups()
+        ret_val = uppercase_first_letter(" ".join(temp_list))
         if self.name != "all":
-            retVal += "%"
+            ret_val += "%"
         # rstrip() is to remove entra space after "All". Doesn't matter for the other values.
-        return retVal.rstrip(" ")
+        return ret_val.rstrip(" ")
 

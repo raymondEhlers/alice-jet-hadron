@@ -22,7 +22,7 @@ from pachyderm import utils
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class jetHCorrelationType(enum.Enum):
+class JetHCorrelationType(enum.Enum):
     """ 1D correlation projection type """
     fullRange = 0
     # dPhi specialized
@@ -32,13 +32,9 @@ class jetHCorrelationType(enum.Enum):
     nearSide = 3
     awaySide = 4
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ Returns the name of the correlation type. """
         return self.name
-
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
 
     def displayStr(self):
         """ Turns "signalDominated" into "Signal Dominated". """
@@ -50,6 +46,7 @@ class jetHCorrelationType(enum.Enum):
 
     def filenameStr(self):
         """ Name to use in a filename. """
+        # TODO: Remove if possible
         return self.__str__()
 
 class Observable(object):
@@ -81,7 +78,7 @@ class CorrelationObservable1D(CorrelationObservable):
 
     Args:
         axis (jetHCorrelationAxis): Axis of the 1D observable.
-        correlationType (jetHCorrelationType): Type of the 1D observable.
+        correlationType (JetHCorrelationType): Type of the 1D observable.
         jetPtBin (int): Bin of the jet pt of the observable.
         trackPtBin (int): Bin of the track pt of the observable.
         hist (HistContainer): Associated histogram of the observable. Optional.
@@ -198,7 +195,7 @@ class YAMLStorableObject(object):
         """
         # Handle arguments
         if isinstance(kwargs["objType"], str):
-            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+            kwargs["objType"] = JetHCorrelationType[kwargs["objType"]]
 
         # Convert to proper name for formatting the string
         formattingArgs = {}
@@ -229,7 +226,7 @@ class YAMLStorableObject(object):
             args (list): Positional arguments to use for intialization. They currently aren't used.
             kwargs (dict): Named arguments to use for initialization. Must contain:
                 prefix (str): Path to the diretory in which the YAML file is stored.
-                objType (jetHCorrelationType or str): Type of the object.
+                objType (JetHCorrelationType or str): Type of the object.
                 jetPtBin (int): Bin of the jet pt of the object.
                 trackPtBin (int): Bin of the track pt of the object.
         Returns:
@@ -237,7 +234,7 @@ class YAMLStorableObject(object):
         """
         # Handle arguments
         if isinstance(kwargs["objType"], str):
-            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+            kwargs["objType"] = JetHCorrelationType[kwargs["objType"]]
 
         filename = cls.yamlFilename(**kwargs)
 
@@ -245,7 +242,7 @@ class YAMLStorableObject(object):
         if not os.path.exists(filename):
             logger.warning("Requested {objType} {className} ({jetPtBin}, {trackPtBin}) from file {filename}"
                            " does not exist! This container will not be"
-                           " initialized".format(objType = kwargs["objType"].str(),
+                           " initialized".format(objType = str(kwargs["objType"]),
                                                  className = type(cls).__name__,
                                                  jetPtBin = kwargs["jetPtBin"],
                                                  trackPtBin = kwargs["trackPtBin"],
@@ -253,12 +250,12 @@ class YAMLStorableObject(object):
             return None
 
         logger.debug("Loading {objType} {className} ({jetPtBin}, {trackPtBin}) from file"
-                     " {filename}".format(objType = kwargs["objType"].str(),
+                     " {filename}".format(objType = str(kwargs["objType"]),
                                           className = type(cls).__name__,
                                           jetPtBin = kwargs["jetPtBin"],
                                           trackPtBin = kwargs["trackPtBin"],
                                           filename = filename))
-        parameters = utils.readYAML(filename = filename)
+        parameters = utils.read_YAML(filename = filename)
 
         # Handle custom data type conversion
         parameters = cls.initializeSpecificProcessing(parameters)
@@ -281,21 +278,21 @@ class YAMLStorableObject(object):
         """
         return parameters
 
-    def saveToYAML(self, fileAccessMode = "w", *args, **kwargs):
+    def saveToYAML(self, file_access_mode = "w", *args, **kwargs):
         """ Write the object properties to a YAML file.
 
         Args:
-            fileAccessMode (str): Mode under which the file should be opened. Defualt: "w"
+            file_access_mode (str): Mode under which the file should be opened. Defualt: "w"
             args (list): Positional arguments to use for intialization. They currently aren't used.
             kwargs (dict): Named arguments to use for initialization. Must contain:
                 prefix (str): Path to the diretory in which the YAML file is stored.
-                objType (jetHCorrelationType or str): Type of the object.
+                objType (JetHCorrelationType or str): Type of the object.
                 jetPtBin (int): Bin of the jet pt of the object.
                 trackPtBin (int): Bin of the track pt of the object.
         """
         # Handle arguments
         if isinstance(kwargs["objType"], str):
-            kwargs["objType"] = jetHCorrelationType[kwargs["objType"]]
+            kwargs["objType"] = JetHCorrelationType[kwargs["objType"]]
 
         # Determine filename
         filename = self.yamlFilename(**kwargs)
@@ -314,9 +311,9 @@ class YAMLStorableObject(object):
                                           jetPtBin = kwargs["jetPtBin"],
                                           trackPtBin = kwargs["trackPtBin"],
                                           filename = filename))
-        utils.writeYAML(filename = filename,
-                        fileAccessMode = fileAccessMode,
-                        parameters = parameters)
+        utils.write_YAML(filename = filename,
+                         file_access_mode = file_access_mode,
+                         parameters = parameters)
 
 class HistArray(YAMLStorableObject):
     """ Represents a histogram's binned data.
@@ -427,7 +424,7 @@ class FitContainer(YAMLStorableObject):
     Args:
         jetPtBin (int): Jet pt bin
         trackPtBin (int): Track pt bin
-        fitType (jetHCorrelationType): Type of fit being stored. Usually signalDominated or backgroundDominated
+        fitType (JetHCorrelationType): Type of fit being stored. Usually signalDominated or backgroundDominated
         values (dict): Dictionary from minuit.values storing parameter name to value. This is useful to have separately.
         params (dict): Dictionary from minuit.fitarg storing all relevant fit parameters (value, limits, errors,
             etc). This contains the values in values, but it useful to have them available separately, and it would
@@ -447,7 +444,7 @@ class FitContainer(YAMLStorableObject):
 
         # Handle arguments
         if isinstance(fitType, str):
-            fitType = jetHCorrelationType[fitType]
+            fitType = JetHCorrelationType[fitType]
 
         # Store elements
         self.jetPtBin = jetPtBin
@@ -490,7 +487,7 @@ class FitContainer(YAMLStorableObject):
                 # Convert to a normal list so it can be stored
                 parameters["errors"][identifier] = data.tolist()
         # Fit type enum to str
-        parameters["fitType"] = parameters["fitType"].str()
+        parameters["fitType"] = str(parameters["fitType"])
 
         return parameters
 
