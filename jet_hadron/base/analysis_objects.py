@@ -15,6 +15,7 @@ import logging
 import numpy as np
 import os
 import re
+from typing import Any
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -36,13 +37,13 @@ class JetHCorrelationType(enum.Enum):
         """ Returns the name of the correlation type. """
         return self.name
 
-    def displayStr(self):
+    def display_str(self) -> str:
         """ Turns "signalDominated" into "Signal Dominated". """
         # Convert to display name by splitting on camel case
         # For the regex, see: https://stackoverflow.com/a/43898219
-        splitString = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
+        split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
         # Capitalize the first letter of every word
-        return splitString.title()
+        return split_string.title()
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.
@@ -57,52 +58,51 @@ class CorrelationObservable(Observable):
     """ General correlation observable object. Usually used for 2D correlations.
 
     Args:
-        jetPtBin (int): Bin of the jet pt of the observable.
-        trackPtBin (int): Bin of the track pt of the observable.
+        jet_pt_bin (int): Bin of the jet pt of the observable.
+        track_pt_bin (int): Bin of the track pt of the observable.
         hist (HistContainer): Associated histogram of the observable. Optional.
     """
-    def __init__(self, jetPtBin, trackPtBin, *args, **kwargs):
+    def __init__(self, jet_pt_bin, track_pt_bin, *args, **kwargs):
         """ Initialize the observable """
         super().__init__(*args, **kwargs)
 
-        self.jetPtBin = jetPtBin
-        self.trackPtBin = trackPtBin
+        self.jet_pt_bin = jet_pt_bin
+        self.track_pt_bin = track_pt_bin
 
 class CorrelationObservable1D(CorrelationObservable):
     """ For 1D correlation observable object. Can be either dPhi or dEta.
 
     Args:
-        axis (jetHCorrelationAxis): Axis of the 1D observable.
-        correlationType (JetHCorrelationType): Type of the 1D observable.
-        jetPtBin (int): Bin of the jet pt of the observable.
-        trackPtBin (int): Bin of the track pt of the observable.
+        axis (JetHCorrelationAxis): Axis of the 1D observable.
+        correlation_type (JetHCorrelationType): Type of the 1D observable.
+        jet_pt_bin (int): Bin of the jet pt of the observable.
+        track_pt_bin (int): Bin of the track pt of the observable.
         hist (HistContainer): Associated histogram of the observable. Optional.
     """
-    def __init__(self, axis, correlationType, *args, **kwargs):
+    def __init__(self, axis, correlation_type, *args, **kwargs):
         # Initialize the base class
         super().__init__(*args, **kwargs)
 
         self.axis = axis
-        self.correlationType = correlationType
+        self.correlation_type = correlation_type
 
 class ExtractedObservable(object):
     """ For extracted observable such as widths or yields.
 
    Args:
-        jetPtBin (int): Bin of the jet pt of the observable.
-        trackPtBin (int): Bin of the track pt of the observable.
+        jet_pt_bin (int): Bin of the jet pt of the observable.
+        track_pt_bin (int): Bin of the track pt of the observable.
         value (number): Extracted value.
         error (number): Error associated with the extracted value.
     """
-    def __init__(self, jetPtBin, trackPtBin, value, error):
-        self.jetPtBin = jetPtBin
-        self.trackPtBin = trackPtBin
+    def __init__(self, jet_pt_bin, track_pt_bin, value, error):
+        self.jet_pt_bin = jet_pt_bin
+        self.track_pt_bin = track_pt_bin
         self.value = value
         self.error = error
 
 class HistContainer(object):
-    """ Container for a histogram to allow for normal function access except for those that
-    we choose to overload.
+    """ Histogram container to allow for normal function access except for those that we choose to overload.
 
     Args:
         hist (ROOT.TH1, ROOT.THnBase, or similar): Histogram to be stored in the histogram container.
@@ -112,10 +112,10 @@ class HistContainer(object):
 
     # Inspired by: https://stackoverflow.com/q/14612442
     def __getattr__(self, attr):
-        """ Forwards all requested functions or attributes to the histogram. However, other
-        functions or attributes defined in this class are still accessible!
+        """ Forwards all requested functions or attributes to the histogram.
 
-        This function is usually called implicitly by calling the attribute on the HistContainer.
+        However, other functions or attributes defined in this class are still accessible! This function
+        is usually called implicitly by calling the attribute on the HistContainer.
 
         Args:
             attr (str): Desired attribute of the stored histogram.
@@ -128,48 +128,52 @@ class HistContainer(object):
         # Execute the attribute on the hist
         return getattr(self.hist, attr)
 
-    def createScaledByBinWidthHist(self, additionalScaleFactor = 1.0):
+    def create_scaled_by_bin_width_hist(self, additional_scale_factor: float = 1.0) -> Any:
         """ Create a new histogram scaled by the bin width. The return histogram is a clone
         of the histogram inside of the container with the scale factor(s) applied.
 
-        One can always assign the result to replace the existing hist (although take care to avoid memory leaks!)
+        One can always assign the result to replace the existing hist (although take care to
+        avoid memory leaks!).
 
         Args:
-            additionalScaleFactor (float): Additional scale factor to apply to the scaled hist. Default: 1.0
+            additional_scale_factor: Additional scale factor to apply to the scaled hist. Default: 1.0
         Returns:
             ROOT.TH1: Cloned histogram scaled by the calculated scale factor.
         """
-
-        finalScaleFactor = self.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor)
+        final_scale_factor = self.calculate_final_scale_factor(
+            additional_scale_factor = additional_scale_factor
+        )
 
         # Clone hist and scale
-        scaledHist = self.hist.Clone(self.hist.GetName() + "_Scaled")
-        scaledHist.Scale(finalScaleFactor)
+        scaled_hist = self.hist.Clone(self.hist.GetName() + "_Scaled")
+        scaled_hist.Scale(final_scale_factor)
 
-        return scaledHist
+        return scaled_hist
 
-    def calculateFinalScaleFactor(self, additionalScaleFactor = 1.0):
-        """ Calculate the scale factor to be applied to a hist before plotting by multiplying all of the
-        bin widths together. Assumes a uniformly binned histogram.
+    def calculate_final_scale_factor(self, additional_scale_factor: float = 1.0) -> float:
+        """ Calculate the scale factor to be applied to a hist before plotting.
+
+        The scale factor is determined by multiplying all of the bin widths together. We assumes a
+        uniformly binned histogram.
 
         Args:
-            additionalScaleFactor (float): Additional scale factor to apply to the scaled hist. Default: 1.0
+            additional_scale_factor: Additional scale factor to apply to the scaled hist. Default: 1.0
         Returns:
-            float: The factor by which the hist should be scaled.
+            The factor by which the hist should be scaled.
         """
         # The first bin should always exist!
-        binWidthScaleFactor = self.hist.GetXaxis().GetBinWidth(1)
+        bin_width_scale_factor = self.hist.GetXaxis().GetBinWidth(1)
         # Because of a ROOT quirk, even a TH1* hist has a Y and Z axis, with 1 bin
         # each. This bin has bin width 1, so it doesn't change anything if we multiply
         # by that bin width. So we just do it for all histograms.
         # This has the benefit that we don't need explicit dependence on an imported
         # ROOT package.
-        binWidthScaleFactor *= self.hist.GetYaxis().GetBinWidth(1)
-        binWidthScaleFactor *= self.hist.GetZaxis().GetBinWidth(1)
+        bin_width_scale_factor *= self.hist.GetYaxis().GetBinWidth(1)
+        bin_width_scale_factor *= self.hist.GetZaxis().GetBinWidth(1)
 
-        finalScaleFactor = additionalScaleFactor / binWidthScaleFactor
+        final_scale_factor = additional_scale_factor / bin_width_scale_factor
 
-        return finalScaleFactor
+        return final_scale_factor
 
 class YAMLStorableObject(object):
     """ Base class for objects which can be represented and stored in YAML. """

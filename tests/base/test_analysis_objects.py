@@ -21,51 +21,53 @@ logger = logging.getLogger(__name__)
 # For reproducibility
 np.random.seed(1234)
 
-@pytest.mark.parametrize("corrType, expected", [
+@pytest.mark.parametrize("corr_type, expected", [
     ("fullRange",
         {"str": "fullRange",
-            "displayStr": "Full Range"}),
+            "display_str": "Full Range"}),
     ("signalDominated",
         {"str": "signalDominated",
-            "displayStr": "Signal Dominated"}),
+            "display_str": "Signal Dominated"}),
     ("nearSide",
         {"str": "nearSide",
-            "displayStr": "Near Side"})
+            "display_str": "Near Side"})
 ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
-def testCorrelationTypes(logging_mixin, corrType, expected):
+def test_correlation_types(logging_mixin, corr_type, expected):
     """ Test jet-hadron correlation types. """
-    obj = analysis_objects.JetHCorrelationType[corrType]
+    obj = analysis_objects.JetHCorrelationType[corr_type]
 
     assert str(obj) == expected["str"]
-    assert obj.displayStr() == expected["displayStr"]
+    assert obj.display_str() == expected["display_str"]
 
-def testCorrelationObservable1D(logging_mixin, mocker):
+def test_correlation_observable1D(logging_mixin, mocker):
     """ Tests for CorrelationObservable1D. Implicitly tests Observable and CorrelationObservable. """
     # Arguments are not selected for any particular reason
-    values = {"hist": mocker.MagicMock(), "jetPtBin": 2, "trackPtBin": 3,
-              "axis": mocker.MagicMock(),
-              "correlationType": analysis_objects.JetHCorrelationType.signalDominated}
+    values = {
+        "hist": mocker.MagicMock(), "jet_pt_bin": 2, "track_pt_bin": 3,
+        "axis": mocker.MagicMock(),
+        "correlation_type": analysis_objects.JetHCorrelationType.signalDominated
+    }
 
     obj = analysis_objects.CorrelationObservable1D(**values)
     assert obj.hist == values["hist"]
-    assert obj.jetPtBin == values["jetPtBin"]
-    assert obj.trackPtBin == values["trackPtBin"]
+    assert obj.jet_pt_bin == values["jet_pt_bin"]
+    assert obj.track_pt_bin == values["track_pt_bin"]
     assert obj.axis == values["axis"]
-    assert obj.correlationType == values["correlationType"]
+    assert obj.correlation_type == values["correlation_type"]
 
-def testExtractedObservable(logging_mixin):
+def test_extracted_observable(logging_mixin):
     """ Tests for ExtractedObservable. """
     # Arguments are not selected for any particular reason
-    values = {"jetPtBin": 2, "trackPtBin": 3,
+    values = {"jet_pt_bin": 2, "track_pt_bin": 3,
               "value": 1.5, "error": 0.3}
 
     obj = analysis_objects.ExtractedObservable(**values)
-    assert obj.jetPtBin == values["jetPtBin"]
-    assert obj.trackPtBin == values["trackPtBin"]
+    assert obj.jet_pt_bin == values["jet_pt_bin"]
+    assert obj.track_pt_bin == values["track_pt_bin"]
     assert obj.value == values["value"]
     assert obj.error == values["error"]
 
-def testHistContainer(logging_mixin, test_root_hists):
+def test_hist_container(logging_mixin, test_root_hists):
     """ Test the hist container class function override. """
     (hist, hist2D, hist3D) = dataclasses.astuple(test_root_hists)
 
@@ -73,21 +75,21 @@ def testHistContainer(logging_mixin, test_root_hists):
     # Test the basic properties.
     assert obj.GetName() == "test"
     # Defined functions are called directly.
-    assert obj.calculateFinalScaleFactor() == 10.0
+    assert obj.calculate_final_scale_factor() == 10.0
 
-@pytest.mark.parametrize("histIndex, expected", [
-    (0, {"scaleFactor": 10.0}),
-    (1, {"scaleFactor": 5.0}),
-    (2, {"scaleFactor": 0.5}),
+@pytest.mark.parametrize("hist_index, expected", [
+    (0, {"scale_factor": 10.0}),
+    (1, {"scale_factor": 5.0}),
+    (2, {"scale_factor": 0.5}),
 ], ids = ["hist1D", "hist2D", "hist3D"])
-def testHistContainerScaleFactor(logging_mixin, histIndex, expected, test_root_hists):
+def test_hist_container_scale_factor(logging_mixin, hist_index, expected, test_root_hists):
     """ Test hist container scale factor calculation. """
-    obj = analysis_objects.HistContainer(dataclasses.astuple(test_root_hists)[histIndex])
-    assert obj.calculateFinalScaleFactor() == expected["scaleFactor"]
-    additionalScaleFactor = 0.5
-    assert obj.calculateFinalScaleFactor(additionalScaleFactor = additionalScaleFactor) == expected["scaleFactor"] * additionalScaleFactor
+    obj = analysis_objects.HistContainer(dataclasses.astuple(test_root_hists)[hist_index])
+    assert obj.calculate_final_scale_factor() == expected["scale_factor"]
+    additional_scale_factor = 0.5
+    assert obj.calculate_final_scale_factor(additional_scale_factor = additional_scale_factor) == expected["scale_factor"] * additional_scale_factor
 
-def testHistContainerCloneAndScale(logging_mixin, test_root_hists):
+def test_hist_container_clone_and_scale(logging_mixin, test_root_hists):
     """ Test hist container cloning and scaling by bin width. """
     # Test only a 1D hist because we test scaling of different hist dimensions elsewhere.
     hist = test_root_hists.hist1D
@@ -95,13 +97,13 @@ def testHistContainerCloneAndScale(logging_mixin, test_root_hists):
     hist.Fill(.2)
 
     obj = analysis_objects.HistContainer(hist)
-    scaledHist = obj.createScaledByBinWidthHist()
+    scaled_hist = obj.create_scaled_by_bin_width_hist()
     obj.Scale(1 / obj.GetXaxis().GetBinWidth(1))
 
-    assert scaledHist.GetEntries() == obj.GetEntries()
+    assert scaled_hist.GetEntries() == obj.GetEntries()
     # Compare all bins
     for bin in range(1, obj.GetXaxis().GetNbins() + 1):
-        assert scaledHist.GetBinContent(bin) == obj.GetBinContent(bin)
+        assert scaled_hist.GetBinContent(bin) == obj.GetBinContent(bin)
 
 @pytest.fixture
 def createHistArray():
@@ -181,11 +183,14 @@ def testFitContainer(logging_mixin, createFitContainer):
     (analysis_objects.FitContainer, {"jetPtBin": 1, "trackPtBin": 4})
 ], ids = ["HistArray", "FitContainer"])
 def testAnalysisObjectsWithYAMLReadAndWrite(logging_mixin, obj, objArgs, objType, mocker):
-    """ Test initializing and writing objects to/from YAML files. Tests both HistArray and FitContainer objects.
+    """ Test initializing and writing objects to/from YAML files.
 
-    NOTE: This test uses real files, which are opened through mocked open() objects. The mocking is
-          to avoid any read/write side effects, while the real files are used to ensure the data
-          for the test accurately represents real world usage.
+    This tests both HistArray and FitContainer objects.
+
+    Note:
+        This test uses real files, which are opened through mocked open() objects. The mocking is
+        to avoid any read/write side effects, while the real files are used to ensure the data
+        for the test accurately represents real world usage.
     """
     objArgs["prefix"] = os.path.join(os.path.dirname(os.path.realpath(__file__)), "testFiles")
     objArgs["objType"] = objType
