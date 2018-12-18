@@ -2,7 +2,7 @@
 
 """ EMCal corrections and embedding plotting code
 
-.. codeauthor: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
 # This must be at the start

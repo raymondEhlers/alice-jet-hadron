@@ -2,7 +2,7 @@
 
 """ Create the response matrix, with proper scaling by pt hard bins
 
-.. codeauthor: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
 import argparse
