@@ -231,8 +231,6 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
 
     # Determine formatting options
     logger.debug(f"selected_analysis_options: {selected_analysis_options.asdict()}")
-    # TODO: Do we want to modify str() to something like recreationString() or something in conjunction
-    #       with renaming filenameStr()?
     formatting_options = {}
     formatting_options["task_name"] = task_name
     formatting_options["trainNumber"] = config.get("trainNumber", "trainNo")
@@ -331,17 +329,7 @@ class JetHBase(generic_class.EqualityMixin):
         self.printing_extensions = config["printingExtensions"]
         # Convert the ALICE label if necessary
         alice_label = config["aliceLabel"]
-        if isinstance(alice_label, str):
-            alice_label = params.AliceLabel[alice_label]
-        self.alice_label = alice_label
-
-    def write_config(self):
-        """ Write the properties of the analysis to a YAML configuration file for future reference. """
-        logger.info("{name} Properties:".format(name = self.__class__.__name__))
-        # See: https://stackoverflow.com/a/1398059
-        properties = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
-
-        # TODO: Implement writing this out
+        self.alice_label = params.AliceLabel[alice_label]
 
 def create_from_terminal(obj, task_name, additional_possible_iterables = None):
     """ Main function to create an object from the terminal.
@@ -366,13 +354,4 @@ def create_from_terminal(obj, task_name, additional_possible_iterables = None):
         obj = obj,
         additional_possible_iterables = additional_possible_iterables
     )
-
-# TODO: Create a list of pt hard objects based on the YAML config.
-#       Loop over that list to create objects.
-#       Implement the various string functions to match up with the enums
-#       However, where is the list going to be stored? It's not really
-#       natural in an analysis task...
-class ptHard(object):
-    def __init__(self):
-        pass
 

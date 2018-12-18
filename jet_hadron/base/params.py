@@ -16,7 +16,7 @@ import logging
 import numbers
 import numpy as np
 import re
-from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from pachyderm import generic_class
 
@@ -377,10 +377,10 @@ class SelectedAnalysisOptions:
     event_activity: EventActivity
     leading_hadron_bias: Union[LeadingHadronBias, LeadingHadronBiasType]
 
-    def asdict(self):
+    def asdict(self) -> Dict[str, Any]:
         return dataclasses.asdict(self)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Any]:
         return iter(dataclasses.astuple(self))
 
 # For use with overriding configuration values
@@ -408,12 +408,12 @@ class EventPlaneAngle(enum.Enum):
         """ Returns the event plane angle name, as is. """
         return self.name
 
-    def filename_str(self):
-        """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
-        # TODO: Remove if not needed in generic_config
-        return f"eventPlane{uppercase_first_letter(str(self))}"
+    #def filename_str(self):
+    #    """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
+    #    # TODO: Remove if not needed in generic_config
+    #    return f"eventPlane{uppercase_first_letter(str(self))}"
 
-    def display_str(self):
+    def display_str(self) -> str:
         """ For example, turns outOfPlane into "Out-of-plane".
 
         Note:
@@ -442,15 +442,18 @@ class QVector(enum.Enum):
         """ Returns the name of the selection range. """
         return self.name
 
-    def filename_str(self):
-        """ Helper class that returns a filename self value. """
-        # TODO: Remove if not needed in generic_config
-        return f"qVector{uppercase_first_letter(str(self))}"
+    #def filename_str(self):
+    #    """ Helper class that returns a filename self value. """
+    #    # TODO: Remove if not needed in generic_config
+    #    return f"qVector{uppercase_first_letter(str(self))}"
 
-    def display_str(self):
+    def display_str(self) -> str:
         """ Turns "bottom10" into "Bottom 10%". """
         # This also works for "all" -> "All"
-        temp_list = re.match("([a-z]*)([0-9]*)", self.name).groups()
+        match = re.match("([a-z]*)([0-9]*)", self.name)
+        if not match:
+            raise ValueError("Could not extract Q Vector value \"{self.name}\" for printing.")
+        temp_list = match.groups()
         ret_val = uppercase_first_letter(" ".join(temp_list))
         if self.name != "all":
             ret_val += "%"
