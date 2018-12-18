@@ -408,11 +408,6 @@ class EventPlaneAngle(enum.Enum):
         """ Returns the event plane angle name, as is. """
         return self.name
 
-    #def filename_str(self):
-    #    """ For example, turns outOfPlane into "eventPlaneOutOfPlane" """
-    #    # TODO: Remove if not needed in generic_config
-    #    return f"eventPlane{uppercase_first_letter(str(self))}"
-
     def display_str(self) -> str:
         """ For example, turns outOfPlane into "Out-of-plane".
 
@@ -441,11 +436,6 @@ class QVector(enum.Enum):
     def __str__(self) -> str:
         """ Returns the name of the selection range. """
         return self.name
-
-    #def filename_str(self):
-    #    """ Helper class that returns a filename self value. """
-    #    # TODO: Remove if not needed in generic_config
-    #    return f"qVector{uppercase_first_letter(str(self))}"
 
     def display_str(self) -> str:
         """ Turns "bottom10" into "Bottom 10%". """

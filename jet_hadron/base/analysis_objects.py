@@ -44,11 +44,6 @@ class JetHCorrelationType(enum.Enum):
         # Capitalize the first letter of every word
         return splitString.title()
 
-    def filenameStr(self):
-        """ Name to use in a filename. """
-        # TODO: Remove if possible
-        return self.__str__()
-
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.
 
