@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
     ("a/b", ["png", "pdf"]),
     ("a/b/c", ["pdf"])
 ], ids = ["standard", "multipleExtension", "variationOfOutputPrefix"])
-def testPlottingOutputWrapper(loggingMixin, outputPrefix, printingExtensions):
+def testPlottingOutputWrapper(logging_mixin, outputPrefix, printingExtensions):
     """ Test the plottingOutputWrapper object. """
     obj = plotBase.plottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
     assert obj.outputPrefix == outputPrefix
@@ -45,7 +45,7 @@ def setupSaveTests(request, mocker):
         expectedFilenames.append(os.path.join(outputPrefix, "{filename}." + ext))
     return (obj, figure, canvas, expectedFilenames)
 
-def testSavePlot(loggingMixin, setupSaveTests):
+def testSavePlot(logging_mixin, setupSaveTests):
     """ Test the wrapper for saving a matplotlib plot. """
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
@@ -54,7 +54,7 @@ def testSavePlot(loggingMixin, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testSaveCanvas(loggingMixin, setupSaveTests):
+def testSaveCanvas(logging_mixin, setupSaveTests):
     """ Test the wrapper for saving a ROOT canvas. """
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
@@ -63,7 +63,7 @@ def testSaveCanvas(loggingMixin, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testSavePlotImpl(loggingMixin, setupSaveTests):
+def testSavePlotImpl(logging_mixin, setupSaveTests):
     """ Test the implementation for saving a matplotlib plot. """
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
@@ -72,7 +72,7 @@ def testSavePlotImpl(loggingMixin, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testSaveCanvasImpl(loggingMixin, mocker, setupSaveTests):
+def testSaveCanvasImpl(logging_mixin, mocker, setupSaveTests):
     """ Test the implementation for saving a ROOT canvas. """
     (obj, figure, canvas, expectedFilenames) = setupSaveTests
     filename = "filename"
@@ -81,7 +81,7 @@ def testSaveCanvasImpl(loggingMixin, mocker, setupSaveTests):
 
     assert filenames == [name.format(filename = filename) for name in expectedFilenames]
 
-def testRegistrationOfKBirdColormap(loggingMixin):
+def testRegistrationOfKBirdColormap(logging_mixin):
     """ Test to ensure that the ROOT kBird colormap is registered in matplotlib successfully. """
     import matplotlib.pyplot as plt
     kBirdName = "ROOT_kBird"
@@ -90,7 +90,7 @@ def testRegistrationOfKBirdColormap(loggingMixin):
 
     assert kBird.name == kBirdName
 
-def testFixBadColormapValue(loggingMixin):
+def testFixBadColormapValue(logging_mixin):
     """ Test that the bad (ie. nan or similar) value of a given color scheme is successfully reassigned. """
     import matplotlib.pyplot as plt
     cmap = plt.get_cmap("viridis")
