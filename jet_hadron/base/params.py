@@ -7,8 +7,6 @@ Also contains methods to access that information.
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-from builtins import range
-
 import dataclasses
 from dataclasses import dataclass
 import enum
@@ -108,7 +106,7 @@ def uppercase_first_letter(s: str) -> str:
 #########
 # Parameter information (access and display)
 #########
-class AliceLabel(enum.Enum):
+class AliceLabel(generic_class.EnumWithYAML, enum.Enum):
     """ ALICE label types. """
     work_in_progress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -254,7 +252,7 @@ class SelectedRange:
 #########
 # Classes
 #########
-class CollisionEnergy(enum.Enum):
+class CollisionEnergy(generic_class.EnumToYAML, enum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
     fiveZeroTwo = 5.02
@@ -267,10 +265,16 @@ class CollisionEnergy(enum.Enum):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy": self.value}
 
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        """ Decode YAML representer. """
+        print(f"type of constructor: {type(constructor)}, type of node: {type(node)}")
+        return cls(float(node.value))
+
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"
 
-class CollisionSystem(enum.Enum):
+class CollisionSystem(generic_class.EnumWithYAML, enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
@@ -288,7 +292,7 @@ class CollisionSystem(enum.Enum):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return self.value
 
-class EventActivity(enum.Enum):
+class EventActivity(generic_class.EnumWithYAML, enum.Enum):
     """ Define the event activity.
 
     Object value are of the form (index, (centLow, centHigh)), where index is the expected
@@ -321,7 +325,7 @@ class EventActivity(enum.Enum):
             ret_val = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
         return ret_val
 
-class LeadingHadronBiasType(enum.Enum):
+class LeadingHadronBiasType(generic_class.EnumWithYAML, enum.Enum):
     """ Leading hadron bias type """
     NA = -1
     track = 0
@@ -397,7 +401,7 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 # Instead, they are stored in a particular analysis object and used as
 # analysis options.
 ##############################
-class EventPlaneAngle(enum.Enum):
+class EventPlaneAngle(generic_class.EnumWithYAML, enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1
@@ -418,7 +422,7 @@ class EventPlaneAngle(enum.Enum):
         tempList = re.findall("[a-zA-Z][^A-Z]*", str(self))
         return "-".join(tempList).capitalize()
 
-class QVector(enum.Enum):
+class QVector(generic_class.EnumWithYAML, enum.Enum):
     """ Selection based on the Q vector. """
     all = SelectedRange(min = 0, max = 100)
     bottom10 = SelectedRange(min = 0, max = 10)

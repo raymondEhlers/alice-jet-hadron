@@ -9,12 +9,14 @@
 from future.utils import iteritems
 
 import argparse
+import inspect
 import logging
 import os
 from typing import Any, Dict, Iterable, Mapping, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import generic_config
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 
 logger = logging.getLogger(__name__)
@@ -182,8 +184,8 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
-        task_name (str): Name of the analysis task.
-        config_filename (str): Filename of the yaml config.
+        task_name: Name of the analysis task.
+        config_filename: Filename of the yaml config.
         selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
         obj (object): The object to be constructed.
         additional_possible_iterables(dict): Additional iterators to use when creating the objects,
@@ -195,23 +197,12 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
             arguments passed to the object, while the values are the newly constructed arguments. See
             ``pachyderm.generic_config.create_objects_from_iterables(...)`` for more.
     """
-    # Validate arguments
+    # Validate and setup arguments
     (selected_analysis_options, additional_validated_args) = validate_arguments(selected_analysis_options)
     if additional_possible_iterables is None:
         additional_possible_iterables = {}
 
-    # Load configuration
-    config = generic_config.load_configuration(config_filename)
-    config = override_options(config, selected_analysis_options,
-                              config_containing_override = config[task_name])
-    # We (re)define the task config here after we have overridden the relevant values.
-    task_config = config[task_name]
-
-    # Now that the values have been overrideen, we can determine the full leading hadron bias
-    selected_analysis_options = determine_leading_hadron_bias(config = config, selected_analysis_options = selected_analysis_options)
-    logger.debug(f"Selected analysis options: {selected_analysis_options}")
-
-    # Iteration options
+    # Setup iterables
     # Selected on event plane and q vector are required since they are included in
     # the output prefix for consistency (event if a task doesn't select in one or
     # both of them)
@@ -219,9 +210,43 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     # These names map the config/attibute names to the iterable.
     possible_iterables["event_plane_angle"] = params.EventPlaneAngle
     possible_iterables["qVector"] = params.QVector  # type: ignore
-    # NOTE: Careful here - in principle, this could overwrite the EP or qVector iterators. However,
-    #       it is unlikely.
-    possible_iterables.update(additional_possible_iterables)
+    possible_iterables.update({k: v for k, v in additional_possible_iterables.items() if k not in possible_iterables})
+
+    # Classes to register for reconstruction within YAML
+    classes_to_register = [
+        # Iterables defined in the YAML
+        analysis_objects.PtHardBin,
+    ]
+    # Add in all classes defined in the params and analysis_objects module
+    for module in [params, analysis_objects]:
+        module_classes = [member[1] for member in inspect.getmembers(module, inspect.isclass)]
+        classes_to_register.extend(module_classes)
+
+    # We also want all possible iterables, but we have to skip None iterables (which are defined in the YAML),
+    # and thus must already be listed above.
+    classes_to_register.extend([v for v in possible_iterables.values() if v])
+    logger.debug(f"classes_to_register: {classes_to_register}")
+    # Load and override the configuration
+    config = generic_config.load_configuration(
+        filename = config_filename,
+        classes_to_register = classes_to_register,
+    )
+    config = override_options(
+        config = config,
+        selected_options = selected_analysis_options,
+        config_containing_override = config[task_name]
+    )
+    # We (re)define the task config here after we have overridden the relevant values.
+    task_config = config[task_name]
+
+    # Now that the values have been overrideen, we can determine the full leading hadron bias
+    selected_analysis_options = determine_leading_hadron_bias(
+        config = config,
+        selected_analysis_options = selected_analysis_options
+    )
+    logger.debug(f"Selected analysis options: {selected_analysis_options}")
+
+    # Iteration options
     # NOTE: These requested iterators should be passed by the task,
     #       but then the values should be selected in the YAML config.
     iterables = generic_config.determine_selection_of_iterable_values_from_config(

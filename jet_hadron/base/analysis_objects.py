@@ -6,9 +6,9 @@
 """
 
 # From the future package
-from builtins import super
 from future.utils import iteritems
 
+from dataclasses import dataclass
 import enum
 import copy
 import logging
@@ -509,6 +509,20 @@ class FitContainer(YAMLStorableObject):
         super().saveToYAML(prefix = prefix,
                            fileAccessMode = fileAccessMode,
                            *args, **kwargs)
+
+@dataclass(frozen = True)
+class PtHardBin:
+    bin: int
+    train_number: int
+    # To specfiy the YAML tag.
+    #yaml_tag: str = "PtHardBinClass"
+
+    #def __init__(self, bin: int, train_number: int):
+    #    self.bin = bin
+    #    self.train_number = train_number
+
+    def __str__(self):
+        return str(self.bin)
 
 ###############
 # Additional experimental code
