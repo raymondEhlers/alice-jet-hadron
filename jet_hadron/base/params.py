@@ -106,7 +106,7 @@ def uppercase_first_letter(s: str) -> str:
 #########
 # Parameter information (access and display)
 #########
-class AliceLabel(generic_class.EnumWithYAML, enum.Enum):
+class AliceLabel(generic_class.EnumToYAML, enum.Enum):
     """ ALICE label types. """
     work_in_progress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -121,6 +121,11 @@ class AliceLabel(generic_class.EnumWithYAML, enum.Enum):
             more meaningful here. The name can always be accessed with ``.name``.
         """
         return str(self.value)
+
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        """ Decode YAML representer. """
+        return cls(node.value)
 
 def system_label(energy: Union[float, "CollisionEnergy"], system: Union[str, "CollisionSystem"], activity: Union[str, "EventActivity"]) -> str:
     """ Generates the collision system, event activity, and energy label.
@@ -268,7 +273,6 @@ class CollisionEnergy(generic_class.EnumToYAML, enum.Enum):
     @classmethod
     def from_yaml(cls, constructor, node):
         """ Decode YAML representer. """
-        print(f"type of constructor: {type(constructor)}, type of node: {type(node)}")
         return cls(float(node.value))
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
