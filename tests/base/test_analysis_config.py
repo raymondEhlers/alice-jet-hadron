@@ -9,6 +9,7 @@
 from future.utils import iteritems
 
 import copy
+import inspect
 import logging
 import pytest
 import ruamel.yaml
@@ -17,6 +18,7 @@ from io import StringIO
 from pachyderm import generic_config
 
 from jet_hadron.base import analysis_config
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 
 # Setup logger
@@ -480,8 +482,16 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
         obj = obj,
         additional_possible_iterables = additional_iterables,
     )
+
     # Check the opening the config file was called properly.
-    load_configuration_mock.assert_called_once_with(config_filename)
+    # Need to collect the classes from the params and analysis_objects modules to check it.
+    classes_to_register = set([])
+    for module in [params, analysis_objects]:
+        classes_to_register.update([member[1] for member in inspect.getmembers(module, inspect.isclass)])
+    load_configuration_mock.assert_called_once_with(
+        filename = config_filename,
+        classes_to_register = classes_to_register
+    )
 
     assert names == expected_names
     for values, obj in generic_config.iterate_with_selected_objects(objects):
