@@ -393,13 +393,15 @@ class HistArray(YAMLStorableObject):
     """ Represents a histogram's binned data.
 
     Histograms stored in this class make a number of (soft) assumptions
-    - This histogram _doesn't_ include the under-flow and over-flow bins.
+
+    - This histogram doesn't include the under-flow and over-flow bins.
     - The binning of the histogram is uniform.
 
-    NOTE: The members of this class are stored with leading underscores because we access them
-          through properties. It would be cleaner to remove the  "_" before the variables, but for now,
-          it is very convenient, since it allows for automatic initialization from YAML. Perhaps
-          revise later the names later while maintaining those properties.
+    NOTE:
+        The members of this class are stored with leading underscores because we access them
+        through properties. It would be cleaner to remove the  "_" before the variables, but for now,
+        it is very convenient, since it allows for automatic initialization from YAML. Perhaps
+        revise later the names later while maintaining those properties.
 
     Args:
         _binCenters (np.ndarray): The location of the center of each bin.

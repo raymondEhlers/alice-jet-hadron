@@ -253,8 +253,7 @@ class HistPlotter(object):
             ax: Axis from matplotlib.
         Raises:
             ValueError: If more than one histogram is stored in the ``hists``, which doesn't make sense for
-                2D hist, which doesn't make sense for
-                    2D hists.
+                2D hist, which doesn't make sense for 2D hists.
         """
         if len(self.hists) > 1:
             raise ValueError(self.hists, "Too many hists are included for a 2D hist. Should only be one!")

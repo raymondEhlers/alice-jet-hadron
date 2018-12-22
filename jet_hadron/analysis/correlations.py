@@ -80,8 +80,8 @@ class JetHTriggerSparse(enum.Enum):
 
 class JetHCorrelationAxis(enum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
-    kDeltaPhi = projectors.TH1AxisType.xAxis.value
-    kDeltaEta = projectors.TH1AxisType.yAxis.value
+    kDeltaPhi = projectors.TH1AxisType.x_axis.value
+    kDeltaEta = projectors.TH1AxisType.y_axis.value
 
     def __str__(self):
         """ Turns kDeltaPhi into "deltaPhi" """
