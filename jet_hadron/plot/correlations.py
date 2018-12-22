@@ -20,8 +20,9 @@ import seaborn as sns
 # And use ROOT in others
 import rootpy.ROOT as ROOT
 
+from pachyderm import histogram
+
 from jet_hadron.base import params
-from jet_hadron.base import utils
 from jet_hadron.plot import base as plotBase
 from jet_hadron.plot import highlight_RPF
 
@@ -270,7 +271,7 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
         # TODO: Determmine if color overlays are better here!
-        (fig, ax) = highlight_RPF.plotRPFFitRegions(utils.getArrayFromHist2D(observable.hist.hist),
+        (fig, ax) = highlight_RPF.plotRPFFitRegions(histogram.getArrayFromHist2D(observable.hist.hist),
                                                     highlightRegions = defineHighlightRegions(),
                                                     useColorOverlay = False)
 

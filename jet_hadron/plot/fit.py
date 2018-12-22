@@ -21,10 +21,10 @@ import seaborn as sns
 import rootpy.ROOT as ROOT
 
 from pachyderm import generic_config
+from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.base import utils
 from jet_hadron.plot import base as plotBase
 
 # Setup logger
@@ -522,12 +522,12 @@ def CompareToJoel(epFitObj):
         ax.fill_between(observable.hist.binCenters, observable.hist.array - fitErrors, observable.hist.array + fitErrors, facecolor = myDataPlotColor, zorder = 10, alpha = 0.8)
 
         # Plot joel data
-        joelData = utils.getArrayFromHist(joelAllAngles)
+        joelData = histogram.getArrayFromHist(joelAllAngles)
         joelDataPlot = ax.errorbar(joelData["binCenters"], joelData["y"], yerr = joelData["errors"], label = "Joel")
         joelDataPlotColor = joelDataPlot[0].get_color()
-        joelErrorMin = utils.getArrayFromHist(joelAllAnglesErrorMin)
+        joelErrorMin = histogram.getArrayFromHist(joelAllAnglesErrorMin)
         ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMin["y"], facecolor = joelDataPlotColor)
-        joelErrorMax = utils.getArrayFromHist(joelAllAnglesErrorMax)
+        joelErrorMax = histogram.getArrayFromHist(joelAllAnglesErrorMax)
         ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMax["y"], facecolor = joelDataPlotColor)
 
         # Tight the plotting up

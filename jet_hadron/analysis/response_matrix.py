@@ -24,7 +24,7 @@ from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base.params import eventPlaneAngle as EventPlaneAngle
+from jet_hadron.base.params import EventPlaneAngle
 
 from rootpy.io import root_open
 import ROOT

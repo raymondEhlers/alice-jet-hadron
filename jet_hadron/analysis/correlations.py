@@ -148,7 +148,7 @@ class JetHCorrelationProjector(projectors.HistProjector):
         )
         return outputObservable
 
-class JetHAnalysis(analysis_config.JetHBase):
+class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
 
     # Properties
@@ -1550,6 +1550,9 @@ class JetHAnalysis(analysis_config.JetHBase):
 
     @staticmethod
     def runFitting(analyses):
+        # TODO: TEMP
+        self = None
+        # ENDTEMP
         # Ensure that the previous step was run
         for _, jetH in generic_config.unrollNestedDict(analyses):
             if not jetH.ranProjections:

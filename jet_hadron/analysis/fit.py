@@ -27,8 +27,8 @@ import probfit
 import numdifftools as nd
 
 from jet_hadron.base import params
-from jet_hadron.base import analysisObjects
-from jet_hadron.base import analysisConfig
+from jet_hadron.base import analysis_objects
+from jet_hadron.base import analysis_config
 from jet_hadron.plot import fit as plotFit
 
 import rootpy.ROOT as ROOT
@@ -251,8 +251,8 @@ class JetHEPFit(object):
 
         # Determine configuration
         # The configurations should all be the same, except for the EP (which isn't in the config anyway)
-        _, jetHAllAngles = next(analysisConfig.unrollNestedDict(self.analyses[params.eventPlaneAngle.all]))
-        #_, jetHAllAngles = next(analysisConfig.unrollNestedDict(self.analyses))
+        _, jetHAllAngles = next(analysis_config.unrollNestedDict(self.analyses[params.eventPlaneAngle.all]))
+        #_, jetHAllAngles = next(analysis_config.unrollNestedDict(self.analyses))
 
         # Store to simplify plotting
         self.outputPrefix = jetHAllAngles.outputPrefix
@@ -275,18 +275,18 @@ class JetHEPFit(object):
         self.calculateFitError = self.fitConfig["calculateFitError"]
 
         # Useful when labeling fit conatiner objects
-        self.overallFitLabel = analysisObjects.jetHCorrelationType.backgroundDominated
+        self.overallFitLabel = analysis_objects.jetHCorrelationType.backgroundDominated
         if self.includeSignalInFit:
-            self.overallFitLabel = analysisObjects.jetHCorrelationType.signalDominated
+            self.overallFitLabel = analysis_objects.jetHCorrelationType.signalDominated
 
     def GetFitFunction(self, fitType, epAngle):
         """ Simple wrapper to get the fit function corresponding to the selected fitType. """
-        fitFunctionMap = {analysisObjects.jetHCorrelationType.signalDominated : GetSignalDominatedFitFunction,
-                          analysisObjects.jetHCorrelationType.backgroundDominated : GetBackgroundDominatedFitFunction}
+        fitFunctionMap = {analysis_objects.jetHCorrelationType.signalDominated : GetSignalDominatedFitFunction,
+                          analysis_objects.jetHCorrelationType.backgroundDominated : GetBackgroundDominatedFitFunction}
 
         # The fit container stores the fit type as a string. We need it as a jetHCorrelationType
         if isinstance(fitType, str):
-            fitType = analysisObjects.jetHCorrelationType[fitType]
+            fitType = analysis_objects.jetHCorrelationType[fitType]
         if isinstance(epAngle, str):
             epAngle = params.eventPlaneAngle[epAngle]
         # Retrieve the function
@@ -312,7 +312,7 @@ class JetHEPFit(object):
 
         """
         retVal = True
-        if correlationType == analysisObjects.jetHCorrelationType.signalDominated:
+        if correlationType == analysis_objects.jetHCorrelationType.signalDominated:
             # Skip signal fit
             if not self.includeSignalInFit:
                 retVal = False
@@ -334,7 +334,7 @@ class JetHEPFit(object):
     def DefineFits(self):
         # Setup fit and cost functions
         # Define the fits
-        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             #for signalDominated, backgroundDominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
             assert keys[0] == jetH.eventPlaneAngle
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
@@ -355,7 +355,7 @@ class JetHEPFit(object):
                 fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.eventPlaneAngle)
 
                 # Restricted the background fit range
-                if observable.correlationType == analysisObjects.jetHCorrelationType.backgroundDominated:
+                if observable.correlationType == analysis_objects.jetHCorrelationType.backgroundDominated:
                     # Use only near-side data (ie dPhi < pi/2)
                     NSrange = int(len(x)/2.)
                     x = x[:NSrange]
@@ -389,7 +389,7 @@ class JetHEPFit(object):
             logger.info("Loading stored fit parameters")
             # Load the fit containers from file instead
             for (jetPtBin, trackPtBin), fitsDict in iteritems(self.fits):
-                fitCont = analysisObjects.FitContainer.initFromYAML(prefix = self.outputPrefix,
+                fitCont = analysis_objects.FitContainer.initFromYAML(prefix = self.outputPrefix,
                         objType = self.overallFitLabel,
                         jetPtBin = jetPtBin,
                         trackPtBin = trackPtBin)
@@ -479,7 +479,7 @@ class JetHEPFit(object):
                         jetPtBin = jetPtBin, trackPtBin = trackPtBin)
 
             # Save out the fit paramaters
-            fitCont = analysisObjects.FitContainer(jetPtBin = jetPtBin, trackPtBin = trackPtBin, fitType = self.overallFitLabel,
+            fitCont = analysis_objects.FitContainer(jetPtBin = jetPtBin, trackPtBin = trackPtBin, fitType = self.overallFitLabel,
                     values = minuit.values, params = minuit.fitarg, covarianceMatrix = minuit.covariance)
 
             # They are the same for each EP angle
@@ -494,7 +494,7 @@ class JetHEPFit(object):
 
     def DetermineFitErrors(self):
         # Perform error calculate
-        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             assert keys[0] == jetH.eventPlaneAngle
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
                 retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
@@ -618,7 +618,7 @@ class JetHEPFit(object):
         return errorVals
 
     def SubtractEPHists(self):
-        for keys, jetH in analysisConfig.unrollNestedDict(self.analyses):
+        for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             assert keys[0] == jetH.eventPlaneAngle
             for observable in itervalues(jetH.dPhiArray):
                 #retVal = self.CheckIfFitIsEnabled(epAngle, observable.correlationType)
@@ -636,7 +636,7 @@ class JetHEPFit(object):
 
                 # Retrieve fit data
                 fit = self.EvaluateFit(epAngle = jetH.eventPlaneAngle,
-                        fitType = analysisObjects.jetHCorrelationType.backgroundDominated,
+                        fitType = analysis_objects.jetHCorrelationType.backgroundDominated,
                         xValue = xForFitFunc,
                         fitContainer = fitCont)
 
@@ -645,7 +645,7 @@ class JetHEPFit(object):
                 # TODO: Error prop?
                 subtractedErrors = observable.hist.errors
 
-                histArray = analysisObjects.HistArray(_binCenters = observable.hist.x,
+                histArray = analysis_objects.HistArray(_binCenters = observable.hist.x,
                         _array = subtracted,
                         _errors = subtractedErrors)
 
@@ -653,7 +653,7 @@ class JetHEPFit(object):
                         trackPtBin = observable.trackPtBin,
                         tag = observable.correlationType)
 
-                jetH.dPhiSubtractedArray[subtractedHistName] = analysisObjects.CorrelationObservable1D(jetPtBin = observable.jetPtBin,
+                jetH.dPhiSubtractedArray[subtractedHistName] = analysis_objects.CorrelationObservable1D(jetPtBin = observable.jetPtBin,
                         trackPtBin = observable.trackPtBin,
                         axis = observable.axis,
                         correlationType = observable.correlationType,
@@ -674,7 +674,7 @@ class JetHEPFit(object):
             for (jetPtBin, trackPtBin), fitCont in iteritems(self.fitContainers):
                 value = fitCont.params["{}Sigma".format(location)]
                 error = fitCont.params["error_{}Sigma".format(location)]
-                widths[location][(jetPtBin, trackPtBin)] = analysisObjects.ExtractedObservable(jetPtBin = jetPtBin,
+                widths[location][(jetPtBin, trackPtBin)] = analysis_objects.ExtractedObservable(jetPtBin = jetPtBin,
                         trackPtBin = trackPtBin,
                         value = value,
                         error = error)
@@ -688,7 +688,7 @@ class JetHEPFit(object):
         Args:
             func (Callable): Function for which the arguments should be determined
             xValue (int, float, or np.array): Whatever the x value (or values for an np.array) that should be called
-            fitContainer (analysisObjects.FitContainer): Fit container which holds the values that will be used when calling the function
+            fitContainer (analysis_objects.FitContainer): Fit container which holds the values that will be used when calling the function
         """
         # Get description of the arguments of the function
         funcDescription = probfit.describe(func)

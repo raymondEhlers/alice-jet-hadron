@@ -19,14 +19,14 @@ from typing import Dict
 from pachyderm import generic_config
 from pachyderm import histogram
 
-from jet_hadron.base import analysis_config
+from jet_hadron.base import analysis_objects
 from jet_hadron.plot import generic_hist as plot_generic_hist
 
 logger = logging.getLogger(__name__)
 # Quiet down the matplotlib logging
 logging.getLogger("matplotlib").setLevel(logging.INFO)
 
-class PlotTaskHists(analysis_config.JetHBase):
+class PlotTaskHists(analysis_objects.JetHBase):
     """ Generic class to plot hists in analysis task.
 
     Hists are selected and configured by a configuration file.
