@@ -7,6 +7,7 @@ _testScript: &testScript
     # Use cache with pip to save time.
     cache: pip
     install:
+        - pip install --upgrade numpy cython
         - pip install --upgrade -e .[tests,dev,docs]
     script:
         # Check code quality
@@ -18,26 +19,35 @@ _testScript: &testScript
         - pushd docs && make html && popd
         # Skip sending the coverage here because it will be rather low due to skipping the ROOT tests.
         # We will instead send that coverage report.
+_dockerTestScript: &dockerTestScript
+    before_script:
+        # Build the docker image
+        - docker build -t rehlers/alice-jet-hadron .
+        # So we can see that the have the expected images
+        - docker images
+    script:
+        # Other tests (flake8, mpypy, etc) are covered by the test stage, so we just want to test and
+        # uplaod coverage here.
+        # Setup coverage
+        - ci_env=`bash <(curl -s https://codecov.io/env)`
+        # Run tests and upload coverage
+        # jet_hadron was installed when the image was created above, so we don't need to install it again.
+        - docker run $ci_env rehlers/alice-jet-hadron /bin/bash -c "pytest -l -vv --cov=jet_hadron --cov-branch --durations=5 tests/ && bash <(curl -s https://codecov.io/bash)"
+        # We could now push the image to docker hub. However, we don't really need it for anything, so we
+        # skip this step for now.
 jobs:
     include:
         # Tests which require ROOT, coverage
         - stage: test
+          <<: *dockerTestScript
           python: 3.6
-          before_script:
-              # Build the docker image
-              - docker build -t rehlers/alice-jet-hadron .
-              # So we can see that the have the expected images
-              - docker images
-          script:
-              # Other tests (flake8, mpypy, etc) are covered by the test stage, so we just want to test and
-              # uplaod coverage here.
-              # Setup coverage
-              - ci_env=`bash <(curl -s https://codecov.io/env)`
-              # Run tests and upload coverage
-              # jet_hadron was installed when the image was created above, so we don't need to install
-              # it again.
-              - docker run $ci_env rehlers/alice-jet-hadron /bin/bash -c "pytest -l -vv --cov=jet_hadron --cov-branch --durations=5 tests/ && bash <(curl -s https://codecov.io/bash)"
-              # We could now push the image to docker hub. However, we don't really need it for anything, so we skip this step for now.
+          # For use with the docker image.
+          env: PYTHON_VERSION=3.6.7
+        - stage: test
+          <<: *dockerTestScript
+          python: 3.7
+          # For use with the docker image.
+          env: PYTHON_VERSION=3.7.1
         # Standard tests without ROOT
         # We give these the same name so the tests will run in parallel
         - stage: test

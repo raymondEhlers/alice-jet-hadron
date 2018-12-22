@@ -20,9 +20,7 @@ WORKDIR ${JET_HADRON_ROOT}
 # Copy the jet-hadron analysis into the image.
 COPY --chown=overwatch:overwatch . ${JET_HADRON_ROOT}
 
-# TEMP: As of 12 Dec 2018, lz4 will fail to install because there is an empty "pkgconfig" directory
-#       in the $ROOTSYS/lib directory. pkgconfig is needed for uproot (and thus, pachyderm). Fixed in
-#       the lz4 dev branch, but it needs to be tagged.
-RUN pip install --user --upgrade --no-cache-dir pkgconfig
+# Necessary for iminuit, probfit
+RUN pip install --user --upgrade --no-cache-dir numpy cython
 # Install the jet-hadron analysis.
 RUN pip install --user --upgrade --no-cache-dir -e .[tests,dev,docs]

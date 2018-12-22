@@ -62,6 +62,7 @@ setup(
     entry_points = {
         "console_scripts": [
             "jetHAnalysis = jet_hadron.analysis.correlations:runFromTerminal",
+            #"testDev = jet_hadron.analysis.rm_dev:run_from_terminal",
             "jetHResponse = jet_hadron.analysis.response_matrix:runFromTerminal",
             "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalCorrectionsHistsFromTerminal",
             "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalEmbeddingHistsFromTerminal",
@@ -81,7 +82,9 @@ setup(
         "seaborn",
         # Not required at the moment, but hopefully for the future.
         #"uproot",
-        "rootpy",
+        # Skip rootpy so we can install the package without ROOT being available (so we can run flake8, etc,
+        # even if we skip the tests).
+        #"rootpy",
         #"root_numpy",  # As of Dec 2018, they have a new tag, but it's not yet on PyPI
         "iminuit>=1.3",
         "probfit",
