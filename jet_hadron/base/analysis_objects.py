@@ -15,15 +15,18 @@ import logging
 import numpy as np
 import os
 import re
-from typing import Any
+from typing import Any, Mapping, Union
 
+from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import utils
+
+from jet_hadron.base import params
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class JetHCorrelationType(enum.Enum):
+class JetHCorrelationType(generic_class.EnumWithYAML, enum.Enum):
     """ 1D correlation projection type """
     fullRange = 0
     # dPhi specialized
@@ -44,6 +47,78 @@ class JetHCorrelationType(enum.Enum):
         split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
         # Capitalize the first letter of every word
         return split_string.title()
+
+class JetHBase(generic_class.EqualityMixin):
+    """ Base class for shared jet-hadron configuration values.
+
+    Args:
+        task_name (str): Name of the task.
+        config_filename (str): Filename of the YAML configuration.
+        config (dict-like object): Contains the analysis configuration. Note that it must already be
+            fully configured and overridden.
+        task_config (dict-like object): Contains the task specific configuration. Note that it must already be
+            fully configured and overridden. Also note that by convention it is also available at
+            ``config[task_name]``.
+        collision_energy (params.CollisionEnergy): Selected collision energy.
+        collision_system (params.CollisionSystem): Selected collision system.
+        event_activity (params.EventActivity): Selected event activity.
+        leading_hadron_bias (params.LeadingHadronBias or params.LeadingHadronBiasType): Selected leading hadron
+            bias. The class member will contain both the type and the value.
+        event_plane_angle (params.EventPlaneAngle): Selected event plane angle.
+        args (list): Absorb extra arguments. They will be ignored.
+        kwargs (dict): Absorb extra named arguments. They will be ignored.
+    """
+    def __init__(self,
+                 task_name: str, config_filename: str,
+                 config: Mapping, task_config: Mapping,
+                 collision_energy: params.CollisionEnergy,
+                 collision_system: params.CollisionSystem,
+                 event_activity: params.EventActivity,
+                 leading_hadron_bias: Union[params.LeadingHadronBias, params.LeadingHadronBiasType],
+                 event_plane_angle: params.EventPlaneAngle,
+                 *args, **kwargs):
+        # Store the configuration
+        self.task_name = task_name
+        self.config_filename = config_filename
+        self.config = config
+        self.task_config = task_config
+        self.collision_energy = collision_energy
+        self.collision_system = collision_system
+        self.event_activity = event_activity
+        self.event_plane_angle = event_plane_angle
+
+        # Handle leading hadron bias depending on the type.
+        if isinstance(leading_hadron_bias, params.LeadingHadronBiasType):
+            # Load this module only if necessary. I'm not moving this function because it makes dependences much
+            # messier.
+            from jet_hadron.base import analysis_config
+            leading_hadron_bias = analysis_config.determine_leading_hadron_bias(
+                config = self.config,
+                selected_analysis_options = params.SelectedAnalysisOptions(
+                    collision_energy = self.collision_energy,
+                    collision_system = self.collision_system,
+                    event_activity = self.event_activity,
+                    leading_hadron_bias = leading_hadron_bias)
+            ).leading_hadron_bias
+        # The type of leading_hadron_bias should now be params.LeadingHadronBias, regardless of whether
+        # that type was passed.
+        self.leading_hadron_bias = leading_hadron_bias
+
+        # File I/O
+        # If in kwargs, use that value (which inherited class may use to override the config)
+        # otherwise, use the value from the value from the config
+        self.input_filename = config["inputFilename"]
+        self.input_list_name = config["inputListName"]
+        self.output_prefix = config["outputPrefix"]
+        self.output_filename = config["outputFilename"]
+        # Setup output area
+        if not os.path.exists(self.output_prefix):
+            os.makedirs(self.output_prefix)
+
+        self.printing_extensions = config["printingExtensions"]
+        # Convert the ALICE label if necessary
+        alice_label = config["aliceLabel"]
+        self.alice_label = params.AliceLabel[alice_label]
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.
@@ -523,16 +598,4 @@ class PtHardBin:
 
     def __str__(self):
         return str(self.bin)
-
-###############
-# Additional experimental code
-###############
-# Then, for THn's like Salvatore createHists function
-# Salvatore recommends binning by hand, as in his BinMultiSet class
-# To use this function, much more work would be required!
-def createHist(axes):  # pragma: no cover
-    hist = None
-    for (axis, func) in (axes, [hist.GetXaxis, hist.GetYaxis, hist.GetZaxis]):
-        func().SetTitle(axis.name)
-        # ...
 

@@ -11,10 +11,8 @@ from future.utils import iteritems
 import argparse
 import inspect
 import logging
-import os
-from typing import Any, Dict, Iterable, Mapping, Tuple, Union
+from typing import Any, Dict, Iterable, Tuple
 
-from pachyderm import generic_class
 from pachyderm import generic_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
@@ -285,75 +283,6 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     logger.debug(f"KeyIndex: {KeyIndex}, objects: {objects}")
 
     return (KeyIndex, names, objects)
-
-class JetHBase(generic_class.EqualityMixin):
-    """ Base class for shared jet-hadron configuration values.
-
-    Args:
-        task_name (str): Name of the task.
-        config_filename (str): Filename of the YAML configuration.
-        config (dict-like object): Contains the analysis configuration. Note that it must already be
-            fully configured and overridden.
-        task_config (dict-like object): Contains the task specific configuration. Note that it must already be
-            fully configured and overridden. Also note that by convention it is also available at
-            ``config[task_name]``.
-        collision_energy (params.CollisionEnergy): Selected collision energy.
-        collision_system (params.CollisionSystem): Selected collision system.
-        event_activity (params.EventActivity): Selected event activity.
-        leading_hadron_bias (params.LeadingHadronBias or params.LeadingHadronBiasType): Selected leading hadron
-            bias. The class member will contain both the type and the value.
-        event_plane_angle (params.EventPlaneAngle): Selected event plane angle.
-        args (list): Absorb extra arguments. They will be ignored.
-        kwargs (dict): Absorb extra named arguments. They will be ignored.
-    """
-    def __init__(self,
-                 task_name: str, config_filename: str,
-                 config: Mapping, task_config: Mapping,
-                 collision_energy: params.CollisionEnergy,
-                 collision_system: params.CollisionSystem,
-                 event_activity: params.EventActivity,
-                 leading_hadron_bias: Union[params.LeadingHadronBias, params.LeadingHadronBiasType],
-                 event_plane_angle: params.EventPlaneAngle,
-                 *args, **kwargs):
-        # Store the configuration
-        self.task_name = task_name
-        self.config_filename = config_filename
-        self.config = config
-        self.task_config = task_config
-        self.collision_energy = collision_energy
-        self.collision_system = collision_system
-        self.event_activity = event_activity
-        self.event_plane_angle = event_plane_angle
-
-        # Handle leading hadron bias depending on the type.
-        if isinstance(leading_hadron_bias, params.LeadingHadronBiasType):
-            leading_hadron_bias = determine_leading_hadron_bias(
-                config = self.config,
-                selected_analysis_options = params.SelectedAnalysisOptions(
-                    collision_energy = self.collision_energy,
-                    collision_system = self.collision_system,
-                    event_activity = self.event_activity,
-                    leading_hadron_bias = leading_hadron_bias)
-            ).leading_hadron_bias
-        # The type of leading_hadron_bias should now be params.LeadingHadronBias, regardless of whether
-        # that type was passed.
-        self.leading_hadron_bias = leading_hadron_bias
-
-        # File I/O
-        # If in kwargs, use that value (which inherited class may use to override the config)
-        # otherwise, use the value from the value from the config
-        self.input_filename = config["inputFilename"]
-        self.input_list_name = config["inputListName"]
-        self.output_prefix = config["outputPrefix"]
-        self.output_filename = config["outputFilename"]
-        # Setup output area
-        if not os.path.exists(self.output_prefix):
-            os.makedirs(self.output_prefix)
-
-        self.printing_extensions = config["printingExtensions"]
-        # Convert the ALICE label if necessary
-        alice_label = config["aliceLabel"]
-        self.alice_label = params.AliceLabel[alice_label]
 
 def create_from_terminal(obj, task_name, additional_possible_iterables = None):
     """ Main function to create an object from the terminal.
