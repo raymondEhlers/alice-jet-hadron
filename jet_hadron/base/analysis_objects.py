@@ -5,9 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# From the future package
-from future.utils import iteritems
-
 from dataclasses import dataclass
 import enum
 import copy
@@ -467,7 +464,7 @@ class HistArray(YAMLStorableObject):
             dict: Parameters with the initialization specific processing applied.
         """
         # Convert arrays to numpy arrays
-        for key, val in iteritems(parameters):
+        for key, val in parameters.items():
             if isinstance(val, list):
                 parameters[key] = np.array(val)
 
@@ -483,7 +480,7 @@ class HistArray(YAMLStorableObject):
             dict: Parameters with the save specific processing applied.
         """
         # Convert values for storage
-        for key, val in iteritems(parameters):
+        for key, val in parameters.items():
             # Handle numpy arrays to lists
             #logger.debug("Processing key {} with type {} and value {}".format(key, type(val), val))
             if isinstance(val, np.ndarray):
@@ -543,7 +540,7 @@ class FitContainer(YAMLStorableObject):
             dict: Parameters with the initialization specific processing applied.
         """
         if "errors" in parameters:
-            for k, v in iteritems(parameters["errors"]):
+            for k, v in parameters["errors"].items():
                 parameters["errors"][k] = np.array(v)
         # NOTE: The enum will be converted in the constructor, so we don't need to handle it here.
 
@@ -558,7 +555,7 @@ class FitContainer(YAMLStorableObject):
         Returns:
             dict: Parameters with the save specific processing applied.
         """
-        for identifier, data in iteritems(parameters["errors"]):
+        for identifier, data in parameters["errors"].items():
             if isinstance(data, np.ndarray):
                 # Convert to a normal list so it can be stored
                 parameters["errors"][identifier] = data.tolist()

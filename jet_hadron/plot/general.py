@@ -7,9 +7,6 @@ Contains brief plotting functions which don't belong elsewhere
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3
-from future.utils import iteritems
-
 import logging
 
 import rootpy.ROOT as ROOT
@@ -31,7 +28,7 @@ def plotGeneralAnalysisHistograms(jetH):
 
 def drawAndSaveGeneralHist(jetH, canvas, hists, drawOpt = ""):
     """ Simple helper to draw a histogram and save it out. """
-    for name, hist in iteritems(hists):
+    for name, hist in hists.items():
         logger.debug("name: {}, hist: {}".format(name, hist))
         if hist:
             logger.info("Drawing general hist {}".format(name))

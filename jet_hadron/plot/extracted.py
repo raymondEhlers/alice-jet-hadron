@@ -7,11 +7,6 @@ Includes quantities such as widths and yields.
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3
-from future.utils import iteritems
-from future.utils import itervalues
-
-import collections
 import logging
 
 # Import plotting packages
@@ -46,7 +41,7 @@ def createTGraphsFromExtractedValues(jetH, values):
 
     Returns: (OrderedDict): One TGraph filled with the corresponding values per jet pt bin.
     """
-    graphs = collections.OrderedDict()
+    graphs = {}
     for jetPtBin in params.iterateOverJetPtBins():
         # TODO: Improve fits and remove this temporary condition!
         # TEMP
@@ -58,7 +53,7 @@ def createTGraphsFromExtractedValues(jetH, values):
         # Disable title
         graphs[jetPtBin].SetTitle("")
 
-    for observable in itervalues(values):
+    for observable in values.values():
         # Center points in the bin
         trackPtBin = observable.trackPtBin
         halfBinWidth = (params.trackPtBins[trackPtBin + 1] - params.trackPtBins[trackPtBin]) / 2.0
@@ -100,7 +95,7 @@ def plotExtractedValues(jetH, values, parameters):
 
     # NOTE: i is equivalent to the key of the graph dicts. Either is fine.
     firstDraw = False
-    for i, graph in enumerate(itervalues(graphs)):
+    for i, graph in enumerate(graphs.values()):
         # TODO: Improve fits and remove this temporary condition!
         # TEMP
         if i != 1:
@@ -152,14 +147,14 @@ def createExtractedValuesLegend(collisionSystem, tag):
 
 # TODO: Merge and refactor with the above
 def PlotWidthsNew(jetH, widths):
-    for location, paramData in iteritems(widths):
+    for location, paramData in widths.items():
         # Define axes for plot
         fig, ax = plt.subplots()
 
         tempX = []
         tempWidths = []
         tempErrors = []
-        for (jetPtBin, trackPtBin), observable in iteritems(paramData):
+        for (jetPtBin, trackPtBin), observable in paramData.items():
             # Skip first bin, which is fit very poorly
             if trackPtBin == 0:
                 continue

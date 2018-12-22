@@ -5,8 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-from future.utils import iteritems
-
 import dataclasses
 import logging
 import numpy as np
@@ -277,7 +275,7 @@ def testAnalysisObjectsWithYAMLReadAndWrite(logging_mixin, obj, objArgs, objType
         assert type(testObj.errors) is np.ndarray
     if isinstance(testObj, analysis_objects.FitContainer):
         # This should be converted on import.
-        for k, v in iteritems(testObj.errors):
+        for k, v in testObj.errors.items():
             assert type(v) is np.ndarray
 
     # Write

@@ -5,9 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3 compatibility
-from future.utils import iteritems
-
 import argparse
 import inspect
 import logging
@@ -270,7 +267,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     #       of the actual enumeration values.
     args.update(selected_analysis_options.asdict())
     # We want to convert the enum values into strs for formatting. Performed with a dict comprehension.
-    formatting_options.update({k: str(v) for k, v in iteritems(selected_analysis_options.asdict())})
+    formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
 
     # Iterate over the iterables defined above to create the objects.
     (KeyIndex, names, objects) = generic_config.create_objects_from_iterables(

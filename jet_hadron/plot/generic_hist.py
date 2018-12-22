@@ -5,10 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3
-from builtins import range
-from future.utils import iteritems
-
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,7 +131,7 @@ class HistPlotter(object):
         # Axis labels
         labelMap = {"x": (self.xLabel, ROOT.TH1.GetXaxis, ax.set_xlabel),
                     "y": (self.yLabel, ROOT.TH1.GetYaxis, ax.set_ylabel)}
-        for axisName, (val, axis, applyTitle) in iteritems(labelMap):
+        for axisName, (val, axis, applyTitle) in labelMap.items():
             if val:
                 label = val
             else:

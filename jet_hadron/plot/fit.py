@@ -7,10 +7,6 @@ Predominately related to RPF plots
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3
-from future.utils import iteritems
-
-import collections
 import os
 import logging
 import matplotlib.pyplot as plt
@@ -85,7 +81,7 @@ def PlotRPF(epFitObj):
         (analysis_objects.jetHCorrelationType.backgroundDominated, "Data"): 5
     }
 
-    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
+    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.items():
         # Define axes for plot
         fig, axes = plt.subplots(1, 4, sharey = True, sharex = True, figsize = (12, 6))
         # TODO: Residual = data-fit/fit, not just data-fit
@@ -263,7 +259,7 @@ def PlotRPF(epFitObj):
 
         # Plot a possible cross check
         if epFitObj.plotSummedFitCrosscheck:
-            for correlationType, fit in iteritems(allAnglesSummedFromFit):
+            for correlationType, fit in allAnglesSummedFromFit.items():
                 logger.debug("Fit: {}".format(fit))
                 if fit is not None:
                     # Fit can be None if, for example, we fit the all angles signal, such that the EP signal is not fit
@@ -283,7 +279,7 @@ def PlotRPF(epFitObj):
         # Show legend
         logger.debug("handles: {}, labels: {}".format(handles, labels))
         # Remove duplicates
-        noDuplicates = collections.OrderedDict(zip(labels, handles))
+        noDuplicates = {zip(labels, handles)}
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
@@ -301,7 +297,7 @@ def PlotRPF(epFitObj):
         # Show legend
         logger.debug("handles: {}, labels: {}".format(handlesResidual, labelsResidual))
         # Remove duplicates
-        noDuplicates = collections.OrderedDict(zip(labelsResidual, handlesResidual))
+        noDuplicates = {zip(labelsResidual, handlesResidual)}
         axesResidual[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
@@ -323,7 +319,7 @@ def PlotSubtractedEPHists(epFitObj):
                  (analysis_objects.jetHCorrelationType.backgroundDominated, "Data"): next(colorIter)}
 
     # Iterate over the data and subtract the hists
-    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
+    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.items():
 
         # Define axes for plot
         fig, axes = plt.subplots(1, 4, sharey = True, sharex = True)
@@ -455,7 +451,7 @@ def PlotSubtractedEPHists(epFitObj):
         # Show legend
         logger.debug("handles: {}, labels: {}".format(handles, labels))
         # Remove duplicates
-        noDuplicates = collections.OrderedDict(zip(labels, handles))
+        noDuplicates = {zip(labels, handles)}
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
@@ -488,7 +484,7 @@ def CompareToJoel(epFitObj):
     joelAllAnglesErrorMaxName = "allReconstructedSignalwithErrorsMAX"
 
     # Iterate over the data and subtract the hists
-    for (jetPtBin, trackPtBin), fitCont in iteritems(epFitObj.fitContainers):
+    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.items():
         logger.info("Comparing with Joel's code for trackPtBin {}".format(trackPtBin))
 
         # TODO: Remove hard code
