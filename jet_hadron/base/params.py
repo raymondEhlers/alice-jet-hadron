@@ -106,7 +106,7 @@ def uppercase_first_letter(s: str) -> str:
 #########
 # Parameter information (access and display)
 #########
-class AliceLabel(generic_class.EnumToYAML, enum.Enum):
+class AliceLabel(enum.Enum):
     """ ALICE label types. """
     work_in_progress = "ALICE Work in Progress"
     preliminary = "ALICE Preliminary"
@@ -121,6 +121,9 @@ class AliceLabel(generic_class.EnumToYAML, enum.Enum):
             more meaningful here. The name can always be accessed with ``.name``.
         """
         return str(self.value)
+
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
 
     @classmethod
     def from_yaml(cls, constructor, node):
@@ -257,7 +260,7 @@ class SelectedRange:
 #########
 # Classes
 #########
-class CollisionEnergy(generic_class.EnumToYAML, enum.Enum):
+class CollisionEnergy(enum.Enum):
     """ Define the available collision system energies. """
     twoSevenSix = 2.76
     fiveZeroTwo = 5.02
@@ -270,6 +273,9 @@ class CollisionEnergy(generic_class.EnumToYAML, enum.Enum):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy": self.value}
 
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+
     @classmethod
     def from_yaml(cls, constructor, node):
         """ Decode YAML representer. """
@@ -278,7 +284,7 @@ class CollisionEnergy(generic_class.EnumToYAML, enum.Enum):
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"
 
-class CollisionSystem(generic_class.EnumWithYAML, enum.Enum):
+class CollisionSystem(enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
@@ -296,7 +302,11 @@ class CollisionSystem(generic_class.EnumWithYAML, enum.Enum):
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
         return self.value
 
-class EventActivity(generic_class.EnumWithYAML, enum.Enum):
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
+
+class EventActivity(enum.Enum):
     """ Define the event activity.
 
     Object value are of the form (index, (centLow, centHigh)), where index is the expected
@@ -329,7 +339,11 @@ class EventActivity(generic_class.EnumWithYAML, enum.Enum):
             ret_val = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
         return ret_val
 
-class LeadingHadronBiasType(generic_class.EnumWithYAML, enum.Enum):
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
+
+class LeadingHadronBiasType(enum.Enum):
     """ Leading hadron bias type """
     NA = -1
     track = 0
@@ -339,6 +353,10 @@ class LeadingHadronBiasType(generic_class.EnumWithYAML, enum.Enum):
     def __str__(self) -> str:
         """ Return the name of the bias. It must be just the name for the config override to work properly. """
         return self.name
+
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
 
 ########################
 # Final anaylsis options
@@ -405,7 +423,7 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 # Instead, they are stored in a particular analysis object and used as
 # analysis options.
 ##############################
-class EventPlaneAngle(generic_class.EnumWithYAML, enum.Enum):
+class EventPlaneAngle(enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1
@@ -426,7 +444,11 @@ class EventPlaneAngle(generic_class.EnumWithYAML, enum.Enum):
         tempList = re.findall("[a-zA-Z][^A-Z]*", str(self))
         return "-".join(tempList).capitalize()
 
-class QVector(generic_class.EnumWithYAML, enum.Enum):
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
+
+class QVector(enum.Enum):
     """ Selection based on the Q vector. """
     all = SelectedRange(min = 0, max = 100)
     bottom10 = SelectedRange(min = 0, max = 10)
@@ -457,4 +479,8 @@ class QVector(generic_class.EnumWithYAML, enum.Enum):
             ret_val += "%"
         # rstrip() is to remove entra space after "All". Doesn't matter for the other values.
         return ret_val.rstrip(" ")
+
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
 

@@ -23,7 +23,7 @@ from jet_hadron.base import params
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class JetHCorrelationType(generic_class.EnumWithYAML, enum.Enum):
+class JetHCorrelationType(enum.Enum):
     """ 1D correlation projection type """
     fullRange = 0
     # dPhi specialized
@@ -44,6 +44,10 @@ class JetHCorrelationType(generic_class.EnumWithYAML, enum.Enum):
         split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
         # Capitalize the first letter of every word
         return split_string.title()
+
+    # Handle YAML serialization
+    to_yaml = classmethod(generic_class.enum_to_yaml)
+    from_yaml = classmethod(generic_class.enum_from_yaml)
 
 class JetHBase(generic_class.EqualityMixin):
     """ Base class for shared jet-hadron configuration values.
