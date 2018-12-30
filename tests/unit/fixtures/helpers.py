@@ -107,6 +107,8 @@ def log_yaml_dump():
         yaml.dump(config, s)
         s.seek(0)
 
+        return s.read()
+
     return func
 
 @pytest.fixture
@@ -149,15 +151,17 @@ def override_options_helper(log_yaml_dump):
         yaml = ruamel.yaml.YAML()
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Before override:")
-            log_yaml_dump(yaml, config)
+            logger.debug(log_yaml_dump(yaml, config))
 
-        config = analysis_config.override_options(config = config,
-                                                  selected_options = selected_options,
-                                                  config_containing_override = config_containing_override)
+        config = analysis_config.override_options(
+            config = config,
+            selected_options = selected_options,
+            config_containing_override = config_containing_override
+        )
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("After override:")
-            log_yaml_dump(yaml, config)
+            logger.debug(log_yaml_dump(yaml, config))
 
         return (config, selected_options)
 
@@ -192,6 +196,7 @@ outputPrefix: "outputPrefixValue"
 outputFilename: "outputFilenameValue"
 printingExtensions: ["png", "pdf"]
 aliceLabel: "thesis"
+# This is the configuration for a test task of the name "taskName".
 taskName:
     test: "val"
     override:
