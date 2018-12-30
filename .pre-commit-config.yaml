@@ -1,7 +1,11 @@
 ---
 repos:
-- repo: "https://gitlab.com/pycqa/flake8"
-  rev: "7f50c3acc4b98caff0d0f3fbd82de34c5fc93c8a"  # 3.6.0 doesn't contain this configuration file.
-  hooks:
-      - id: flake8
-        additional_dependencies: ["flake8-colors"]
+    - repo: "https://gitlab.com/pycqa/flake8"
+      rev: "7f50c3acc4b98caff0d0f3fbd82de34c5fc93c8a"  # 3.6.0 doesn't contain this configuration file.
+      hooks:
+          - id: flake8
+            additional_dependencies: ["flake8-colors"]
+    - repo: https://github.com/adrienverge/yamllint.git
+      rev: "v1.13.0"
+      hooks:
+          - id: yamllint
