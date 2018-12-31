@@ -23,18 +23,11 @@ resolved solely by pip because of the packaging details of `probfit`.
 $ pip install numpy cython
 ```
 
-# Installing the code
+Then proceed with the normal installation:
 
-A rudimentary `setup.py` is available, allowing editable installations for things like running tests. It
-should only be installed in editable mode, such as:
-
+```bash
+$ pip install -e .
 ```
-pip install --user -e .
-```
-
-Note that if you haven't already installed `numpy` then the installation will fail because `iminuit` requires
-`numpy` and it may not yet be installed. To resolve this issue, install `numpy` first and then rerun the
-installation.
 
 ## Running the tests
 
@@ -47,6 +40,17 @@ $ pytest -l --cov=jetH --cov-report html --cov-branch . --durations=5
 Coverage can be measured by adding the argument `--cov=module` (for example, `--cov=JetHConfig`). When the
 Jet-H analysis code is entirely packaged up, the module can just be `jetHAnalysis`, and it will test
 everything.
+
+## Development
+
+It is strongly recommended to run
+
+```bash
+$ pre-commit install
+```
+
+to utilize the git pre-commit checks. They can be run with `pre-commit run` (and they will be run
+automatically on each commit).
 
 # Highlight Reaction Plane Fit Regions
 
