@@ -14,3 +14,9 @@ repos:
       hooks:
           - id: mypy
             args: ["--ignore-missing-imports"]
+    - repo: https://github.com/pre-commit/pygrep-hooks
+      rev: v1.1.0  # Use the ref you want to point at
+      hooks:
+          - id: python-check-mock-methods
+          #- id: python-use-type-annotations
+          - id: rst-backticks
