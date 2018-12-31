@@ -115,6 +115,7 @@ setup(
             # Makes flake8 easier to parse
             "flake8-colors",
             "mypy",
+            "yamllint",
         ]
     }
 )
