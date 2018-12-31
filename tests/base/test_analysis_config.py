@@ -6,12 +6,12 @@
 """
 
 import copy
-import inspect
 import logging
 import pytest
 import ruamel.yaml
 
 from pachyderm import generic_config
+from pachyderm import yaml
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -39,8 +39,8 @@ override:
     # Just need a trivial override value, since "override" is a required field.
     aliceLabel: "final"
     """
-    yaml = ruamel.yaml.YAML()
-    data = yaml.load(test_yaml)
+    yml = yaml.yaml()
+    data = yml.load(test_yaml)
     return data
 
 @pytest.mark.parametrize("bias_type, event_activity, expected_leading_hadron_bias_value", [
@@ -253,9 +253,8 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
     obj = analysis_objects.JetHBase
 
     # Mock reading the config
-    #load_configuration_mock = mocker.MagicMock(spec_set = ["filename"], return_value = config)
     # Needs the full path to the module.
-    load_configuration_mock = mocker.patch("jet_hadron.base.analysis_config.generic_config.load_configuration", return_value = config)
+    mocker.patch("jet_hadron.base.analysis_config.generic_config.load_configuration", return_value = config)
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 
@@ -265,16 +264,6 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
         selected_analysis_options = selected_analysis_options,
         obj = obj,
         additional_possible_iterables = additional_iterables,
-    )
-
-    # Check the opening the config file was called properly.
-    # Need to collect the classes from the params and analysis_objects modules to check it.
-    classes_to_register = set([])
-    for module in [params, analysis_objects]:
-        classes_to_register.update([member[1] for member in inspect.getmembers(module, inspect.isclass)])
-    load_configuration_mock.assert_called_once_with(
-        filename = config_filename,
-        classes_to_register = classes_to_register
     )
 
     assert names == expected_names

@@ -6,11 +6,12 @@
 """
 
 import argparse
-import inspect
 import logging
 from typing import Any, Dict, Iterable, Tuple
 
 from pachyderm import generic_config
+from pachyderm import yaml
+
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 
@@ -211,19 +212,17 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     classes_to_register = set([
         # Add any additional classses that are needed and aren't defined in params or analysis_objects.
     ])
-    # Add in all classes defined in the params and analysis_objects module
-    for module in [params, analysis_objects]:
-        module_classes = [member[1] for member in inspect.getmembers(module, inspect.isclass)]
-        classes_to_register.update(module_classes)
-
     # We also want all possible iterables, but we have to skip None iterables (which are defined in the YAML),
     # and thus must already be listed above.
     classes_to_register.update([v for v in possible_iterables.values() if v])
     logger.debug(f"classes_to_register: {classes_to_register}")
+    # Add in all classes defined in the params and analysis_objects module
+    yml = yaml.yaml(modules_to_register = [params, analysis_objects], classes_to_register = classes_to_register)
+
     # Load and override the configuration
     config = generic_config.load_configuration(
+        yaml = yml,
         filename = config_filename,
-        classes_to_register = classes_to_register,
     )
     config = override_options(
         config = config,

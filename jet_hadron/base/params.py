@@ -17,6 +17,7 @@ import re
 from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from pachyderm import generic_class
+from pachyderm import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class AliceLabel(enum.Enum):
         return str(self.value)
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
 
     @classmethod
     def from_yaml(cls, constructor, node):
@@ -274,7 +275,7 @@ class CollisionEnergy(enum.Enum):
         return r"\sqrt{s_{\mathrm{NN}}} = %(energy)s\:\mathrm{TeV}" % {"energy": self.value}
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
 
     @classmethod
     def from_yaml(cls, constructor, node):
@@ -303,8 +304,8 @@ class CollisionSystem(enum.Enum):
         return self.value
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 class EventActivity(enum.Enum):
     """ Define the event activity.
@@ -340,8 +341,8 @@ class EventActivity(enum.Enum):
         return ret_val
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 class LeadingHadronBiasType(enum.Enum):
     """ Leading hadron bias type """
@@ -355,8 +356,8 @@ class LeadingHadronBiasType(enum.Enum):
         return self.name
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 ########################
 # Final anaylsis options
@@ -445,8 +446,8 @@ class EventPlaneAngle(enum.Enum):
         return "-".join(tempList).capitalize()
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 class QVector(enum.Enum):
     """ Selection based on the Q vector. """
@@ -481,6 +482,6 @@ class QVector(enum.Enum):
         return ret_val.rstrip(" ")
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 

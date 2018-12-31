@@ -17,6 +17,7 @@ from typing import Any, Mapping, Union
 from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import utils
+from pachyderm import yaml
 
 from jet_hadron.base import params
 
@@ -46,8 +47,8 @@ class JetHCorrelationType(enum.Enum):
         return split_string.title()
 
     # Handle YAML serialization
-    to_yaml = classmethod(generic_class.enum_to_yaml)
-    from_yaml = classmethod(generic_class.enum_from_yaml)
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 class JetHBase(generic_class.EqualityMixin):
     """ Base class for shared jet-hadron configuration values.
