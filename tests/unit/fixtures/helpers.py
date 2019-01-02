@@ -48,6 +48,9 @@ def check_JetHBase_object():
         }
         # Add these afterwards so we don't have to do each value by hand.
         default_values.update(selected_analysis_options.asdict())
+        # We need to modify the name from "leading_hadron_bias" -> "_leading_hadron_bias"
+        default_values["_leading_hadron_bias"] = selected_analysis_options.leading_hadron_bias
+        default_values["_leading_hadron_bias_type"] = selected_analysis_options.leading_hadron_bias.type
         # NOTE: All other values will be taken from the config when constructing the object.
         for k, v in default_values.items():
             if k not in kwargs:
@@ -86,10 +89,15 @@ def check_JetHBase_object():
             "alice_label": "aliceLabel",
         }
         for prop, val in obj.__dict__.items():
+            # Skip "_" fields
+            if prop.startswith("_"):
+                continue
             assert val == default_values[default_values_key_map.get(prop, prop)]
 
         # Perform the comparison test.
         assert obj == comparison
+        # Check property
+        assert obj.leading_hadron_bias == comparison.leading_hadron_bias
 
         return True
 

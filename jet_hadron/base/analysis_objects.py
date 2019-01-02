@@ -90,21 +90,10 @@ class JetHBase(generic_class.EqualityMixin):
         self.event_plane_angle = event_plane_angle
 
         # Handle leading hadron bias depending on the type.
-        if isinstance(leading_hadron_bias, params.LeadingHadronBiasType):
-            # Load this module only if necessary. I'm not moving this function because it makes dependences much
-            # messier.
-            from jet_hadron.base import analysis_config
-            leading_hadron_bias = analysis_config.determine_leading_hadron_bias(
-                config = self.config,
-                selected_analysis_options = params.SelectedAnalysisOptions(
-                    collision_energy = self.collision_energy,
-                    collision_system = self.collision_system,
-                    event_activity = self.event_activity,
-                    leading_hadron_bias = leading_hadron_bias)
-            ).leading_hadron_bias
-        # The type of leading_hadron_bias should now be params.LeadingHadronBias, regardless of whether
-        # that type was passed.
-        self.leading_hadron_bias = leading_hadron_bias
+        if not isinstance(leading_hadron_bias, params.LeadingHadronBiasType):
+            leading_hadron_bias = leading_hadron_bias.type
+        self._leading_hadron_bias_type = leading_hadron_bias
+        self._leading_hadron_bias = None
 
         # File I/O
         # If in kwargs, use that value (which inherited class may use to override the config)
@@ -121,6 +110,23 @@ class JetHBase(generic_class.EqualityMixin):
         # Convert the ALICE label if necessary
         alice_label = config["aliceLabel"]
         self.alice_label = params.AliceLabel[alice_label]
+
+    @property
+    def leading_hadron_bias(self):
+        # Only calculate the value if we haven't already used it.
+        if self._leading_hadron_bias is None:
+            # Load this module only if necessary. I'm not moving this function because it makes dependences much messier.
+            from jet_hadron.base import analysis_config
+
+            self._leading_hadron_bias = analysis_config.determine_leading_hadron_bias(
+                config = self.config,
+                selected_analysis_options = params.SelectedAnalysisOptions(
+                    collision_energy = self.collision_energy,
+                    collision_system = self.collision_system,
+                    event_activity = self.event_activity,
+                    leading_hadron_bias = self._leading_hadron_bias_type)
+            ).leading_hadron_bias
+        return self._leading_hadron_bias
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.
