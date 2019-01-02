@@ -12,7 +12,7 @@ import logging
 import numpy as np
 import os
 import re
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -599,13 +599,75 @@ class FitContainer(YAMLStorableObject):
 class PtHardBin:
     bin: int
     train_number: int
-    # To specfiy the YAML tag.
-    #yaml_tag: str = "PtHardBinClass"
-
-    #def __init__(self, bin: int, train_number: int):
-    #    self.bin = bin
-    #    self.train_number = train_number
 
     def __str__(self):
         return str(self.bin)
+
+@dataclass(frozen = True)
+class PtBin:
+    """ Represent a pt bin.
+
+    Attributes:
+        bin: Pt bin.
+        range: Min and miximum of the bin.
+        name: Name of the pt bin (based on the class name).
+    """
+    bin: int
+    range: Tuple[int, int]
+
+    def __str__(self) -> str:
+        return str(self.bin)
+
+    @property
+    def name(self) -> str:
+        """ Convert class name into Captial Case: 'JetPtBin' -> 'Jet Pt Bin'. """
+        return re.sub("([a-z])([A-Z])", r"\1 \2", self.__class__.__name__)
+
+class TrackPtBin(PtBin):
+    """ A track pt bin, along with the associated track pt range.
+
+    We don't need to implement anything else. We just needed to instantiate this with the name
+    of the class so that we can differentiate it from other bins.
+    """
+    ...
+
+class JetPtBin(PtBin):
+    """ A jet pt bin, along with the associated jet pt range.
+
+    We don't need to implement anything else. We just needed to instantiate this with the name
+    of the class so that we can differentiate it from other bins.
+    """
+    ...
+
+class JetPtBins:
+    """ Define an array of pt bins.
+
+    It reads arrays registered under the tag ``!numpy_array``. Loading
+
+    .. code-block:: yaml
+
+        - !JetPtBins [5, 11, 21]
+
+    yields
+
+    .. code-block:: python
+
+        >>> pt_bins = {
+        ...     JetPtBin(bin = 1, range = (5, 11)),
+        ...     JetPtBin(bin = 2, range = (11, 21)),
+        ... }
+
+    Note:
+        This is just convenience function for YAML. It isn't round-trip because we would never use write back out.
+        This just allow us to define the bins in a compact manner when we write YAML.
+    """
+    @classmethod
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[JetPtBin]:
+        """ Convert input YAML list to set of JetPtBins. """
+        pt_bins = []
+        print(f"Using representer, {data}")
+        values = data.value
+        for i, (pt, pt_next) in enumerate(zip(values[:-1], values[1:])):
+            pt_bins.append(JetPtBin(bin = i + 1, range = (int(pt.value), int(pt_next.value))))
+        return pt_bins
 
