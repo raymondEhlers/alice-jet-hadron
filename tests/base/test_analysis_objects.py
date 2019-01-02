@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 np.random.seed(1234)
 
 @pytest.mark.parametrize("corr_type, expected", [
-    ("fullRange",
-        {"str": "fullRange",
+    ("full_range",
+        {"str": "full_range",
             "display_str": "Full Range"}),
-    ("signalDominated",
-        {"str": "signalDominated",
+    ("signal_dominated",
+        {"str": "signal_dominated",
             "display_str": "Signal Dominated"}),
-    ("nearSide",
-        {"str": "nearSide",
+    ("near_side",
+        {"str": "near_side",
             "display_str": "Near Side"})
 ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
 def test_correlation_types(logging_mixin, corr_type, expected):
@@ -96,7 +96,7 @@ def test_correlation_observable1D(logging_mixin, mocker):
     values = {
         "hist": mocker.MagicMock(), "jet_pt_bin": 2, "track_pt_bin": 3,
         "axis": mocker.MagicMock(),
-        "correlation_type": analysis_objects.JetHCorrelationType.signalDominated
+        "correlation_type": analysis_objects.JetHCorrelationType.signal_dominated
     }
 
     obj = analysis_objects.CorrelationObservable1D(**values)
@@ -204,11 +204,11 @@ def createFitContainer(mocker):
         tuple: (FitContainer, dict of args used to create the hist array)
     """
     values = {"jetPtBin": 1, "trackPtBin": 3,
-              "fitType": analysis_objects.JetHCorrelationType.signalDominated,
+              "fitType": analysis_objects.JetHCorrelationType.signal_dominated,
               "values": {"B": 1, "BG": 2},
               "params": {"B": 1, "limit_v3": [-0.1, 0.5]},
               "covarianceMatrix": {("a", "b"): 1.234},
-              "errors": {("all", "signalDominated"): [1, 2, 3]}}
+              "errors": {("all", "signal_dominated"): [1, 2, 3]}}
     obj = analysis_objects.FitContainer(**values)
 
     return (obj, values)
@@ -226,8 +226,8 @@ def testFitContainer(logging_mixin, createFitContainer):
     assert obj.errors == values["errors"]
 
 @pytest.mark.parametrize("objType", [
-    "signalDominated",
-    analysis_objects.JetHCorrelationType.signalDominated
+    "signal_dominated",
+    analysis_objects.JetHCorrelationType.signal_dominated
 ], ids = ["str obj type", "enum obj type"])
 @pytest.mark.parametrize("obj, objArgs", [
     (analysis_objects.HistArray, {"jetPtBin": 1, "trackPtBin": 3}),

@@ -364,7 +364,7 @@ covarianceMatrix:
   : 2.6586314439608107e-07
 errors:
   ? - all
-    - backgroundDominated
+    - background_dominated
   : - 0.005655493259856486
     - 0.006885899432584996
     - 0.00794875755707591
@@ -402,7 +402,7 @@ errors:
     - 0.006824445304990917
     - 0.005665853391392726
   ? - all
-    - signalDominated
+    - signal_dominated
   : - 0.005655493259856486
     - 0.006885899432584996
     - 0.00794875755707591
@@ -440,7 +440,7 @@ errors:
     - 0.006822567144674572
     - 0.005665709446951024
   ? - inPlane
-    - backgroundDominated
+    - background_dominated
   : - 0.02812979593947106
     - 0.024188332218497244
     - 0.02057736602823094
@@ -478,7 +478,7 @@ errors:
     - 0.025078152025367853
     - 0.028439247595759613
   ? - midPlane
-    - backgroundDominated
+    - background_dominated
   : - 0.026786269616769585
     - 0.018111865170056175
     - 0.014048450855338544
@@ -516,7 +516,7 @@ errors:
     - 0.019226595141386315
     - 0.027084582504056924
   ? - outOfPlane
-    - backgroundDominated
+    - background_dominated
   : - 0.029473145348463202
     - 0.0265067807424903
     - 0.023360395722096746
@@ -553,7 +553,7 @@ errors:
     - 0.024958586609250946
     - 0.027449884009319633
     - 0.0297684917174157
-fitType: signalDominated
+fitType: signal_dominated
 jetPtBin: 1
 params:
   B: 6.9574270010518235

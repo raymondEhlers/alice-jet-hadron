@@ -275,14 +275,14 @@ class JetHEPFit(object):
         self.calculateFitError = self.fitConfig["calculateFitError"]
 
         # Useful when labeling fit conatiner objects
-        self.overallFitLabel = analysis_objects.jetHCorrelationType.backgroundDominated
+        self.overallFitLabel = analysis_objects.jetHCorrelationType.background_dominated
         if self.includeSignalInFit:
-            self.overallFitLabel = analysis_objects.jetHCorrelationType.signalDominated
+            self.overallFitLabel = analysis_objects.jetHCorrelationType.signal_dominated
 
     def GetFitFunction(self, fitType, epAngle):
         """ Simple wrapper to get the fit function corresponding to the selected fitType. """
-        fitFunctionMap = {analysis_objects.jetHCorrelationType.signalDominated : GetSignalDominatedFitFunction,
-                          analysis_objects.jetHCorrelationType.backgroundDominated : GetBackgroundDominatedFitFunction}
+        fitFunctionMap = {analysis_objects.jetHCorrelationType.signal_dominated : GetSignalDominatedFitFunction,
+                          analysis_objects.jetHCorrelationType.background_dominated : GetBackgroundDominatedFitFunction}
 
         # The fit container stores the fit type as a string. We need it as a jetHCorrelationType
         if isinstance(fitType, str):
@@ -312,7 +312,7 @@ class JetHEPFit(object):
 
         """
         retVal = True
-        if correlationType == analysis_objects.jetHCorrelationType.signalDominated:
+        if correlationType == analysis_objects.jetHCorrelationType.signal_dominated:
             # Skip signal fit
             if not self.includeSignalInFit:
                 retVal = False
@@ -335,7 +335,7 @@ class JetHEPFit(object):
         # Setup fit and cost functions
         # Define the fits
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
-            #for signalDominated, backgroundDominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
+            #for signal_dominated, background_dominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
             assert keys[0] == jetH.eventPlaneAngle
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
                 retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
@@ -355,7 +355,7 @@ class JetHEPFit(object):
                 fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.eventPlaneAngle)
 
                 # Restricted the background fit range
-                if observable.correlationType == analysis_objects.jetHCorrelationType.backgroundDominated:
+                if observable.correlationType == analysis_objects.jetHCorrelationType.background_dominated:
                     # Use only near-side data (ie dPhi < pi/2)
                     NSrange = int(len(x)/2.)
                     x = x[:NSrange]
@@ -636,7 +636,7 @@ class JetHEPFit(object):
 
                 # Retrieve fit data
                 fit = self.EvaluateFit(epAngle = jetH.eventPlaneAngle,
-                        fitType = analysis_objects.jetHCorrelationType.backgroundDominated,
+                        fitType = analysis_objects.jetHCorrelationType.background_dominated,
                         xValue = xForFitFunc,
                         fitContainer = fitCont)
 
@@ -722,7 +722,7 @@ def GetSignalDominatedFitFunction(epAngle, fitConfig):
         # We don't need to rename the all angles function because we can only use
         # the signal fit on all angles alone. If we fit the other event plane angles
         # at the same time, it will double count
-        signalDominatedFunc = probfit.functor.AddPdf(signalFunc, backgroundFunc)
+        signal_dominatedFunc = probfit.functor.AddPdf(signalFunc, backgroundFunc)
     else:
         # Rename the variables so each signal related variable is independent for each EP
         # We do this by renaming all parameters that are _not_ used in the background
@@ -733,11 +733,11 @@ def GetSignalDominatedFitFunction(epAngle, fitConfig):
         # Sum the functions together
         # NOTE: "BG" shouldn't ever need to be used, but it is included so that it fails clearly in the case
         #       that a mistake is made and the prefix is actually matched to and applied to some paramter
-        signalDominatedFunc = probfit.functor.AddPdf(signalFunc, backgroundFunc, prefix = [epAngle.str() + "_", "BG"], skip_prefix = prefixSkipParameters)
+        signal_dominatedFunc = probfit.functor.AddPdf(signalFunc, backgroundFunc, prefix = [epAngle.str() + "_", "BG"], skip_prefix = prefixSkipParameters)
 
-    logger.debug("epAngle: {}, signalDominatedFunc: {}".format(epAngle.str() , probfit.describe(signalDominatedFunc)))
+    logger.debug("epAngle: {}, signal_dominatedFunc: {}".format(epAngle.str() , probfit.describe(signal_dominatedFunc)))
 
-    return signalDominatedFunc
+    return signal_dominatedFunc
 
 def GetBackgroundDominatedFitFunction(epAngle, fitConfig):
     """

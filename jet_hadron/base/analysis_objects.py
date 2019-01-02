@@ -26,25 +26,26 @@ logger = logging.getLogger(__name__)
 
 class JetHCorrelationType(enum.Enum):
     """ 1D correlation projection type """
-    fullRange = 0
+    full_range = 0
     # dPhi specialized
-    signalDominated = 1
-    backgroundDominated = 2
+    signal_dominated = 1
+    background_dominated = 2
     # dEta specialized
-    nearSide = 3
-    awaySide = 4
+    near_side = 3
+    away_side = 4
 
     def __str__(self) -> str:
         """ Returns the name of the correlation type. """
         return self.name
 
     def display_str(self) -> str:
-        """ Turns "signalDominated" into "Signal Dominated". """
+        """ Turns "signal_dominated" into "Signal Dominated". """
         # Convert to display name by splitting on camel case
         # For the regex, see: https://stackoverflow.com/a/43898219
-        split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
+        #split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
         # Capitalize the first letter of every word
-        return split_string.title()
+        #return split_string.title()
+        return self.name.replace("_", " ").title()
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)
@@ -508,7 +509,7 @@ class FitContainer(YAMLStorableObject):
     Args:
         jetPtBin (int): Jet pt bin
         trackPtBin (int): Track pt bin
-        fitType (JetHCorrelationType): Type of fit being stored. Usually signalDominated or backgroundDominated
+        fitType (JetHCorrelationType): Type of fit being stored. Usually signal_dominated or background_dominated
         values (dict): Dictionary from minuit.values storing parameter name to value. This is useful to have separately.
         params (dict): Dictionary from minuit.fitarg storing all relevant fit parameters (value, limits, errors,
             etc). This contains the values in values, but it useful to have them available separately, and it would
