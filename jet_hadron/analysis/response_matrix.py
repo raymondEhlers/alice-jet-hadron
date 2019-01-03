@@ -102,9 +102,6 @@ class RMNormalizationType(enum.Enum):
 
 class JetHResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse. """
-    def __init__(self, observable_dict, observables_to_project_from, projectionNameFormat):
-        super(JetHResponseMatrixProjector, self).__init__(observable_dict, observables_to_project_from, projectionNameFormat)
-
     def ProjectionName(self, **kwargs):
         """ Define the projection name for the JetH RM projector """
         ptHardBin = kwargs["inputKey"]

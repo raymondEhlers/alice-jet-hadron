@@ -11,6 +11,7 @@ import pprint
 from typing import Any, Dict, Iterable, Tuple
 
 from pachyderm import generic_class
+from pachyderm import projectors
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -55,6 +56,19 @@ class PtHardInformation(analysis_objects.JetHBase):
         """ Extract the scale factor from the stored information. """
         pass
 
+class ResponseMatrixProjector(projectors.HistProjector):
+    """ Projector for the Jet-h response matrix THnSparse. """
+    def ProjectionName(self, **kwargs):
+        """ Define the projection name for the JetH RM projector """
+        ptHardBin = kwargs["inputKey"]
+        hist = kwargs["inputHist"]
+        logger.debug("Projecting pt hard bin: {0}, hist: {1}, projectionName: {2}".format(ptHardBin, hist.GetName(), self.projectionNameFormat.format(ptHardBin = ptHardBin)))
+        return self.projectionNameFormat.format(ptHardBin = ptHardBin)
+
+    def OutputKeyName(self, inputKey, outputHist, *args, **kwargs):
+        """ Retrun the input key, which is the pt hard bin"""
+        return inputKey
+
 @dataclass
 class ResponseHistograms:
     """ The main histograms for a response matrix. """
@@ -81,6 +95,9 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         #self.train_number = self.task_config["pt_hard_map"][self.pt_hard_bin]
         pass
 
+    def setup_projectors(self):
+        pass
+
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
@@ -103,6 +120,9 @@ class ResponseManager(generic_class.EqualityMixin):
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
             obj = ResponseMatrix,
         )
+
+    def setup(self):
+        pass
 
     def run(self):
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {self.selected_option_names}, analyses: {pprint.pformat(self.analyses)}")
