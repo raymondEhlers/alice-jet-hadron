@@ -44,7 +44,8 @@ def check_JetHBase_object():
             "config_filename": "configFilename.yaml",
             "config": config,
             "task_config": config[task_name],
-            "reaction_plane_orientation": reaction_plane_orientation
+            "reaction_plane_orientation": reaction_plane_orientation,
+            "train_number": 1234,
         }
         # Add these afterwards so we don't have to do each value by hand.
         default_values.update(selected_analysis_options.asdict())
@@ -204,6 +205,7 @@ outputPrefix: "outputPrefixValue"
 outputFilename: "outputFilenameValue"
 printingExtensions: ["png", "pdf"]
 aliceLabel: "thesis"
+trainNumber: 1234
 # This is the configuration for a test task of the name "taskName".
 taskName:
     test: "val"

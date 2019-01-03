@@ -93,6 +93,7 @@ outputPrefix: "outputPrefixValue"
 outputFilename: "outputFilenameValue"
 printingExtensions: ["pdf"]
 aliceLabel: "thesis"
+trainNumber: 1234
 
 responseTaskName: &responseTaskName ["baseName"]
 intVal: 1
