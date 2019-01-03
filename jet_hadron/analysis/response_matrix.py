@@ -70,7 +70,7 @@ class EventActivity(enum.Enum):
     kpp = 0
 
     def __str__(self):
-        """ Turns kSemiCentral into "semiCentral" """
+        """ Turns kSemiCentral into "semi_central" """
         tempStr = self.filenameStr()
         tempStr = tempStr[:1].lower() + tempStr[1:]
         return tempStr

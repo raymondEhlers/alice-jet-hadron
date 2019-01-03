@@ -145,12 +145,12 @@ def test_jet_pt_string_for_last_pt_bin(logging_mixin):
 @pytest.mark.parametrize("energy, system, activity, expected", [
     (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
     (2.76, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    (2.76, "PbPb", "semiCentral", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"),
+    (2.76, "PbPb", "semi_central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"),
     (5.02, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    ("fiveZeroTwo", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
+    ("five_zero_two", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
     ("5.02", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    (params.CollisionEnergy.fiveZeroTwo, params.CollisionSystem.PbPb, params.EventActivity.central, r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$")
-], ids = ["Inclusive pp", "Central PbPb", "Semi-central PbPb", "Central PbPb at 5.02", "Energy as string fiveZeroTwo", "Energy as string \"5.02\"", "Using enums directly"])
+    (params.CollisionEnergy.five_zero_two, params.CollisionSystem.PbPb, params.EventActivity.central, r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$")
+], ids = ["Inclusive pp", "Central PbPb", "Semi-central PbPb", "Central PbPb at 5.02", "Energy as string five_zero_two", "Energy as string \"5.02\"", "Using enums directly"])
 def test_system_label(logging_mixin, energy, system, activity, expected):
     """ Test system labels. """
     assert params.system_label(energy = energy, system = system, activity = activity) == expected
@@ -177,7 +177,7 @@ def test_jet_properties_labels(logging_mixin):
         {"str": "2.76",
             "display_str": r"\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}",
             "value": 2.76}),
-    (params.CollisionEnergy["twoSevenSix"],
+    (params.CollisionEnergy["two_seven_six"],
         {"str": "2.76",
             "display_str": r"\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}",
             "value": 2.76}),
@@ -185,7 +185,7 @@ def test_jet_properties_labels(logging_mixin):
         {"str": "5.02",
             "display_str": r"\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV}",
             "value": 5.02})
-], ids = ["2.76 standard", "twoSevenSix alternative intialization", "5.02 standard"])
+], ids = ["2.76 standard", "two_seven_six alternative intialization", "5.02 standard"])
 def test_collision_energy(logging_mixin, energy, expected):
     """ Test collision energy values. """
     assert str(energy) == expected["str"]
@@ -204,7 +204,7 @@ def test_collision_energy(logging_mixin, energy, expected):
             "display_str": params.PbPbLatexLabel}),
     (params.CollisionSystem["embedPP"],
         {"str": "embedPP",
-            "display_str": r"pp \bigotimes %(PbPb)s" % {"PbPb": params.PbPbLatexLabel}})
+            "display_str": fr"pp \bigotimes {params.PbPbLatexLabel}"})
 ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
 def test_collision_system(logging_mixin, system, expected):
     """ Test collision system values. """
@@ -218,13 +218,13 @@ def test_collision_system(logging_mixin, system, expected):
             "range": params.SelectedRange(min = -1, max = -1)}),
     (params.EventActivity["central"],
         {"str": "central",
-            "display_str": r",\:0\mbox{-}10\mbox{\%}",
+            "display_str": r"0\mbox{-}10\mbox{\%}",
             "range": params.SelectedRange(min = 0, max = 10)}),
-    (params.EventActivity["semiCentral"],
-        {"str": "semiCentral",
-            "display_str": r",\:30\mbox{-}50\mbox{\%}",
+    (params.EventActivity["semi_central"],
+        {"str": "semi_central",
+            "display_str": r"30\mbox{-}50\mbox{\%}",
             "range": params.SelectedRange(min = 30, max = 50)})
-], ids = ["inclusive", "central", "semiCentral"])
+], ids = ["inclusive", "central", "semi_central"])
 def test_event_activity(logging_mixin, activity, expected):
     """ Test event activity values. """
     assert str(activity) == expected["str"]

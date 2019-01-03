@@ -150,7 +150,7 @@ def override_options_helper(log_yaml_dump):
 
         if selected_options is None:
             selected_options = params.SelectedAnalysisOptions(
-                collision_energy = params.CollisionEnergy.twoSevenSix,
+                collision_energy = params.CollisionEnergy.two_seven_six,
                 collision_system = params.CollisionSystem.PbPb,
                 event_activity = params.EventActivity.central,
                 leading_hadron_bias = params.LeadingHadronBiasType.track
@@ -195,7 +195,7 @@ leadingHadronBiasValues:
         central:
             cluster:
                 value: 10
-        semiCentral:
+        semi_central:
             cluster:
                 value: 6
 inputFilename: "inputFilenameValue"

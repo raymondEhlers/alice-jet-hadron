@@ -160,11 +160,14 @@ def system_label(energy: Union[float, "CollisionEnergy"], system: Union[str, "Co
     # Handle event activity
     if isinstance(activity, str):
         activity = EventActivity[activity]  # type: ignore
+    event_activity_str = activity.display_str()
+    if event_activity_str:
+        event_activity_str = r",\:" + event_activity_str
 
     system_label = r"$\mathrm{%(system)s}\:%(energy)s%(event_activity)s$" % {
-        "energy": energy.display_str(),
-        "event_activity": activity.display_str(),
         "system": system.display_str(),
+        "energy": energy.display_str(),
+        "event_activity": event_activity_str,
     }
 
     logger.debug("system_label: {}".format(system_label))
@@ -255,16 +258,31 @@ def jet_properties_label(jet_pt_bin: int) -> Tuple[str, str, str, str]:
 #########################
 @dataclass
 class SelectedRange:
+    """ Helper for selected ranges. """
     min: float
     max: float
+
+@dataclass
+class ReactionPlaneBinInformation:
+    """ Helper for storing reaction plane bin information.
+
+    Attributes:
+        center: Center of the bin. Known as phi_s in RPF expressions.
+        width: Width from the center of the bin to the edge. Known as c in RPF expressions.
+    """
+    center: float
+    width: float
 
 #########
 # Classes
 #########
 class CollisionEnergy(enum.Enum):
-    """ Define the available collision system energies. """
-    twoSevenSix = 2.76
-    fiveZeroTwo = 5.02
+    """ Define the available collision system energies.
+
+    Defined in TeV.
+    """
+    two_seven_six = 2.76
+    five_zero_two = 5.02
 
     def __str__(self) -> str:
         """ Returns a string of the value. """
@@ -290,10 +308,10 @@ class CollisionSystem(enum.Enum):
     NA = "Invalid collision system"
     pp = "pp"
     pythia = "PYTHIA"
-    embedPP = r"pp \bigotimes %(PbPb)s" % {"PbPb": PbPbLatexLabel}
-    embedPythia = r"PYTHIA \bigotimes %(PbPb)s" % {"PbPb": PbPbLatexLabel}
+    embedPP = fr"pp \bigotimes {PbPbLatexLabel}"
+    embedPythia = fr"PYTHIA \bigotimes {PbPbLatexLabel}"
     pPb = r"pPb"
-    PbPb = "%(PbPb)s" % {"PbPb": PbPbLatexLabel}
+    PbPb = f"{PbPbLatexLabel}"
 
     def __str__(self) -> str:
         """ Return a string of the name of the system. """
@@ -316,7 +334,7 @@ class EventActivity(enum.Enum):
     """
     inclusive = SelectedRange(min = -1, max = -1)
     central = SelectedRange(min = 0, max = 10)
-    semiCentral = SelectedRange(min = 30, max = 50)
+    semi_central = SelectedRange(min = 30, max = 50)
 
     @property
     def value_range(self) -> SelectedRange:
@@ -337,7 +355,7 @@ class EventActivity(enum.Enum):
         # For inclusive, we want to return an empty string.
         if self != EventActivity.inclusive:
             logger.debug(f"asdict: {dataclasses.asdict(self.value_range)}")
-            ret_val = r",\:%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
+            ret_val = r"%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
         return ret_val
 
     # Handle YAML serialization
@@ -380,8 +398,7 @@ class LeadingHadronBias(generic_class.EqualityMixin):
     """
     def __init__(self, type, value):
         self.type = type
-        # If the leadingHadronBias is disabled, then the value is irrelevant and
-        # should be set to 0.
+        # If the leadingHadronBias is disabled, then the value is irrelevant and should be set to 0.
         if self.type == LeadingHadronBiasType.NA:
             value = 0
         self.value = value
@@ -426,10 +443,10 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 ##############################
 class ReactionPlaneOrientation(enum.Enum):
     """ Selects the event plane angle in the sparse. """
-    all = 0
-    in_plane = 1
-    mid_plane = 2
-    out_of_plane = 3
+    all = ReactionPlaneBinInformation(center = -1, width = -1)
+    in_plane = ReactionPlaneBinInformation(center = 0, width = np.pi / 6)
+    mid_plane = ReactionPlaneBinInformation(center = np.pi / 4, width = np.pi / 12)
+    out_of_plane = ReactionPlaneBinInformation(center = np.pi / 2, width = np.pi / 6)
 
     def __str__(self) -> str:
         """ Returns the event plane angle name, as is. """
@@ -455,11 +472,7 @@ class QVector(enum.Enum):
 
     @property
     def value_range(self) -> SelectedRange:
-        """ Return the q vector range.
-
-        Returns:
-            dataclass containing the mix and max of the range.
-        """
+        """ Return the Q vector range. """
         return self.value
 
     def __str__(self) -> str:

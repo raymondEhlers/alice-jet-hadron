@@ -31,7 +31,7 @@ leadingHadronBiasValues:
         central:
             cluster:
                 value: 10
-        semiCentral:
+        semi_central:
             cluster:
                 value: 6
 aliceLabel: "thesis"
@@ -46,7 +46,7 @@ override:
 @pytest.mark.parametrize("bias_type, event_activity, expected_leading_hadron_bias_value", [
     ("track", None, 5),
     ("cluster", None, 10),
-    ("cluster", "semiCentral", 6),
+    ("cluster", "semi_central", 6),
 ], ids = ["track5", "cluster10", "cluster6"])
 def test_determine_leading_hadron_bias(logging_mixin, bias_type, event_activity, expected_leading_hadron_bias_value, leading_hadron_bias_config, override_options_helper):
     """ Test determination of the leading hadron bias. """
@@ -116,7 +116,7 @@ override:
             intVal: 2
             track:
                 additionalValue: 2
-        semiCentral:
+        semi_central:
             responseTaskName: "ignoreThisValue"
 """
 
@@ -155,7 +155,7 @@ def test_argument_parsing():
     test_args = ["-c", "analysis_configArg.yaml",
                  "-e", "5.02",
                  "-s", "embedPP",
-                 "-a", "semiCentral",
+                 "-a", "semi_central",
                  "-b", "track"]
     reversed_iterator = iter(reversed(test_args))
     reversed_test_args = []
@@ -170,16 +170,16 @@ def test_argument_parsing():
         assert config_filename == "analysis_configArg.yaml"
         assert selected_analysis_options.collision_energy == 5.02
         assert selected_analysis_options.collision_system == "embedPP"
-        assert selected_analysis_options.event_activity == "semiCentral"
+        assert selected_analysis_options.event_activity == "semi_central"
         assert selected_analysis_options.leading_hadron_bias == "track"
 
         # Strictly speaking, this is adding some complication, but it will consistently be used with this option,
         # so it's worth doing the integration test.
         validated_analysis_options, _ = analysis_config.validate_arguments(selected_analysis_options)
 
-        assert validated_analysis_options.collision_energy == params.CollisionEnergy.fiveZeroTwo
+        assert validated_analysis_options.collision_energy == params.CollisionEnergy.five_zero_two
         assert validated_analysis_options.collision_system == params.CollisionSystem.embedPP
-        assert validated_analysis_options.event_activity == params.EventActivity.semiCentral
+        assert validated_analysis_options.event_activity == params.EventActivity.semi_central
         assert validated_analysis_options.leading_hadron_bias == params.LeadingHadronBiasType.track
 
 @pytest.mark.parametrize("args, expected", [
@@ -188,14 +188,14 @@ def test_argument_parsing():
     ((2.76, None, "central", "track"), None),
     ((2.76, "PbPb", None, "track"), None),
     ((2.76, "PbPb", "central", None), None),
-    ((params.CollisionEnergy.twoSevenSix,
+    ((params.CollisionEnergy.two_seven_six,
       params.CollisionSystem.PbPb,
       params.EventActivity.central,
       params.LeadingHadronBiasType.track), None),
-    ((5.02, "embedPP", "semiCentral", "cluster"),
-     (params.CollisionEnergy.fiveZeroTwo,
+    ((5.02, "embedPP", "semi_central", "cluster"),
+     (params.CollisionEnergy.five_zero_two,
       params.CollisionSystem.embedPP,
-      params.EventActivity.semiCentral,
+      params.EventActivity.semi_central,
       params.LeadingHadronBiasType.cluster))
 ], ids = [
     "Standard 2.76",
@@ -208,7 +208,7 @@ def test_argument_parsing():
 def test_validate_arguments(logging_mixin, args, expected):
     """ Test argument validation. """
     if expected is None:
-        expected = (params.CollisionEnergy.twoSevenSix,
+        expected = (params.CollisionEnergy.two_seven_six,
                     params.CollisionSystem.PbPb,
                     params.EventActivity.central,
                     params.LeadingHadronBiasType.track)
