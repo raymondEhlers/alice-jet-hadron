@@ -99,13 +99,13 @@ def PlotRPF(epFitObj):
                                   analysis_objects.JetHCorrelationType.signal_dominated: None}
 
         # Put the all angles at the end for consistnecy
-        epAngles = [angle for angle in params.eventPlaneAngle]
-        epAngles.append(epAngles.pop(epAngles.index(params.eventPlaneAngle.all)))
+        epAngles = [angle for angle in params.ReactionPlaneOrientation]
+        epAngles.append(epAngles.pop(epAngles.index(params.ReactionPlaneOrientation.all)))
 
         for i, (epAngle, ax, axResidual) in enumerate(zip(epAngles, axes, axesResidual)):
             # Main analysis object
             _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
-            assert jetH.eventPlaneAngle == epAngle
+            assert jetH.reaction_plane_orientation == epAngle
 
             # Set labels in individual panels
             # NOTE: If text is attached to the figure (fig.text()), we can just plot it whenever
@@ -176,7 +176,7 @@ def PlotRPF(epFitObj):
 
                 # Plot data
                 # Plot S+B, B for all angles, but only B for EP angles
-                if (correlationType == analysis_objects.JetHCorrelationType.background_dominated and epAngle != params.eventPlaneAngle.all) or (correlationType == analysis_objects.JetHCorrelationType.signal_dominated and epAngle == params.eventPlaneAngle.all):
+                if (correlationType == analysis_objects.JetHCorrelationType.background_dominated and epAngle != params.ReactionPlaneOrientation.all) or (correlationType == analysis_objects.JetHCorrelationType.signal_dominated and epAngle == params.ReactionPlaneOrientation.all):
                     x = observable.hist.x
                     y = observable.hist.array
                     errors = observable.hist.errors
@@ -193,7 +193,7 @@ def PlotRPF(epFitObj):
                 if retVal is False:
                     # Also plot the fit in the case of background dominated in all angles
                     # Although need to clarify that we didn't actually fit - this is just showing that component
-                    if not (correlationType == analysis_objects.JetHCorrelationType.background_dominated and epAngle == params.eventPlaneAngle.all):
+                    if not (correlationType == analysis_objects.JetHCorrelationType.background_dominated and epAngle == params.ReactionPlaneOrientation.all):
                         continue
                     else:
                         plotLabel = "Background (Simultaneous Fit)"
@@ -233,7 +233,7 @@ def PlotRPF(epFitObj):
 
                 # Build up event plane fit to get all angles as a cross check
                 # TODO: This should probably be refactored back to JetHFitting
-                if epAngle != params.eventPlaneAngle.all:
+                if epAngle != params.ReactionPlaneOrientation.all:
                     if allAnglesSummedFromFit[correlationType] is None:
                         allAnglesSummedFromFit[correlationType] = np.zeros(len(fit))
                     #loger.debug("fit: {}, len(fit): {}, allAnglesSummedFromFit[correlationType]: {}, len(allAnglesSummedFromFit[correlationType]): {}".format(fit, len(fit), allAnglesSummedFromFit[correlationType], len(allAnglesSummedFromFit[correlationType])))
@@ -332,8 +332,8 @@ def PlotSubtractedEPHists(epFitObj):
         labels = []
 
         # Put the all angles at the end for consistnecy
-        epAngles = [angle for angle in params.eventPlaneAngle]
-        epAngles.append(epAngles.pop(epAngles.index(params.eventPlaneAngle.all)))
+        epAngles = [angle for angle in params.ReactionPlaneOrientation]
+        epAngles.append(epAngles.pop(epAngles.index(params.ReactionPlaneOrientation.all)))
 
         for i, (epAngle, ax) in enumerate(zip(epAngles, axes)):
             # Set labels in individual panels
@@ -377,7 +377,7 @@ def PlotSubtractedEPHists(epFitObj):
             handles += h
             labels += label
 
-            if epAngle == params.eventPlaneAngle.all:
+            if epAngle == params.ReactionPlaneOrientation.all:
                 # TODO: Include all angles in label
                 axisAll.set_title(epAngle.displayStr(), fontsize = 17)
                 # Axis labels
@@ -505,7 +505,7 @@ def CompareToJoel(epFitObj):
         ax.set_xlabel(r"$\Delta\varphi$")
         ax.set_ylabel(r"dN/d$\Delta\varphi$")
 
-        epAngle = params.eventPlaneAngle.all
+        epAngle = params.ReactionPlaneOrientation.all
         #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysis_objects.JetHCorrelationType.signal_dominated]
         _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
         observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysis_objects.JetHCorrelationType.signal_dominated)

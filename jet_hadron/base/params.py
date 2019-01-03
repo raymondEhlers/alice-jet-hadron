@@ -424,7 +424,7 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 # Instead, they are stored in a particular analysis object and used as
 # analysis options.
 ##############################
-class EventPlaneAngle(enum.Enum):
+class ReactionPlaneOrientation(enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
     inPlane = 1

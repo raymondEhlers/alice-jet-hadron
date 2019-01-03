@@ -56,7 +56,7 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
 
     config_filename = "configFilename.yaml"
     task_config = config[task_name]
-    event_plane_angle = params.EventPlaneAngle.all
+    reaction_plane_orientation = params.ReactionPlaneOrientation.all
     config_base = analysis_objects.JetHBase(
         task_name = task_name,
         config_filename = config_filename,
@@ -66,7 +66,7 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
         collision_system = selected_analysis_options.collision_system,
         event_activity = selected_analysis_options.event_activity,
         leading_hadron_bias = selected_analysis_options.leading_hadron_bias,
-        event_plane_angle = event_plane_angle,
+        reaction_plane_orientation = reaction_plane_orientation,
     )
 
     # We need values to compare against. However, namedtuples are immutable,
@@ -83,7 +83,7 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
         obj = config_base,
         config = config,
         selected_analysis_options = selected_analysis_options,
-        event_plane_angle = event_plane_angle
+        reaction_plane_orientation = reaction_plane_orientation
     )
     assert res is True
 

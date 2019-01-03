@@ -24,7 +24,7 @@ from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base.params import EventPlaneAngle
+from jet_hadron.base.params import ReactionPlaneOrientation
 
 from rootpy.io import root_open
 import ROOT
@@ -48,8 +48,8 @@ class JetResponseMakerMatchingSparse(enum.Enum):
     kProjectionDistance = 4
     kDetLevelLeadingParticle = 7
     kPartLevelLeadingParticle = 8
-    kDetLevelEventPlaneAngle = 9
-    kPartLevelEventPlaneAngle = 10
+    kDetLevelReactionPlaneOrientation = 9
+    kPartLevelReactionPlaneOrientation = 10
 
 class JetResponseMakerJetsSparse(enum.Enum):
     """ Defines the axes in the AliJetResponseMaker fJets THnSparse """
@@ -58,7 +58,7 @@ class JetResponseMakerJetsSparse(enum.Enum):
     kJetPt = 2
     kJetArea = 3
     # Different if the event plane is included in the output or not!!
-    kEventPlaneAngle = 4
+    kReactionPlaneOrientation = 4
     kLeadingParticlePP = 4
     kLeadingParticlePbPb = 5
 
@@ -157,7 +157,7 @@ class JetHResponseMatrix(object):
         if self.eventPlaneSelection:
             # Get the proper value from the enum
             # The enum translates this to the bin number
-            self.eventPlaneSelection = EventPlaneAngle[self.eventPlaneSelection]
+            self.eventPlaneSelection = ReactionPlaneOrientation[self.eventPlaneSelection]
 
         self.rmNormalizationType = RMNormalizationType[self.config.get("rmNormalizationType", "kNone")]
         self.eventActivity = EventActivity[self.config.get("eventActivity")]
@@ -258,7 +258,7 @@ class JetHResponseMatrix(object):
         )
         if self.eventPlaneSelection:
             logger.debug("self.eventPlaneSelection.value: {0}".format(self.eventPlaneSelection.value))
-            if self.eventPlaneSelection == EventPlaneAngle.kAll:
+            if self.eventPlaneSelection == ReactionPlaneOrientation.kAll:
                 eventPlaneAxisRange = fullAxisRange
                 logger.info("Using full EP angle range")
             else:
@@ -269,8 +269,8 @@ class JetHResponseMatrix(object):
                 logger.info(f"Using selected EP angle range {self.eventPlaneSelection.name}")
 
             eventPlaneSelectionProjectorAxis = HistAxisRange(
-                axisType = JetResponseMakerMatchingSparse.kDetLevelEventPlaneAngle,
-                axisRangeName = "detLevelEventPlaneAngle",
+                axisType = JetResponseMakerMatchingSparse.kDetLevelReactionPlaneOrientation,
+                axisRangeName = "detLevelReactionPlaneOrientation",
                 **eventPlaneAxisRange
             )
             responseMatrixProjector.additionalAxisCuts.append(eventPlaneSelectionProjectorAxis)
@@ -1033,7 +1033,7 @@ class JetHResponseMatrix(object):
             # This must be configured here - it's too confusing otherwise
             # Perhaps could take from configFile if needed in the future
             baseConfigPath = "responseMatrix/responseMatrixSemiCentral{epAngle}.yaml"
-            for epAngle in EventPlaneAngle:
+            for epAngle in ReactionPlaneOrientation:
                 logger.info("Processing event plane angle {}".format(str(epAngle)))
                 jetHArgs["configFile"] = baseConfigPath.format(epAngle = epAngle.filenameStr())
 
@@ -1447,7 +1447,7 @@ def plotParticleSpectraProjection(JetHResponseEP):
         hist.SetMarkerSize(1.1)
 
         # Skip all angles
-        if epAngle == EventPlaneAngle.kAll:
+        if epAngle == ReactionPlaneOrientation.kAll:
             if not includeAllAngles:
                 continue
 
@@ -1540,15 +1540,15 @@ def checkAgreementOfAllAnglesVsSumOfAngles(JetHResponseEP):
     outputPath = next(JetHResponseEP.itervalues()).OutputPathWithoutAngleInName()
     outputPath = os.path.join(outputPath, "{filenameLabel}.pdf")
 
-    hist = JetHResponseEP[EventPlaneAngle.kInPlane].hists["partSpectraProjection"]
+    hist = JetHResponseEP[ReactionPlaneOrientation.kInPlane].hists["partSpectraProjection"]
     histSumOfAngles = hist.Clone("{histName}_sum.pdf".format(histName = hist.GetName()))
     logger.info("Immediately after clone, get entries: Original: {0}, clone: {1}".format(hist.GetEntries(), histSumOfAngles.GetEntries()))
     histSumOfAngles.Reset()
     histSumOfAngles.Sumw2()
     logger.info("Reset hist entries: {0} (0 expected)".format(histSumOfAngles.GetEntries()))
 
-    for epAngle in EventPlaneAngle:
-        if epAngle == EventPlaneAngle.kAll:
+    for epAngle in ReactionPlaneOrientation:
+        if epAngle == ReactionPlaneOrientation.kAll:
             continue
 
         jetH = JetHResponseEP[epAngle]
@@ -1563,7 +1563,7 @@ def checkAgreementOfAllAnglesVsSumOfAngles(JetHResponseEP):
     #filenameLabel = "histSumOfAllAngles"
     #c.SaveAs(outputPath.format(filenameLabel = filenameLabel))
 
-    hAll = JetHResponseEP[EventPlaneAngle.kAll].hists["partSpectraProjection"]
+    hAll = JetHResponseEP[ReactionPlaneOrientation.kAll].hists["partSpectraProjection"]
     logger.info("hAll entries: {0}, integral: {1}".format(hAll.GetEntries(), hAll.Integral()))
 
     # Subtract the two to compare

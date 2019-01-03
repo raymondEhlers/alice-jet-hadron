@@ -236,7 +236,7 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
     # NOTE: We only want to override the options of the expected config because
     #       construct_from_configuration_file() applies the overriding itself.
     config, task_name = object_yaml_config
-    expected_names = ["event_plane_angle", "qVector"]
+    expected_names = ["reaction_plane_orientation", "qVector"]
     if additional_iterables:
         for iterable in additional_iterables:
             expected_names.extend([iterable])
@@ -272,7 +272,7 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
             obj = obj,
             config = expected_config,
             selected_analysis_options = expected_analysis_options,
-            event_plane_angle = values.event_plane_angle
+            reaction_plane_orientation = values.reaction_plane_orientation
         )
         assert res is True
 

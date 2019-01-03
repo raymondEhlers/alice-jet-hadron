@@ -67,7 +67,7 @@ class JetHBase(generic_class.EqualityMixin):
         event_activity (params.EventActivity): Selected event activity.
         leading_hadron_bias (params.LeadingHadronBias or params.LeadingHadronBiasType): Selected leading hadron
             bias. The class member will contain both the type and the value.
-        event_plane_angle (params.EventPlaneAngle): Selected event plane angle.
+        reaction_plane_orientation (params.ReactionPlaneOrientation): Selected event plane angle.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
@@ -129,10 +129,10 @@ class JetHBase(generic_class.EqualityMixin):
 
 class JetHReactionPlane(JetHBase):
     def __init__(self,
-                 event_plane_angle: params.EventPlaneAngle,
+                 reaction_plane_orientation: params.ReactionPlaneOrientation,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.event_plane_angle = event_plane_angle
+        self.reaction_plane_orientation = reaction_plane_orientation
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.

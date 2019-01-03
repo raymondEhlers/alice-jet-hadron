@@ -70,13 +70,13 @@ class JetHCorrelationSparse(enum.Enum):
     kDeltaPhi = 4
     kLeadingJet = 5
     kJetHadronDeltaR = 6
-    kEventPlaneAngle = 7
+    kReactionPlaneOrientation = 7
 
 class JetHTriggerSparse(enum.Enum):
     """ Define the axes in the Jet-Hadron Trigger Sparse. """
     kCentrality = 0
     kJetPt = 1
-    kEventPlaneAngle = 2
+    kReactionPlaneOrientation = 2
 
 class JetHCorrelationAxis(enum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
@@ -516,21 +516,23 @@ class JetHAnalysis(analysis_objects.JetHBase):
             maxVal = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 - epsilon)
         )
         # Event plane selection
-        eventPlaneAngleCutAxis = None
-        if self.eventPlaneAngle:
-            if self.eventPlaneAngle == params.eventPlaneAngle.all:
+        reaction_plane_orientation_cut_axis = None
+        if self.reaction_plane_orientation:
+            if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
                 eventPlaneAxisRange = fullAxisRange
                 logger.info("Using full EP angle range")
             else:
                 # TODO: Update enum to have both axis number and range of the selection.
                 eventPlaneAxisRange = {
-                    "minVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value),
-                    "maxVal": HistAxisRange.ApplyFuncToFindBin(None, self.eventPlaneAngle.value)
+                    "minVal": HistAxisRange.ApplyFuncToFindBin(None, self.reaction_plane_orientation.value),
+                    "maxVal": HistAxisRange.ApplyFuncToFindBin(None, self.reaction_plane_orientation.value)
                 }
-                logger.info("Using selected EP angle range {self.eventPlaneAngle.name}")
+                logger.info("Using selected EP angle range {self.reaction_plane_orientation.name}")
 
-            eventPlaneAngleCutAxis = HistAxisRange(axisType = JetHCorrelationSparse.kEventPlaneAngle,
-                                                   axisRangeName = "eventPlane", **eventPlaneAxisRange)
+            reaction_plane_orientation_cut_axis = HistAxisRange(
+                axisType = JetHCorrelationSparse.kReactionPlaneOrientation,
+                axisRangeName = "eventPlane", **eventPlaneAxisRange
+            )
         # dPhi full axis
         dPhiAxis = HistAxisRange(axisType = JetHCorrelationSparse.kDeltaPhi,
                                  axisRangeName = "deltaPhi", **fullAxisRange)
@@ -558,10 +560,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
             triggerCentralityCutAxis = copy.deepcopy(centralityCutAxis)
             triggerCentralityCutAxis.axisType = JetHTriggerSparse.kCentrality
             triggerProjector.additionalAxisCuts.append(triggerCentralityCutAxis)
-        if eventPlaneAngleCutAxis:
-            triggerEventPlaneAngleCutAxis = copy.deepcopy(eventPlaneAngleCutAxis)
-            triggerEventPlaneAngleCutAxis.axisType = JetHTriggerSparse.kEventPlaneAngle
-            triggerProjector.additionalAxisCuts.append(triggerEventPlaneAngleCutAxis)
+        if reaction_plane_orientation_cut_axis:
+            triggerReactionPlaneOrientationCutAxis = copy.deepcopy(reaction_plane_orientation_cut_axis)
+            triggerReactionPlaneOrientationCutAxis.axisType = JetHTriggerSparse.kReactionPlaneOrientation
+            triggerProjector.additionalAxisCuts.append(triggerReactionPlaneOrientationCutAxis)
         # No projection dependent cut axes
         triggerProjector.projectionDependentCutAxes.append([])
         # Projection axis
@@ -599,8 +601,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
             )
             if self.collisionSystem != params.collisionSystem.pp:
                 rawSignalProjector.additionalAxisCuts.append(centralityCutAxis)
-            if eventPlaneAngleCutAxis:
-                rawSignalProjector.additionalAxisCuts.append(eventPlaneAngleCutAxis)
+            if reaction_plane_orientation_cut_axis:
+                rawSignalProjector.additionalAxisCuts.append(reaction_plane_orientation_cut_axis)
             # TODO: Do these projectors really need projection dependent cut axes?
             #       It seems like additionalAxisCuts would be sufficient.
             projectionDependentCutAxes = []
@@ -638,8 +640,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
             )
             if self.collisionSystem != params.collisionSystem.pp:
                 mixedEventProjector.additionalAxisCuts.append(centralityCutAxis)
-            if eventPlaneAngleCutAxis:
-                mixedEventProjector.additionalAxisCuts.append(eventPlaneAngleCutAxis)
+            if reaction_plane_orientation_cut_axis:
+                mixedEventProjector.additionalAxisCuts.append(reaction_plane_orientation_cut_axis)
             projectionDependentCutAxes = []
             projectionDependentCutAxes.append(
                 HistAxisRange(
@@ -1303,7 +1305,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         figTemplate = r"""
 \begin{figure}
 \centering
-\includegraphics[width=.9\textwidth]{images/%(collisionSystem)s/%(eventPlaneAngle)s/%(name)s.eps}
+\includegraphics[width=.9\textwidth]{images/%(collisionSystem)s/%(reaction_plane_orientation)s/%(name)s.eps}
 \caption{%(description)s}
 \label{fig:%(name)s}
 \end{figure}"""
@@ -1332,7 +1334,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 description = description % descriptionDict
 
                 # Define values needed for figure template
-                figDict = {"eventPlaneAngle": self.eventPlaneAngle.filenameStr(),
+                figDict = {"reaction_plane_orientation": self.reaction_plane_orientation.filenameStr(),
                            "description": description,
                            "collisionSystem": self.collisionSystem.str()}
                 figDict.update(descriptionDict)

@@ -251,7 +251,7 @@ class JetHEPFit(object):
 
         # Determine configuration
         # The configurations should all be the same, except for the EP (which isn't in the config anyway)
-        _, jetHAllAngles = next(analysis_config.unrollNestedDict(self.analyses[params.eventPlaneAngle.all]))
+        _, jetHAllAngles = next(analysis_config.unrollNestedDict(self.analyses[params.ReactionPlaneOrientation.all]))
         #_, jetHAllAngles = next(analysis_config.unrollNestedDict(self.analyses))
 
         # Store to simplify plotting
@@ -288,7 +288,7 @@ class JetHEPFit(object):
         if isinstance(fitType, str):
             fitType = analysis_objects.JetHCorrelationType[fitType]
         if isinstance(epAngle, str):
-            epAngle = params.eventPlaneAngle[epAngle]
+            epAngle = params.ReactionPlaneOrientation[epAngle]
         # Retrieve the function
         uncalledFitFunc = fitFunctionMap[fitType]
         # Call the function on return
@@ -318,15 +318,15 @@ class JetHEPFit(object):
                 retVal = False
 
             # Skip EP angles if we fit all angles signal. Otherwise, it would be double counting
-            if epAngle != params.eventPlaneAngle.all and self.allAnglesSignal:
+            if epAngle != params.ReactionPlaneOrientation.all and self.allAnglesSignal:
                 retVal = False
         else:
             # Skip all angles background unless it's explicitly enabled
-            if epAngle == params.eventPlaneAngle.all and not self.allAnglesBackground:
+            if epAngle == params.ReactionPlaneOrientation.all and not self.allAnglesBackground:
                 retVal = False
 
             # Skip EP angles if we fit all angles background. Otherwise, it would be double counting
-            if epAngle != params.eventPlaneAngle.all and self.allAnglesBackground:
+            if epAngle != params.ReactionPlaneOrientation.all and self.allAnglesBackground:
                 retVal = False
 
         return retVal
@@ -336,9 +336,9 @@ class JetHEPFit(object):
         # Define the fits
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             #for signal_dominated, background_dominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
-            assert keys[0] == jetH.eventPlaneAngle
+            assert keys[0] == jetH.reaction_plane_orientation
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
-                retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
+                retVal = self.CheckIfFitIsEnabled(jetH.reaction_plane_orientation, observable.correlationType)
                 if retVal == False:
                     continue
 
@@ -352,7 +352,7 @@ class JetHEPFit(object):
                 errors = observable.hist.errors
 
                 # Define fit function
-                fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.eventPlaneAngle)
+                fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.reaction_plane_orientation)
 
                 # Restricted the background fit range
                 if observable.correlationType == analysis_objects.JetHCorrelationType.background_dominated:
@@ -369,18 +369,18 @@ class JetHEPFit(object):
                 # For lower pt assoc bin, use Chi2
                 # For higher pt assoc bin, use log likelihood because the statistics are not as good
                 if observable.trackPtBin in self.logLikelihoodTrackPtBins.get(observable.jetPtBin, []):
-                    logger.debug("Using log likelihood for {}, {}".format(jetH.eventPlaneAngle.str(), observable.correlationType.str()))
+                    logger.debug("Using log likelihood for {}, {}".format(jetH.reaction_plane_orientation.str(), observable.correlationType.str()))
                     # Generally will use for higher pt bins where the statistics are not as good
                     # Errors are extracted by assuming a poisson distribution, so we don't need to pass them explcitily(?)
                     # TODO: I think this is actually supposed to be binned!
                     costFunction = probfit.UnbinnedLH(f = fitFunc, data = x)
                     #costFunction = probfit.BinnedLH(f = fitFunc, data = x, bins = len(x), bound=(x[0], x[-1]))
                 else:
-                    logger.debug("Using Chi2 for {}, {}".format(jetH.eventPlaneAngle.str(), observable.correlationType.str()))
+                    logger.debug("Using Chi2 for {}, {}".format(jetH.reaction_plane_orientation.str(), observable.correlationType.str()))
                     costFunction = probfit.Chi2Regression(f = fitFunc,
                             x = x, y = y, error = errors)
 
-                self.fits[(observable.jetPtBin, observable.trackPtBin)][(jetH.eventPlaneAngle.str(), observable.correlationType.str())] =  costFunction
+                self.fits[(observable.jetPtBin, observable.trackPtBin)][(jetH.reaction_plane_orientation.str(), observable.correlationType.str())] =  costFunction
 
         #logger.debug("self.fits: {}".format(self.fits))
 
@@ -428,8 +428,8 @@ class JetHEPFit(object):
                 if not self.allAnglesSignal:
                     # Add separate parameters for each event plane
                     # Only needed if we are fitting separate event planes
-                    for epAngle in params.eventPlaneAngle:
-                        if epAngle == params.eventPlaneAngle.all:
+                    for epAngle in params.ReactionPlaneOrientation:
+                        if epAngle == params.ReactionPlaneOrientation.all:
                             # We don't want to use all angles here as it would be double counting
                             continue
 
@@ -495,13 +495,13 @@ class JetHEPFit(object):
     def DetermineFitErrors(self):
         # Perform error calculate
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
-            assert keys[0] == jetH.eventPlaneAngle
+            assert keys[0] == jetH.reaction_plane_orientation
             for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
-                retVal = self.CheckIfFitIsEnabled(jetH.eventPlaneAngle, observable.correlationType)
+                retVal = self.CheckIfFitIsEnabled(jetH.reaction_plane_orientation, observable.correlationType)
                 # Always calculate for all angles because we will subtract and we want the errors from the fit on that plot
                 # TODO: Is this okay / right???
                 #       Compare error bars from S+B to B only in all angles
-                if jetH.eventPlaneAngle != params.eventPlaneAngle.all and retVal == False:
+                if jetH.reaction_plane_orientation != params.ReactionPlaneOrientation.all and retVal == False:
                     continue
 
                 # Retrieve fit container
@@ -509,15 +509,15 @@ class JetHEPFit(object):
                 # TODO: It actually may not exist if a fit failed. Address this more carefully.
                 fitCont = self.fitContainers[(observable.jetPtBin, observable.trackPtBin)]
 
-                identifier = (jetH.eventPlaneAngle.str(), observable.correlationType.str())
+                identifier = (jetH.reaction_plane_orientation.str(), observable.correlationType.str())
                 if self.includeFitError:
                     if self.calculateFitError:
                         # Calculate errors
-                        logger.debug("Determine fit errors for {}, {}".format(observable.correlationType.str(), jetH.eventPlaneAngle.str()))
-                        errors = self.CalculateRPFError(fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.eventPlaneAngle),
+                        logger.debug("Determine fit errors for {}, {}".format(observable.correlationType.str(), jetH.reaction_plane_orientation.str()))
+                        errors = self.CalculateRPFError(fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.reaction_plane_orientation),
                                     histArray = observable.hist,
                                     fitContainer = fitCont,
-                                    epAngle = jetH.eventPlaneAngle)
+                                    epAngle = jetH.reaction_plane_orientation)
 
                         # Store errors in the fit container
                         fitCont.errors[identifier] = errors
@@ -619,7 +619,7 @@ class JetHEPFit(object):
 
     def SubtractEPHists(self):
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
-            assert keys[0] == jetH.eventPlaneAngle
+            assert keys[0] == jetH.reaction_plane_orientation
             for observable in itervalues(jetH.dPhiArray):
                 #retVal = self.CheckIfFitIsEnabled(epAngle, observable.correlationType)
                 #if retVal == False:
@@ -635,7 +635,7 @@ class JetHEPFit(object):
                 fitCont = self.fitContainers[(observable.jetPtBin, observable.trackPtBin)]
 
                 # Retrieve fit data
-                fit = self.EvaluateFit(epAngle = jetH.eventPlaneAngle,
+                fit = self.EvaluateFit(epAngle = jetH.reaction_plane_orientation,
                         fitType = analysis_objects.JetHCorrelationType.background_dominated,
                         xValue = xForFitFunc,
                         fitContainer = fitCont)
@@ -716,7 +716,7 @@ def GetSignalDominatedFitFunction(epAngle, fitConfig):
     # Background function
     backgroundFunc = GetBackgroundDominatedFitFunction(epAngle, fitConfig)
 
-    if epAngle == params.eventPlaneAngle.all:
+    if epAngle == params.ReactionPlaneOrientation.all:
         backgroundFunc = Fourier
 
         # We don't need to rename the all angles function because we can only use
@@ -744,22 +744,22 @@ def GetBackgroundDominatedFitFunction(epAngle, fitConfig):
     All angles background is Fourier
     EP angles background is RPF
     """
-    if epAngle == params.eventPlaneAngle.all:
+    if epAngle == params.ReactionPlaneOrientation.all:
         backgroundFunc = Fourier
     else:
         # Define constraints
         # Define here for convenience
         # Center of event plane bins
         phiS = {}
-        phiS[params.eventPlaneAngle.inPlane] = 0
-        phiS[params.eventPlaneAngle.midPlane] = np.pi/4.0
-        phiS[params.eventPlaneAngle.outOfPlane] = np.pi/2.0
+        phiS[params.ReactionPlaneOrientation.inPlane] = 0
+        phiS[params.ReactionPlaneOrientation.midPlane] = np.pi/4.0
+        phiS[params.ReactionPlaneOrientation.outOfPlane] = np.pi/2.0
         # EP bin widths
         c = {}
-        c[params.eventPlaneAngle.inPlane] = np.pi/6.0
+        c[params.ReactionPlaneOrientation.inPlane] = np.pi/6.0
         # NOTE: This value is doubled in the fit to account for the non-continuous regions
-        c[params.eventPlaneAngle.midPlane] = np.pi/12.0
-        c[params.eventPlaneAngle.outOfPlane] = np.pi/6.0
+        c[params.ReactionPlaneOrientation.midPlane] = np.pi/12.0
+        c[params.ReactionPlaneOrientation.outOfPlane] = np.pi/6.0
         # Resolution parameters
         resolutionParameters = fitConfig["epResolutionParameters"]
 

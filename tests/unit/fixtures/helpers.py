@@ -18,7 +18,7 @@ def check_JetHBase_object():
 
     This function is provided via fixture to allow for use in multiple tests modules.
     """
-    def func(obj, config: "ruamel.yaml.comments.CommentedMap", selected_analysis_options, event_plane_angle, **kwargs):
+    def func(obj, config: "ruamel.yaml.comments.CommentedMap", selected_analysis_options, reaction_plane_orientation, **kwargs):
         """ Helper function to check JetHBase properties.
 
         The values are asserted in this function.
@@ -31,7 +31,7 @@ def check_JetHBase_object():
             obj (analysis_config.JetHBase): JetHBase object to compare values against.
             config (CommentedMap): dict-like configuration file.
             selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
-            event_plane_angle (params.EventPlaneAngle): Selected event plane angle.
+            reaction_plane_orientation (params.ReactionPlaneOrientation): Selected event plane angle.
             kwargs (dict): All other values to compare against for which the default value defined
                 in this function is not sufficient.
         Returns:
@@ -44,7 +44,7 @@ def check_JetHBase_object():
             "config_filename": "configFilename.yaml",
             "config": config,
             "task_config": config[task_name],
-            "event_plane_angle": event_plane_angle
+            "reaction_plane_orientation": reaction_plane_orientation
         }
         # Add these afterwards so we don't have to do each value by hand.
         default_values.update(selected_analysis_options.asdict())
@@ -186,7 +186,7 @@ def object_yaml_config():
     """
     test_yaml = """
 iterables:
-    event_plane_angle: False
+    reaction_plane_orientation: False
     QVector: False
 leadingHadronBiasValues:
     track:
@@ -211,7 +211,7 @@ taskName:
         # Just need a trivial override value, since "override" is a required field.
         aliceLabel: "final"
         iterables:
-            event_plane_angle: True
+            reaction_plane_orientation: True
             qVector:
                 - "all"
 """
