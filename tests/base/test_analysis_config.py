@@ -258,7 +258,7 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
     # Avoid os.makedirs actually making directories
     mocker.patch("os.makedirs")
 
-    (_, names, objects) = analysis_config.construct_from_configuration_file(
+    (_, returned_iterables, objects) = analysis_config.construct_from_configuration_file(
         task_name = task_name,
         config_filename = config_filename,
         selected_analysis_options = selected_analysis_options,
@@ -266,7 +266,7 @@ def test_construct_object_from_config(logging_mixin, additional_iterables, objec
         additional_possible_iterables = additional_iterables,
     )
 
-    assert names == expected_names
+    assert list(returned_iterables) == expected_names
     for values, obj in generic_config.iterate_with_selected_objects(objects):
         res = check_JetHBase_object(
             obj = obj,
