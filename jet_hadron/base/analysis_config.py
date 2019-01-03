@@ -10,6 +10,8 @@ import logging
 from typing import Any, Dict, Iterable, Tuple
 
 from pachyderm import generic_config
+# Provided for convenience of analysis classes
+from pachyderm.generic_config import iterate_with_selected_objects  # noqa: F401
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_objects
@@ -269,7 +271,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
 
     # Iterate over the iterables defined above to create the objects.
-    (KeyIndex, names, objects) = generic_config.create_objects_from_iterables(
+    (KeyIndex, returned_iterables, objects) = generic_config.create_objects_from_iterables(
         obj = obj,
         args = args,
         iterables = iterables,
@@ -278,7 +280,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
 
     logger.debug(f"KeyIndex: {KeyIndex}, objects: {objects}")
 
-    return (KeyIndex, names, objects)
+    return (KeyIndex, returned_iterables, objects)
 
 def create_from_terminal(obj, task_name, additional_possible_iterables = None):
     """ Main function to create an object from the terminal.
