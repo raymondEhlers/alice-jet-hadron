@@ -751,15 +751,15 @@ def GetBackgroundDominatedFitFunction(epAngle, fitConfig):
         # Define here for convenience
         # Center of event plane bins
         phiS = {}
-        phiS[params.ReactionPlaneOrientation.inPlane] = 0
-        phiS[params.ReactionPlaneOrientation.midPlane] = np.pi/4.0
-        phiS[params.ReactionPlaneOrientation.outOfPlane] = np.pi/2.0
+        phiS[params.ReactionPlaneOrientation.in_plane] = 0
+        phiS[params.ReactionPlaneOrientation.mid_plane] = np.pi/4.0
+        phiS[params.ReactionPlaneOrientation.out_of_plane] = np.pi/2.0
         # EP bin widths
         c = {}
-        c[params.ReactionPlaneOrientation.inPlane] = np.pi/6.0
+        c[params.ReactionPlaneOrientation.in_plane] = np.pi/6.0
         # NOTE: This value is doubled in the fit to account for the non-continuous regions
-        c[params.ReactionPlaneOrientation.midPlane] = np.pi/12.0
-        c[params.ReactionPlaneOrientation.outOfPlane] = np.pi/6.0
+        c[params.ReactionPlaneOrientation.mid_plane] = np.pi/12.0
+        c[params.ReactionPlaneOrientation.out_of_plane] = np.pi/6.0
         # Resolution parameters
         resolutionParameters = fitConfig["epResolutionParameters"]
 

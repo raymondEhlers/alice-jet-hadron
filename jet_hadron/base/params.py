@@ -427,23 +427,21 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 class ReactionPlaneOrientation(enum.Enum):
     """ Selects the event plane angle in the sparse. """
     all = 0
-    inPlane = 1
-    midPlane = 2
-    outOfPlane = 3
+    in_plane = 1
+    mid_plane = 2
+    out_of_plane = 3
 
     def __str__(self) -> str:
         """ Returns the event plane angle name, as is. """
         return self.name
 
     def display_str(self) -> str:
-        """ For example, turns outOfPlane into "Out-of-plane".
+        """ For example, turns out_of_plane into "Out-of-plane".
 
         Note:
             We want the capitalize call to lowercase all other letters.
         """
-        # See: https://stackoverflow.com/a/2277363
-        tempList = re.findall("[a-zA-Z][^A-Z]*", str(self))
-        return "-".join(tempList).capitalize()
+        return str(self).replace("_", "-").capitalize()
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)

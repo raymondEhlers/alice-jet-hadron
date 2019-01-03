@@ -263,8 +263,8 @@ def test_leading_hadron_bias(logging_mixin, type, value, expected):
     ("all",
         {"str": "all",
             "display_str": "All"}),
-    ("outOfPlane",
-        {"str": "outOfPlane",
+    ("out_of_plane",
+        {"str": "out_of_plane",
             "display_str": "Out-of-plane"})
 ], ids = ["epAngleAll", "epAngleOutOfPlane"])
 def test_reaction_plane_orientation_strings(logging_mixin, ep_angle, expected):
