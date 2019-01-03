@@ -62,7 +62,7 @@ class ResponseHistograms:
     unmatched_jet_spectra: Hist
     sample_task_jet_spectra: Hist
 
-class ResponseMatrix(analysis_objects.JetHBase):
+class ResponseMatrix(analysis_objects.JetHReactionPlane):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

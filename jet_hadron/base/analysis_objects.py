@@ -78,7 +78,6 @@ class JetHBase(generic_class.EqualityMixin):
                  collision_system: params.CollisionSystem,
                  event_activity: params.EventActivity,
                  leading_hadron_bias: Union[params.LeadingHadronBias, params.LeadingHadronBiasType],
-                 event_plane_angle: params.EventPlaneAngle,
                  *args, **kwargs):
         # Store the configuration
         self.task_name = task_name
@@ -88,7 +87,6 @@ class JetHBase(generic_class.EqualityMixin):
         self.collision_energy = collision_energy
         self.collision_system = collision_system
         self.event_activity = event_activity
-        self.event_plane_angle = event_plane_angle
 
         # Handle leading hadron bias depending on the type.
         if not isinstance(leading_hadron_bias, params.LeadingHadronBiasType):
@@ -128,6 +126,13 @@ class JetHBase(generic_class.EqualityMixin):
                     leading_hadron_bias = self._leading_hadron_bias_type)
             ).leading_hadron_bias
         return self._leading_hadron_bias
+
+class JetHReactionPlane(JetHBase):
+    def __init__(self,
+                 event_plane_angle: params.EventPlaneAngle,
+                 *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.event_plane_angle = event_plane_angle
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.
