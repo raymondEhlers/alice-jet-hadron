@@ -70,9 +70,9 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
     return config
 
 def determine_selected_options_from_kwargs(
-        args = None,
+        args: list = None,
         description: str = "Jet-hadron {task_name}.",
-        add_options_function = None, **kwargs: Dict[str, Any]) -> Tuple[str, params.SelectedAnalysisOptions, argparse.Namespace]:
+        add_options_function = None, **kwargs: str) -> Tuple[str, params.SelectedAnalysisOptions, argparse.Namespace]:
     """ Determine the selected analysis options from the command line arguments.
 
     Defaults are equivalent to None or False so values can be added in the validation
@@ -117,15 +117,15 @@ def determine_selected_options_from_kwargs(
         args = add_options_function(parser)
 
     # Parse arguments
-    args = parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
 
     # Even though we will need to create a new selected analysis options tuple, we store the
     # return values in one for convenience.
-    selected_analysis_options = params.SelectedAnalysisOptions(collision_energy = args.energy,
-                                                               collision_system = args.collisionSystem,
-                                                               event_activity = args.eventActivity,
-                                                               leading_hadron_bias = args.biasType)
-    return (args.configFilename, selected_analysis_options, args)
+    selected_analysis_options = params.SelectedAnalysisOptions(collision_energy = parsed_args.energy,
+                                                               collision_system = parsed_args.collisionSystem,
+                                                               event_activity = parsed_args.eventActivity,
+                                                               leading_hadron_bias = parsed_args.biasType)
+    return (parsed_args.configFilename, selected_analysis_options, parsed_args)
 
 def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_extra_args_func: Any = None) -> Tuple[params.SelectedAnalysisOptions, dict]:
     """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
@@ -282,13 +282,13 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
 
     return (KeyIndex, returned_iterables, objects)
 
-def create_from_terminal(obj, task_name, additional_possible_iterables = None):
+def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: dict = None) -> Tuple[Any, Iterable[str], Iterable[Any]]:
     """ Main function to create an object from the terminal.
 
     Args:
-        obj (object): Object to be created.
-        task_name (str): Name of the task to be created.
-        additional_possible_iterables(dict): Additional iterators to use when creating
+        obj: Object to be created.
+        task_name: Name of the task to be created.
+        additional_possible_iterables: Additional iterators to use when creating
             the objects, in the form of "name" : list(values). Default: None.
     Returns:
         (object, list, dict): Roughly, (KeyIndex, names, objects). Specifically, the key_index is a
