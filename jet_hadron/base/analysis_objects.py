@@ -110,6 +110,7 @@ class JetHBase(generic_class.EqualityMixin):
         # Convert the ALICE label if necessary
         alice_label = config["aliceLabel"]
         self.alice_label = params.AliceLabel[alice_label]
+        self.train_number = config["trainNumber"]
 
     @property
     def leading_hadron_bias(self):

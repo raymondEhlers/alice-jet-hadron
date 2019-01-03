@@ -8,7 +8,7 @@
 from dataclasses import dataclass
 import logging
 import pprint
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -16,6 +16,9 @@ from pachyderm import projectors
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import params
+
+import ROOT
 
 Hist = Any
 
@@ -80,19 +83,15 @@ class ResponseHistograms:
 class ResponseMatrix(analysis_objects.JetHReactionPlane):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Pt hard bins are optional.
         self.pt_hard_bin = kwargs.get("pt_hard_bin", None)
-        self.pt_hard_information: PtHardInformation
         if self.pt_hard_bin:
-            #self.pt_hard_information = PtHardInformation(
-            #    pt_hard_bin = self.pt_hard_bin
-            #)
-            pass
+            self.train_number = self.pt_hard_bin.train_number
+            self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
 
-        self.train_number = self.task_config["pt_hard_bin_train_numbers"][self.pt_hard_bin]
-        self.input_filename.format(pt_hard_bin_train_number = self.train_number)
-
-        self.input_hists = {}
-        self.projectors = []
+        # Basic information
+        self.input_hists: Dict[str, Any] = {}
+        self.projectors: List[ResponseMatrixProjector] = []
 
         # Relevant histograms
         self.response_matrix: Hist
@@ -111,7 +110,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         #################
         # Response matrix
         #################
-        response_matrix_projector = JetHResponseMatrixProjector(
+        response_matrix_projector = ResponseMatrixProjector(
             observable_dict = self.hists["responseMatrixPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "responseMatrixPtHard_{ptHardBin}"
@@ -126,7 +125,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         )
         if self.reaction_plane_orientation:
             logger.debug(f"self.reaction_plane_orientation.value: {self.reaction_plane_orientation.value}")
-            if self.reaction_plane_orientation == ReactionPlaneOrientation.all:
+            if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
                 event_plane_axis_range = full_axis_range
                 logger.info("Using full EP angle range")
             else:
@@ -139,20 +138,20 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
                 axis_type = JetResponseMakerMatchingSparse.kDetLevelReactionPlaneOrientation,
                 axis_range_name = "detLevelReactionPlaneOrientation",
-                **eventPlaneAxisRange
+                **event_plane_axis_range
             )
             response_matrix_projector.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
 
         # No additional cuts for the projection dependent axes
-        responseMatrixProjector.projectionDependentCutAxes.append([])
-        responseMatrixProjector.projectionAxes.append(
+        response_matrix_projector.projection_dependent_cut_axes.append([])
+        response_matrix_projector.projection_axes.append(
             projectors.HistAxisRange(
                 axis_type = JetResponseMakerMatchingSparse.kDetLevelJetPt,
                 axis_range_name = "detLevelJetPt",
                 **full_axis_range
             )
         )
-        responseMatrixProjector.projectionAxes.append(
+        response_matrix_projector.projection_axes.append(
             projectors.HistAxisRange(
                 axis_type = JetResponseMakerMatchingSparse.kPartLevelJetPt,
                 axis_range_name = "partLevelJetPt",
@@ -160,12 +159,12 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             )
         )
         # Save the projector for later use
-        self.projectors.append(responseMatrixProjector)
+        self.projectors.append(response_matrix_projector)
 
         ###################
         # Unmatched part level jet pt
         ###################
-        unmatchedPartLevelJetSpectraProjector = JetHResponseMatrixProjector(
+        unmatchedPartLevelJetSpectraProjector = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
             projection_name_format = "unmatchedJetSpectraPartLevelPtHard_{ptHardBin}"
@@ -185,13 +184,13 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         ###################
         # (Matched) Part level jet pt
         ###################
-        partLevelJetSpectraProjector = JetHResponseMatrixProjector(
+        partLevelJetSpectraProjector = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "jetSpectraPartLevelPtHard_{ptHardBin}"
         )
         if self.reaction_plane_orientation:
-            partLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientationProjectorAxis)
+            partLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientation_projector_axis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         partLevelJetSpectraProjector.projectionDependentCutAxes.append([])
         partLevelJetSpectraProjector.projectionAxes.append(
@@ -207,7 +206,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         ##################
         # Unmatched det level jet pt
         ##################
-        unmatchedDetLevelJetSpectraProjector = JetHResponseMatrixProjector(
+        unmatchedDetLevelJetSpectraProjector = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
             projection_name_format = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}"
@@ -234,7 +233,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         ##################
         # (Matched) Det level jet pt
         ##################
-        detLevelJetSpectraProjector = JetHResponseMatrixProjector(
+        detLevelJetSpectraProjector = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "jetSpectraDetLevelPtHard_{ptHardBin}"
@@ -248,11 +247,13 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             )
         )
         if self.reaction_plane_orientation:
-            detLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientationProjectorAxis)
+            detLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientation_projector_axis)
         detLevelJetSpectraProjector.projectionDependentCutAxes.append([])
         detLevelJetSpectraProjector.projectionAxes.append(
-            projectors.HistAxisRange(axis_type = JetResponseMakerMatchingSparse.kDetLevelJetPt,
-                          axis_range_name = "detLevelJetSpectra", **full_axis_range)
+            projectors.HistAxisRange(
+                axis_type = JetResponseMakerMatchingSparse.kDetLevelJetPt,
+                axis_range_name = "detLevelJetSpectra", **full_axis_range
+            )
         )
         # Save the projector for later use
         self.projectors.append(detLevelJetSpectraProjector)
@@ -267,17 +268,17 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         """
         logger.info(f"input_filename: {self.input_filename}")
         if input_hists is None:
-            input_hists = histogram.get_histograms_in_list(
+            input_hists = histogram.get_histograms_in_file(
                 filename = self.input_filename,
             )
         try:
             self.input_hists = input_hists[self.input_list_name]
-        except KeyError as e:
+        except KeyError:
             logger.info(f"{pprint.pformat(input_hists)}")
             raise
 
-        if self.pt_hard_information:
-            pt_hard_information.retrieve_histograms(input_hists = input_hists)
+        #if self.pt_hard_information:
+        #    pt_hard_information.retrieve_histograms(input_hists = input_hists)
 
         return len(self.input_hists) != 0
 
