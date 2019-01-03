@@ -267,9 +267,11 @@ class ReactionPlaneBinInformation:
     """ Helper for storing reaction plane bin information.
 
     Attributes:
+        bin: Bin corresponding to the selected reaction plane.
         center: Center of the bin. Known as phi_s in RPF expressions.
         width: Width from the center of the bin to the edge. Known as c in RPF expressions.
     """
+    bin: int
     center: float
     width: float
 
@@ -443,10 +445,10 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 ##############################
 class ReactionPlaneOrientation(enum.Enum):
     """ Selects the event plane angle in the sparse. """
-    all = ReactionPlaneBinInformation(center = -1, width = -1)
-    in_plane = ReactionPlaneBinInformation(center = 0, width = np.pi / 6)
-    mid_plane = ReactionPlaneBinInformation(center = np.pi / 4, width = np.pi / 12)
-    out_of_plane = ReactionPlaneBinInformation(center = np.pi / 2, width = np.pi / 6)
+    all = ReactionPlaneBinInformation(bin = 0, center = -1, width = -1)
+    in_plane = ReactionPlaneBinInformation(bin = 1, center = 0, width = np.pi / 6)
+    mid_plane = ReactionPlaneBinInformation(bin = 2, center = np.pi / 4, width = np.pi / 12)
+    out_of_plane = ReactionPlaneBinInformation(bin = 3, center = np.pi / 2, width = np.pi / 6)
 
     def __str__(self) -> str:
         """ Returns the event plane angle name, as is. """

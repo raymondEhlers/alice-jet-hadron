@@ -6,6 +6,7 @@
 """
 
 from dataclasses import dataclass
+import enum
 import logging
 import pprint
 from typing import Any, Dict, Iterable, List, Tuple
@@ -23,6 +24,27 @@ import ROOT
 Hist = Any
 
 logger = logging.getLogger(__name__)
+
+class ResponseMakerMatchingSparse(enum.Enum):
+    """ Defines the axes in the AliJetResponseMaker fMatching THnSparse. """
+    det_level_jet_pt = 0
+    part_level_jet_pt = 1
+    matching_distance = 4
+    det_level_leading_particle = 7
+    part_level_leading_particle = 8
+    det_level_reaction_plane_orientation = 9
+    part_level_reaction_plane_orientation = 10
+
+class ResponseMakerJetsSparse(enum.Enum):
+    """ Defines the axes in the AliJetResponseMaker fJets THnSparse """
+    phi = 0
+    eta = 1
+    jet_pt = 2
+    jet_area = 3
+    # Different if the event plane is included in the output or not!!
+    reaction_plane_orientation = 4
+    leading_particle_PP = 4
+    leading_particle_PbPb = 5
 
 class PtHardInformation:
     def __init__(self, *args, **kwargs):
@@ -106,157 +128,153 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
             "max_val": projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
         }
+        # Reaction plane selection
+        if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
+            reaction_plane_axis_range = full_axis_range
+            logger.info("Using full EP angle range")
+        else:
+            reaction_plane_axis_range = {
+                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value),
+                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value)
+            }
+            logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
+        reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
+            axis_type = ResponseMakerMatchingSparse.kDetLevelReactionPlaneOrientation,
+            axis_range_name = "detLevelReactionPlaneOrientation",
+            **reaction_plane_axis_range
+        )
 
         #################
         # Response matrix
         #################
-        response_matrix_projector = ResponseMatrixProjector(
+        response_matrix = ResponseMatrixProjector(
             observable_dict = self.hists["responseMatrixPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "responseMatrixPtHard_{ptHardBin}"
+            projection_name_format = "responseMatrixPtHard_{pt_hard_bin}"
         )
-        response_matrix_projector.additional_axis_cuts.append(
+        response_matrix.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+                axis_type = ResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
             )
         )
-        if self.reaction_plane_orientation:
-            logger.debug(f"self.reaction_plane_orientation.value: {self.reaction_plane_orientation.value}")
-            if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
-                event_plane_axis_range = full_axis_range
-                logger.info("Using full EP angle range")
-            else:
-                event_plane_axis_range = {
-                    "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value),
-                    "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value)
-                }
-                logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
-
-            reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kDetLevelReactionPlaneOrientation,
-                axis_range_name = "detLevelReactionPlaneOrientation",
-                **event_plane_axis_range
-            )
-            response_matrix_projector.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
+        response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
 
         # No additional cuts for the projection dependent axes
-        response_matrix_projector.projection_dependent_cut_axes.append([])
-        response_matrix_projector.projection_axes.append(
+        response_matrix.projection_dependent_cut_axes.append([])
+        response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kDetLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.kDetLevelJetPt,
                 axis_range_name = "detLevelJetPt",
                 **full_axis_range
             )
         )
-        response_matrix_projector.projection_axes.append(
+        response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kPartLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.kPartLevelJetPt,
                 axis_range_name = "partLevelJetPt",
                 **full_axis_range
             )
         )
         # Save the projector for later use
-        self.projectors.append(response_matrix_projector)
+        self.projectors.append(response_matrix)
 
         ###################
         # Unmatched part level jet pt
         ###################
-        unmatchedPartLevelJetSpectraProjector = ResponseMatrixProjector(
+        unmatched_part_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraPartLevelPtHard_{ptHardBin}"
+            projection_name_format = "unmatchedJetSpectraPartLevelPtHard_{pt_hard_bin}"
         )
         # Can't apply a leading cluster cut on part level, since we don't have clusters
-        unmatchedPartLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        unmatchedPartLevelJetSpectraProjector.projectionAxes.append(
+        unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
+        unmatched_part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerJetsSparse.kJetPt,
+                axis_type = ResponseMakerJetsSparse.kJetPt,
                 axis_range_name = "unmatchedPartLevelJetSpectra",
                 **full_axis_range
             )
         )
         # Save the projector for later use
-        self.projectors.append(unmatchedPartLevelJetSpectraProjector)
+        self.projectors.append(unmatched_part_level_jet_spectra)
 
         ###################
         # (Matched) Part level jet pt
         ###################
-        partLevelJetSpectraProjector = ResponseMatrixProjector(
+        part_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraPartLevelPtHard_{ptHardBin}"
+            projection_name_format = "jetSpectraPartLevelPtHard_{pt_hard_bin}"
         )
-        if self.reaction_plane_orientation:
-            partLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientation_projector_axis)
+        part_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
-        partLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        partLevelJetSpectraProjector.projectionAxes.append(
+        part_level_jet_spectra.projection_dependent_cut_axes.append([])
+        part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kPartLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.kPartLevelJetPt,
                 axis_range_name = "partLevelJetSpectra",
                 **full_axis_range
             )
         )
         # Save the projector for later use
-        self.projectors.append(partLevelJetSpectraProjector)
+        self.projectors.append(part_level_jet_spectra)
 
         ##################
         # Unmatched det level jet pt
         ##################
-        unmatchedDetLevelJetSpectraProjector = ResponseMatrixProjector(
+        unmatched_det_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraDetLevelPtHard_{ptHardBin}"
+            projection_name_format = "unmatchedJetSpectraDetLevelPtHard_{pt_hard_bin}"
         )
-        unmatchedDetLevelJetSpectraProjector.additionalAxisCuts.append(
+        unmatched_det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysis_objects.CollisionSystem.kPbPb else JetResponseMakerJetsSparse.kLeadingParticlePP,
+                axis_type = ResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysis_objects.CollisionSystem.kPbPb else ResponseMakerJetsSparse.kLeadingParticlePP,
                 axis_range_name = "unmatchedDetLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
             )
         )
-        unmatchedDetLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        unmatchedDetLevelJetSpectraProjector.projectionAxes.append(
+        unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
+        unmatched_det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerJetsSparse.kJetPt,
+                axis_type = ResponseMakerJetsSparse.kJetPt,
                 axis_range_name = "unmatchedDetLevelJetSpectra",
                 **full_axis_range
             )
         )
         # Save the projector for later use
-        self.projectors.append(unmatchedDetLevelJetSpectraProjector)
+        self.projectors.append(unmatched_det_level_jet_spectra)
 
         ##################
         # (Matched) Det level jet pt
         ##################
-        detLevelJetSpectraProjector = ResponseMatrixProjector(
+        det_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraDetLevelPtHard_{ptHardBin}"
+            projection_name_format = "jetSpectraDetLevelPtHard_{pt_hard_bin}"
         )
-        detLevelJetSpectraProjector.additionalAxisCuts.append(
+        det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+                axis_type = ResponseMakerMatchingSparse.kDetLevelLeadingParticle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
             )
         )
-        if self.reaction_plane_orientation:
-            detLevelJetSpectraProjector.additionalAxisCuts.append(reaction_plane_orientation_projector_axis)
-        detLevelJetSpectraProjector.projectionDependentCutAxes.append([])
-        detLevelJetSpectraProjector.projectionAxes.append(
+        det_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
+        det_level_jet_spectra.projection_dependent_cut_axes.append([])
+        det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = JetResponseMakerMatchingSparse.kDetLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.kDetLevelJetPt,
                 axis_range_name = "detLevelJetSpectra", **full_axis_range
             )
         )
         # Save the projector for later use
-        self.projectors.append(detLevelJetSpectraProjector)
+        self.projectors.append(det_level_jet_spectra)
 
     def retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
         """ Retrieve histograms from a ROOT file.
