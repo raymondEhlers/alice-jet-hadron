@@ -256,13 +256,13 @@ def jet_properties_label(jet_pt_bin: int) -> Tuple[str, str, str, str]:
 #########################
 ## Helpers and containers
 #########################
-@dataclass
+@dataclass(frozen = True)
 class SelectedRange:
     """ Helper for selected ranges. """
     min: float
     max: float
 
-@dataclass
+@dataclass(frozen = True)
 class ReactionPlaneBinInformation:
     """ Helper for storing reaction plane bin information.
 
