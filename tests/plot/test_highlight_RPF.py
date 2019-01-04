@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-# Tests for plotting highlights of RPF regions
+""" Tests for plotting highlights of RPF regions
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 import pytest  # noqa: F401
 import numpy
