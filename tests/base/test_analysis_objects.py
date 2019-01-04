@@ -192,9 +192,9 @@ def testHistArrayFromRootHist(logging_mixin, test_root_hists):
     binCenters = np.array([xAxis.GetBinCenter(i) for i in xBins])
     errors = np.array([hist.GetBinError(i) for i in xBins])
 
-    assert np.array_equal(obj.array, histData)
-    assert np.array_equal(obj.binCenters, binCenters)
-    assert np.array_equal(obj.errors, errors)
+    assert np.allclose(obj.array, histData)
+    assert np.allclose(obj.binCenters, binCenters)
+    assert np.allclose(obj.errors, errors)
 
 @pytest.fixture
 def createFitContainer(mocker):
