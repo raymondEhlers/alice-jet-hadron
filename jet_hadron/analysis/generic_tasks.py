@@ -32,14 +32,14 @@ class PlotTaskHists(analysis_objects.JetHBase):
     Hists are selected and configured by a configuration file.
 
     Args:
-        taskLabel (enum.Enum): Enum which labels the task and can be converted into a string.
+        task_label (enum.Enum): Enum which labels the task and can be converted into a string.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, taskLabel, *args, **kwargs):
+    def __init__(self, task_label, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.taskLabel = taskLabel
+        self.task_label = task_label
         # These are the objects for each component stored in the YAML config
         self.components_from_YAML = self.task_config.get("componentsToPlot")
         if self.components_from_YAML is None:
@@ -51,7 +51,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
 
     def getHistsFromInputFile(self):
         """ Retrieve hists corresponding to the task name. They are stored in the object. """
-        self.hists = histogram.get_histograms_in_list(self.inputFilename, self.inputListName)
+        self.hists = histogram.get_histograms_in_list(self.input_filename, self.input_list_name)
 
         # Don't process this line unless we are debugging because pprint may be slow
         # see: https://stackoverflow.com/a/11093247
@@ -95,7 +95,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
                 plotted).
         """
         # Make the output directory for the component.
-        componentOutputPath = os.path.join(self.outputPrefix, componentName)
+        componentOutputPath = os.path.join(self.output_prefix, componentName)
         if not os.path.exists(componentOutputPath):
             os.makedirs(componentOutputPath)
 
@@ -222,7 +222,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
                     # Only print the first five items so we aren't overwhelmed with information
                     # "..." indicates that there are more than 5
                     debug_hist_names_trimmed = ", ".join(debug_hist_names[:5]) if len(debug_hist_names) < 5 else ", ".join(debug_hist_names[:5] + ["..."])
-                    logger.debug(f"Considering hist_object \"{hist_object_name}\" for exactNameMatch: {hist_object_name.exactNameMatch}, histNames (len {len(debug_hist_names)}): {debug_hist_names_trimmed}")
+                    logger.debug(f"Considering hist_object \"{hist_object_name}\" for exactNameMatch: {hist_object.exactNameMatch}, histNames (len {len(debug_hist_names)}): {debug_hist_names_trimmed}")
 
                 # Determine whether the hist belongs in the current hist object.
                 found_match = self.determine_whether_hist_is_in_hist_object(
@@ -320,7 +320,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         logger.info("About to process")
         for keys, task in generic_config.iterate_with_selected_objects(tasks):
             # Print the task selected analysis options
-            opts = [f"{name}: \"{value.str()}\""for name, value in dataclasses.asdict(keys).items()]
+            opts = [f"{name}: \"{str(value)}\""for name, value in dataclasses.asdict(keys).items()]
             options = "\n\t".join(opts)
             logger.info(f"Processing plotting task {task.task_name} with options:\n\t{options}")
 

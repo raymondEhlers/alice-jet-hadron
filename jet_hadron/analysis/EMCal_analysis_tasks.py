@@ -46,11 +46,7 @@ class EMCalCorrectionsLabels(enum.Enum):
         """ Return the label. """
         return self.value
 
-    def str(self):
-        """ Helper for __str__ to allow it to be accessed the same as the other str functions. """
-        return self.__str__()
-
-    def filenameStr(self):
+    def filename_str(self):
         """ Filename safe string. Return the name of the label. """
         return self.name
 
@@ -58,18 +54,18 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
     """ Task to steer plotting of EMCal embedding hists.
 
     Args:
-        taskLabel (EMCalCorrectionsLabels): EMCal corrections label associated with this task.
+        task_label (EMCalCorrectionsLabels): EMCal corrections label associated with this task.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
     def __init__(self, *args, **kwargs):
         # Retrieve the task label to determine additional inputs.
-        taskLabel = kwargs["taskLabel"]
+        task_label = kwargs["task_label"]
         # Add the task label to the output prefix
-        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], taskLabel.filenameStr())
+        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], task_label.filename_str())
         # Need to add it as "_label" so it ends up as "name_label_histos"
         # If it is the standard correction task, then we just put in an emptry string (which is returned by .str())
-        correlationsLabel = "_{}".format(taskLabel.filenameStr()) if taskLabel != EMCalCorrectionsLabels.standard else taskLabel.str()
+        correlationsLabel = "_{}".format(task_label.filename_str()) if task_label != EMCalCorrectionsLabels.standard else str(task_label)
         kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(correctionsLabel = correlationsLabel)
 
         # Afterwards, we can initialize the base class
@@ -142,7 +138,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
             config_filename = config_filename,
             selected_analysis_options = selected_analysis_options,
             obj = PlotEMCalCorrections,
-            additional_possible_iterables = {"taskLabel": EMCalCorrectionsLabels}
+            additional_possible_iterables = {"task_label": EMCalCorrectionsLabels}
         )
 
 def etaPhiMatchHistNames(histOptionsName, options):
@@ -162,52 +158,54 @@ def etaPhiMatchHistNames(histOptionsName, options):
         dict: Updated set of hist options.
     """
     # Pop this value so it won't cause issues when creating the hist plotter later.
-    processingOptions = options.pop("processing")
+    processing_options = options.pop("processing")
     # Get the hist name template
     # We don't care about the hist title
-    histName = next(iter(next(iter(options["histNames"]))))
+    hist_name = next(iter(next(iter(options["histNames"]))))
     # Angle name
-    angles = processingOptions["angles"]
+    angles = processing_options["angles"]
     # {Number: label}
-    centBins = processingOptions["centBins"]
+    cent_bins = processing_options["centBins"]
     # {Number: label}
-    etaDirections = processingOptions["etaDirections"]
+    eta_directions = processing_options["etaDirections"]
     # List of pt bins
-    ptBins = processingOptions["ptBins"]
+    pt_bins = processing_options["ptBins"]
     # We don't load these from YAML to avoid having to frequently copy them
-    ptBinRanges = [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, 200]
+    pt_bin_ranges = [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, 200]
 
-    histNames = []
+    hist_names = []
     for angle in angles:
-        for centDict in centBins:
-            centBin, centLabel = next(iter(iteritems(centDict)))
-            for ptBin in ptBins:
-                for etaDict in etaDirections:
-                    etaDirection, etaDirectionLabel = next(iter(iteritems(etaDict)))
+        for cent_dict in cent_bins:
+            cent_bin, cent_label = next(iter(iteritems(cent_dict)))
+            for pt_bin in pt_bins:
+                for eta_dict in eta_directions:
+                    eta_direction, eta_direction_label = next(iter(iteritems(eta_dict)))
                     # Determine hist name
-                    name = histName.format(angle = angle, cent = centBin, ptBin = ptBin, etaDirection = etaDirection)
+                    name = hist_name.format(angle = angle, cent = cent_bin, ptBin = pt_bin, etaDirection = eta_direction)
                     # Determine label
-                    # NOTE: Can't use generateTrackPtRangeString because it includes "assoc" in
+                    # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
                     # the pt label. Instead, we generate the string directly.
-                    ptBinLabel = params.generatePtRangeString(arr = ptBinRanges,
-                                                              binVal = ptBin,
-                                                              lowerLabel = r"\mathrm{T}",
-                                                              upperLabel = r"")
+                    pt_bin_label = params.generate_pt_range_string(
+                        arr = pt_bin_ranges,
+                        bin_val = pt_bin,
+                        lower_label = r"\mathrm{T}",
+                        upper_label = r""
+                    )
 
-                    angleLabel = determineAngleLabel(angle)
+                    angle_label = determine_angle_label(angle)
                     # Ex: "$\\Delta\\varphi$, Pos. tracks, $\\eta < 0$, $4 < \\mathit{p}_{\\mathrm{T}}< 5$"
-                    label = "{}, {}, {}, {}".format(angleLabel, centLabel, etaDirectionLabel, ptBinLabel)
+                    label = f"{angle_label}, {cent_label}, {eta_direction_label}, {pt_bin_label}"
                     # Save in the expected format
-                    histNames.append({name: label})
+                    hist_names.append({name: label})
                     #logger.debug("name: \"{}\", label: \"{}\"".format(name, label))
 
     # Assign the newly created names
-    options["histNames"] = histNames
-    logger.debug("Assigning histNames {}".format(histNames))
+    options["histNames"] = hist_names
+    logger.debug("Assigning histNames {hist_names}")
 
     return options
 
-def determineAngleLabel(angle):
+def determine_angle_label(angle):
     """ Determine the full angle label and return the corresponding latex.
 
     Args:

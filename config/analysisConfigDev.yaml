@@ -31,7 +31,7 @@ inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
 #inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 # yamllint disable-line rule:line-length
-outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qVector}/{taskName}"
+outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qVector}/{task_name}"
 outputFilename: "{collision_system}Correlations.root"
 printingExtensions: ["pdf", "eps"]
 aliceLabel: work_in_progress
@@ -407,7 +407,7 @@ EMCalCorrections:
                 - "all"
             qVector:
                 - "all"
-            taskLabel:
+            task_label:
                 - "standard"
                 #- "embed"
                 #- "combined"
