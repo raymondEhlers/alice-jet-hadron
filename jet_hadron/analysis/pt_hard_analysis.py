@@ -132,9 +132,11 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         return self.scale_factor * average_number_of_events / self.number_of_events
 
     def outlier_removal(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+        # TODO: Implement
         pass
 
     def scale_histograms(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+        # TODO: Implement
         pass
 
     def run(self, analysis: Type[analysis_objects.JetHBase], average_number_of_events: float) -> bool:

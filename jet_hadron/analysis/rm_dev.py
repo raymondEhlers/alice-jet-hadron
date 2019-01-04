@@ -62,6 +62,15 @@ class ResponseMatrixProjector(projectors.HistProjector):
         """ Retrun the input key, which is the pt hard bin"""
         return inputKey
 
+class ResponseMatrixPtHardAnalysis(pt_hard_analysis.PtHardAnalysis):
+    def remote_outliers(self):
+        # TODO: Implement
+        pass
+
+    def scale_histograms(self):
+        # TODO: Implement
+        pass
+
 @dataclass
 class ResponseHistograms:
     """ The main histograms for a response matrix. """
@@ -90,6 +99,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         self.det_level_hists: ResponseHistograms
 
     def _setup_projectors(self):
+        # TODO: Figure out projectors with single histograms.
         # Helper range
         full_axis_range = {
             "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -117,7 +127,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         response_matrix = ResponseMatrixProjector(
             observable_dict = self.hists["responseMatrixPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "responseMatrixPtHard_{pt_hard_bin}"
+            projection_name_format = "responseMatrix"
         )
         response_matrix.additional_axis_cuts.append(
             projectors.HistAxisRange(
@@ -154,7 +164,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         unmatched_part_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraPartLevelPtHard_{pt_hard_bin}"
+            projection_name_format = "unmatchedJetSpectraPartLevel"
         )
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
@@ -174,7 +184,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         part_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraPartLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraPartLevelPtHard_{pt_hard_bin}"
+            projection_name_format = "jetSpectraPartLevel"
         )
         part_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
@@ -195,7 +205,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         unmatched_det_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraDetLevelPtHard_{pt_hard_bin}"
+            projection_name_format = "unmatchedJetSpectraDetLevel"
         )
         unmatched_det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
@@ -222,7 +232,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         det_level_jet_spectra = ResponseMatrixProjector(
             observable_dict = self.hists["jetSpectraDetLevelPtHard"],
             observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraDetLevelPtHard_{pt_hard_bin}"
+            projection_name_format = "jetSpectraDetLevel"
         )
         det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
@@ -303,7 +313,7 @@ class ResponseManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_responses_from_configuration_file()
 
         # Create the pt hard bins
-        self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
+        self.pt_hard_bins: Mapping[Any, Type[pt_hard_analysis.PtHardAnalysis]]
         (_, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
 
         # Validate that we have the same pt hard iterables.
@@ -327,7 +337,7 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
-            obj = pt_hard_analysis.PtHardAnalysis,
+            obj = ResponseMatrixPtHardAnalysis,
         )
 
     def setup(self):
