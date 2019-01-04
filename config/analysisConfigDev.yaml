@@ -1,0 +1,504 @@
+---
+name: "Analysis config for Jet-H analysis"
+# The following are defined by user arguments and a defualt is not provided:
+#   - Energy
+#   - Collision system
+#   - Event activity
+#   - Leading hadron bias type
+
+# Specify all possible leading hadron bias values
+leadingHadronBiasValues:
+    track:
+        value: 5
+    2.76:
+        central:
+            cluster:
+                value: 10
+        semiCentral:
+            cluster:
+                value: 6
+
+# Iterable options
+iterables:
+    reaction_plane_orientation: true
+    qVector: false
+
+# Basic configuration
+inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
+# inputListName replaces
+#jetHTaskNameBase: ""
+#jetHTaskNameSuffix: "{biasTypeTag}R2"
+#inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
+inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
+# yamllint disable-line rule:line-length
+outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qVector}/{taskName}"
+outputFilename: "{collision_system}Correlations.root"
+printingExtensions: ["pdf", "eps"]
+aliceLabel: work_in_progress
+test: "hello"
+
+# TODO: What do do with this in the case of pt hard?
+trainNumber: &trainNumber 3360
+
+JetHAnalysis:
+    mixedEventNormalizationOptions:
+        etaRange: [-0.3, 0.3]
+        compareOptions: false
+    processingOptions:
+        # General histograms
+        generalHistograms: false
+        # 2D
+        generate2DCorrelations: false
+        plot2DCorrelations: false
+        # 1D
+        generate1DCorrelations: false
+        plot1DCorrelations: false
+        # Fit and subtract
+        fit1DCorrelations: true
+        plot1DCorrelationsWithFits: true
+        subtract1DCorrelations: true
+        plotSubtracted1DCorrelations: true
+        # Yields
+        extractYields: false
+        plotYields: false
+        # Widths
+        extractWidths: false
+        plotWidths: false
+    override:
+        2.76:
+            test: "world"
+        iterables:
+            reaction_plane_orientation: true
+            qVector:
+                - "all"
+
+Correlations:
+    override:
+        iterables:
+            jet_pt_bin: !JetPtBins [15, 20, 40, 60]
+
+_ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
+    # Disabled here due to a bug parsing the combination of the tag and the anchor
+    # yamllint disable-line rule:indentation
+    bins: [5, 11, 21, 36, 57, 84, 117, 152, 191, 234, 1000000]
+    train_numbers:
+        1: 2701
+        2: 2710
+        3: 2702
+        4: 2703
+        5: 2704
+        6: 2705
+        7: 2706
+        8: 2707
+        9: 2708
+        10: 2709
+
+PtHardBins:
+    override:
+        inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
+        iterables:
+            reaction_plane_orientation: false
+            pt_hard_bin: *PtHardBins10Bins
+Response:
+    override:
+        inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        # yamllint disable-line rule:line-length
+        inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent30_50_histos"
+        iterables:
+            reaction_plane_orientation: true
+            pt_hard_bin: *PtHardBins10Bins
+
+EMCalCorrections:
+    componentsToPlot:
+        CellEnergy:
+            # Specialize via a specific histogram name
+            CellEnergy: &CellEnergy
+                # The spectra fall off rather quickly
+                xLimits: [0, 4]
+                title: "Cell energy"
+                logy: true
+                textLabel:
+                    # "enabled" is not actually a real field - there just needs
+                    # to be at least one field. Here, it could be removed
+                    # because other values are specified, but it is kept as an
+                    # example.
+                    enabled: true
+                    cellLabel: true
+                # If histNames isn't specified, then we just we use the
+                # object name. Here, that is "CellEnergy"
+                # However, we specify the names so we can plot before and
+                # after on the same plot
+                histNames:
+                    - "CellEnergyDistBefore": "Before energy calibration"
+                    - "CellEnergyDistAfter": "After energy calibration"
+            plotAdditional: true
+        CellBadChannel:
+            CellEnergy:
+                <<: *CellEnergy
+                histNames:
+                    - "CellEnergyDistBefore": "Before bad channel removal"
+                    - "CellEnergyDistAfter": "After bad channel removal"
+            plotAdditional: true
+        CellTimeCalib:
+            CellTime:
+                title: "Cell time"
+                xLimits: [-300e-9, 900e-9]
+                scientificNotationOnAxis: "both"
+                textLabel:
+                    cellLabel: true
+                histNames:
+                    # Of the form "HistName": "HistTitle"
+                    - "CellTimeDistBefore": "Before time calibration"
+                    - "CellTimeDistAfter": "After time calibration"
+            plotAdditional: true
+        Clusterizer:
+            ProcessingTime:
+                title: "Clusterizer processing time"
+                textLabel:
+                    enabled: true
+                histNames:
+                    - "RealTime": "Clock time"
+                    - "CPUTime": "CPU time"
+            plotAdditional: false
+        ClusterExotics:
+            EtaPhiDistBefore: &exoticsEtaPhi
+                # Don't use quotes if we are using latex
+                title: Cluster $\eta,\phi$ before exotics removal
+                outputName: "ClusterEtaPhiBeforeExotics"
+                yLimits: [1.25, 3.5]
+                logz: true
+                textLabel:
+                    clusterLabel: true
+            EtaPhiDistAfter:
+                <<: *exoticsEtaPhi
+                title: Cluster $\eta,\phi$ after exotics removal
+                outputName: "ClusterEtaPhiAfterExotics"
+            ExoticsRemoved:
+                <<: *exoticsEtaPhi
+                title: $\eta, \phi$ of cluster removed during exotic cut
+                outputName: "ClusterEtaPhiRemovedByExotics"
+                histNames:
+                    - "hExoticsEtaPhiRemoved": ""
+            ExoticClusters:
+                title: "Energy of Exotic Clusters"
+                outputName: "ExoticClusterEnergy"
+                logy: true
+                textLabel:
+                    clusterLabel: true
+                histNames:
+                    - "EnergyExoticClusters": "Exotic Clusters"
+            plotAdditional: true
+        ClusterNonLinearity:
+            EnergyDist:
+                title: "Non-linearity cluster energy spectra"
+                logy: true
+                textLabel:
+                    clusterLabel: true
+                histNames:
+                    - "EnergyDistBefore": "Before non-linearity"
+                    - "EnergyDistAfter": "After non-linearity"
+            EnergyTimeDistBefore: &energyTimeDist
+                yLimits: [-300e-9, 400e-9]
+                xLimits: [0, 80]
+                logz: true
+                outputName: EnergyTimeBeforeNonLinearity
+                title: Cluster energy vs time before cluster non-linearity
+                textLabel:
+                    clusterLabel: true
+            EnergyTimeDistAfter:
+                <<: *energyTimeDist
+                outputName: EnergyTimeAfterNonLinearity
+                title: Cluster energy vs time after cluster non-linearity
+            plotAdditional: true
+        ClusterTrackMatcher:
+            MatchDistAll:
+                title: "All cluster-track matches"
+                xLabel: $\Delta\eta$, $\Delta\varphi$
+                xLimits: [-0.12, 0.12]
+                textLabel: &matchDistLabel
+                    clusterLabel: true
+                    trackLabel: true
+                    textLocation: [0.25, 0.9]
+                histNames:
+                    - "MatchEtaAll": $\eta$ matches
+                    - "MatchPhiAll": $\varphi$ matches
+            MatchDifferential0: &matchDifferential
+                title: $\Delta\eta$, $\Delta\varphi$ matches
+                xLabel: $\Delta\eta$, $\Delta\varphi$
+                xLimits: [-0.12, 0.12]
+                scientificNotationOnAxis: "y"
+                textLabel:
+                    <<: *matchDistLabel
+                histNames:
+                    - "fHistMatch{angle}_{cent}_{ptBin}_{etaDirection}": ""
+                # Below isn't in the HistPlotter, but is instead used for customization of the histNames
+                processing: &matchDifferentialProcessing
+                    funcName: "etaPhiMatchHistNames"
+                    angles: ["Eta", "Phi"]
+                    centBins:
+                        - 0: "Pos. tracks"
+                        - 5: "Neg. tracks"
+                    ptBins: [0]
+                    etaDirections:
+                        - 0: $\eta < 0$
+                        - 1: $\eta > 0$
+            MatchDifferential1:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [1]
+            MatchDifferential2:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [2]
+            MatchDifferential3:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [3]
+            MatchDifferential4:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [4]
+            MatchDifferential5:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [5]
+            MatchDifferential6:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [6]
+            MatchDifferential7:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [7]
+            MatchDifferential8:
+                <<: *matchDifferential
+                processing:
+                    <<: *matchDifferentialProcessing
+                    ptBins: [8]
+            plotAdditional: false
+        ClusterHadronicCorrection:
+            # By following the same order as how the histograms are stored in the file,
+            # we can be assured that the proper hist is matched to the proper config.
+            MatchEtaPhiAll:
+                title: $\Delta\eta$, $\Delta\varphi$ matches (track $\leftrightarrow$ cluster)
+                outputName: "EtaPhiMatches"
+                logz: true
+                exactNameMatch: true
+                textLabel:
+                    <<: *matchDistLabel
+                    textLocation: [0.35, 0.92]
+                histNames:
+                    - "fHistMatchEtaPhiAll": "Matches"
+            MatchEtaPhiAllCl:
+                title: $\Delta\eta$, $\Delta\varphi$ matches from clusters
+                outputName: "EtaPhiMatchesFromClusters"
+                logz: true
+                exactNameMatch: true
+                textLabel:
+                    <<: *matchDistLabel
+                    textLocation: [0.35, 0.92]
+                histNames:
+                    - "fHistMatchEtaPhiAllCl": "Matches"
+            TrackPESub:
+                outputName: "TrackPESub"
+                xLabel: $\sum p$ (GeV) weighted with $E_{\mathrm{sub}}$
+                xLimits: [0, 175]
+                logy: true
+                textLabel: &clusterTrackLabel
+                    clusterLabel: true
+                    trackLabel: true
+                histNames:
+                    # 0, 5 are 0-10%
+                    - "fHistEsubPch_0": "Positive charged tracks"
+                    - "fHistEsubPch_5": "Negative charged tracks"
+            TrackPVsEOverPRatio:
+                outputName: "TrackPEOverPRatio"
+                title: $\sum p_{\mathrm{track}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
+                xLimits: [0, 150]
+                yLimits: [0, 1.1]
+                logz: true
+                textLabel: &clusterTrackLabelRight
+                    <<: *clusterTrackLabel
+                    textLocation: [0.71, 0.92]
+                histNames:
+                    # 0 is 0-10%
+                    - "fHistEsubPchRatAll_0": ""
+            EClusVsEOverPRatio:
+                outputName: "ClusterEoverPRatio"
+                title: $E_{\mathrm{cluster}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
+                xLimits: [0, 150]
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabelRight
+                histNames:
+                    # 0 is 0-10%
+                    - "fHistMatchEvsP_0": ""
+            EOverPVsCent:
+                outputName: "EOverPCent"
+                title: &eOverPVsCentTitle $E_{\mathrm{cluster}}$ / $p_{\mathrm{track}}$ vs Cent
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                    textLocation: [0.35, 0.15]
+                histNames:
+                    - "EoPCent": ""
+            NMatchesVsCent:
+                title: &nMatchesVsCentTitle "N matches vs centrality"
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "NMatchesCent": *nMatchesVsCentTitle
+            # Oversubtracted hists
+            OversubVsClusE:
+                outputName: "OversubVsClusE"
+                title: Oversubtracted E vs $E_{\textrm{cluster}}$
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "fHistOversub_0": ""
+            OversubVsClusEFromEmbedClusters:
+                outputName: "OversubVsClusEFromEmbedClusters"
+                title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated clusters
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "fHistOversubMCClusters_0": ""
+            OversubVsClusEFromDataClusters:
+                outputName: "OversubVsClusEFromDataClusters"
+                title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated clusters
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "fHistOversubNonMCClusters_0": ""
+            OversubVsClusEFromEmbedTracks:
+                outputName: "OversubVsClusEFromEmbedTracks"
+                title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated tracks
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "fHistEmbTrackMatchesOversub_0": ""
+            OversubVsClusEFromDataTracks:
+                outputName: "OversubVsClusEFromDataTracks"
+                title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated tracks
+                logz: true
+                textLabel:
+                    <<: *clusterTrackLabel
+                histNames:
+                    - "fHistNonEmbTrackMatchesOversub_0": ""
+            plotAdditional: false
+    override:
+        inputListName: "AliEmcalCorrectionTask{correctionsLabel}_histos"
+        iterables:
+            reaction_plane_orientation:
+                - "all"
+            qVector:
+                - "all"
+            taskLabel:
+                - "standard"
+                #- "embed"
+                #- "combined"
+                #- "data"
+
+EMCalEmbedding:
+    componentsToPlot:
+        # TODO: Handle multiple pt hard bins (trains)
+        # TODO: Add AliEventCuts support
+        CrossSection:
+            textLabel:
+                enabled: true
+            histNames:
+                - "fHistXSection": "Pythia Cross Section"
+        Trials:
+            textLabel:
+                enabled: true
+        PtHard:
+            textLabel:
+                enabled: true
+        EmbeddedEventRejection:
+            scientificNotationOnAxis: "y"
+            textLabel:
+                enabled: true
+        EmbeddedEventsAttempted:
+            xLimits: [0, 200]
+            logy: true
+            scientificNotationOnAxis: "y"
+            textLabel:
+                enabled: true
+        NumberOfFiles:
+            yLabel: "Number"
+            textLabel:
+                enabled: true
+        AbsoluteFileNumber:
+            xLabel: "File number"
+            yLabel: "Number"
+            textLabel:
+                enabled: true
+        InternalEventCuts:
+            textLabel:
+                enabled: true
+    override:
+        inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
+        trainNumber: 3231
+        iterables:
+            reaction_plane_orientation: false
+
+bias:
+    track:
+        tag: "trackBias5"
+        trainNumber: *trainNumber
+    cluster:
+        tag: "clusterBias10"
+        trainNumber: *trainNumber
+# Save some time by skipping these bins for analysis
+skipPtBins:
+    jet: [0, 2, 3]
+    track: []
+
+fitOptions:
+    # If false, instead used the stored fit information
+    performFit: false
+    # Whether to draw the minuit QA plots
+    drawMinuitQAPlots: true
+    # Plot summed of each EP angle fit summed together as a cross-check of all anlges
+    plotSummedFitCrosscheck: false
+    # Perform a signal + background fit instead of just a background fit
+    includeSignalInFit: true
+    # Fit all angles signal.
+    # Note that this precludes fitting the signal in the other EP angles
+    allAnglesSignal: true
+    # Fit the background using all angles
+    # This should be fairly uncommon, but compliments the signal option
+    allAnglesBackground: false
+    # If true, plot minimal labeling for the all angles subtracted hist.
+    # Used for display next two the 4 panel fit plot
+    minimalLabelsForAllAnglesSubtracted: true
+    # Whether the fit should be included
+    includeFitError: true
+    # Whether it should be recalculated
+    calculateFitError: false
+    # WHich bins should be used with log likelihood
+    # instead of Chi2
+    logLikelihoodTrackPtBins:
+        # Of the form `jetPtBin: trackPtBin`
+        1: [8]
+        2: [5, 6, 7, 8]
+    # Event plane resolution parameters
+    epResolutionParameters:
+        R22: 0.5713
+        R42: &R42 0.2972
+        # Temporarily set to R4,2 to get possible contributions
+        R62: *R42
+        R82: *R42
