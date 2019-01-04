@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, Mapping, Type
 
 from pachyderm import histogram
 
@@ -20,7 +20,7 @@ Hist = Type[ROOT.TH1]
 
 logger = logging.getLogger(__name__)
 
-def calculate_average_n_events(pt_hard_bins: List[Any]) -> float:
+def calculate_average_n_events(pt_hard_bins: Mapping[Any, Any]) -> float:
     """ Get relative scaling for each pt hard bin and scale the scale factors by each relative value """
     n_total_events = 0.
     for key_index, pt_hard_bin in analysis_config.iterate_with_selected_objects(pt_hard_bins):

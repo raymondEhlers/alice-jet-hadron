@@ -342,13 +342,27 @@ class ResponseManager(generic_class.EqualityMixin):
                 logger.debug(f"{key_index}")
                 analysis._retrieve_histograms(input_hists = input_hists)
 
-    def run(self):
+    def run(self) -> bool:
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
 
+        # Cache input hists so we can avoid repeatedly opening files
+        input_hists: Dict[Any, Dict[str, Any]] = {}
+
         # Run the RM projectors
-        for _, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-            analysis.setup()
-            analysis.run_projectors()
+        for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
+            logger.debug(f"{pt_hard_bin}")
+            input_hists[pt_hard_bin] = {}
+            for key_index, analysis in \
+                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
+                # We should now have all RP orientations.
+                # We are caching the values here to minimize opening files.
+                if not input_hists[pt_hard_bin]:
+                    input_hists[pt_hard_bin] = histogram.get_histograms_in_file(filename = analysis.input_filename)
+                logger.debug(f"{key_index}")
+                result = analysis.setup(input_hists = input_hists)
+                if result is not True:
+                    raise ValueError(f"Setup of {key_index} analysis object failed.")
+                analysis.run_projectors()
 
         # Setup the pt hard bins
         for _, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
@@ -373,6 +387,8 @@ class ResponseManager(generic_class.EqualityMixin):
             for _, analysis in \
                     analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
                         pass
+
+        return True
 
         # Test
         #test_object = next(iter(self.analyses.values()))
