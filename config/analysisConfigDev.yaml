@@ -77,6 +77,7 @@ Correlations:
         iterables:
             jet_pt_bin: !JetPtBins [15, 20, 40, 60]
 
+# Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
 _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
     # Disabled here due to a bug parsing the combination of the tag and the anchor
     # yamllint disable-line rule:indentation
