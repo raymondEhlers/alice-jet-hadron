@@ -101,12 +101,12 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             logger.info("Using full EP angle range")
         else:
             reaction_plane_axis_range = {
-                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value),
-                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value)
+                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin),
+                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin)
             }
             logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
-            axis_type = ResponseMakerMatchingSparse.kDetLevelReactionPlaneOrientation,
+            axis_type = ResponseMakerMatchingSparse.det_level_reaction_plane_orientation,
             axis_range_name = "detLevelReactionPlaneOrientation",
             **reaction_plane_axis_range
         )
@@ -121,7 +121,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         )
         response_matrix.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+                axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
@@ -133,14 +133,14 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         response_matrix.projection_dependent_cut_axes.append([])
         response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kDetLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.det_level_jet_pt,
                 axis_range_name = "detLevelJetPt",
                 **full_axis_range
             )
         )
         response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kPartLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.part_level_jet_pt,
                 axis_range_name = "partLevelJetPt",
                 **full_axis_range
             )
@@ -160,7 +160,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
         unmatched_part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.kJetPt,
+                axis_type = ResponseMakerJetsSparse.jet_pt,
                 axis_range_name = "unmatchedPartLevelJetSpectra",
                 **full_axis_range
             )
@@ -181,7 +181,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         part_level_jet_spectra.projection_dependent_cut_axes.append([])
         part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kPartLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.part_level_jet_pt,
                 axis_range_name = "partLevelJetSpectra",
                 **full_axis_range
             )
@@ -199,7 +199,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         )
         unmatched_det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.kLeadingParticlePbPb if self.collisionSystem == analysis_objects.CollisionSystem.kPbPb else ResponseMakerJetsSparse.kLeadingParticlePP,
+                axis_type = ResponseMakerJetsSparse.leading_particle_PbPb if self.collision_system == analysis_objects.CollisionSystem.kPbPb else ResponseMakerJetsSparse.leading_particle_PP,
                 axis_range_name = "unmatchedDetLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
@@ -208,7 +208,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
         unmatched_det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.kJetPt,
+                axis_type = ResponseMakerJetsSparse.jet_pt,
                 axis_range_name = "unmatchedDetLevelJetSpectra",
                 **full_axis_range
             )
@@ -226,7 +226,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         )
         det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kDetLevelLeadingParticle,
+                axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
@@ -236,7 +236,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         det_level_jet_spectra.projection_dependent_cut_axes.append([])
         det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.kDetLevelJetPt,
+                axis_type = ResponseMakerMatchingSparse.det_level_jet_pt,
                 axis_range_name = "detLevelJetSpectra", **full_axis_range
             )
         )
