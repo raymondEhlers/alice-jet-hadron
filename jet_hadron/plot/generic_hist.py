@@ -175,14 +175,14 @@ class HistPlotter(object):
         """
         if self.textLabel is not None:
             text = ""
-            text += obj.aliceLabel.str()
-            if str(obj.taskLabel) != "":
+            text += str(obj.alice_label)
+            if str(obj.task_label) != "":
                 # We don't want a new line here - we just want to continue it
-                text += " " + str(obj.taskLabel)
+                text += " " + str(obj.task_label)
 
-            text += "\n" + params.systemLabel(energy = obj.collisionEnergy,
-                                              system = obj.collisionSystem,
-                                              activity = obj.eventActivity)
+            text += "\n" + params.system_label(energy = obj.collision_energy,
+                                               system = obj.collision_system,
+                                               activity = obj.event_activity)
             propertyLabels = []
             if self.textLabel.get("cellLabel", False):
                 # Handled separately because it is long enough that it has to be
