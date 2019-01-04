@@ -42,6 +42,8 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         # Basic information
         self.pt_hard_bin = pt_hard_bin
         self.use_after_event_selection_information = self.task_config.get("use_after_event_selection_information", False)
+        self.train_number = self.pt_hard_bin.train_number
+        self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
 
         # Histograms
         self.pt_hard_spectra: Hist
@@ -53,7 +55,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.scale_factor: float = 0.0
         self.number_of_events: int = 0
 
-    def _retrieve_histograms(self, input_hists: Dict[str, Any]) -> bool:
+    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
         """ Retrieve relevant histogram information.
 
         Args:
@@ -96,7 +98,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         """ Extract number of accepted events in the pt hard bin."""
         return self.n_events.GetBinContent(1)
 
-    def setup(self) -> bool:
+    def setup(self, input_hists: Dict[str, Any] = None) -> bool:
         """ Setup the pt hard bin objects.
 
         Note:
@@ -104,7 +106,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
             to be able to determine the relative scale factor scaling.
 
         Args:
-            None.
+            input_hists: All histograms in a file. Default: None - They will be retrieved.
         Returns:
             True if the pt hard bin was successfully setup.
         Raisees:
@@ -112,7 +114,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
             ValueError: If it failed to extract the scale factor.
             ValueError: If it failed to extract the number of events.
         """
-        result = self._retireve_histograms()
+        result = self._retrieve_histograms(input_hists = input_hists)
         if result is False:
             raise ValueError("Could not retrieve histograms.")
         self.scale_factor = self._extract_scale_factor()

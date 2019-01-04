@@ -89,7 +89,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         self.part_level_hists: ResponseHistograms
         self.det_level_hists: ResponseHistograms
 
-    def setup_projectors(self):
+    def _setup_projectors(self):
         # Helper range
         full_axis_range = {
             "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -261,6 +261,28 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
 
         return len(self.input_hists) > 0
 
+    def setup(self, input_hists: Dict[str, Any] = None):
+        """ Setup the response matrix.
+
+        Args:
+            input_hists: All histograms in a file. Default: None - They will be retrieved.
+        Returns:
+            bool: True if histograms were retrieved successfully.
+        Raises:
+            ValueError: If the histograms could not be retrieved.
+        """
+        result = self._retrieve_histograms(input_hists = input_hists)
+        if result is not True:
+            raise ValueError("Could not retrieve histograms.")
+
+        self._setup_projectors()
+
+    def run_projectors(self):
+        """ Execute the projectors to create the projected histograms. """
+        # Perform the various projections
+        for projector in self.projectors:
+            projector.project()
+
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
@@ -344,6 +366,13 @@ class ResponseManager(generic_class.EqualityMixin):
                 pt_hard_bin.run(analysis = analysis, average_number_of_events = average_number_of_events)
 
         # Now merge the scale histograms into the final response matrix results.
+        #response_matrix = ResponseMatrix(...)
+
+        for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
+            pt_hard_bin = self.pt_hard_bin[pt_hard_bin_index]
+            for _, analysis in \
+                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
+                        pass
 
         # Test
         #test_object = next(iter(self.analyses.values()))
