@@ -7,7 +7,7 @@
 
 import argparse
 import logging
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Mapping, Tuple
 
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
@@ -18,6 +18,9 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 
 logger = logging.getLogger(__name__)
+
+# Typing
+ConstructedObjects = Tuple[Any, Mapping[Any, Any], Mapping[Any, Any]]
 
 def determine_leading_hadron_bias(config: generic_config.DictLike, selected_analysis_options: params.SelectedAnalysisOptions) -> params.SelectedAnalysisOptions:
     """ Determines the leading hadron bias based on the analysis options.
@@ -178,7 +181,7 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
     )
     return (selected_analysis_options, additional_validated_args)
 
-def construct_from_configuration_file(task_name: str, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, obj: Any, additional_possible_iterables: Dict[str, Any] = None) -> Tuple[Any, Iterable[str], Iterable[Any]]:
+def construct_from_configuration_file(task_name: str, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, obj: Any, additional_possible_iterables: Dict[str, Any] = None) -> ConstructedObjects:
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
@@ -282,7 +285,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
 
     return (KeyIndex, returned_iterables, objects)
 
-def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: dict = None) -> Tuple[Any, Iterable[str], Iterable[Any]]:
+def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: dict = None) -> ConstructedObjects:
     """ Main function to create an object from the terminal.
 
     Args:

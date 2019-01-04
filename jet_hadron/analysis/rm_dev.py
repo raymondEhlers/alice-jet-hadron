@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import enum
 import logging
 import pprint
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, List, Mapping, Type
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -19,9 +19,12 @@ from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 
+from jet_hadron.analysis import pt_hard_analysis
+
 import ROOT
 
-Hist = Any
+# Typing helper
+Hist = Type[ROOT.TH1]
 
 logger = logging.getLogger(__name__)
 
@@ -45,42 +48,6 @@ class ResponseMakerJetsSparse(enum.Enum):
     reaction_plane_orientation = 4
     leading_particle_PP = 4
     leading_particle_PbPb = 5
-
-class PtHardInformation:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Basic information
-        self.pt_hard_bin = kwargs["pt_hard_bin"]
-        self.use_after_event_selection_information = False
-        self.task_name = kwargs["task_name"]
-
-        # Histograms
-        self.pt_hard_spectra: Hist
-        self.cross_section: Hist
-        self.n_trials: Hist
-        self.n_events: Hist
-
-    def retrieve_histograms(self, input_hists: Dict[str, Any]) -> None:
-        """ Retrieve relevant histogram information.
-
-        Args:
-            input_hists: Input histograms where the inforamtion will be retrieved.
-        Returns:
-            None.
-        """
-        task_name = ""
-        event_sel_tag = "AfterSel" if self.use_after_event_selection_information else ""
-
-        # Retrieve hists
-        self.cross_section = input_hists[task_name][f"fHistXsection{event_sel_tag}"]
-        self.n_trials = input_hists[task_name][f"fHistTrials{event_sel_tag}"]
-        self.n_events = input_hists[task_name]["fHistEventCount"]
-        self.pt_hard_spectra = input_hists[task_name]["fHistPtHard"]
-
-    def extract_scale_factor(self) -> float:
-        """ Extract the scale factor from the stored information. """
-        pass
 
 class ResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse. """
@@ -276,7 +243,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(det_level_jet_spectra)
 
-    def retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
+    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
         """ Retrieve histograms from a ROOT file.
 
         Args:
@@ -286,34 +253,42 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         """
         logger.info(f"input_filename: {self.input_filename}")
         if input_hists is None:
-            input_hists = histogram.get_histograms_in_file(
+            input_hists = histogram.get_histograms_in_list(
                 filename = self.input_filename,
+                input_list = self.input_list_name
             )
-        try:
-            self.input_hists = input_hists[self.input_list_name]
-        except KeyError:
-            logger.info(f"{pprint.pformat(input_hists)}")
-            raise
+        self.input_hists = input_hists
 
-        #if self.pt_hard_information:
-        #    pt_hard_information.retrieve_histograms(input_hists = input_hists)
-
-        return len(self.input_hists) != 0
+        return len(self.input_hists) > 0
 
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
     Attributes:
+        config_filename: Filename of the configuration
+        selected_analysis_options: Options selected for this analysis.
+        key_index: Key index object for the analysis.
+        selected_iterables: All iterables values used to create the response matrices.
+        analyses: Response matrix analysis objects.
 
     """
-    def __init__(self, config_filename, selected_analysis_options, **kwargs):
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
         self.config_filename = config_filename
         self.selected_analysis_options = selected_analysis_options
 
         # Create the actual analysis objects.
-        (self.key_index, self.selected_iterables, self.analyses) = self.construct_from_configuration_file()
+        self.analyses: Mapping[Any, ResponseMatrix]
+        (self.key_index, self.selected_iterables, self.analyses) = self.construct_responses_from_configuration_file()
 
-    def construct_from_configuration_file(self) -> Tuple[Any, Iterable[Any], Iterable[Any]]:
+        # Create the pt hard bins
+        self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
+        (_, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
+
+        # Validate that we have the same pt hard iterables.
+        if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
+            raise ValueError("Selected iterables pt hard bins differ from the pt hard bins of the pt hard bin analysis objects. Selected iterables: {self.selected_iterables['pt_hard_bins']}, pt hard analysis iterables: {pt_hard_iterables}")
+
+    def construct_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct ResponseMatrix objects based on iterables in a configuration file. """
         return analysis_config.construct_from_configuration_file(
             task_name = "Response",
@@ -321,6 +296,16 @@ class ResponseManager(generic_class.EqualityMixin):
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
             obj = ResponseMatrix,
+        )
+
+    def construct_pt_hard_bins_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        """ Construct PtHardAnalysis objects based on iterables in a configuration file. """
+        return analysis_config.construct_from_configuration_file(
+            task_name = "PtHardBins",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"pt_hard_bin": None},
+            obj = pt_hard_analysis.PtHardAnalysis,
         )
 
     def setup(self):
@@ -333,16 +318,32 @@ class ResponseManager(generic_class.EqualityMixin):
                 # We are effectively caching the values here.
                 input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
                 logger.debug(f"{key_index}")
-                analysis.retrieve_histograms(input_hists = input_hists)
+                analysis._retrieve_histograms(input_hists = input_hists)
 
     def run(self):
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
 
-        self.setup()
+        # Run the RM projectors
+        for _, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+            analysis.setup()
+            analysis.run_projectors()
 
-        #for a in self.analyses.values():
-        #    a.setup_pt_hard_information()
-        #    logger.debug(f"{a.train_number}")
+        # Setup the pt hard bins
+        for _, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+            pt_hard_bin.setup()
+
+        # We have to determine the relative scale factors after the setup because they depend on the number of
+        # events in all pt hard bins.
+        average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
+
+        # Finally, scaling the projected histograms according to their pt hard bins.
+        for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
+            pt_hard_bin = self.pt_hard_bin[pt_hard_bin_index]
+            for _, analysis in \
+                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
+                pt_hard_bin.run(analysis = analysis, average_number_of_events = average_number_of_events)
+
+        # Now merge the scale histograms into the final response matrix results.
 
         # Test
         #test_object = next(iter(self.analyses.values()))

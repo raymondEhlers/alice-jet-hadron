@@ -9,5 +9,6 @@ __all__ = [
     "EMCal_analysis_tasks",
     "correlations",
     "generic_tasks",
+    "pt_hard_analysis",
     "response_matrix",
 ]
