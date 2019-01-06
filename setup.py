@@ -85,7 +85,6 @@ setup(
         # Skip rootpy so we can install the package without ROOT being available (so we can run flake8, etc,
         # even if we skip the tests).
         #"rootpy",
-        #"root_numpy",  # As of Dec 2018, they have a new tag, but it's not yet on PyPI
         "iminuit>=1.3",
         "probfit",
         "numdifftools",

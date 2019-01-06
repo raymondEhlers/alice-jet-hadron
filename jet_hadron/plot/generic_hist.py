@@ -19,6 +19,8 @@ from typing import Dict, Union
 import rootpy.ROOT as ROOT
 import root_numpy
 
+from pachyderm import histogram
+
 from jet_hadron.base import params
 from jet_hadron.plot import base as plotBase
 
@@ -265,14 +267,20 @@ class HistPlotter(object):
         # Retrieve the array corresponding to the data
         # NOTE: The data is transposed from what is normally expected. Apparently this is done to match
         #       up with numpy axis conventions. We will have to transpose the data when we go to plot it.
-        # NOTE: binEdges is an array which contains edges for each axis. x is 0.
-        (histArray, binEdges) = root_numpy.hist2array(self.getFirstHist(), return_edges=True)
-        # Set all 0s to nan to get similar behavior to ROOT.In ROOT, it will basically ignore 0s. This is
-        # especially important for log plots. Matplotlib doesn't handle 0s as well, since it attempts to
-        # plot them and then will throw exceptions when the log is taken. By setting to nan, mpl
-        # basically ignores them similar to ROOT
-        # NOTE: This requires a few special functions later which ignore nan
-        histArray[histArray == 0] = np.nan
+        #       We continue using this root_numpy convention even after swtiching to pachyderm for consistency.
+        X, Y, hist_array = histogram.get_array_from_hist2D(
+            hist = self.getFirstHist(),
+            set_zero_to_NaN = True,
+            return_bin_edges = not self.surface
+        )
+        (test_hist_array, test_bin_edges) = root_numpy.hist2array(self.getFirstHist(), return_edges=True)
+        test_hist_array[test_hist_array == 0] = np.nan
+        #test_hist_array = test_hist_array.T
+
+        assert np.allclose(hist_array, test_hist_array, equal_nan = True)
+        assert np.allclose(hist_array.T, test_hist_array.T, equal_nan = True)
+        assert np.isclose(np.nanmin(hist_array), np.nanmin(test_hist_array))
+        assert np.isclose(np.nanmax(hist_array), np.nanmax(test_hist_array))
 
         # Define and fill kwargs
         kwargs = {}
@@ -283,8 +291,8 @@ class HistPlotter(object):
         if self.logz:
             normalizationFunction = matplotlib.colors.LogNorm
         # Evalute
-        kwargs["norm"] = normalizationFunction(vmin = np.nanmin(histArray), vmax = np.nanmax(histArray))
-        logger.debug("min: {}, max: {}".format(np.nanmin(histArray), np.nanmax(histArray)))
+        kwargs["norm"] = normalizationFunction(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array))
+        logger.debug("min: {}, max: {}".format(np.nanmin(hist_array), np.nanmax(hist_array)))
         # Colormap is the default from sns.heatmap
         kwargs["cmap"] = plotBase.prepareColormap(sns.cm.rocket)
         # Label is included so we could use a legend if we want
@@ -297,23 +305,28 @@ class HistPlotter(object):
             # Need to retrieve a special 3D axis for the surface plot
             ax = plt.axes(projection = "3d")
 
+            test_hist = self.getFirstHist()
+            xRange = np.array(
+                [test_hist.GetXaxis().GetBinCenter(i) for i in range(1, test_hist.GetXaxis().GetNbins() + 1)]
+            )
+            yRange = np.array(
+                [test_hist.GetYaxis().GetBinCenter(i) for i in range(1, test_hist.GetYaxis().GetNbins() + 1)]
+            )
+            test_X, test_Y = np.meshgrid(xRange, yRange)
+
+            assert np.allclose(X, test_X, equal_nan = True)
+            assert np.allclose(Y, test_Y, equal_nan = True)
+
             # For the surface plot, we want to specify (X,Y) as bin centers. Edges of surfaces
             # will be at these points.
             # NOTE: There are n-1 faces for n points, so not every value will be represented by a face.
             #       However, the location of the points at the bin centers is still correct!
-            hist = self.getFirstHist()
-            xRange = np.array([hist.GetXaxis().GetBinCenter(i) for i in range(1, hist.GetXaxis().GetNbins() + 1)])
-            yRange = np.array([hist.GetYaxis().GetBinCenter(i) for i in range(1, hist.GetYaxis().GetNbins() + 1)])
-            X, Y = np.meshgrid(xRange, yRange)
-
             # Create the plot
-            axFromPlot = ax.plot_surface(X, Y, histArray.T, **kwargs)
+            axFromPlot = ax.plot_surface(X, Y, hist_array.T, **kwargs)
         else:
             # Assume an image plot if we don't explicitly select surface
             logger.debug("Plotting as an image")
 
-            # Determine the x, y for the plot.
-            #
             # pcolormesh is somewhat like a hist in that (X,Y) should define bin edges. So we need (X,Y)
             # to define lower bin edges, with the last element in the array corresponding to the lower
             # edge of the next (n+1) bin (which is the same as the upper edge of the nth bin).
@@ -321,21 +334,22 @@ class HistPlotter(object):
             # imshow also takes advantage of these limits to determine the extent, but only in a limited
             # way, as it just takes the min and max of each range.
             #
-            # NOTE: The addition of epsilon to the max is extremely important! Otherwise, the x and y
-            #       ranges willbe one bin short since arange is not inclusive. This could also be reolved
-            #       by using linspace, but I think this approach is perfectly fine.
-            # NOTE: This epsilon is smaller than the one in JetHUtils because we are sometimes dealing
-            #       with small times (~ns). The other value is larger because (I seem to recall) that
-            #       smaller values didn't always place nice with ROOT, but it is fine here, since we're
-            #       working with numpy.
-            # NOTE: This should be identical to taking the min and max of the axis using
-            #       ``TAxis.GetXmin()`` and ``TAxis.GetXmax()``, but I prefer this approach.
+
             epsilon = 1e-9
-            xRange = np.arange(np.amin(binEdges[0]), np.amax(binEdges[0]) + epsilon,
-                               self.getFirstHist().GetXaxis().GetBinWidth(1))
-            yRange = np.arange(np.amin(binEdges[1]), np.amax(binEdges[1]) + epsilon,
-                               self.getFirstHist().GetYaxis().GetBinWidth(1))
-            X, Y = np.meshgrid(xRange, yRange)
+            xRange = np.arange(
+                np.amin(test_bin_edges[0]),
+                np.amax(test_bin_edges[0]) + epsilon,
+                self.getFirstHist().GetXaxis().GetBinWidth(1)
+            )
+            yRange = np.arange(
+                np.amin(test_bin_edges[1]),
+                np.amax(test_bin_edges[1]) + epsilon,
+                self.getFirstHist().GetYaxis().GetBinWidth(1)
+            )
+            test_X, test_Y = np.meshgrid(xRange, yRange)
+
+            assert np.allclose(X, test_X, equal_nan = True)
+            assert np.allclose(Y, test_Y, equal_nan = True)
 
             # Plot with either imshow or pcolormesh
             # Anecdotally, I think pcolormesh is a bit more flexible, but imshow seems to be much faster.
@@ -344,7 +358,7 @@ class HistPlotter(object):
             if self.usePColorMesh:
                 logger.debug("Plotting with pcolormesh")
 
-                axFromPlot = plt.pcolormesh(X, Y, histArray.T, **kwargs)
+                axFromPlot = plt.pcolormesh(X, Y, hist_array.T, **kwargs)
             else:
                 logger.debug("Plotting with imshow ")
 
@@ -355,8 +369,14 @@ class HistPlotter(object):
                 # be plotted.
                 extent = [np.amin(X), np.amax(X),
                           np.amin(Y), np.amax(Y)]
+
+                test_extent = [np.amin(test_X), np.amax(test_X),
+                               np.amin(test_Y), np.amax(test_Y)]
+
+                assert np.allclose(extent, test_extent)
+
                 #logger.debug("Extent: {}, binEdges[1]: {}".format(extent, binEdges[1]))
-                axFromPlot = plt.imshow(histArray.T,
+                axFromPlot = plt.imshow(hist_array.T,
                                         extent = extent,
                                         interpolation = "nearest",
                                         aspect = "auto",
@@ -398,8 +418,8 @@ class HistPlotter(object):
         for hist in self.hists:
             logger.debug("Plotting hist: {}, title: {}".format(hist.GetName(), hist.GetTitle()))
             # Convert to more usable form
-            (histArray, binEdges) = root_numpy.hist2array(hist, return_edges=True)
-            # NOTE: Could remove 0s when taking logs if necessary here
+            hist1D = histogram.Histogram1D.from_existing_hist(hist)
+            # NOTE: Could remove 0s here if necessary when taking logs
 
             # NOTE: We plot by hand instead of using rplt.hist() so that we can have better control over
             #       the plotting options.
@@ -409,12 +429,15 @@ class HistPlotter(object):
                 # some modified options. An additional 0 neds to be appended to the end of the data so
                 # the arrays are the same length (this appears to be imposed as an mpl requirement), but
                 # it is not meaningful.
-                # ``binEdges[0]`` corresponds to x axis bin edges (which are the only relevant ones here).
-                plt.step(binEdges[0], np.append(histArray, [0]), where = "post", label = hist.GetTitle(), color = next(currentColorPalette))
+                plt.step(
+                    hist1D.bin_edges, np.append(hist1D.y, [0]),
+                    where = "post",
+                    label = hist.GetTitle(),
+                    color = next(currentColorPalette)
+                )
             else:
                 # A more standard plot, with each value at the bin center
-                binCenters = np.array([hist.GetXaxis().GetBinCenter(iBin) for iBin in range(1, hist.GetXaxis().GetNbins() + 1)])
-                plt.plot(binCenters, histArray, label = hist.GetTitle(), color = next(currentColorPalette))
+                plt.plot(hist1D.x, hist1D.y, label = hist.GetTitle(), color = next(currentColorPalette))
 
         # Only plot the legend for 1D hists where it may be stacked. For 2D hists,
         # we will only plot one quantity, so the legend isn't really necessary.
