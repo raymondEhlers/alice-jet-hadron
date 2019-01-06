@@ -17,7 +17,6 @@ import seaborn as sns
 from typing import Dict, Union
 
 import rootpy.ROOT as ROOT
-import root_numpy
 
 from pachyderm import histogram
 
@@ -265,22 +264,14 @@ class HistPlotter(object):
         #       Since the style is already applied, there isn't really anything lost
 
         # Retrieve the array corresponding to the data
-        # NOTE: The data is transposed from what is normally expected. Apparently this is done to match
-        #       up with numpy axis conventions. We will have to transpose the data when we go to plot it.
-        #       We continue using this root_numpy convention even after swtiching to pachyderm for consistency.
+        # NOTE: The convention for the array is arr[x_index][y_index]. Apparently this matches up with
+        #       numpy axis conventions (?). We will have to transpose the data when we go to plot it.
+        #       This is the same convention as used in root_numpy.
         X, Y, hist_array = histogram.get_array_from_hist2D(
             hist = self.getFirstHist(),
             set_zero_to_NaN = True,
             return_bin_edges = not self.surface
         )
-        (test_hist_array, test_bin_edges) = root_numpy.hist2array(self.getFirstHist(), return_edges=True)
-        test_hist_array[test_hist_array == 0] = np.nan
-        #test_hist_array = test_hist_array.T
-
-        assert np.allclose(hist_array, test_hist_array, equal_nan = True)
-        assert np.allclose(hist_array.T, test_hist_array.T, equal_nan = True)
-        assert np.isclose(np.nanmin(hist_array), np.nanmin(test_hist_array))
-        assert np.isclose(np.nanmax(hist_array), np.nanmax(test_hist_array))
 
         # Define and fill kwargs
         kwargs = {}
@@ -305,18 +296,6 @@ class HistPlotter(object):
             # Need to retrieve a special 3D axis for the surface plot
             ax = plt.axes(projection = "3d")
 
-            test_hist = self.getFirstHist()
-            xRange = np.array(
-                [test_hist.GetXaxis().GetBinCenter(i) for i in range(1, test_hist.GetXaxis().GetNbins() + 1)]
-            )
-            yRange = np.array(
-                [test_hist.GetYaxis().GetBinCenter(i) for i in range(1, test_hist.GetYaxis().GetNbins() + 1)]
-            )
-            test_X, test_Y = np.meshgrid(xRange, yRange)
-
-            assert np.allclose(X, test_X, equal_nan = True)
-            assert np.allclose(Y, test_Y, equal_nan = True)
-
             # For the surface plot, we want to specify (X,Y) as bin centers. Edges of surfaces
             # will be at these points.
             # NOTE: There are n-1 faces for n points, so not every value will be represented by a face.
@@ -334,23 +313,6 @@ class HistPlotter(object):
             # imshow also takes advantage of these limits to determine the extent, but only in a limited
             # way, as it just takes the min and max of each range.
             #
-
-            epsilon = 1e-9
-            xRange = np.arange(
-                np.amin(test_bin_edges[0]),
-                np.amax(test_bin_edges[0]) + epsilon,
-                self.getFirstHist().GetXaxis().GetBinWidth(1)
-            )
-            yRange = np.arange(
-                np.amin(test_bin_edges[1]),
-                np.amax(test_bin_edges[1]) + epsilon,
-                self.getFirstHist().GetYaxis().GetBinWidth(1)
-            )
-            test_X, test_Y = np.meshgrid(xRange, yRange)
-
-            assert np.allclose(X, test_X, equal_nan = True)
-            assert np.allclose(Y, test_Y, equal_nan = True)
-
             # Plot with either imshow or pcolormesh
             # Anecdotally, I think pcolormesh is a bit more flexible, but imshow seems to be much faster.
             # According to https://stackoverflow.com/a/21169703, either one can be fine with the proper
@@ -369,11 +331,6 @@ class HistPlotter(object):
                 # be plotted.
                 extent = [np.amin(X), np.amax(X),
                           np.amin(Y), np.amax(Y)]
-
-                test_extent = [np.amin(test_X), np.amax(test_X),
-                               np.amin(test_Y), np.amax(test_Y)]
-
-                assert np.allclose(extent, test_extent)
 
                 #logger.debug("Extent: {}, binEdges[1]: {}".format(extent, binEdges[1]))
                 axFromPlot = plt.imshow(hist_array.T,

@@ -86,7 +86,7 @@ also need to be copied!
 Install the required dependencies by running
 
 ```
-pip install --user numpy matplotlib seaborn rootpy root_numpy
+pip install --user numpy matplotlib seaborn rootpy
 ```
 
 Be certain that ROOT is available (for exampled, loaded with `alibuild`). The packages will be installed to

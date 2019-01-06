@@ -224,6 +224,6 @@ class Mock(MagicMock):
         return MagicMock()
 
 # ROOT isn't available on RTD.  This works fine for our purposes.
-MOCK_MODULES = ["ROOT", "rootpy", "rootpy.io", "rootpy.ROOT", "root_numpy"]
+MOCK_MODULES = ["ROOT", "rootpy", "rootpy.io", "rootpy.ROOT"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
