@@ -1,0 +1,9 @@
+---
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: "LHC15o"
+    centralityRange: [0, 10]
+    enablePileupCuts: true
+general:
+    nCentBins: 5
