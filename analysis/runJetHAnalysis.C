@@ -103,6 +103,8 @@ AliAnalysisManager* runJetHAnalysis(
   // General track and cluster cuts (used particularly for jet finding)
   const Double_t minTrackPt = 3.0;
   const Double_t minClusterPt = 3.0;
+  const Double_t minTimeCut = -50e-9;
+  const Double_t maxTimeCut = 100e-9;
 
   // Control background subtraction
   Bool_t bEnableBackgroundSubtraction = kFALSE;
@@ -185,7 +187,7 @@ AliAnalysisManager* runJetHAnalysis(
   correctionTask->SetNCentBins(5);
   correctionTask->SetUseNewCentralityEstimation(bIsRun2);
   // Local configuration
-  std::string emcalCorrectionsConfig = "config/emcalCorrectionsConfig";
+  std::string emcalCorrectionsConfig = "config/emcalCorrections_";
   emcalCorrectionsConfig += cRunPeriod;
   emcalCorrectionsConfig += ".yaml";
   correctionTask->SetUserConfigurationFilename(emcalCorrectionsConfig);
@@ -234,6 +236,7 @@ AliAnalysisManager* runJetHAnalysis(
   pFullJet02TaskNew->SetUseNewCentralityEstimation(bIsRun2);
   pFullJet02TaskNew->SetNCentBins(5);
   pFullJet02TaskNew->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
+  pFullJet02TaskNew->GetClusterContainer(0)->SetClusTimeCut(minTimeCut, maxTimeCut);
 
   //////////////////////////////////////////
   // Jet-H Task
@@ -314,7 +317,9 @@ AliAnalysisManager* runJetHAnalysis(
   }
 
   // Complete configuration.
-  std::string jetHCorrelationsConfigurationName = "config/jetHCorrelations.yaml";
+  std::string jetHCorrelationsConfigurationName = "config/jetHCorrelations_";
+  jetHCorrelationsConfigurationName += cRunPeriod;
+  jetHCorrelationsConfigurationName += ".yaml";
   std::cout << "Using jet-h correlations configuration " << jetHCorrelationsConfigurationName << "\n";
   jetHTask->AddConfigurationFile(jetHCorrelationsConfigurationName, "config");
   jetHTask->Initialize();
@@ -324,21 +329,13 @@ AliAnalysisManager* runJetHAnalysis(
   //////////////////////////////////////////
   PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance * jetHPerformance = AddTaskEmcalJetHPerformance();
   jetHPerformance->SelectCollisionCandidates(kPhysSel);
-  std::string jetHPerformanceConfigurationName = "config/jetHPerformance.yaml";
+  std::string jetHPerformanceConfigurationName = "config/jetHPerformance_";
+  jetHPerformanceConfigurationName += cRunPeriod;
+  jetHPerformanceConfigurationName += ".yaml";
   std::cout << "Using jet-h performance configuration " << jetHPerformanceConfigurationName << "\n";
   jetHPerformance->SetUseNewCentralityEstimation(bIsRun2);
   jetHPerformance->AddConfigurationFile(jetHPerformanceConfigurationName, "config");
   jetHPerformance->Initialize();
-
-  /*
-  AliAnalysisTaskEmcalJetSample * sampleTaskNew = AliAnalysisTaskEmcalJetSample::AddTaskEmcalJetSample("usedefault", "usedefault", "usedefault");
-  sampleTaskNew->GetClusterContainer(0)->SetClusECut(3.);
-  sampleTaskNew->GetParticleContainer(0)->SetParticlePtCut(3);
-  sampleTaskNew->SetHistoBins(600, 0, 300);
-  sampleTaskNew->SelectCollisionCandidates(kPhysSel);
-
-  AliJetContainer* jetCont02 = sampleTaskNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, AliEmcalJet::kEMCALfid);
-  */
 
   TObjArray *pTopTasks = pMgr->GetTasks();
   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
