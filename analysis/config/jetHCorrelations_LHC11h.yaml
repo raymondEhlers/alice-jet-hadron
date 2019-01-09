@@ -1,0 +1,8 @@
+---
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: "LHC11h"
+    centralityRange: [0, 10]
+general:
+    nCentBins: 5

@@ -1,6 +1,5 @@
 ---
-name: "Configuration options for Jet-H Performance task for embedding pp data"
-recycleUnusedEmbeddedEventsMode: true
+name: "Configuration options for Jet-H Performance task for LHC11h PbPb"
 enable:
     QAHists: true
     responseMatrix: false
