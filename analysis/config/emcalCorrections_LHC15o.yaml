@@ -1,5 +1,5 @@
 ---
-configurationName: "EMCal Corrections configuration for Jet-H central analysis"
+configurationName: "EMCal Corrections configuration for Jet-H LHC15o central analysis"
 sharedParameters:
     cellBranchName: "usedefault"
     clusterBranchName: "usedefault"
@@ -17,6 +17,7 @@ inputObjects:
 CellEnergy:
     enabled: true
     createHistos: true
+    enableRun2TempCalib: true
 CellBadChannel:
     enabled: true
     createHistos: true
@@ -26,9 +27,9 @@ CellTimeCalib:
 Clusterizer:
     enabled: true
     createHistos: true
-    cellTimeMin: -50e-6
-    cellTimeMax: 100e-6
-    clusterTimeLength: 75e6
+    cellE: 0.1
+    seedE: 0.3
+    # Apply time cuts on the cluster containers. This way we only apply the time cut to the leader cell.
 ClusterExotics:
     enabled: true
     createHistos: true
@@ -38,9 +39,6 @@ ClusterNonLinearity:
 ClusterTrackMatcher:
     enabled: true
     createHistos: true
-    # Only uncomment these two options for comparison
-    #useDCA: false
-    #usePIDmass: false
 ClusterHadronicCorrection:
     enabled: true
     createHistos: true
