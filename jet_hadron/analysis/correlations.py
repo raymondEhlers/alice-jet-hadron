@@ -1156,7 +1156,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         #logger.debug("peakFindingArray: {}".format(peakFindingArray))
 
         # Using moving average
-        movingAvg = utils.movingAverage(peakFindingArray, n = 36)
+        movingAvg = utils.moving_average(peakFindingArray, n = 36)
         maxMovingAvg = max(movingAvg)
 
         compareNormalizationOptions = self.taskConfig["mixedEventNormalizationOptions"].get("compareOptions", False)
@@ -1227,11 +1227,11 @@ class JetHAnalysis(analysis_objects.JetHBase):
         #maxSmoothed = np.amax(smoothedArray)
         #logger.debug("maxSmoothed: {}".format(maxSmoothed))
         # Moving average on smoothed curve
-        smoothedMovingAvg = utils.movingAverage(smoothedArray, n = int(len(smoothedArray) // 2))
+        smoothedMovingAvg = utils.moving_average(smoothedArray, n = int(len(smoothedArray) // 2))
         maxSmoothedMovingAvg = max(smoothedMovingAvg)
 
         # Moving average with rebin
-        movingAvgRebin = utils.movingAverage(peakFindingArrayRebin, n = 18)
+        movingAvgRebin = utils.moving_average(peakFindingArrayRebin, n = 18)
         maxMovingAvgRebin = max(movingAvgRebin)
 
         # Fit using TF1 over some range

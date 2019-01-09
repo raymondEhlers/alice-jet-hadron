@@ -5,10 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3 compatibility
-from future.utils import iteritems
-from future.utils import itervalues
-
 import copy
 import dataclasses
 import logging
@@ -107,7 +103,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         # Create the defined component hists
         # Each histogram in a component has a corresponding set of histOptions.
         componentHistsConfigurationOptions = {}
-        for histOptionsName, options in iteritems(componentHistsOptions):
+        for histOptionsName, options in componentHistsOptions.items():
             # Copy the options dict so we can add to it
             histOptions = {}
             histOptions.update(options)
@@ -211,12 +207,12 @@ class PlotTaskHists(analysis_objects.JetHBase):
         """
         component_hists: Dict[str, plot_generic_hist.HistPlotter] = {}
         # First iterate over the available hists
-        for hist in itervalues(componentHistsInFile):
+        for hist in componentHistsInFile.values():
             logger.debug(f"Looking for match to hist {hist.GetName()}")
             found_match = False
             # Then iterate over the Hist Plotter configurations in the particular component.
             # We are looking for the hists which belong in a particular config
-            for hist_object_name, hist_object in iteritems(histsConfigurationOptions):
+            for hist_object_name, hist_object in histsConfigurationOptions.items():
                 if logger.isEnabledFor(logging.DEBUG):
                     debug_hist_names = [next(iter(histLabel)) for histLabel in hist_object.histNames]
                     # Only print the first five items so we aren't overwhelmed with information
@@ -256,9 +252,9 @@ class PlotTaskHists(analysis_objects.JetHBase):
         #if isinstance(next(iter(self.hists)), ROOT.TH1):
 
         # componentNameInFile is the name of the componentHistsInFile to which we want to compare
-        for componentNameInFile, componentHistsInFile in iteritems(self.hists):
+        for componentNameInFile, componentHistsInFile in self.hists.items():
             # componentHistsOptions are the config options for a component
-            for componentName, componentHistsOptions in iteritems(self.components_from_YAML):
+            for componentName, componentHistsOptions in self.components_from_YAML.items():
                 if componentName in componentNameInFile:
                     # We've now matched the component name and and can move on to dealing with
                     # the individual hists
@@ -276,7 +272,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
                     )
 
                     logger.debug("componentHists: {}".format(pprint.pformat(componentHists)))
-                    for componentHist in itervalues(componentHists):
+                    for componentHist in componentHists.values():
                         # Even though the hist names could be defined in order in the configuration,
                         # the hists will not necessarily show up in alphabetical order when they are assigned to
                         # the plot objects. So we sort them alphabetically here
@@ -287,11 +283,11 @@ class PlotTaskHists(analysis_objects.JetHBase):
 
     def plotHistograms(self):
         """ Driver function to plotting the histograms contained in the object. """
-        for componentName, componentHists in iteritems(self.components):
+        for componentName, componentHists in self.components.items():
             logger.info("Plotting hists for component {}".format(componentName))
 
             # Apply the options, draw the plot and save it
-            for histName, histObj in iteritems(componentHists):
+            for histName, histObj in componentHists.items():
                 logger.debug("Processing hist obj {}".format(histName))
                 histObj.plot(self, outputName = os.path.join(componentName, histName))
 
