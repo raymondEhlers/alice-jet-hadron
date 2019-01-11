@@ -282,7 +282,7 @@ def test_reaction_plane_orientation_strings(logging_mixin, ep_angle, expected):
         {"str": "bottom10",
             "display_str": "Bottom 10%",
             "range": params.SelectedRange(min = 0, max = 10)})
-], ids = ["qVectorAll", "qVectorBottom10"])
+], ids = ["All", "Bottom 10"])
 def test_qvector_strings(logging_mixin, qvector, expected):
     """ Test q vector strings. """
     qvector = params.QVector[qvector]

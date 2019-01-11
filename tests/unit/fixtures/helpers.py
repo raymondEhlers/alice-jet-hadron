@@ -188,7 +188,7 @@ def object_yaml_config():
     test_yaml = """
 iterables:
     reaction_plane_orientation: False
-    QVector: False
+    qvector: False
 leadingHadronBiasValues:
     track:
         value: 5
@@ -214,7 +214,7 @@ taskName:
         aliceLabel: "final"
         iterables:
             reaction_plane_orientation: True
-            qVector:
+            qvector:
                 - "all"
 """
     yaml = ruamel.yaml.YAML()

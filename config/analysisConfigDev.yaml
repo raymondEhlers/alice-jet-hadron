@@ -21,7 +21,7 @@ leadingHadronBiasValues:
 # Iterable options
 iterables:
     reaction_plane_orientation: true
-    qVector: false
+    qvector: false
 
 # Basic configuration
 inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
@@ -31,7 +31,7 @@ inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
 #inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 # yamllint disable-line rule:line-length
-outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qVector}/{task_name}"
+outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qvector}/{task_name}"
 outputFilename: "{collision_system}Correlations.root"
 printingExtensions: ["pdf", "eps"]
 aliceLabel: work_in_progress
@@ -69,7 +69,7 @@ JetHAnalysis:
             test: "world"
         iterables:
             reaction_plane_orientation: true
-            qVector:
+            qvector:
                 - "all"
 
 # 11H track and jet pt bins
@@ -411,7 +411,7 @@ EMCalCorrections:
         iterables:
             reaction_plane_orientation:
                 - "all"
-            qVector:
+            qvector:
                 - "all"
             task_label:
                 - "standard"

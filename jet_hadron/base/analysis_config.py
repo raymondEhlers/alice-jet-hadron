@@ -210,7 +210,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     possible_iterables = {}
     # These names map the config/attibute names to the iterable.
     possible_iterables["reaction_plane_orientation"] = params.ReactionPlaneOrientation
-    possible_iterables["qVector"] = params.QVector  # type: ignore
+    possible_iterables["qvector"] = params.QVector  # type: ignore
     possible_iterables.update({k: v for k, v in additional_possible_iterables.items() if k not in possible_iterables})
 
     # Classes to register for reconstruction within YAML
