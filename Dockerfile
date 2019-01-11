@@ -1,7 +1,9 @@
 # Dockerfile for testing the jet-hadron analysis
 # We use the Overwatch base image so we don't have to deal with setting up ROOT.
 # All we need to know is that the user is named "overwatch".
-FROM rehlers/overwatch-base:py${PYTHON_VERSION:-3.7.1}
+# Set the python version here so that we can use it to set the base image.
+ARG PYTHON_VERSION=3.7.1
+FROM rehlers/overwatch-base:py${PYTHON_VERSION}
 LABEL maintainer="Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University"
 
 # Setup environment
