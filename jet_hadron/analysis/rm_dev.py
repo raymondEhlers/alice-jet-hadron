@@ -63,7 +63,7 @@ class ResponseMatrixProjector(projectors.HistProjector):
         return inputKey
 
 class ResponseMatrixPtHardAnalysis(pt_hard_analysis.PtHardAnalysis):
-    def remote_outliers(self):
+    def remove_outliers(self):
         # TODO: Implement
         pass
 

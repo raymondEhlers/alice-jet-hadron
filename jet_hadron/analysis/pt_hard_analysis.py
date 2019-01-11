@@ -131,7 +131,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         """ Calculate the scale factor rescaled for the different number of events in each pt hard bin. """
         return self.scale_factor * average_number_of_events / self.number_of_events
 
-    def outlier_removal(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+    def remove_outliers(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
         # TODO: Implement
         pass
 
