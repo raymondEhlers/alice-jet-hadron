@@ -1584,17 +1584,17 @@ class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
 
     Args:
-        jet_pt: Jet pt bin.
-        track_pt: Track pt bin.
+        jet_pt_bin: Jet pt bin.
+        track_pt_bin: Track pt bin.
     Attributes:
         jet_pt: Jet pt bin.
         track_pt: Track pt bin.
     """
-    def __init__(self, jet_pt: analysis_objects.JetPtBin, track_pt: analysis_objects.TrackPtBin, *args, **kwargs):
+    def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Analysis parameters
-        self.jet_pt = jet_pt
-        self.track_pt = track_pt
+        self.jet_pt = jet_pt_bin
+        self.track_pt = track_pt_bin
         # Pt hard bins are optional.
         self.pt_hard_bin = kwargs.get("pt_hard_bin", None)
         if self.pt_hard_bin:
