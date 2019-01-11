@@ -13,7 +13,7 @@ import logging
 import numpy as np
 import os
 import re
-from typing import Any, List, Mapping, Union
+from typing import Any, Dict, List, Mapping, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -68,7 +68,6 @@ class JetHBase(generic_class.EqualityMixin):
         event_activity (params.EventActivity): Selected event activity.
         leading_hadron_bias (params.LeadingHadronBias or params.LeadingHadronBiasType): Selected leading hadron
             bias. The class member will contain both the type and the value.
-        reaction_plane_orientation (params.ReactionPlaneOrientation): Selected event plane angle.
         args (list): Absorb extra arguments. They will be ignored.
         kwargs (dict): Absorb extra named arguments. They will be ignored.
     """
@@ -113,13 +112,13 @@ class JetHBase(generic_class.EqualityMixin):
         self.train_number = config["trainNumber"]
 
     @property
-    def leading_hadron_bias(self):
+    def leading_hadron_bias(self) -> params.LeadingHadronBias:
         # Only calculate the value if we haven't already used it.
         if self._leading_hadron_bias is None:
             # Load this module only if necessary. I'm not moving this function because it makes dependences much messier.
             from jet_hadron.base import analysis_config
 
-            self._leading_hadron_bias = analysis_config.determine_leading_hadron_bias(
+            self._leading_hadron_bias = analysis_config.determine_leading_hadron_bias(  # type: ignore
                 config = self.config,
                 selected_analysis_options = params.SelectedAnalysisOptions(
                     collision_energy = self.collision_energy,
@@ -127,14 +126,69 @@ class JetHBase(generic_class.EqualityMixin):
                     event_activity = self.event_activity,
                     leading_hadron_bias = self._leading_hadron_bias_type)
             ).leading_hadron_bias
+        # Help out mypy.
+        assert self._leading_hadron_bias is not None
+
         return self._leading_hadron_bias
 
 class JetHReactionPlane(JetHBase):
+    """ Jet-hadron analysis object which includes reaction plane dependence.
+
+    Args:
+        reaction_plane_orientation (params.ReactionPlaneOrientation): Selected reaction plane angle.
+    Attributes:
+        reaction_plane_orientation (params.ReactionPlaneOrientation): Selected reaction plane angle.
+    """
     def __init__(self,
                  reaction_plane_orientation: params.ReactionPlaneOrientation,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reaction_plane_orientation = reaction_plane_orientation
+
+    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
+        """ Retrieve histograms from a ROOT file.
+
+        Args:
+            input_hists: All histograms in a file. Default: None - They will be retrieved.
+        Returns:
+            bool: True if histograms were retrieved successfully.
+        """
+        logger.debug(f"input_filename: {self.input_filename}")
+        if input_hists is None:
+            input_hists = histogram.get_histograms_in_list(
+                filename = self.input_filename,
+                input_list = self.input_list_name
+            )
+        self.input_hists = input_hists
+
+        return len(self.input_hists) > 0
+
+    def _setup_projectors(self):
+        """ Setup projectors needed for the analysis. """
+        raise NotImplementedError("Must implement the projectors setup in the derived class.")
+
+    def setup(self, input_hists: Dict[str, Any] = None) -> bool:
+        """ Setup the jet-hadron analysis object.
+
+        This will handle retrieving histograms and setup the projectors, but further setup is dependent
+        on the particular analysis.
+
+        Args:
+            input_hists: All histograms in a file. Default: None - In that case, they will be
+                retrieved automatically. This optional argument is provided to enable caching
+                the open file.
+        Returns:
+            bool: True if analysis was successfully setup.
+        Raises:
+            ValueError: If the histograms could not be retrieved.
+        """
+        result = self._retrieve_histograms(input_hists = input_hists)
+        if result is not True:
+            raise ValueError("Could not retrieve histograms.")
+
+        self._setup_projectors()
+
+        return True
 
 class Observable(object):
     """ Base observable object. Intended to store a HistContainer.

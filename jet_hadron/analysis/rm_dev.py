@@ -253,40 +253,6 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(det_level_jet_spectra)
 
-    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
-        """ Retrieve histograms from a ROOT file.
-
-        Args:
-            input_hists: All histograms in a file. Default: None - They will be retrieved.
-        Returns:
-            bool: True if histograms were retrieved successfully.
-        """
-        logger.info(f"input_filename: {self.input_filename}")
-        if input_hists is None:
-            input_hists = histogram.get_histograms_in_list(
-                filename = self.input_filename,
-                input_list = self.input_list_name
-            )
-        self.input_hists = input_hists
-
-        return len(self.input_hists) > 0
-
-    def setup(self, input_hists: Dict[str, Any] = None):
-        """ Setup the response matrix.
-
-        Args:
-            input_hists: All histograms in a file. Default: None - They will be retrieved.
-        Returns:
-            bool: True if histograms were retrieved successfully.
-        Raises:
-            ValueError: If the histograms could not be retrieved.
-        """
-        result = self._retrieve_histograms(input_hists = input_hists)
-        if result is not True:
-            raise ValueError("Could not retrieve histograms.")
-
-        self._setup_projectors()
-
     def run_projectors(self):
         """ Execute the projectors to create the projected histograms. """
         # Perform the various projections
@@ -340,17 +306,18 @@ class ResponseManager(generic_class.EqualityMixin):
             obj = ResponseMatrixPtHardAnalysis,
         )
 
-    def setup(self):
+    def setup(self) -> None:
         for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
             logger.debug(f"{pt_hard_bin}")
-            input_hists = {}
+            input_hists: Dict[str, Any] = {}
             for key_index, analysis in \
                     analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
                 # We should now have all RP orientations.
-                # We are effectively caching the values here.
-                input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
+                # We are effectively caching the input hists here.
+                if not input_hists:
+                    input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
                 logger.debug(f"{key_index}")
-                analysis._retrieve_histograms(input_hists = input_hists)
+                analysis.setup(input_hists = input_hists)
 
     def run(self) -> bool:
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
