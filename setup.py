@@ -61,7 +61,7 @@ setup(
     # See: https://stackoverflow.com/a/8506532
     entry_points = {
         "console_scripts": [
-            "jetHAnalysis = jet_hadron.analysis.correlations:runFromTerminal",
+            "jetHCorrelations = jet_hadron.analysis.correlations:run_from_terminal",
             "testDev = jet_hadron.analysis.rm_dev:run_from_terminal",
             "jetHResponse = jet_hadron.analysis.response_matrix:runFromTerminal",
             "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalCorrectionsHistsFromTerminal",

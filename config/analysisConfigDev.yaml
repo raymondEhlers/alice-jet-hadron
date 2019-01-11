@@ -72,10 +72,16 @@ JetHAnalysis:
             qVector:
                 - "all"
 
+# 11H track and jet pt bins
+_jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60]
+_track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
+
 Correlations:
     override:
         iterables:
-            jet_pt_bin: !JetPtBins [15, 20, 40, 60]
+            reaction_plane_orientation: true
+            track_pt_bin: *TrackPtBins11h
+            jet_pt_bin: *JetPtBins11h
 
 # Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
 _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
