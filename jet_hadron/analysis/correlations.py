@@ -43,6 +43,7 @@ from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
 from jet_hadron.analysis import fit as fitting
+#from jet_hadron.analysis import generic_tasks
 
 import rootpy.ROOT as ROOT
 from rootpy.io import root_open
@@ -263,7 +264,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
             outputDict[name] = self.inputHists.get(histName, None)
 
     def generalHistograms(self):
-        """ Process some general histograms such as centralty, Z vertex, very basic QA spectra, etc. """
+        """ Process some general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
+        ...
         # Get configuration
         processingOptions = self.taskConfig["processingOptions"]
 
@@ -1565,6 +1567,63 @@ def printFitParameters(fit):
 #
 #    return analyses
 
+#class GeneralHistograms(analysis_objects.JetHBase):
+#    """ Some very general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
+#    def __init__(self, *args, **kwargs):
+#        super().__init__(*args, **kwargs)
+#
+#        # Basic information
+#        self.input_hists: Dict[str, Any] = {}
+#
+#        # Histograms
+#        self.z_vertex: Hist
+#        self.centrality: Hist
+#        self.event_plane: Hist
+#        self.jet_matching_same_event: Hist
+#        self.jet_matching_mixed_event : Hist
+#        self.track_pt: Hist
+#        self.jet_pt: Hist
+#        self.jet_pt_bias: Hist
+#        # 2D hists
+#        self.jet_eta_phi: Hist
+#        self.jetH_eta_phi: Hist
+#
+#    def _retrieve_histograms(self, input_hists):
+#        """ Retrieve general histograms. """
+#        super()._retrieve_histograms(input_hists = input_hists)
+#
+#        self.z_vertex = self.input_hists[self.input_list_name]["fHistZVertex"]
+#        self.centrality = self.input_hists[self.input_list_name]["fHistCentrality"]
+#        self.event_plane = self.input_hists[self.input_list_name]["fHistEventPlane"]
+#        self.jet_matching_same_event = self.input_hists[self.input_list_name]["fHistJetMatchingSameEventCuts"]
+#        self.jet_matching_mixed_event = self.input_hists[self.input_list_name]["fHistJetMatchingMixedEventCuts"]
+
+#class GeneralHistogramsManager(generic_tasks.PlotTaskHists):
+#    """ Task to manage plotting of general correlations analysis histograms. """
+#    def __init__(self, pt_hard_bin, *args, **kwargs):
+#        # First, initialize the base class
+#        super().__init__(*args, **kwargs)
+#
+#    @staticmethod
+#    def construct_from_configuration_file(config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions) -> analysis_config.ConstructedObjects:
+#        """ Helper function to construct general plotting objects.
+#
+#        Args:
+#            config_filename: Filename of the YAML config.
+#            selected_analysis_options: Selected analysis options.
+#        Returns:
+#            dict: Analysis dictionary of created objects utilizing the specified iterators as described
+#                in ``analysis_config.construct_from_configuration_file(...)``.
+#
+#        """
+#        return analysis_config.construct_from_configuration_file(
+#            task_name = "GeneralHistograms",
+#            config_filename = config_filename,
+#            selected_analysis_options = selected_analysis_options,
+#            obj = GeneralHistogramsManager,
+#            additional_possible_iterables = {}
+#        )
+
 @dataclass
 class CorrelationsHistogram:
     raw: Hist
@@ -1572,13 +1631,6 @@ class CorrelationsHistogram:
     corrected: Hist
     delta_phi: Hist
     delta_eta: Hist
-
-class GeneralHistograms(analysis_objects.JetHReactionPlane):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Basic information
-        self.input_hists: Dict[str, Any] = {}
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
@@ -1800,7 +1852,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {},
-            obj = GeneralHistograms,
+            #obj = GeneralHistograms,
+            obj = None,
         )
 
     def setup(self):

@@ -279,7 +279,7 @@ class ResponseManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_responses_from_configuration_file()
 
         # Create the pt hard bins
-        self.pt_hard_bins: Mapping[Any, Type[pt_hard_analysis.PtHardAnalysis]]
+        self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
         (_, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
 
         # Validate that we have the same pt hard iterables.

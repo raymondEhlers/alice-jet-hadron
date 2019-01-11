@@ -7,10 +7,11 @@
 
 import copy
 import dataclasses
+import enum
 import logging
 import os
 import pprint
-from typing import Dict
+from typing import Any, Dict
 
 from pachyderm import generic_config
 from pachyderm import histogram
@@ -28,11 +29,11 @@ class PlotTaskHists(analysis_objects.JetHBase):
     Hists are selected and configured by a configuration file.
 
     Args:
-        task_label (enum.Enum): Enum which labels the task and can be converted into a string.
+        task_label: Enum which labels the task and can be converted into a string.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, task_label, *args, **kwargs):
+    def __init__(self, task_label: enum.Enum, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.task_label = task_label
@@ -41,9 +42,9 @@ class PlotTaskHists(analysis_objects.JetHBase):
         if self.components_from_YAML is None:
             raise KeyError("Were \"componentsToPlot\" defined in the task configuration?")
         # Contain the actual components, which consist of lists of hist configs
-        self.components = {}
+        self.components: Dict[str, Dict[str, plot_generic_hist.HistPlotter]] = {}
         # Store the input histograms
-        self.hists = {}
+        self.hists: Dict[str, Any] = {}
 
     def getHistsFromInputFile(self):
         """ Retrieve hists corresponding to the task name. They are stored in the object. """

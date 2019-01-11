@@ -278,10 +278,6 @@ class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, *args, **kwargs):
-        # Afterwards, we can initialize the base class
-        super().__init__(*args, **kwargs)
-
     @staticmethod
     def construct_from_configuration_file(config_filename, selected_analysis_options):
         """ Helper function to construct EMCal embedding plotting objects.

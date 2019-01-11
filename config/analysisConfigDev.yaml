@@ -82,6 +82,11 @@ Correlations:
             reaction_plane_orientation: true
             track_pt_bin: *TrackPtBins11h
             jet_pt_bin: *JetPtBins11h
+GeneralHists:
+    override:
+        iterables:
+            reaction_plane_orientation: false
+            qvector: false
 
 # Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
 _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
