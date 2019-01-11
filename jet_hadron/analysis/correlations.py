@@ -1630,8 +1630,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Using full EP angle range")
         else:
             reaction_plane_axis_range = {
-                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin),
-                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin)
+                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(
+                    None,
+                    self.reaction_plane_orientation.value.bin
+                ),
+                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(
+                    None,
+                    self.reaction_plane_orientation.value.bin
+                ),
             }
             logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_cut_axis = HistAxisRange(
@@ -1651,6 +1657,28 @@ class Correlations(analysis_objects.JetHReactionPlane):
             axis_range_name = "delta_eta",
             **full_axis_range,
         )
+        # Jet pt axis
+        jet_pt_axis = HistAxisRange(
+            axis_type = JetHCorrelationSparse.jet_pt,
+            axis_range_name = f"jet_pt{self.jet_pt.bin}",
+            min_val = HistAxisRange.ApplyFuncToFindBin(
+                ROOT.TAxis.FindBin, self.jet_pt.range.min + epsilon
+            ),
+            max_val = HistAxisRange.ApplyFuncToFindBin(
+                ROOT.TAxis.FindBin, self.jet_pt.range.max - epsilon
+            )
+        )
+        # Track pt axis
+        track_pt_axis = HistAxisRange(
+            axis_type = JetHCorrelationSparse.track_pt,
+            axis_range_name = f"track_pt{self.track_pt.bin}",
+            min_val = HistAxisRange.ApplyFuncToFindBin(
+                ROOT.TAxis.FindBin, self.track_pt.range.min + epsilon
+            ),
+            max_val = HistAxisRange.ApplyFuncToFindBin(
+                ROOT.TAxis.FindBin, self.track_pt.range.max - epsilon
+            )
+        )
 
         ###########################
         # Trigger projector
@@ -1660,7 +1688,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         projection_information = {}
         # Attempt to format for consistency, although it doesn't do anything for the trigger projection
-        trigger_input_dict = {self.hist_name_format_trigger.format(**projection_information): self.input_hists["fhnTrigger"]}
+        trigger_input_dict = {
+            self.hist_name_format_trigger.format(**projection_information): self.input_hists["fhnTrigger"]
+        }
         trigger_projector = JetHObservableSparseProjector(
             observable_dict = self.trigger_jet_pt,
             observables_to_project_from = trigger_input_dict,
@@ -1689,19 +1719,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.projectors.append(trigger_projector)
 
         # Jet and track pt bin dependent cuts
-        #for (iJetPtBin, iTrackPtBin) in params.iterateOverJetAndTrackPtBins(self.config):
-        jet_axis_range = {
-            "min_val": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.jet_pt.range.min + epsilon),
-            "max_val": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, self.jet_pt.range.max - epsilon)
-        }
-        track_axis_range = {
-            "min_val": HistAxisRange.ApplyFuncToFindBin(
-                ROOT.TAxis.FindBin, self.track_pt.range.min + epsilon
-            ),
-            "max_val": HistAxisRange.ApplyFuncToFindBin(
-                ROOT.TAxis.FindBin, self.track_pt.range.max - epsilon
-            )
-        }
         projection_information = {"jet_pt_bin": self.jet_pt.bin, "track_pt_bin": self.track_pt.bin}
 
         ###########################
@@ -1721,22 +1738,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             raw_signal_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
         # TODO: Do these projectors really need projection dependent cut axes?
         #       It seems like additionalAxisCuts would be sufficient.
-        projection_dependent_cut_axes = []
-        projection_dependent_cut_axes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationSparse.jet_pt,
-                axis_range_name = f"jet_pt{self.jet_pt.bin}",
-                **jet_axis_range,
-            )
-        )
-        projection_dependent_cut_axes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationSparse.track_pt,
-                axis_range_name = f"track_pt{self.track_pt.bin}",
-                **track_axis_range,
-            )
-        )
-        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be applied on the same projection!
+        projection_dependent_cut_axes = [jet_pt_axis, track_pt_axis]
+        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be
+        #       applied on the same projection!
         raw_signal_projector.projection_dependent_cut_axes.append(projection_dependent_cut_axes)
         # Projection Axes
         raw_signal_projector.projection_axes.append(delta_phi_axis)
@@ -1758,22 +1762,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             mixed_event_projector.additional_axis_cuts.append(centrality_cut_axis)
         if reaction_plane_orientation_cut_axis:
             mixed_event_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
-        projection_dependent_cut_axes = []
-        projection_dependent_cut_axes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationSparse.jet_pt,
-                axis_range_name = f"jet_pt{self.jet_pt.bin}",
-                **jet_axis_range,
-            )
-        )
-        projection_dependent_cut_axes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationSparse.track_pt,
-                axis_range_name = f"track_pt{self.track_pt.bin}",
-                **track_axis_range,
-            )
-        )
-        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be applied on the same projection!
+        projection_dependent_cut_axes = [jet_pt_axis, track_pt_axis]
+        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be
+        #       applied on the same projection!
         mixed_event_projector.projection_dependent_cut_axes.append(projection_dependent_cut_axes)
         # Projection Axes
         mixed_event_projector.projection_axes.append(delta_phi_axis)

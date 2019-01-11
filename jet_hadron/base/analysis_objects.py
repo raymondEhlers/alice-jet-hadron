@@ -42,10 +42,6 @@ class JetHCorrelationType(enum.Enum):
     def display_str(self) -> str:
         """ Turns "signal_dominated" into "Signal Dominated". """
         # Convert to display name by splitting on camel case
-        # For the regex, see: https://stackoverflow.com/a/43898219
-        #split_string = re.sub('([a-z])([A-Z])', r'\1 \2', self.name)
-        # Capitalize the first letter of every word
-        #return split_string.title()
         return self.name.replace("_", " ").title()
 
     # Handle YAML serialization
