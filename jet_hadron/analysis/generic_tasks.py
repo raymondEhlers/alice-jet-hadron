@@ -41,7 +41,11 @@ class PlotTaskHists(analysis_objects.JetHBase):
         # Basic labeling of the task.
         self.task_label = task_label
         # These are the objects for each component stored in the YAML config
-        self.components_from_YAML = self.task_config["componentsToPlot"]
+        try:
+            self.components_from_YAML = self.task_config["componentsToPlot"]
+        except KeyError as e:
+            # Reraise with additional information. This is pretty common to forget.
+            raise KeyError("Was \"componentsToPlot\" defined in the task configuration?") from e
         # Contain the actual components, which consist of lists of hist configurations
         self.components: Dict[str, Dict[str, plot_generic_hist.HistPlotter]] = {}
         # Store the input histograms
