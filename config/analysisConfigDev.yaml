@@ -412,7 +412,7 @@ EMCalCorrections:
                     - "fHistNonEmbTrackMatchesOversub_0": ""
             plotAdditional: false
     override:
-        inputListName: "AliEmcalCorrectionTask{correctionsLabel}_histos"
+        inputListName: "AliEmcalCorrectionTask{corrections_label}_histos"
         iterables:
             reaction_plane_orientation:
                 - "all"

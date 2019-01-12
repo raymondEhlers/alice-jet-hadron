@@ -64,8 +64,8 @@ setup(
             "jetHCorrelations = jet_hadron.analysis.correlations:run_from_terminal",
             "testDev = jet_hadron.analysis.rm_dev:run_from_terminal",
             "jetHResponse = jet_hadron.analysis.response_matrix:runFromTerminal",
-            "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalCorrectionsHistsFromTerminal",
-            "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:runEMCalEmbeddingHistsFromTerminal",
+            "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_corrections_hists_from_terminal",
+            "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_embedding_hists_from_terminal",
             "plotRPFRegions = jet_hadron.plot.highlight_RPF:runFromTerminal"
         ],
     },

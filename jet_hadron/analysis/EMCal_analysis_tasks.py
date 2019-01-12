@@ -14,6 +14,8 @@ import os
 import sys
 import warnings
 
+from pachyderm import yaml
+
 from jet_hadron.base import analysis_config
 from jet_hadron.base import params
 from jet_hadron.analysis import generic_tasks
@@ -31,7 +33,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
 thisModule = sys.modules[__name__]
 
-class EMCalCorrectionsLabels(enum.Enum):
+class EMCalCorrectionsLabel(enum.Enum):
     """ Label of possible EMCal correction tasks.
 
     The standard case is not labeled, but this label is important for when multiple
@@ -42,31 +44,37 @@ class EMCalCorrectionsLabels(enum.Enum):
     combined = "Data + Embed"
     data = "Data"
 
-    def __str__(self):
-        """ Return the label. """
-        return self.value
-
-    def filename_str(self):
-        """ Filename safe string. Return the name of the label. """
+    def __str__(self) -> str:
+        """ Return a string of the name of the label. """
         return self.name
 
+    def display_str(self) -> str:
+        """ Return a formatted string for display in plots, etc. """
+        return self.value
+
+    # Handle YAML serialization
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
+
 class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
-    """ Task to steer plotting of EMCal embedding hists.
+    """ Task to plot EMCal corrections hists.
 
     Args:
-        task_label (EMCalCorrectionsLabels): EMCal corrections label associated with this task.
+        task_label (EMCalCorrectionsLabel): EMCal corrections label associated with this task.
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
     def __init__(self, *args, **kwargs):
-        # Retrieve the task label to determine additional inputs.
+        # Access task_label, but don't pop it, because we need to pass it to the base class for assignment.
         task_label = kwargs["task_label"]
         # Add the task label to the output prefix
-        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], task_label.filename_str())
-        # Need to add it as "_label" so it ends up as "name_label_histos"
-        # If it is the standard correction task, then we just put in an emptry string (which is returned by .str())
-        correlationsLabel = "_{}".format(task_label.filename_str()) if task_label != EMCalCorrectionsLabels.standard else str(task_label)
-        kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(correctionsLabel = correlationsLabel)
+        # Note that we are using camelCase here instead of snake_case because these values haven't yet
+        # been assigned in the base class.
+        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], str(task_label))
+        # Also need to add it as "_label" to the input list name so it ends up as "name_label_histos"
+        # If it is the standard correction task, then we just put in an empty string
+        corrections_label = f"_{task_label}" if task_label != EMCalCorrectionsLabel.standard else ""
+        kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(corrections_label = corrections_label)
 
         # Afterwards, we can initialize the base class
         super().__init__(*args, **kwargs)
@@ -121,25 +129,6 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
                 raise ValueError(funcName, "Requested function for hist options {} doesn't exist!".format(histOptionsName))
 
         return options
-
-    @staticmethod
-    def construct_from_configuration_file(config_filename, selected_analysis_options):
-        """ Helper function to construct EMCal corrections plotting objects.
-
-        Args:
-            config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
-        Returns:
-            dict: Analysis dictionary of created objects utilizing the specified iterators as described
-                in ``analysis_config.construct_from_configuration_file(...)``.
-        """
-        return analysis_config.construct_from_configuration_file(
-            task_name = "EMCalCorrections",
-            config_filename = config_filename,
-            selected_analysis_options = selected_analysis_options,
-            obj = PlotEMCalCorrections,
-            additional_possible_iterables = {"task_label": EMCalCorrectionsLabels}
-        )
 
 def etaPhiMatchHistNames(histOptionsName, options):
     """ Generate hist names based on the available options.
@@ -242,7 +231,7 @@ def scaleCPUTime(hist) -> None:
     hist.Rebin(timeIncrement)
     hist.Scale(1.0 / timeIncrement)
 
-def etaPhiRemoved(histName, beforeHist, afterHist):
+def etaPhiRemoved(histName: str, beforeHist: ROOT.TH2, afterHist: ROOT.TH2) -> ROOT.TH2:
     """ Show the eta phi locations of clusters removed by the exotics cut.
 
     Args:
@@ -258,55 +247,53 @@ def etaPhiRemoved(histName, beforeHist, afterHist):
 
     return hist
 
-def runEMCalCorrectionsHistsFromTerminal():
-    """ Create and run objects to plot EMCal Corrections hists from the terminal.
-
-    Returns:
-        dict: Analysis dictionary of created objects utilizing the specified iterators as described
-                in ``analysis_config.construct_from_configuration_file(...)``.
+class EMCalCorrectionsPlotManager(generic_tasks.TaskManager):
     """
-    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(description = "EMCal corrections plotting.")
-    analyses = PlotEMCalCorrections.run(config_filename = config_filename,
-                                        selected_analysis_options = terminal_args)
 
-    return analyses
-
-class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
-    """ Task to steer plotting of EMCal embedding hists.
-
-    Args:
-        args (list): Additional arguments to pass along to the base config class.
-        kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    @staticmethod
-    def construct_from_configuration_file(config_filename, selected_analysis_options):
-        """ Helper function to construct EMCal embedding plotting objects.
-
-        Args:
-            config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
-        Returns:
-            dict: Analysis dictionary of created objects utilizing the specified iterators as described
-                in ``analysis_config.construct_from_configuration_file(...)``.
-        """
+    def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         return analysis_config.construct_from_configuration_file(
-            task_name = "EMCalEmbedding",
-            config_filename = config_filename,
-            selected_analysis_options = selected_analysis_options,
-            obj = PlotEMCalEmbedding,
-            additional_possible_iterables = {}
+            task_name = "EMCalCorrections",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"task_label": EMCalCorrectionsLabel},
+            obj = PlotEMCalCorrections,
         )
 
-def runEMCalEmbeddingHistsFromTerminal():
-    """ Create and run objects to plot EMCal Embedding hists from the terminal.
+def run_plot_EMCal_corrections_hists_from_terminal() -> EMCalCorrectionsPlotManager:
+    """ Driver function for plotting the EMCal corrections hists. """
+    return generic_tasks.run_helper(
+        manager_class = EMCalCorrectionsPlotManager,
+        description = "EMCal corrections plotting.",
+    )
 
-    Returns:
-        dict: Analysis dictionary of created objects utilizing the specified iterators as described
-            in ``analysis_config.construct_from_configuration_file(...)``.
+class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
+    """ Task to plot EMCal embedding hists.
+
+    Note:
+        This current doesn't have any embedding specific functionality. It is created for clarity and to
+        encourage extension in the future.
     """
-    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(task_name = "EMCal embedding plotting.")
-    analyses = PlotEMCalEmbedding.run(config_filename = config_filename,
-                                      selected_analysis_options = terminal_args)
+    ...
 
-    return analyses
+class EMCalEmbeddingPlotManager(generic_tasks.TaskManager):
+    """
+
+    """
+    def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        """ Construct EMCal embedding plotting tasks. """
+        return analysis_config.construct_from_configuration_file(
+            task_name = "EMCalEmbedding",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"pt_hard_bin": None},
+            obj = PlotEMCalEmbedding,
+        )
+
+def run_plot_EMCal_embedding_hists_from_terminal() -> EMCalEmbeddingPlotManager:
+    """ Driver function for plotting the EMCal embedding hists. """
+    return generic_tasks.run_helper(
+        manager_class = EMCalEmbeddingPlotManager,
+        description = "EMCal embedding plotting.",
+    )
 

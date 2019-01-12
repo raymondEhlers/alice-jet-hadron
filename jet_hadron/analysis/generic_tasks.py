@@ -5,18 +5,21 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+from abc import ABC
 import copy
 import dataclasses
 import enum
 import logging
 import os
 import pprint
-from typing import Any, Dict
+from typing import Any, Dict, Mapping, Type
 
-from pachyderm import generic_config
+from pachyderm import generic_class
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import params
 from jet_hadron.plot import generic_hist as plot_generic_hist
 
 logger = logging.getLogger(__name__)
@@ -292,30 +295,46 @@ class PlotTaskHists(analysis_objects.JetHBase):
                 logger.debug("Processing hist obj {}".format(histName))
                 histObj.plot(self, outputName = os.path.join(componentName, histName))
 
-    @classmethod
-    def run(cls, config_filename, selected_analysis_options, run_plotting = True):
+class TaskManager(ABC, generic_class.EqualityMixin):
+    """ Manages execution of the plotting of generic tasks.
+
+    Args:
+        config_filename: Filename of the configuration
+        selected_analysis_options: Options selected for this analysis.
+    Attributes:
+        config_filename: Filename of the configuration
+        selected_analysis_options: Options selected for this analysis.
+        tasks: Dictionary of ``PlotTaskHists`` objects indexed by the selected analysis
+            options used for each partiuclar object.
+    """
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
+        self.config_filename = config_filename
+        self.selected_analysis_options = selected_analysis_options
+
+        # Create the tasks.
+        self.tasks: Mapping[Any, PlotTaskHists]
+        (self.key_index, self.selected_iterables, self.tasks) = self.construct_tasks_from_configuration_file()
+
+    def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        """ Construct the tasks for the manager. """
+        return analysis_config.construct_from_configuration_file(
+            task_name = "PlotGenericTask",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None, "track_pt_bin": None},
+            obj = PlotTaskHists,
+        )
+
+    def run(self, run_plotting: bool = True) -> bool:
         """ Main driver function to create, process, and plot task hists.
 
         Args:
-            config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
-            run_plotting (bool): If true, run plotting after the processing.
+            run_plotting: If true, run plotting after the processing.
         Returns:
-            analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
-                as described in ``analysis_config.construct_from_configuration_file(...)``.
+            True if the processing was successful.
         """
-        # Create logger
-        logging.basicConfig(level=logging.DEBUG)
-
-        # Construct tasks
-        (_, selected_option_names, tasks) = cls.construct_from_configuration_file(
-            config_filename = config_filename,
-            selected_analysis_options = selected_analysis_options
-        )
-
-        # Run the analysis
         logger.info("About to process")
-        for keys, task in generic_config.iterate_with_selected_objects(tasks):
+        for keys, task in analysis_config.iterate_with_selected_objects(self.tasks):
             # Print the task selected analysis options
             opts = [f"{name}: \"{str(value)}\""for name, value in dataclasses.asdict(keys).items()]
             options = "\n\t".join(opts)
@@ -329,22 +348,35 @@ class PlotTaskHists(analysis_objects.JetHBase):
             if run_plotting:
                 task.plotHistograms()
 
-        return tasks
+        return True
 
-    @staticmethod
-    def construct_from_configuration_file(config_filename, selected_analysis_options):
-        """ Helper function to construct plotting objects.
+def run_helper(manager_class: Type[TaskManager], description: str) -> TaskManager:
+    """ Helper function to execute most generic task plotting managers.
 
-        Must be implemented by the derived class. Usually, this is a simple wrapper around
-        ``analysis_config.construct_from_configuration_file(...)`` that is filled in with options
-        specific to the particular task.
+    It sets up the passed manager object and then calls ``run()``.
 
-        Args:
-            config_filename (str): Filename of the yaml config.
-            selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
-        Returns:
-            analysis dictionary: Analysis dictionary of created objects utilizing the specified iterators
-                as described in ``analysis_config.construct_from_configuration_file(...)``.
-        """
-        raise NotImplementedError("Need to implement the construct_from_configuration_file.")
+    Args:
+        manager_class: Class which will manage exeuction of the task.
+        description: Description of the task for the argument parsing help.
+    Returns:
+        The created and executed task manager.
+    """
+    # Basic setup
+    logging.basicConfig(level = logging.DEBUG)
+    # Quiet down the matplotlib logging
+    logging.getLogger("matplotlib").setLevel(logging.INFO)
+
+    # Setup the analysis
+    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
+        description = description,
+    )
+    analysis_manager = manager_class(
+        config_filename = config_filename,
+        selected_analysis_options = terminal_args
+    )
+    # Finally run the analysis.
+    analysis_manager.run()
+
+    # Provide the final result back to the caller.
+    return analysis_manager
 
