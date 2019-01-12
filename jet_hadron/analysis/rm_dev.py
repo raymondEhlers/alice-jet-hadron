@@ -268,7 +268,7 @@ class ResponseManager(generic_class.EqualityMixin):
         key_index: Key index object for the analysis.
         selected_iterables: All iterables values used to create the response matrices.
         analyses: Response matrix analysis objects.
-
+        pt_hard_bins: Pt hard analysis objects for pt hard binned analyses (optional).
     """
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
         self.config_filename = config_filename

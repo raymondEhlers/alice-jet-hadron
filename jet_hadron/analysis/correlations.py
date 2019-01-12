@@ -1873,6 +1873,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
         ...
 
 def run_from_terminal():
+    """ Driver function for running the correlations analysis. """
     # Basic setup
     logging.basicConfig(level = logging.DEBUG)
     # Quiet down the matplotlib logging
