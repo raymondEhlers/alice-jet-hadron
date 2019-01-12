@@ -5,13 +5,11 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# This must be at the start
-from future.utils import iteritems
-
 import enum
 import logging
 import os
 import sys
+from typing import Any, Dict
 import warnings
 
 from pachyderm import yaml
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Handle rootpy warning
 warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-thisModule = sys.modules[__name__]
+this_module = sys.modules[__name__]
 
 class EMCalCorrectionsLabel(enum.Enum):
     """ Label of possible EMCal correction tasks.
@@ -79,7 +77,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         # Afterwards, we can initialize the base class
         super().__init__(*args, **kwargs)
 
-    def histSpecificProcessing(self):
+    def hist_specific_processing(self) -> None:
         """ Perform processing on specific histograms in the input hists.
 
         Each component and histogram in the input hists are searched for particular histograms.
@@ -88,49 +86,49 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         replacement of the existing hist and sometimes as an additional hist).
         """
         # Loop over available components in the hists
-        for componentName in self.hists:
+        for component_name in self.hists:
             # Clusterizer
-            if "Clusterizer" in componentName:
+            if "Clusterizer" in component_name:
                 # Only perform the scaling if the hist actually exists.
-                if "hCPUTime" in self.hists[componentName]:
-                    scaleCPUTime(self.hists[componentName]["hCPUTime"])
+                if "hCPUTime" in self.hists[component_name]:
+                    scale_CPU_time(self.hists[component_name]["hCPUTime"])
 
-            if "ClusterExotics" in componentName:
-                histName = "hExoticsEtaPhiRemoved"
-                beforeHistName = "hEtaPhiDistBefore"
-                afterHistName = "hEtaPhiDistAfter"
-                if beforeHistName in self.hists[componentName] and afterHistName in self.hists[componentName]:
-                    self.hists[componentName][histName] = etaPhiRemoved(
-                        histName = histName,
-                        beforeHist = self.hists[componentName][beforeHistName],
-                        afterHist = self.hists[componentName][afterHistName]
+            if "ClusterExotics" in component_name:
+                hist_name = "hExoticsEtaPhiRemoved"
+                before_hist_name = "hEtaPhiDistBefore"
+                after_hist_name = "hEtaPhiDistAfter"
+                if before_hist_name in self.hists[component_name] and after_hist_name in self.hists[component_name]:
+                    self.hists[component_name][hist_name] = eta_phi_removed(
+                        hist_name = hist_name,
+                        before_hist = self.hists[component_name][before_hist_name],
+                        after_hist = self.hists[component_name][after_hist_name]
                     )
 
-    def histOptionsSpecificProcessing(self, histOptionsName, options):
+    def hist_options_specific_processing(self, hist_options_name: str, options: Dict[str, Any]) -> Dict[str, Any]:
         """ Run a particular processing functions for some set of hist options.
 
         It looks for a function name specified in the configuration, so a bit of care is
         required to this safely.
 
         Args:
-            histOptionsName (str): Name of the hist options.
-            options (dict): Associated set of hist options.
+            hist_options_name: Name of the hist options.
+            options: Associated set of hist options.
         Returns:
-            dict: Updated set of hist options.
+            Updated set of hist options.
         """
         if "processing" in options:
-            funcName = options["processing"]["funcName"]
-            func = getattr(thisModule, funcName)
+            func_name = options["processing"]["func_name"]
+            func = getattr(this_module, func_name)
             if func:
-                logger.debug("Calling funcName {} (func {}) for hist options {}".format(funcName, func, histOptionsName))
-                options = func(histOptionsName, options)
-                logger.debug("Options after return: {}".format(options))
+                logger.debug(f"Calling func_name {func_name} (func {func}) for hist options {hist_options_name}")
+                options = func(hist_options_name, options)
+                logger.debug(f"Options after return: {options}")
             else:
-                raise ValueError(funcName, "Requested function for hist options {} doesn't exist!".format(histOptionsName))
+                raise ValueError(func_name, f"Requested function for hist options {hist_options_name} doesn't exist!")
 
         return options
 
-def etaPhiMatchHistNames(histOptionsName, options):
+def eta_phi_match_hist_names(hist_options_name, options):
     """ Generate hist names based on the available options.
 
     This approach allows generating of hist config options using for loops
@@ -165,10 +163,10 @@ def etaPhiMatchHistNames(histOptionsName, options):
     hist_names = []
     for angle in angles:
         for cent_dict in cent_bins:
-            cent_bin, cent_label = next(iter(iteritems(cent_dict)))
+            cent_bin, cent_label = next(iter(cent_dict.items()))
             for pt_bin in pt_bins:
                 for eta_dict in eta_directions:
-                    eta_direction, eta_direction_label = next(iter(iteritems(eta_dict)))
+                    eta_direction, eta_direction_label = next(iter(eta_dict.items()))
                     # Determine hist name
                     name = hist_name.format(angle = angle, cent = cent_bin, ptBin = pt_bin, etaDirection = eta_direction)
                     # Determine label
@@ -194,56 +192,58 @@ def etaPhiMatchHistNames(histOptionsName, options):
 
     return options
 
-def determine_angle_label(angle):
+def determine_angle_label(angle: str) -> str:
     """ Determine the full angle label and return the corresponding latex.
 
     Args:
-        angle (str): Angle to be used in the label.
+        angle: Angle to be used in the label.
     Returns:
-        str: Full angle label.
+        Full angle label.
     """
-    returnValue = r"$\Delta"
+    return_value = r"$\Delta"
     # Need to lower because the label in the hist name is upper
     angle = angle.lower()
     if angle == "phi":
         # "phi" -> "varphi"
         angle = "var" + angle
-    returnValue += r"\%s$" % (angle)
-    return returnValue
+    return_value += r"\%s$" % (angle)
+    return return_value
 
-def scaleCPUTime(hist) -> None:
-    """ Time is only reported in increments of 10 ms.
+def scale_CPU_time(hist: ROOT.TH1) -> None:
+    """ Rebin the CPU time for improved presentation.
 
-    So we rebin by those 10 bins (since each bin is 1 ms) and then
-    scale them down to be on the same scale as the real time hist.
-    We can perform this scaling in place.
+    Time is only reported in increments of 10 ms. So we rebin by those 10 bins (since each bin is 1 ms)
+    and then scale them down to be on the same scale as the real time hist. We can perform this scaling
+    in place.
 
-    NOTE: This scaling appears to be the same as one would usually do
-          for a rebin, but it is slightly more subtle, because it is
-          as if the data was already binned. That being said, the end
-          result is effectively the same.
+    Note:
+        This scaling appears to be the same as one would usually do for a rebin, but it is slightly more
+        subtle, because it is as if the data was already binned. That being said, the end result is
+        effectively the same.
 
     Args:
-        hist (ROOT.TH1): CPU time histogram to be scaled.
+        hist: CPU time histogram to be scaled.
+    Returns:
+        None.
     """
     logger.debug("Performing CPU time hist scaling.")
     timeIncrement = 10
     hist.Rebin(timeIncrement)
     hist.Scale(1.0 / timeIncrement)
 
-def etaPhiRemoved(histName: str, beforeHist: ROOT.TH2, afterHist: ROOT.TH2) -> ROOT.TH2:
+def eta_phi_removed(hist_name: str, before_hist: ROOT.TH2, after_hist: ROOT.TH2) -> ROOT.TH2:
     """ Show the eta phi locations of clusters removed by the exotics cut.
 
     Args:
-        histName (str): Name of the new hist showing the removed clusters
-        beforeHist (ROOT.TH2): Eta-Phi histogram before exotic clusters removal
-        afterHist (ROOT.TH2): Eta-Phi histogram after exotic cluster removal
+        hist_name: Name of the new hist showing the removed clusters
+        before_hist: Eta-Phi histogram before exotic clusters removal
+        after_hist: Eta-Phi histogram after exotic cluster removal
     Returns:
-        ROOT.TH1 derived: A new hist showing the difference between the two input hists.
+        A new hist showing the difference between the two input hists.
     """
     # Create a new hist and remove the after hist
-    hist = beforeHist.Clone(histName)
-    hist.Add(afterHist, -1)
+    hist = before_hist.Clone(hist_name)
+    hist.Add(after_hist, -1)
 
     return hist
 

@@ -246,7 +246,7 @@ EMCalCorrections:
                     - "fHistMatch{angle}_{cent}_{ptBin}_{etaDirection}": ""
                 # Below isn't in the HistPlotter, but is instead used for customization of the histNames
                 processing: &matchDifferentialProcessing
-                    funcName: "etaPhiMatchHistNames"
+                    func_name: "eta_phi_match_hist_names"
                     angles: ["Eta", "Phi"]
                     centBins:
                         - 0: "Pos. tracks"

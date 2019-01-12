@@ -20,15 +20,23 @@ import rootpy.ROOT as ROOT
 
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.plot import base as plotBase
 
 # Setup logger
 logger = logging.getLogger(__name__)
 # Use latex in matplotlib.
-plt.rc('text', usetex=True)
+plt.rc('text', usetex = True)
 
-class HistPlotter(object):
+class HistPlotter:
+    """ Handles generic plotting of histograms via matplotlib.
+
+    Note:
+        Arguments are taken in camelCase to allow camelCase to be used in YAML. However,
+        within internal code, we want to use snake_case, so we assign those arguments to
+        snake_case.
+    """
     def __init__(self,
                  histNames = None,
                  hist = None,
@@ -49,120 +57,122 @@ class HistPlotter(object):
                  surface = False,
                  usePColorMesh = False,
                  stepPlot = True):
-        # A list of dictionaries, with key histName and value histTitle
+        # A list of dictionaries, with key hist_name and value hist_title
         if histNames is None:
             histNames = {}
-        self.histNames = histNames
+        self.hist_names = histNames
         if hists is None:
             hists = []
         self.hists = hists
         # Store the hist in the list if it was passed
         if hist:
             self.hists.append(hist)
-        self.outputName = outputName
+        self.output_name = outputName
         self.title = title
         # Convert hist name to title by splitting on camel case
-        self.automaticTitleFromName = automaticTitleFromName
+        self.automatic_title_from_name = automaticTitleFromName
         # If an exact hist name should be required
-        self.exactNameMatch = exactNameMatch
-        self.xLabel = xLabel
-        self.yLabel = yLabel
-        self.zLabel = zLabel
-        self.xLimits = xLimits
-        self.yLimits = yLimits
-        self.textLabel = textLabel
-        self.scientificNotationOnAxis = scientificNotationOnAxis
+        self.exact_name_match = exactNameMatch
+        self.x_label = xLabel
+        self.y_label = yLabel
+        self.z_label = zLabel
+        self.x_limits = xLimits
+        self.y_limits = yLimits
+        self.text_label = textLabel
+        self.scientific_notation_on_axis = scientificNotationOnAxis
         self.logy = logy
         self.logz = logz
         self.surface = surface
-        self.usePColorMesh = usePColorMesh
-        self.stepPlot = stepPlot
+        self.use_pcolor_mesh = usePColorMesh
+        self.step_plot = stepPlot
 
-    def getFirstHist(self):
+    def get_first_hist(self) -> ROOT.TH1:
         return next(iter(self.hists))
 
-    def applyHistSettings(self, ax):
-        self.applyAxisSettings(ax)
+    def apply_hist_settings(self, ax: matplotlib.axes.Axes) -> None:
+        self.apply_axis_settings(ax)
 
         if self.logy:
             logger.debug("Setting logy")
             ax.set_yscale("log")
 
-        self.applyHistLimits(ax)
-        self.applyHistTitles(ax)
+        self.apply_hist_limits(ax)
+        self.apply_hist_titles(ax)
 
-    def applyAxisSettings(self, ax):
+    def apply_axis_settings(self, ax: matplotlib.axes.Axes) -> None:
         # Do not apply useMathText to the axis tick format!
         # It is imcompatible with using latex randering
         # If for some reason latex is turned off, one can use the lines below to only apply the option to axes which
         # support it (most seem to work fine with it)
-        #logger.debug("x: {}, y: {}".format(ax.get_xaxis().get_major_formatter(), ax.get_yaxis().get_major_formatter()))
+        #logger.debug(f"x: {ax.get_xaxis().get_major_formatter()}, y: {ax.get_yaxis().get_major_formatter()}")
         #if isinstance(ax.get_xaxis().get_major_formatter(), matplotlib.ticker.ScalarFormatter) and isinstance(ax.get_yaxis().get_major_formatter(), matplotlib.ticker.ScalarFormatter):
         #ax.ticklabel_format(axis = "both", useMathText = True)
 
-        if self.scientificNotationOnAxis != "":
+        if self.scientific_notation_on_axis != "":
             # See: https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.ticklabel_format.html
             # (0,0) means apply to all numbers of the axis
             # axis could be x, y, or both
-            ax.ticklabel_format(axis = self.scientificNotationOnAxis, style = "sci", scilimits = (0, 0))
+            ax.ticklabel_format(axis = self.scientific_notation_on_axis, style = "sci", scilimits = (0, 0))
 
-    def postDrawOptions(self, ax):
+    def post_draw_options(self, ax: matplotlib.axes.Axes) -> None:
         pass
 
-    def applyHistTitles(self, ax):
+    def apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:
         # Title sanity check - we should only set one
-        if self.automaticTitleFromName and self.title:
+        if self.automatic_title_from_name and self.title:
             raise ValueError("Set both automatic title extraction and an actual title. Please select only one setting")
 
         # Figure title
-        if self.automaticTitleFromName:
-            tempTitle = self.getFirstHist().GetTitle()
+        if self.automatic_title_from_name:
+            temp_title = self.get_first_hist().GetTitle()
             # Remove the common leading "h" in a hist name
-            if tempTitle[0] == "h":
-                tempTitle = tempTitle[1:]
+            if temp_title[0] == "h":
+                temp_title = temp_title[1:]
             # For the regex, see: https://stackoverflow.com/a/43898219
-            title = re.sub('([a-z])([A-Z])', r'\1 \2', tempTitle)
+            title = re.sub('([a-z])([A-Z])', r'\1 \2', temp_title)
         else:
-            title = self.title if self.title else self.getFirstHist().GetTitle()
+            title = self.title if self.title else self.get_first_hist().GetTitle()
 
         if title:
-            logger.debug("Set title: {}".format(title))
+            logger.debug(f"Set title: {title}")
             ax.set_title(title)
 
         # Axis labels
-        labelMap = {"x": (self.xLabel, ROOT.TH1.GetXaxis, ax.set_xlabel),
-                    "y": (self.yLabel, ROOT.TH1.GetYaxis, ax.set_ylabel)}
-        for axisName, (val, axis, applyTitle) in labelMap.items():
+        label_map = {
+            "x": (self.x_label, ROOT.TH1.GetXaxis, ax.set_xlabel),
+            "y": (self.y_label, ROOT.TH1.GetYaxis, ax.set_ylabel),
+        }
+        for axis_name, (val, axis, apply_title) in label_map.items():
             if val:
                 label = val
             else:
-                label = axis(self.getFirstHist()).GetTitle()
+                label = axis(self.get_first_hist()).GetTitle()
                 # Convert any "#" (from ROOT) to "\" for latex
                 label = label.replace("#", "\\")
                 # Convert "%" -> "\%" to ensure that latex runs successfully
                 label = label.replace("%", r"\%")
                 # Guessing that units start with the last "(", which is usually the case
-                foundLatex = label.find("_") > -1 or label.find("^") > -1 or label.find('\\') > -1
+                found_latex = label.find("_") > -1 or label.find("^") > -1 or label.find('\\') > -1
                 # Apply latex equation ("$") up to the units
-                unitsLocation = label.rfind("(")
-                logger.debug("Found latex: {}, label: \"{}\"".format(foundLatex, label))
-                if foundLatex:
-                    if unitsLocation > -1:
-                        label = "$" + label[:unitsLocation - 1] + "$ " + label[unitsLocation:]
+                units_location = label.rfind("(")
+                logger.debug(f"Found latex: {found_latex}, label: \"{label}\"")
+                if found_latex:
+                    if units_location > -1:
+                        label = "$" + label[:units_location - 1] + "$ " + label[units_location:]
                     else:
                         label = "$" + label + "$"
-            logger.debug("Apply {} axis title with label \"{}\", axis {}, and applyTitle function {}".format(axisName, label, axis, applyTitle))
-            applyTitle(label)
+            logger.debug(f"Apply {axis_name} axis title with label \"{label}\", axis {axis}, and apply_title function {apply_title}")
+            apply_title(label)
 
-    def applyHistLimits(self, ax):
-        if self.xLimits is not None:
-            logger.debug("Setting x limits of {}".format(self.xLimits))
-            ax.set_xlim(self.xLimits)
-        if self.yLimits is not None:
-            logger.debug("Setting y limits of {}".format(self.yLimits))
-            ax.set_ylim(self.yLimits)
+    def apply_hist_limits(self, ax: matplotlib.axes.Axes) -> None:
+        if self.x_limits is not None:
+            logger.debug(f"Setting x limits of {self.x_limits}")
+            ax.set_xlim(self.x_limits)
+        if self.y_limits is not None:
+            logger.debug(f"Setting y limits of {self.y_limits}")
+            ax.set_ylim(self.y_limits)
 
-    def addTextLabels(self, ax, obj):
+    def add_text_labels(self, ax: matplotlib.axes.Axes, obj: analysis_objects.JetHBase) -> None:
         """
 
         Available properties include:
@@ -174,55 +184,57 @@ class HistPlotter(object):
             - "fontSize"
             - aliceLabel (set in the main config)
         """
-        if self.textLabel is not None:
+        if self.text_label is not None:
             text = ""
             text += str(obj.alice_label)
-            if str(obj.task_label) != "":
+            # Only add the task label if the display string is not empty.
+            if obj.task_label.display_str() != "":
                 # We don't want a new line here - we just want to continue it
-                text += " " + str(obj.task_label)
+                text += " " + obj.task_label.display_str()
 
             text += "\n" + params.system_label(energy = obj.collision_energy,
                                                system = obj.collision_system,
                                                activity = obj.event_activity)
-            propertyLabels = []
-            if self.textLabel.get("cellLabel", False):
+            property_labels = []
+            if self.text_label.get("cellLabel", False):
                 # Handled separately because it is long enough that it has to be
                 # on a separate line
                 text += "\n" + r"Cell $E_{\mathrm{seed}} = 100$ MeV, $E_{\mathrm{cell}} = 50$ MeV"
-            if self.textLabel.get("clusterLabel", False):
-                propertyLabels.append(r"$E_{cluster} > 300$ MeV")
-            if self.textLabel.get("trackLabel", False):
-                propertyLabels.append(r"$p_{T,track} > 150\:\mathrm{MeV/\mathit{c}}$")
-            if len(propertyLabels) > 0:
-                text += "\n" + ", ".join(propertyLabels)
+            if self.text_label.get("clusterLabel", False):
+                property_labels.append(r"$E_{cluster} > 300$ MeV")
+            if self.text_label.get("trackLabel", False):
+                property_labels.append(r"$p_{T,track} > 150\:\mathrm{MeV/\mathit{c}}$")
+            if len(property_labels) > 0:
+                text += "\n" + ", ".join(property_labels)
             #logger.debug("text: {}".format(text))
 
             # The default location is top center
-            ax.text(*self.textLabel.get("textLocation", [0.5, 0.92]), s = text,
+            ax.text(*self.text_label.get("textLocation", [0.5, 0.92]), s = text,
                     horizontalalignment = "center",
                     verticalalignment = "center",
-                    multialignment = self.textLabel.get("textAlignment", "left"),
-                    fontsize = self.textLabel.get("fontSize", 12.5),
+                    multialignment = self.text_label.get("textAlignment", "left"),
+                    fontsize = self.text_label.get("fontSize", 12.5),
                     transform = ax.transAxes)
 
-    def plot(self, obj, outputName: str = "") -> None:
+    def plot(self, obj: analysis_objects.JetHBase, output_name: str = "") -> None:
         # Make the plots
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # Draw the hist
-        if isinstance(self.getFirstHist(), ROOT.TH2):
+        if isinstance(self.get_first_hist(), ROOT.TH2):
             self.plot_2D_hists(fig = fig, ax = ax)
-        elif isinstance(self.getFirstHist(), ROOT.TH1):
+        elif isinstance(self.get_first_hist(), ROOT.TH1):
             self.plot_1D_hists()
+        else:
+            raise ValueError("Histogram must be 1D or 2D. Type provided: {type(self.get_first_hist())}")
 
         # Apply the options
         # Need to apply these here because rplt messes with them!
-        self.applyHistSettings(ax)
+        self.apply_hist_settings(ax)
 
         # Apply post drawing options
-        self.postDrawOptions(ax)
-
-        self.addTextLabels(ax, obj)
+        self.post_draw_options(ax)
+        self.add_text_labels(ax, obj)
 
         # Final plotting options
         plt.tight_layout()
@@ -230,12 +242,12 @@ class HistPlotter(object):
         # If a name was not passed (ie ""), then use whatever name was given.
         # It is stil possible that that name could be empty, but that should be
         # corrected by the user.
-        outputName = outputName if outputName != "" else self.outputName
-        if outputName == "":
+        output_name = output_name if output_name != "" else self.output_name
+        if output_name == "":
             raise ValueError("No output name passed or set for the object! Please set a name.")
 
         # Save and close the figure
-        plotBase.savePlot(obj, fig, outputName)
+        plotBase.savePlot(obj, fig, output_name)
         plt.close(fig)
 
     def plot_2D_hists(self, fig, ax) -> None:
@@ -268,7 +280,7 @@ class HistPlotter(object):
         #       numpy axis conventions (?). We will have to transpose the data when we go to plot it.
         #       This is the same convention as used in root_numpy.
         X, Y, hist_array = histogram.get_array_from_hist2D(
-            hist = self.getFirstHist(),
+            hist = self.get_first_hist(),
             set_zero_to_NaN = True,
             return_bin_edges = not self.surface
         )
@@ -287,7 +299,7 @@ class HistPlotter(object):
         # Colormap is the default from sns.heatmap
         kwargs["cmap"] = plotBase.prepareColormap(sns.cm.rocket)
         # Label is included so we could use a legend if we want
-        kwargs["label"] = self.getFirstHist().GetTitle()
+        kwargs["label"] = self.get_first_hist().GetTitle()
 
         logger.debug("kwargs: {}".format(kwargs))
 
@@ -317,7 +329,7 @@ class HistPlotter(object):
             # Anecdotally, I think pcolormesh is a bit more flexible, but imshow seems to be much faster.
             # According to https://stackoverflow.com/a/21169703, either one can be fine with the proper
             # options. So the plan is to stick with imshow unless pcolormesh is needed for some reason
-            if self.usePColorMesh:
+            if self.use_pcolor_mesh:
                 logger.debug("Plotting with pcolormesh")
 
                 axFromPlot = plt.pcolormesh(X, Y, hist_array.T, **kwargs)
@@ -341,7 +353,7 @@ class HistPlotter(object):
                                         **kwargs)
 
         # Draw the colorbar based on the drawn axis above.
-        label = self.zLabel if self.zLabel else self.getFirstHist().GetZaxis().GetTitle()
+        label = self.z_label if self.z_label else self.get_first_hist().GetZaxis().GetTitle()
         # NOTE: The mappable argument must be the separate axes, not the overall one
         # NOTE: This can cause the warning:
         #       '''
@@ -380,7 +392,7 @@ class HistPlotter(object):
 
             # NOTE: We plot by hand instead of using rplt.hist() so that we can have better control over
             #       the plotting options.
-            if self.stepPlot:
+            if self.step_plot:
                 # Step plots look like histograms. They plot some value for some width
                 # According to the documentation, it is basically a thin wrapper around plt.plot() with
                 # some modified options. An additional 0 neds to be appended to the end of the data so
