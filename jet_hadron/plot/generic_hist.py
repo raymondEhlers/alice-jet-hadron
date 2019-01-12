@@ -188,9 +188,9 @@ class HistPlotter:
             text = ""
             text += str(obj.alice_label)
             # Only add the task label if the display string is not empty.
-            if obj.task_label.display_str() != "":
+            if str(obj.task_label) != "":
                 # We don't want a new line here - we just want to continue it
-                text += " " + obj.task_label.display_str()
+                text += " " + str(obj.task_label)
 
             text += "\n" + params.system_label(energy = obj.collision_energy,
                                                system = obj.collision_system,

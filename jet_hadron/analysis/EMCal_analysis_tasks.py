@@ -43,15 +43,22 @@ class EMCalCorrectionsLabel(enum.Enum):
     data = "Data"
 
     def __str__(self) -> str:
-        """ Return a string of the name of the label. """
-        return self.name
-
-    def display_str(self) -> str:
-        """ Return a formatted string for display in plots, etc. """
-        return self.value
+        """ Return a string of the value of the label for display. """
+        return str(self.value)
 
     # Handle YAML serialization
-    to_yaml = classmethod(yaml.enum_to_yaml)
+    @classmethod
+    def to_yaml(cls, representer: yaml.Represneter, data: yaml.T_EnumToYaml) -> yaml.ruamel.yaml.nodes.ScalarNodes:
+        """ Encore YAML representation.
+
+        We want to write the name of the enumeration instead of the ``str()`` value.
+        """
+        return representer.represent_scalar(
+            f"!{cls.__name__}",
+            f"{data.name}"
+        )
+    # We can just use the standard enum_from_yaml(...) here because it expects to construct
+    # based on the name of the enum value (which is what we provided above).
     from_yaml = classmethod(yaml.enum_from_yaml)
 
 class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
@@ -68,10 +75,10 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         # Add the task label to the output prefix
         # Note that we are using camelCase here instead of snake_case because these values haven't yet
         # been assigned in the base class.
-        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], str(task_label))
+        kwargs["config"]["outputPrefix"] = os.path.join(kwargs["config"]["outputPrefix"], task_label.name)
         # Also need to add it as "_label" to the input list name so it ends up as "name_label_histos"
         # If it is the standard correction task, then we just put in an empty string
-        corrections_label = f"_{task_label}" if task_label != EMCalCorrectionsLabel.standard else ""
+        corrections_label = f"_{task_label.name}" if task_label != EMCalCorrectionsLabel.standard else ""
         kwargs["config"]["inputListName"] = kwargs["config"]["inputListName"].format(corrections_label = corrections_label)
 
         # Afterwards, we can initialize the base class
