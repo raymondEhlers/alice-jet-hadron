@@ -248,9 +248,7 @@ def eta_phi_removed(hist_name: str, before_hist: ROOT.TH2, after_hist: ROOT.TH2)
     return hist
 
 class EMCalCorrectionsPlotManager(generic_tasks.TaskManager):
-    """
-
-    """
+    """ Manager for plotting EMCal corrections histograms. """
     def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         return analysis_config.construct_from_configuration_file(
             task_name = "EMCalCorrections",
@@ -277,9 +275,7 @@ class PlotEMCalEmbedding(generic_tasks.PlotTaskHists):
     ...
 
 class EMCalEmbeddingPlotManager(generic_tasks.TaskManager):
-    """
-
-    """
+    """ Manager for plotting EMCal embedding histograms. """
     def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct EMCal embedding plotting tasks. """
         return analysis_config.construct_from_configuration_file(
