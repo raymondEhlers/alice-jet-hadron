@@ -173,7 +173,7 @@ class HistPlotter:
             ax.set_ylim(self.y_limits)
 
     def add_text_labels(self, ax: matplotlib.axes.Axes, obj: analysis_objects.JetHBase) -> None:
-        """
+        """ Add text labels to a plot.
 
         Available properties include:
             - "cellLabel"
@@ -183,6 +183,12 @@ class HistPlotter:
             - "textAlignment" : option for multialignment
             - "fontSize"
             - aliceLabel (set in the main config)
+
+        These properties are selected via the component configuration.
+
+        Args:
+            ax: Axis on which the text labels will be added.
+            obj: Object which contains the analysis parameters.
         """
         if self.text_label is not None:
             text = ""
