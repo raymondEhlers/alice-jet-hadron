@@ -103,6 +103,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
             (Component hists configuration options contained in ``HistPlotter`` objects, whether other hists
                 in the component that are not configured by ``HistPlotter`` objects should also be plotted).
         """
+        logger.debug(f"component_name: {component_name}, component_hist_options: {component_hists_options}")
         # Make the output directory for the component.
         component_output_path = os.path.join(self.output_prefix, component_name)
         if not os.path.exists(component_output_path):
@@ -119,6 +120,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         for hist_options_name, options in component_hists_options.items():
             # Copy the options dict so we can add to it
             hist_options: Dict[str, Any] = {}
+            logger.debug(f"hist_options_name: {hist_options_name}, options: {options}")
             hist_options.update(options)
             logger.debug(f"hist options: {hist_options}")
             hist_names = hist_options.get("histNames", None)

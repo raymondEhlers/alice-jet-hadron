@@ -28,7 +28,6 @@ inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
 # inputListName replaces
 #jetHTaskNameBase: ""
 #jetHTaskNameSuffix: "{biasTypeTag}R2"
-#inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 # yamllint disable-line rule:line-length
 outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qvector}/{task_name}"
@@ -83,10 +82,67 @@ Correlations:
             track_pt_bin: *TrackPtBins11h
             jet_pt_bin: *JetPtBins11h
 GeneralHists:
+    componentsToPlot:
+        JetH:
+            ZVertex:
+                title: "Z vertex"
+                textLabel:
+                    enabled: true
+            Centrality:
+                title: "Centrality"
+                textLabel:
+                    enabled: true
+            EventPlane:
+                title: "Event plane orientations"
+                textLabel:
+                    enabled: true
+            JetMatchingSameEventCuts:
+                textLabel:
+                    enabled: true
+            JetMatchingMixedEventCuts:
+                textLabel:
+                    enabled: true
+            TrackPt:
+                #title: Associated track $\mathit{p}_{\mathrm{T}}$
+                logy: true
+                textLabel:
+                    enabled: true
+            JetPt:
+                logy: true
+                textLabel:
+                    enabled: true
+                histNames:
+                    - "fHistJetPt_0": "0-10%"
+                    - "fHistJetPt_1": "10-30%"
+                    - "fHistJetPt_2": "30-50%"
+                    - "fHistJetPt_3": "50-90%"
+            JetPtBias:
+                logy: true
+                textLabel:
+                    enabled: true
+                histNames:
+                    - "fHistJetPtBias_0": "0-10%"
+                    - "fHistJetPtBias_1": "10-30%"
+                    - "fHistJetPtBias_2": "30-50%"
+                    - "fHistJetPtBias_3": "50-90%"
+            JetEtaPhi:
+                title: $\eta-\phi$ of jets in correlations
+                textLabel:
+                    enabled: true
+            JetHEtaPhi:
+                title: $\eta-\phi$ of charged hadrons in correlations
+                textLabel:
+                    enabled: true
     override:
         iterables:
-            reaction_plane_orientation: false
-            qvector: false
+            # Selected values explicitly so there are some iterables to create the object
+            # (even though we don't need them).
+            reaction_plane_orientation:
+                - "all"
+            qvector:
+                - "all"
+            task_label:
+                - ""
 
 # Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
 _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins

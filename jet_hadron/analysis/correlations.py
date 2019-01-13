@@ -43,7 +43,7 @@ from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
 from jet_hadron.analysis import fit as fitting
-#from jet_hadron.analysis import generic_tasks
+from jet_hadron.analysis import generic_tasks
 
 import rootpy.ROOT as ROOT
 from rootpy.io import root_open
@@ -1588,41 +1588,26 @@ def printFitParameters(fit):
 #        self.jet_eta_phi: Hist
 #        self.jetH_eta_phi: Hist
 #
-#    def _retrieve_histograms(self, input_hists):
-#        """ Retrieve general histograms. """
-#        super()._retrieve_histograms(input_hists = input_hists)
-#
-#        self.z_vertex = self.input_hists[self.input_list_name]["fHistZVertex"]
-#        self.centrality = self.input_hists[self.input_list_name]["fHistCentrality"]
-#        self.event_plane = self.input_hists[self.input_list_name]["fHistEventPlane"]
-#        self.jet_matching_same_event = self.input_hists[self.input_list_name]["fHistJetMatchingSameEventCuts"]
-#        self.jet_matching_mixed_event = self.input_hists[self.input_list_name]["fHistJetMatchingMixedEventCuts"]
 
-#class GeneralHistogramsManager(generic_tasks.PlotTaskHists):
-#    """ Task to manage plotting of general correlations analysis histograms. """
-#    def __init__(self, pt_hard_bin, *args, **kwargs):
-#        # First, initialize the base class
-#        super().__init__(*args, **kwargs)
-#
-#    @staticmethod
-#    def construct_from_configuration_file(config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions) -> analysis_config.ConstructedObjects:
-#        """ Helper function to construct general plotting objects.
-#
-#        Args:
-#            config_filename: Filename of the YAML config.
-#            selected_analysis_options: Selected analysis options.
-#        Returns:
-#            dict: Analysis dictionary of created objects utilizing the specified iterators as described
-#                in ``analysis_config.construct_from_configuration_file(...)``.
-#
-#        """
-#        return analysis_config.construct_from_configuration_file(
-#            task_name = "GeneralHistograms",
-#            config_filename = config_filename,
-#            selected_analysis_options = selected_analysis_options,
-#            obj = GeneralHistogramsManager,
-#            additional_possible_iterables = {}
-#        )
+class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
+    """ Task to plot general task hists.
+
+    Note:
+        This current doesn't have any embedding specific functionality. It is created for clarity and to
+        encourage extension in the future.
+    """
+    ...
+
+class GeneralHistogramsManager(generic_tasks.TaskManager):
+    """ Manager for plotting general histograms. """
+    def construct_tasks_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        return analysis_config.construct_from_configuration_file(
+            task_name = "GeneralHists",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"task_label": None, "pt_hard_bin": None},
+            obj = PlotGeneralHistograms,
+        )
 
 @dataclass
 class CorrelationsHistogram:
@@ -1834,7 +1819,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
         # General histograms
-        (_, _, self.general_histograms) = self.construct_general_histograms_from_configuration_file()
+        self.general_histograms = GeneralHistogramsManager(
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options
+        )
 
     def construct_correlations_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct Correlations objects based on iterables in a configuration file. """
@@ -1844,17 +1832,6 @@ class CorrelationsManager(generic_class.EqualityMixin):
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None, "track_pt_bin": None},
             obj = Correlations,
-        )
-
-    def construct_general_histograms_from_configuration_file(self) -> analysis_config.ConstructedObjects:
-        """ Construct general histograms object based on values in a configuration file. """
-        return analysis_config.construct_from_configuration_file(
-            task_name = "GeneralHists",
-            config_filename = self.config_filename,
-            selected_analysis_options = self.selected_analysis_options,
-            additional_possible_iterables = {},
-            #obj = GeneralHistograms,
-            obj = None,
         )
 
     def setup(self):
@@ -1867,11 +1844,18 @@ class CorrelationsManager(generic_class.EqualityMixin):
             if not input_hists:
                 input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
             logger.debug(f"{key_index}")
+            # Setup input histograms and projctors.
             analysis.setup(input_hists = input_hists)
 
     def run(self) -> bool:
         """ Run the analysis in the correlations manager. """
-        ...
+        # First setup the correlations
+        #self.setup()
+
+        # Run the general hists
+        self.general_histograms.run()
+
+        return True
 
 def run_from_terminal():
     """ Driver function for running the correlations analysis. """
@@ -1879,6 +1863,8 @@ def run_from_terminal():
     logging.basicConfig(level = logging.DEBUG)
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
+    # Quiet down pachyderm
+    logging.getLogger("pachyderm").setLevel(logging.INFO)
 
     # Setup the analysis
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
