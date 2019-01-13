@@ -500,8 +500,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
     def generateCorrelationProjectors(self):
         """ Generate correlation projectors (2D -> 1D) """
         # Helper which defines the full axis range
-        fullAxisRange = {"min_val": HistAxisRange.ApplyFuncToFindBin(None, 1),
-                         "max_val": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)}
+        fullAxisRange = {"min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
+                         "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)}
 
         ###########################
         # dPhi Signal
@@ -523,16 +523,16 @@ class JetHAnalysis(analysis_objects.JetHBase):
             HistAxisRange(
                 axis_type = JetHCorrelationAxis.delta_eta,
                 axis_range_name = "NegativeEtaSignalDominated",
-                min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.6)] + epsilon),
-                max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.6)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0)] - epsilon)
             )
         ])
         dPhiSignalProjector.projectionDependentCutAxes.append([
             HistAxisRange(
                 axis_type = JetHCorrelationAxis.delta_eta,
                 axis_range_name = "PositiveEtaSignalDominated",
-                min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0)] + epsilon),
-                max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.6)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.6)] - epsilon)
             )
         ])
         dPhiSignalProjector.projectionAxes.append(
@@ -564,16 +564,16 @@ class JetHAnalysis(analysis_objects.JetHBase):
             HistAxisRange(
                 axis_type = JetHCorrelationAxis.delta_eta,
                 axis_range_name = "NegativeEtaBackgroundDominated",
-                min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(1.2)] + epsilon),
-                max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.8)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(1.2)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.8)] - epsilon)
             )
         ])
         dPhiBackgroundProjector.projectionDependentCutAxes.append([
             HistAxisRange(
                 axis_type = JetHCorrelationAxis.delta_eta,
                 axis_range_name = "PositiveEtaBackgroundDominated",
-                min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.8)] + epsilon),
-                max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(1.2)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.8)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(1.2)] - epsilon)
             )
         ])
         dPhiBackgroundProjector.projectionAxes.append(
@@ -602,8 +602,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
             HistAxisRange(
                 axis_type = JetHCorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiNearSide",
-                min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(-1. * math.pi / 2.)] + epsilon),
-                max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(1. * math.pi / 2.)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(-1. * math.pi / 2.)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(1. * math.pi / 2.)] - epsilon)
             )
         )
         # No projection dependent cut axes
@@ -1641,6 +1641,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
     Attributes:
         jet_pt: Jet pt bin.
         track_pt: Track pt bin.
+        ...
     """
     def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1664,8 +1665,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Setup the THnSparse projectors. """
         # Helper which defines the full axis range
         full_axis_range = {
-            "min_val": HistAxisRange.ApplyFuncToFindBin(None, 1),
-            "max_val": HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.GetNbins)
+            "min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
+            "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
         }
 
         # Define common axes
@@ -1673,8 +1674,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         centrality_cut_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.centrality,
             axis_range_name = "centrality",
-            min_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 0 + epsilon),
-            max_val = HistAxisRange.ApplyFuncToFindBin(ROOT.TAxis.FindBin, 10 - epsilon),
+            min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, 0 + epsilon),
+            max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, 10 - epsilon),
         )
         # Event plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
@@ -1713,10 +1714,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         jet_pt_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.jet_pt,
             axis_range_name = f"jet_pt{self.jet_pt.bin}",
-            min_val = HistAxisRange.ApplyFuncToFindBin(
+            min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.jet_pt.range.min + epsilon
             ),
-            max_val = HistAxisRange.ApplyFuncToFindBin(
+            max_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.jet_pt.range.max - epsilon
             )
         )
@@ -1724,10 +1725,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         track_pt_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.track_pt,
             axis_range_name = f"track_pt{self.track_pt.bin}",
-            min_val = HistAxisRange.ApplyFuncToFindBin(
+            min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.track_pt.range.min + epsilon
             ),
-            max_val = HistAxisRange.ApplyFuncToFindBin(
+            max_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.track_pt.range.max - epsilon
             )
         )
