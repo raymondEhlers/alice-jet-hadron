@@ -168,7 +168,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         self.signal2D = collections.OrderedDict()
 
         # All 2D hists
-        # NOTE: We can't use an iterator here because we rely on them being separate for initialzing from ROOT files.
+        # NOTE: We can't use an iterator here because we rely on them being separate for initializing from ROOT files.
         #       Would look something like:
         #self.hists2D = itertools.chain(self.rawSignal2D, self.mixedEvents2D, self.signal2D)
         self.hists2D = [self.rawSignal2D, self.mixedEvents2D, self.signal2D]
