@@ -68,7 +68,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
 
     return number_of_triggers
 
-def post_projection_processing_for_2D_correlation(hist: Hist, normalization_factor: float, title: str,
+def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title: str,
                                                   jet_pt: analysis_objects.JetPtBin,
                                                   track_pt: analysis_objects.TrackPtBin) -> None:
     """ Basic post processing tasks for a new 2D correlation observable.

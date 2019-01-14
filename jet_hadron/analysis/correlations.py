@@ -43,8 +43,7 @@ from jet_hadron.analysis import correlations_helpers
 from jet_hadron.analysis import fit as fitting
 from jet_hadron.analysis import generic_tasks
 
-import rootpy.ROOT as ROOT
-from rootpy.io import root_open
+import ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
@@ -229,8 +228,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def retrieveInputHists(self):
         """ Run general setup tasks. """
-        # Retrieve all histograms
-        self.inputHists = utils.getHistogramsInList(self.inputFilename, self.inputListName)
+        ...
 
     def assignGeneralHistsFromDict(self, histDict, outputDict):
         """ Simple helper to assign hists named in a dict to an output dict. """
@@ -682,19 +680,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def writeToRootFile(self, observable_dict, mode = "UPDATE"):
         """ Write output list to a file """
-        filename = os.path.join(self.outputPrefix, self.outputFilename)
-
-        logger.info("Saving correlations to {}".format(filename))
-
-        with root_open(filename, mode) as fOut:  # noqa: 854
-            for histCollection in observable_dict:
-                for name, observable in iteritems(histCollection):
-                    if isinstance(observable, analysis_objects.Observable):
-                        hist = observable.hist
-                    else:
-                        hist = observable
-
-                    hist.Write()
+        ...
 
     def writeHistsToYAML(self, observable_dict, mode = "wb"):
         """ Write hist to YAML file. """
@@ -724,7 +710,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def write2DCorrelations(self):
         """ Write the 2D Correlations to file. """
-        self.writeToRootFile(self.hists2D)
+        ...
 
     def write1DCorrelations(self):
         """ Write the 1D Correlations to file. """
@@ -763,12 +749,12 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def InitFromRootFile(self, GeneralHists = False, TriggerJetSpectra = False, Correlations2D = False, Correlations1D = False, Correlations1DArray = False, Correlations1DSubtracted = False, Correlations1DSubtractedArray = False, Fits1D = False, exitOnFailure = True):
         """ Initialize the JetHAnalysis object from a saved ROOT file. """
+        filename = os.path.join(self.output_prefix, self.output_filename)
 
         # TODO: Depending on this ROOT file when opening a YAML file is not really right.
         #       However, it's fine for now because the ROOT file should almost always exist
 
-        # Open the ROOT file
-        with root_open(os.path.join(self.outputPrefix, self.outputFilename), "READ") as fIn:
+        with histogram.RootOpen(filename = filename, mode = "READ") as f:
             if GeneralHists:
                 logger.critical("General hists are not yet implemented!")
                 sys.exit(1)
@@ -777,7 +763,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 # We only have one trigger jet hist at the moment, but by using the same approach
                 # as for the correlations, it makes it straightforward to generalize later if needed
                 histName = self.histNameFormatTrigger
-                hist = fIn.Get(histName)
+                hist = f.Get(histName)
                 if hist:
                     self.triggerJetPt[histName] = analysis_objects.Observable(hist = analysis_objects.HistContainer(hist))
                     # Ensure that the hist doesn't disappear when the file closes
@@ -793,7 +779,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                     for (storedDict, tag) in zip(self.hists2D, ["raw", "mixed", "corr"]):
                         # 2D hists
                         histName = self.histNameFormat2D.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = tag)
-                        hist = fIn.Get(histName)
+                        hist = f.Get(histName)
                         if hist:
                             storedDict[histName] = analysis_objects.CorrelationObservable(
                                 jetPtBin = jetPtBin,
@@ -844,7 +830,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                                                                             jetPtBin = jetPtBin,
                                                                             trackPtBin = trackPtBin)
                         else:
-                            hist = fIn.Get(histName)
+                            hist = f.Get(histName)
                             if hist:
                                 actualHistName = hist.GetName()
                                 # Ensure that the hist doesn't disappear when the file closes
@@ -1416,6 +1402,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Basic information
         self.input_hists: Dict[str, Any] = {}
         self.projectors: List[Type[projectors.HistProjectors]] = []
+        # For convenience since it is frequently accessed.
+        self.processing_options = self.task_config["processingOptions"]
 
         # Relevant histograms
         self.number_of_triggers_hist: Hist
@@ -1423,6 +1411,30 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
+
+        # Projectors
+        self.sparse_projectors: List[projectors.HistProjector] = []
+
+    def _write_2d_correlations(self) -> None:
+        """ Write 2D correlatinos to output file. """
+        hist_names = ["raw_2d", "mixed_event_2d", "signal_2d"]
+        self.write_to_root_file(hist_names = hist_names)
+
+    def _write_trigger_jet_spectra(self):
+        """ Write trigger jet spectra to file. """
+        self.write_to_root_file([self.triggerJetPt])
+
+    def _write_to_root_file(self, hist_names: List[str], mode: str = "UPDATE") -> None:
+        """ Write output list to a file """
+        filename = os.path.join(self.output_prefix, self.output_filename)
+
+        logger.info(f"Saving correlations to {filename}")
+
+        with histogram.RootOpen(filename = filename, mode = mode):
+            for hist_name in hist_names:
+                hist = getattr(self.correlation_hists, hist_name)
+                if hist:
+                    hist.Write()
 
     def _setup_projectors(self):
         """ Setup the THnSparse projectors. """
@@ -1603,9 +1615,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Determine n_trig for the object.
         self.number_of_triggers = self._determine_number_of_triggers()
 
-    def _post_creation_processing_for_2D_correlation(self, hist: Hist, normalization_factor: float, title: str) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title: str) -> None:
         """ Perform post creation processing for 2D correlations. """
-        correlations_helpers.post_projection_processing_for_2D_correlation(
+        correlations_helpers.post_projection_processing_for_2d_correlation(
             hist = hist, normalization_factor = normalization_factor, title = title,
             jet_pt = self.jet_pt, track_pt = self.track_pt,
         )
@@ -1732,45 +1744,48 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _run_2d_projections(self):
         """ Run the correlations 2D projections. """
-        # Get configuration
-        processing_options = self.task_config["processing_options"]
-
-        # Only need to check if file exists for the first if statement because we cannot get past there without somehow having some hists
+        # Only need to check if file exists for this if statement because we cannot get past there
+        # without somehow having some hists
         file_exists = os.path.isfile(os.path.join(self.output_prefix, self.output_filename))
 
         # NOTE: Only normalize hists when plotting, and then only do so to a copy!
-        #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation and the maximum efficiency
-        #       for the mixed events. They are excepted because we don't have a purpose for such unnormalized hists.
-        if processing_options["generate2DCorrelations"] or not file_exists:
-            # Then generate the correlations by utilizing the projectors
+        #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation
+        #       and the maximum efficiency for the mixed events. They are excepted because we don't have a
+        #       purpose for such unnormalized hists.
+        if self.processing_options["generate2DCorrelations"] or not file_exists:
+            # Create the correlations by utilizing the projectors
             logger.info("Projecting 2D correlations")
             self._create_2d_raw_and_mixed_correlations()
             # Create the signal correlation
             self._create_2d_signal_correlation()
 
             # Write the correlations
-            self.write2DCorrelations()
+            self._write_2d_correlations()
             # Write triggers
-            self.writeTriggerJetSpectra()
+            self._write_trigger_jet_spectra()
 
             # Ensure we execute the next step
-            processing_options["generate1DCorrelations"] = True
+            self.processing_options["generate1DCorrelations"] = True
         else:
             # Initialize the 2D correlations from the file
             logger.info("Loading 2D correlations and trigger jet spectra from file")
             self.InitFromRootFile(Correlations2D = True)
             self.InitFromRootFile(TriggerJetSpectra = True)
 
-        if processing_options["plot2DCorrelations"]:
+        if self.processing_options["plot2DCorrelations"]:
             logger.info("Plotting 2D correlations")
             plot_correlations.plot2DCorrelations(self)
             logger.info("Plotting RPF example region")
             plot_correlations.plotRPFFitRegions(self)
 
-    def run_projectors(self):
-        """ Run all analysis steps through projectors. """
+    def _run_1d_projections(self):
+        """ Run the 2D -> 1D projections. """
+        ...
 
+    def run_projections(self):
+        """ Run all analysis steps through projectors. """
         self._run_2d_projections()
+        self._run_1d_projections()
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
@@ -1816,7 +1831,20 @@ class CorrelationsManager(generic_class.EqualityMixin):
         #self.setup()
 
         # Run the general hists
-        self.general_histograms.run()
+        #self.general_histograms.run()
+
+        # First analysis step
+        for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+            analysis.run_projections()
+
+        # Fitting
+        # To successfully fit, we need all histograms from a given reaction plane orientation.
+        for jet_pt in self.selected_analysis_options["jet_pt_bin"]:
+            for track_pt in self.selected_analysis_options["track_pt_bin"]:
+                logger.debug(f"Selection: jet_pt: {jet_pt}, track_pt: {track_pt}")
+                for key_index, analysis in \
+                        analysis_config.iterate_with_selected_objects(self.analyses, jet_pt_bin = jet_pt, track_pt_bin = track_pt):
+                    logger.debug(f"{key_index}")
 
         return True
 

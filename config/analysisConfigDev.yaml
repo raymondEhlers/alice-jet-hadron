@@ -34,12 +34,13 @@ outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_
 outputFilename: "{collision_system}Correlations.root"
 printingExtensions: ["pdf", "eps"]
 aliceLabel: work_in_progress
-test: "hello"
-
-# TODO: What do do with this in the case of pt hard?
 trainNumber: &trainNumber 3360
 
-JetHAnalysis:
+# 11H track and jet pt bins
+_jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
+_track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
+
+Correlations:
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false
@@ -63,19 +64,6 @@ JetHAnalysis:
         # Widths
         extractWidths: false
         plotWidths: false
-    override:
-        2.76:
-            test: "world"
-        iterables:
-            reaction_plane_orientation: true
-            qvector:
-                - "all"
-
-# 11H track and jet pt bins
-_jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
-_track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
-
-Correlations:
     override:
         iterables:
             reaction_plane_orientation: true
