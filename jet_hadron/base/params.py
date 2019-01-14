@@ -21,16 +21,18 @@ from pachyderm import yaml
 
 logger = logging.getLogger(__name__)
 
+# Typing helpers
+# We don't include this type because it will cause an import loop.
+T_PtBin = Any
+
 # Bins
 # eta is absolute value!
 eta_bins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
-track_pt_bins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
-jet_pt_bins = [15.0, 20.0, 40.0, 60.0, 200.0]
 phi_bins = [-1. * np.pi / 2., np.pi / 2., 3. * np.pi / 2]
 
 ########
 # Utility functions
-#######
+########
 PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
 def iterate_over_pt_bins(name: str, bins: Union[np.ndarray, Sequence[float]], config: PtBinIteratorConfig = None) -> Iterable[float]:
     """ Create a generator of the bins in a requested list.
@@ -55,17 +57,17 @@ def iterate_over_pt_bins(name: str, bins: Union[np.ndarray, Sequence[float]], co
     # Create a default dict if none is available
     if not config:
         config = {}
-    skipPtBins = config.get("skipPtBins", {}).get(name, [])
+    skip_pt_bins = config.get("skipPtBins", {}).get(name, [])
     # Sanity check on skip pt bins
-    for val in skipPtBins:
+    for val in skip_pt_bins:
         if val >= len(bins) - 1:
-            raise ValueError(val, "Pt bin to skip {val} is outside the range of the {name} list".format(val = val, name = name))
+            raise ValueError(val, f"Pt bin to skip {val} is outside the range of the {name} list")
 
-    for ptBin in range(0, len(bins) - 1):
-        if ptBin in skipPtBins:
+    for pt_bin in range(0, len(bins) - 1):
+        if pt_bin in skip_pt_bins:
             continue
 
-        yield ptBin
+        yield pt_bin
 
 def iterate_over_jet_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[float]:
     """ Iterate over the available jet pt bins. """
@@ -174,12 +176,11 @@ def system_label(energy: Union[float, "CollisionEnergy"], system: Union[str, "Co
 
     return system_label
 
-def generate_pt_range_string(arr: Union[np.ndarray, Sequence[float]], bin_val: int, lower_label: str, upper_label: str, only_show_lower_value_for_last_bin: bool = False) -> str:
+def generate_pt_range_string(pt_bin: T_PtBin, lower_label: str, upper_label: str, only_show_lower_value_for_last_bin: bool = False) -> str:
     """ Generate string to describe pt ranges for a given list.
 
     Args:
-        arr: Bin edges for use in determining the values lower and upper values.
-        bin_val: Generate the range for this bin.
+        pt_bin: Pt bin object which contains information about the bin and pt range.
         lower_label: Subscript label for pT.
         upper_label: Superscript labe for pT.
         only_show_lower_value_for_last_bin: If True, skip show the upper value.
@@ -187,9 +188,9 @@ def generate_pt_range_string(arr: Union[np.ndarray, Sequence[float]], bin_val: i
         The pt range label.
     """
     # Cast as string so we don't have to deal with formatting the extra digits
-    lower = f"{arr[bin_val]} < "
-    upper = f" < {arr[bin_val + 1]}"
-    if only_show_lower_value_for_last_bin and bin_val == len(arr) - 2:
+    lower = f"{pt_bin.range.min} < "
+    upper = f" < {pt_bin.range.max}"
+    if only_show_lower_value_for_last_bin and pt_bin.range.max == -1:
         upper = ""
     pt_range = r"$%(lower)s\mathit{p}_{%(lower_label)s}^{%(upper_label)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {
         "lower": lower,
@@ -200,34 +201,31 @@ def generate_pt_range_string(arr: Union[np.ndarray, Sequence[float]], bin_val: i
 
     return pt_range
 
-def generate_jet_pt_range_string(jet_pt_bin: int) -> str:
+def generate_jet_pt_range_string(jet_pt_bin: T_PtBin) -> str:
     """ Generate a label for the jet pt range based on the jet pt bin.
 
     Args:
-        jet_pt_bin: Jet pt bin.
+        jet_pt_bin: Jet pt bin object.
     Returns:
         Jet pt range label.
     """
     return generate_pt_range_string(
-        arr = jet_pt_bins,
-        bin_val = jet_pt_bin,
+        pt_bin = jet_pt_bin,
         lower_label = r"\mathrm{T \,unc,jet}",
         upper_label = r"\mathrm{ch+ne}",
         only_show_lower_value_for_last_bin = True,
     )
 
-def generate_track_pt_range_string(track_pt_bin: int, pt_bins: Optional[Union[np.ndarray, Sequence[float]]] = None) -> str:
+def generate_track_pt_range_string(track_pt_bin: T_PtBin) -> str:
     """ Generate a label for the track pt range based on the track pt bin.
 
     Args:
         track_pt_bin: Track pt bin.
-        pt_bins: Track pt bins. Defaults to the default jet-h track pt bins if not specified.
     Returns:
         Track pt range label.
     """
     return generate_pt_range_string(
-        arr = pt_bins if pt_bins is not None else track_pt_bins,
-        bin_val = track_pt_bin,
+        pt_bin = track_pt_bin,
         lower_label = r"\mathrm{T}",
         upper_label = r"\mathrm{assoc}",
     )

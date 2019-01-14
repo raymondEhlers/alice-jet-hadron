@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-# Tests for analysis params.
-#
-# author: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
-# date: 8 May 2018
+""" Tests for analysis params.
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
 
 import logging
 import pytest
 
 from jet_hadron.base import params
+from jet_hadron.base import analysis_objects
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -119,28 +120,61 @@ def test_alice_label(logging_mixin, label, expected):
     alice_label = params.AliceLabel[label]
     assert str(alice_label) == expected["str"]
 
-@pytest.mark.parametrize("pt_bin", params.iterate_over_track_pt_bins())
-def test_track_pt_strings(logging_mixin, pt_bin):
-    """ Test the track pt string generation functions. Each bin is tested.  """
-    assert params.generate_track_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": params.track_pt_bins[pt_bin], "upper": params.track_pt_bins[pt_bin + 1]}
+class TestTrackPtString:
+    track_pt_bins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
 
-# We retrieve the generator as a list and cut off the last value because we need
-# to handle it separately in test_jet_pt_string_for_last_pt_bin()
-@pytest.mark.parametrize("pt_bin", list(params.iterate_over_jet_pt_bins())[:-1])
-def test_jet_pt_string(logging_mixin, pt_bin):
-    """ Test the jet pt string generation functions. Each bin (except for the last) is tested.
+    def test_track_pt_strings(self, logging_mixin):
+        """ Test the track pt string generation functions. Each bin is tested.  """
+        pt_bins = []
+        for i, (min, max) in enumerate(zip(self.track_pt_bins[:-1], self.track_pt_bins[1:])):
+            pt_bins.append(
+                analysis_objects.TrackPtBin(
+                    bin = i,
+                    range = params.SelectedRange(min, max)
+                )
+            )
 
-    The last pt bin is left for a separate test because it is printed differently (see ``test_jet_pt_string_for_last_pt_bin()`` for more).
-    """
-    assert params.generate_jet_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": params.jet_pt_bins[pt_bin], "upper": params.jet_pt_bins[pt_bin + 1]}
+        for pt_bin, expected_min, expected_max in zip(pt_bins, self.track_pt_bins[:-1], self.track_pt_bins[1:]):
+            logger.debug(f"Checking bin {pt_bin}, {pt_bin.range}, {type(pt_bin)}")
+            assert params.generate_track_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
 
-def test_jet_pt_string_for_last_pt_bin(logging_mixin):
-    """ Test the jet pt string generation function for the last jet pt bin.
+class TestJetPtString:
+    # NOTE: The -1 is important for the final bin to be understood correctly as the last bin!
+    jet_pt_bins = [15.0, 20.0, 40.0, 60.0, -1]
 
-    In the case of the last pt bin, we only want to show the lower range.
-    """
-    pt_bin = len(params.jet_pt_bins) - 2
-    assert params.generate_jet_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": params.jet_pt_bins[pt_bin]}
+    def test_jet_pt_string(self, logging_mixin):
+        """ Test the jet pt string generation functions. Each bin (except for the last) is tested.
+
+        The last pt bin is left for a separate test because it is printed differently
+        (see ``test_jet_pt_string_for_last_pt_bin()`` for more).
+        """
+        pt_bins = []
+        for i, (min, max) in enumerate(zip(self.jet_pt_bins[:-2], self.jet_pt_bins[1:-1])):
+            pt_bins.append(
+                analysis_objects.JetPtBin(
+                    bin = i,
+                    range = params.SelectedRange(min, max)
+                )
+            )
+
+        for pt_bin, expected_min, expected_max in zip(pt_bins, self.jet_pt_bins[:-2], self.jet_pt_bins[1:-1]):
+            logger.debug(f"Checking bin {pt_bin}, {pt_bin.range}, {type(pt_bin)}")
+            assert params.generate_jet_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
+
+    def test_jet_pt_string_for_last_pt_bin(self, logging_mixin):
+        """ Test the jet pt string generation function for the last jet pt bin.
+
+        In the case of the last pt bin, we only want to show the lower range.
+        """
+        pt_bin = len(self.jet_pt_bins) - 2
+        jet_pt_bin = analysis_objects.JetPtBin(
+            bin = pt_bin,
+            range = params.SelectedRange(
+                self.jet_pt_bins[pt_bin],
+                self.jet_pt_bins[pt_bin + 1]
+            )
+        )
+        assert params.generate_jet_pt_range_string(jet_pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": self.jet_pt_bins[-2]}
 
 @pytest.mark.parametrize("energy, system, activity, expected", [
     (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
@@ -157,7 +191,7 @@ def test_system_label(logging_mixin, energy, system, activity, expected):
 
 def test_jet_properties_labels(logging_mixin):
     """ Test the jet properties labels. """
-    jet_pt_bin = 1
+    jet_pt_bin = analysis_objects.JetPtBin(bin = 1, range = params.SelectedRange(20.0, 40.0))
     (jet_finding_expected, constituent_cuts_expected, leading_hadron_expected, jet_pt_expected) = (
         r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$",
         r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
