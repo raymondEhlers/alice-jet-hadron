@@ -22,8 +22,11 @@ from pachyderm import yaml
 logger = logging.getLogger(__name__)
 
 # Typing helpers
+PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
 # We don't include this type because it will cause an import loop.
 T_PtBin = Any
+T_JetPtBin = Any
+T_TrackPtBin = Any
 
 # Bins
 # eta is absolute value!
@@ -33,8 +36,7 @@ phi_bins = [-1. * np.pi / 2., np.pi / 2., 3. * np.pi / 2]
 ########
 # Utility functions
 ########
-PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
-def iterate_over_pt_bins(name: str, bins: Union[np.ndarray, Sequence[float]], config: PtBinIteratorConfig = None) -> Iterable[float]:
+def iterate_over_pt_bins(name: str, bins: Sequence[T_PtBin], config: PtBinIteratorConfig = None) -> Iterable[T_PtBin]:
     """ Create a generator of the bins in a requested list.
 
     Bin skipping should be specified as:
@@ -60,27 +62,29 @@ def iterate_over_pt_bins(name: str, bins: Union[np.ndarray, Sequence[float]], co
     skip_pt_bins = config.get("skipPtBins", {}).get(name, [])
     # Sanity check on skip pt bins
     for val in skip_pt_bins:
-        if val >= len(bins) - 1:
+        if val == 0:
+            raise ValueError(val, f"Invalid bin 0! Bin counting starts at 1.")
+        if val > len(bins):
             raise ValueError(val, f"Pt bin to skip {val} is outside the range of the {name} list")
 
-    for pt_bin in range(0, len(bins) - 1):
-        if pt_bin in skip_pt_bins:
+    for pt_bin in bins:
+        if pt_bin.bin in skip_pt_bins:
             continue
 
         yield pt_bin
 
-def iterate_over_jet_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[float]:
+def iterate_over_jet_pt_bins(bins: Sequence[T_JetPtBin], config: PtBinIteratorConfig = None) -> Iterable[T_JetPtBin]:
     """ Iterate over the available jet pt bins. """
-    return iterate_over_pt_bins(config = config, name = "jet", bins = jet_pt_bins)
+    return iterate_over_pt_bins(config = config, name = "jet", bins = bins)
 
-def iterate_over_track_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[float]:
+def iterate_over_track_pt_bins(bins: Sequence[T_TrackPtBin], config: PtBinIteratorConfig = None) -> Iterable[T_TrackPtBin]:
     """ Iterate over the available track pt bins. """
-    return iterate_over_pt_bins(config = config, name = "track", bins = track_pt_bins)
+    return iterate_over_pt_bins(config = config, name = "track", bins = bins)
 
-def iterate_over_jet_and_track_pt_bins(config: PtBinIteratorConfig = None) -> Iterable[Tuple[float, float]]:
+def iterate_over_jet_and_track_pt_bins(jet_pt_bins: Sequence[T_JetPtBin], track_pt_bins: Sequence[T_TrackPtBin], config: PtBinIteratorConfig = None) -> Iterable[Tuple[float, float]]:
     """ Iterate over all possible combinations of jet and track pt bins. """
-    for jet_pt_bin in iterate_over_jet_pt_bins(config):
-        for track_pt_bin in iterate_over_track_pt_bins(config):
+    for jet_pt_bin in iterate_over_jet_pt_bins(bins = jet_pt_bins, config = config):
+        for track_pt_bin in iterate_over_track_pt_bins(bins = track_pt_bins, config = config):
             yield (jet_pt_bin, track_pt_bin)
 
 def use_label_with_root(label: str) -> str:

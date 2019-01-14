@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 def get_range_from_bin_array(array):
     """ Helper function to return bin indices from an array.
+
     Args:
         array (list): Array from which the bin indcies will be extracted.
     Returns:
@@ -23,80 +24,107 @@ def get_range_from_bin_array(array):
     """
     return range(len(array) - 1)
 
-def test_iterate_over_track_pt_bins(logging_mixin):
-    """ Test the track pt bins generator.
+class TestIteratePtBins:
+    _track_pt_bins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
+    track_pt_bins = [
+        analysis_objects.TrackPtBin(range = params.SelectedRange(min, max), bin = i + 1)
+        for i, (min, max) in enumerate(zip(_track_pt_bins[:-1], _track_pt_bins[1:]))
+    ]
+    _jet_pt_bins = [15.0, 20.0, 40.0, 60.0, 200.0]
+    jet_pt_bins = [
+        analysis_objects.JetPtBin(range = params.SelectedRange(min, max), bin = i + 1)
+        for i, (min, max) in enumerate(zip(_jet_pt_bins[:-1], _jet_pt_bins[1:]))
+    ]
 
-    Note that we wrap the function in list so we get all of the values from the generator.
-    """
-    assert len(params.track_pt_bins) == 10
-    assert list(params.iterate_over_track_pt_bins()) == list(get_range_from_bin_array(params.track_pt_bins))
+    def test_iterate_over_track_pt_bins(self, logging_mixin):
+        """ Test the track pt bins generator.
 
-def test_iterate_over_track_pt_bins_with_config(logging_mixin):
-    """ Test the track pt bins generator with some bins skipped.
+        Note that we wrap the function in list so we get all of the values from the generator.
+        """
+        assert len(self.track_pt_bins) == 9
+        assert list(params.iterate_over_track_pt_bins(self.track_pt_bins)) == list(self.track_pt_bins)
 
-    The values to skip were not selected with any paticular critera except to be non-continuous.
-    """
-    skip_bins = [2, 6]
-    comparison_bins = [x for x in get_range_from_bin_array(params.track_pt_bins) if x not in skip_bins]
-    config = {"skipPtBins": {"track": skip_bins}}
-    assert list(params.iterate_over_track_pt_bins(config = config)) == comparison_bins
+    def test_iterate_over_track_pt_bins_with_config(self, logging_mixin):
+        """ Test the track pt bins generator with some bins skipped.
 
-def test_iterate_over_jet_pt_bins(logging_mixin):
-    """ Test the jet pt bins generator.
+        The values to skip were not selected with any paticular critera except to be non-continuous.
+        """
+        skip_bins = [2, 6]
+        comparison_bins = [x for x in self.track_pt_bins if x.bin not in skip_bins]
+        config = {"skipPtBins": {"track": skip_bins}}
+        assert list(params.iterate_over_track_pt_bins(bins = self.track_pt_bins, config = config)) == comparison_bins
 
-    Note that we wrap the function in list so we get all of the values from the generator.
-    """
-    # Ensure that we have the expected number of jet pt bins
-    assert len(params.jet_pt_bins) == 5
-    # Then test the actual iterable.
-    assert list(params.iterate_over_jet_pt_bins()) == list(get_range_from_bin_array(params.jet_pt_bins))
+    def test_iterate_over_jet_pt_bins(self, logging_mixin):
+        """ Test the jet pt bins generator.
 
-def test_iterate_over_jet_pt_bins_with_config(logging_mixin):
-    """ Test the jet pt bins generator with some bins skipped.
+        Note that we wrap the function in list so we get all of the values from the generator.
+        """
+        # Ensure that we have the expected number of jet pt bins
+        assert len(self.jet_pt_bins) == 4
+        # Then test the actual iterable.
+        assert list(params.iterate_over_jet_pt_bins(self.jet_pt_bins)) == list(self.jet_pt_bins)
 
-    The values to skip were not selected with any paticular critera except to be non-continuous.
-    """
-    skip_bins = [0, 2]
-    comparison_bins = [x for x in get_range_from_bin_array(params.jet_pt_bins) if x not in skip_bins]
-    config = {"skipPtBins": {"jet": skip_bins}}
-    assert list(params.iterate_over_jet_pt_bins(config = config)) == comparison_bins
+    def test_iterate_over_jet_pt_bins_with_config(self, logging_mixin):
+        """ Test the jet pt bins generator with some bins skipped.
 
-def test_iterate_over_jet_and_track_pt_bins(logging_mixin):
-    """ Test the jet and track pt bins generator.
+        The values to skip were not selected with any paticular critera except to be non-continuous.
+        """
+        skip_bins = [1, 2]
+        comparison_bins = [x for x in self.jet_pt_bins if x.bin not in skip_bins]
+        config = {"skipPtBins": {"jet": skip_bins}}
+        assert list(params.iterate_over_jet_pt_bins(bins = self.jet_pt_bins, config = config)) == comparison_bins
 
-    Note that we wrap the function in list so we get all of the values from the generator.
-    """
-    comparison_bins = [(x, y) for x in get_range_from_bin_array(params.jet_pt_bins) for y in get_range_from_bin_array(params.track_pt_bins)]
-    assert list(params.iterate_over_jet_and_track_pt_bins()) == comparison_bins
+    def test_iterate_over_jet_and_track_pt_bins(self, logging_mixin):
+        """ Test the jet and track pt bins generator.
 
-def test_iterate_over_jet_and_track_pt_bins_with_config(logging_mixin):
-    """ Test the jet and track pt bins generator with some bins skipped.
+        Note that we wrap the function in list so we get all of the values from the generator.
+        """
+        comparison_bins = [(x, y) for x in self.jet_pt_bins for y in self.track_pt_bins]
+        assert list(params.iterate_over_jet_and_track_pt_bins(jet_pt_bins = self.jet_pt_bins, track_pt_bins = self.track_pt_bins)) == comparison_bins
 
-    The values to skip were not selected with any paticular critera except to be non-continuous.
-    """
-    skip_jet_pt_bins = [0, 3]
-    skip_track_pt_bins = [2, 6]
-    comparison_bins = [(x, y) for x in get_range_from_bin_array(params.jet_pt_bins) for y in get_range_from_bin_array(params.track_pt_bins) if x not in skip_jet_pt_bins and y not in skip_track_pt_bins]
-    config = {"skipPtBins": {"jet": skip_jet_pt_bins, "track": skip_track_pt_bins}}
-    # Check that the comparison bins are as expected.
-    assert comparison_bins == [(1, 0), (1, 1), (1, 3), (1, 4), (1, 5), (1, 7), (1, 8), (2, 0), (2, 1), (2, 3), (2, 4), (2, 5), (2, 7), (2, 8)]
-    # Then check the actual output.
-    assert list(params.iterate_over_jet_and_track_pt_bins(config = config)) == comparison_bins
+    def test_iterate_over_jet_and_track_pt_bins_with_config(self, logging_mixin):
+        """ Test the jet and track pt bins generator with some bins skipped.
 
-def test_out_of_range_skip_bin(logging_mixin):
-    """ Test that an except is generated if a skip bin is out of range.
+        The values to skip were not selected with any paticular critera except to be non-continuous.
+        """
+        skip_jet_pt_bins = [1, 4]
+        skip_track_pt_bins = [2, 6]
+        comparison_bins = [(x, y) for x in self.jet_pt_bins for y in self.track_pt_bins if x.bin not in skip_jet_pt_bins and y.bin not in skip_track_pt_bins]
+        config = {"skipPtBins": {"jet": skip_jet_pt_bins, "track": skip_track_pt_bins}}
+        # Check that the comparison bins are as expected.
+        comparison_bin_bins = [(x.bin, y.bin) for (x, y) in comparison_bins]
+        assert comparison_bin_bins == [(2, 1), (2, 3), (2, 4), (2, 5), (2, 7), (2, 8), (2, 9), (3, 1), (3, 3), (3, 4), (3, 5), (3, 7), (3, 8), (3, 9)]
+        # Then check the actual output.
+        assert list(params.iterate_over_jet_and_track_pt_bins(jet_pt_bins = self.jet_pt_bins, track_pt_bins = self.track_pt_bins, config = config)) == comparison_bins
 
-    The test is performed both with a in range and out of range bin to ensure
-    the exception is thrown on the right value.
-    """
-    skip_bins = [2, 38]
-    config = {"skipPtBins": {"track": skip_bins}}
-    with pytest.raises(ValueError) as exception_info:
-        list(params.iterate_over_track_pt_bins(config = config))
-    # NOTE: ExecptionInfo is a wrapper around the exception. `.value` is the actual exectpion
-    #       and then we want to check the value of the first arg, which contains the value
-    #       that causes the exception.
-    assert exception_info.value.args[0] == skip_bins[1]
+    @pytest.mark.parametrize("bin_type_name, skip_bins", [
+        ("track", [2, 38]),
+        ("jet", [2, 5]),
+    ], ids = ["Track", "Jet"])
+    def test_out_of_range_skip_track_bin(self, logging_mixin, bin_type_name, skip_bins):
+        """ Test that an except is generated if a skip bin is out of range.
+
+        The test is performed both with a in range and out of range bin to ensure
+        the exception is thrown on the right value.
+        """
+        if bin_type_name == "track":
+            bins = self.track_pt_bins
+            func = params.iterate_over_track_pt_bins
+        elif bin_type_name == "jet":
+            bins = self.jet_pt_bins
+            func = params.iterate_over_jet_pt_bins
+        else:
+            # Unrecognized.
+            bins = None
+            func = None
+
+        config = {"skipPtBins": {bin_type_name: skip_bins}}
+        with pytest.raises(ValueError) as exception_info:
+            list(func(bins = bins, config = config))
+        # NOTE: ExecptionInfo is a wrapper around the exception. `.value` is the actual exectpion
+        #       and then we want to check the value of the first arg, which contains the value
+        #       that causes the exception.
+        assert exception_info.value.args[0] == skip_bins[1]
 
 #############
 # Label tests
