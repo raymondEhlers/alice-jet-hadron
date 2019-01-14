@@ -10,10 +10,10 @@ Note:
     is located at the bottom of the module.
 
 Dependencies:
-  - rootpy
   - numpy
   - matplotlib
   - seaborn
+  - pachyderm
 
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
 """
@@ -29,9 +29,7 @@ import seaborn as sns
 import sys
 import warnings
 
-import rootpy
-import rootpy.io
-import rootpy.ROOT as ROOT
+import ROOT
 
 from pachyderm import histogram
 
@@ -421,7 +419,7 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
     # Retrieve hist
-    with rootpy.io.root_open(inputFile, "READ") as f:
+    with histogram.RootOpen(filename = inputFile, mode = "READ") as f:
         hist = f.Get(histName)
         hist.SetDirectory(0)
 

@@ -19,6 +19,7 @@ import ruamel.yaml as yaml
 import seaborn as sns
 import sys
 
+from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
@@ -26,7 +27,6 @@ from pachyderm import utils
 from jet_hadron.base import analysis_objects
 from jet_hadron.base.params import ReactionPlaneOrientation
 
-from rootpy.io import root_open
 import ROOT
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
@@ -626,7 +626,7 @@ class JetHResponseMatrix(object):
         """ Save the processed histograms to a ROOT file. """
         logger.info("Saving root file to {0}".format(os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))))
         outputFilename = os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))
-        with root_open(outputFilename, "RECREATE") as fOut:  # noqa: F841
+        with histogram.RootOpen(outputFilename, "RECREATE") as fOut:  # noqa: F841
             self.hists["responseMatrix"].Write()
             self.hists["responseMatrixErrors"].Write()
             if not self.productionRootFile:
@@ -645,7 +645,7 @@ class JetHResponseMatrix(object):
         """ Retrieve processed histograms from an existing output file. """
         inputFilename = os.path.join(self.outputPath, "{0}.root".format(self.responseMatrixBaseName))
         logger.info("Loading histograms from ROOT file located at \"{}\"".format(inputFilename))
-        with root_open(inputFilename, "READ") as f:
+        with histogram.RootOpen(inputFilename, "READ") as f:
             histNames = {"responseMatrix": self.GetResponseMatrixName(), "responseMatrixErrors": None}
             for dictName, histName in histNames.iteritems():
                 if not histName:
@@ -1598,7 +1598,7 @@ def packageMatricesIntoOneFile(JetHResponseEP):
 
     outputFilename = os.path.join(outputPath, "JESCorrection.root")
     logger.info("Writing merged output to {0}".format(outputFilename))
-    with root_open(outputFilename, "RECREATE") as f:  # noqa: F841
+    with histogram.RootOpen(outputFilename, "RECREATE") as f:  # noqa: F841
         for h in hists.itervalues():
             h.Write()
 
