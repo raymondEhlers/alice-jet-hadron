@@ -72,7 +72,7 @@ JetHAnalysis:
                 - "all"
 
 # 11H track and jet pt bins
-_jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60]
+_jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
 _track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
 
 Correlations:
@@ -148,7 +148,7 @@ GeneralHists:
 _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
     # Disabled here due to a bug parsing the combination of the tag and the anchor
     # yamllint disable-line rule:indentation
-    bins: [5, 11, 21, 36, 57, 84, 117, 152, 191, 234, 1000000]
+    bins: [5, 11, 21, 36, 57, 84, 117, 152, 191, 234, -1]
     train_numbers:
         1: 2701
         2: 2710

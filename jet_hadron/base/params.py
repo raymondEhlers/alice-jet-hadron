@@ -187,8 +187,8 @@ def generate_pt_range_string(arr: Union[np.ndarray, Sequence[float]], bin_val: i
         The pt range label.
     """
     # Cast as string so we don't have to deal with formatting the extra digits
-    lower = "%(lower)s < " % {"lower": arr[bin_val]}
-    upper = " < %(upper)s" % {"upper": arr[bin_val + 1]}
+    lower = f"{arr[bin_val]} < "
+    upper = f" < {arr[bin_val + 1]}"
     if only_show_lower_value_for_last_bin and bin_val == len(arr) - 2:
         upper = ""
     pt_range = r"$%(lower)s\mathit{p}_{%(lower_label)s}^{%(upper_label)s}%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {

@@ -14,13 +14,16 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 import seaborn as sns
 # And use ROOT in others
-import rootpy.ROOT as ROOT
+from typing import Sequence
 
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.plot import base as plotBase
 from jet_hadron.plot import highlight_RPF
+
+import ROOT
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -142,75 +145,84 @@ def plot1DCorrelationsWithFits(jetH):
             fit.Draw("same")
             plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
 
-def mixedEventNormalization(jetH,
-                            # For labeling purposes
-                            histName, etaLimits, jetPtTitle, trackPtTitle,
-                            # Basic data
-                            linSpace,      peakFindingArray,  # noqa: E241
-                            linSpaceRebin, peakFindingArrayRebin,
-                            # CWT
-                            peakLocations, peakLocationsRebin,
-                            # Moving Average
-                            maxMovingAvg, maxMovingAvgRebin,
-                            # Smoothed gaussian
-                            linSpaceResample, smoothedArray, maxSmoothedMovingAvg,
-                            # Linear fits
-                            maxLinearFit1D, maxLinearFit1DRebin,
-                            maxLinearFit2D, maxLinearFit2DRebin):
-
+def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
+                              # For labeling purposes
+                              hist_name: str, eta_limits: Sequence[float], jet_pt_title: str, track_pt_title: str,
+                              # Basic data
+                              lin_space: np.ndarray,       peak_finding_hist_array: np.ndarray,  # noqa: E241
+                              lin_space_rebin: np.ndarray, peak_finding_hist_array_rebin: np.ndarray,
+                              # CWT
+                              peak_locations, peak_locations_rebin,
+                              # Moving Average
+                              max_moving_avg: float, max_moving_avg_rebin: float,
+                              # Smoothed gaussian
+                              lin_space_resample: np.ndarray, smoothed_array: np.ndarray, max_smoothed_moving_avg,
+                              # Linear fits
+                              max_linear_fit_1d: float, max_linear_fit_1d_rebin: float,
+                              max_linear_fit_2d: float, max_linear_fit_2d_rebin: float) -> None:
     # Make the actual plot
     fig, ax = plt.subplots()
     # Add additional y margin at the bottom so the legend will fit a bit better
     # Cannot do asyemmtric padding via `ax.set_ymargin()`, so we'll do it by hand
     # See: https://stackoverflow.com/a/42804403
-    dataMin = min(peakFindingArray.min(), peakFindingArrayRebin.min())
-    dataMax = max(peakFindingArray.max(), peakFindingArrayRebin.max())
-    yMin = dataMin - 0.5 * (dataMax - dataMin)
-    yMax = dataMax + 0.12 * (dataMax - dataMin)
-    ax.set_ylim(yMin, yMax)
+    data_min = min(peak_finding_hist_array.min(), peak_finding_hist_array_rebin.min())
+    data_max = max(peak_finding_hist_array.max(), peak_finding_hist_array_rebin.max())
+    y_min = data_min - 0.5 * (data_max - data_min)
+    y_max = data_max + 0.12 * (data_max - data_min)
+    ax.set_ylim(y_min, y_max)
 
     # Can either plot the hist or the array
     # Hist based on: https://stackoverflow.com/a/8553614
-    #ax.hist(linSpace, weights=peakFindingArray, bins=len(peakFindingArray))
+    #ax.hist(lin_space, weights=peak_finding_hist_array, bins=len(peak_finding_hist_array))
     # If plotting the hist, it's best to set the y axis limits to make it easier to view
-    #ax.set_ylim(ymin=.95*min(peakFindingArray), ymax=1.05*max(peakFindingArray))
+    #ax.set_ylim(ymin=.95*min(peak_finding_hist_array), ymax=1.05*max(peak_finding_hist_array))
     # Plot array
-    ax.plot(linSpace, peakFindingArray, label="ME")
-    ax.plot(linSpaceRebin, peakFindingArrayRebin, label = "ME rebin")
+    ax.plot(lin_space, peak_finding_hist_array, label = "ME")
+    ax.plot(lin_space_rebin, peak_finding_hist_array_rebin, label = "ME rebin")
     # Peak finding
     # Set zorder of 10 to ensure that the stars are always visible
-    plotArrayPeak = ax.plot(linSpace[peakLocations], peakFindingArray[peakLocations], marker="*", markersize=10, linestyle="None", label = "CWT", zorder=10)
-    plotArrayRebinPeak = ax.plot(linSpaceRebin[peakLocationsRebin], peakFindingArrayRebin[peakLocationsRebin], marker="*", markersize=10, linestyle="None", label = "CWT rebin", zorder=10)
+    plot_array_peak = ax.plot(
+        lin_space[peak_locations],
+        peak_finding_hist_array[peak_locations],
+        marker = "*", markersize = 10, linestyle = "None",
+        label = "CWT", zorder = 10
+    )
+    plot_array_rebin_peak = ax.plot(
+        lin_space_rebin[peak_locations_rebin],
+        peak_finding_hist_array_rebin[peak_locations_rebin],
+        marker = "*", markersize = 10, linestyle = "None",
+        label = "CWT rebin", zorder = 10
+    )
     # Moving average
-    ax.axhline(maxMovingAvg, color = plotArrayPeak[0].get_color(), label = r"Mov. avg. (size $\pi$)")
-    ax.axhline(maxMovingAvgRebin, color = plotArrayRebinPeak[0].get_color(), linestyle = "--", label = "Mov. avg. rebin")
+    ax.axhline(max_moving_avg, color = plot_array_peak[0].get_color(), label = r"Mov. avg. (size $\pi$)")
+    ax.axhline(max_moving_avg_rebin, color = plot_array_rebin_peak[0].get_color(), linestyle = "--", label = "Mov. avg. rebin")
     # Gaussian
     # Use a mask so the range doesn't get extremely distorted when the interpolation drops around the edges
-    mask = np.where(np.logical_and(linSpaceResample > -0.3 * np.pi, linSpaceResample < 1.3 * np.pi))
-    plotGaussian = ax.plot(linSpaceResample[mask], smoothedArray[mask], label = "Gauss. smooth")
-    ax.axhline(maxSmoothedMovingAvg, color = plotGaussian[0].get_color(), linestyle = "--", label ="Gauss. mov. avg")
-    #ax.axhline(maxSmoothed, color = plotGaussian[0].get_color(), linestyle = ":", label = "Gauss. max")
+    mask = np.where(np.logical_and(lin_space_resample > -0.3 * np.pi, lin_space_resample < 1.3 * np.pi))
+    plot_gaussian = ax.plot(lin_space_resample[mask], smoothed_array[mask], label = "Gauss. smooth")
+    ax.axhline(max_smoothed_moving_avg, color = plot_gaussian[0].get_color(), linestyle = "--", label ="Gauss. mov. avg")
+    #ax.axhline(max_smoothed, color = plot_gaussian[0].get_color(), linestyle = ":", label = "Gauss. max")
 
     # Linear fits
-    ax.axhline(maxLinearFit1D, color = "g", label = "1D fit")
-    ax.axhline(maxLinearFit1DRebin, color = "g", linestyle = "--", label = "1D fit rebin")
-    ax.axhline(maxLinearFit2D, color = "b", label = "2D fit")
-    ax.axhline(maxLinearFit2DRebin, color = "b", linestyle = "--", label = "2D fit rebin")
+    ax.axhline(max_linear_fit_1d, color = "g", label = "1D fit")
+    ax.axhline(max_linear_fit_1d_rebin, color = "g", linestyle = "--", label = "1D fit rebin")
+    ax.axhline(max_linear_fit_2d, color = "b", label = "2D fit")
+    ax.axhline(max_linear_fit_2d_rebin, color = "b", linestyle = "--", label = "2D fit rebin")
 
-    etaLimitsLabel = AnchoredText(r"|$\Delta\eta$|<{}".format(etaLimits[1]), loc=2, frameon=False)
-    ax.add_artist(etaLimitsLabel)
+    eta_limits_label = AnchoredText(r"|$\Delta\eta$|<{}".format(eta_limits[1]), loc=2, frameon=False)
+    ax.add_artist(eta_limits_label)
 
     # Legend and Labels for the plot
     #ax.set_ymargin = 0.01
     ax.legend(loc="lower left", ncol=3)
     #ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
     #          ncol=3, mode="expand", borderaxespad=0)
-    ax.set_title("ME norm. for {}, {}".format(jetPtTitle, trackPtTitle))
+    ax.set_title(f"ME norm. for {jet_pt_title}, {track_pt_title}")
     ax.set_ylabel(r"$\Delta N/\Delta\varphi$")
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    plotBase.savePlot(jetH, fig, histName)
+    plotBase.savePlot(jet_hadron, fig, hist_name)
     # Close the figure
     plt.close(fig)
 

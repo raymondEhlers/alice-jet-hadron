@@ -19,10 +19,6 @@ import logging
 import os
 import pprint
 import math
-import numpy as np
-import scipy
-import scipy.signal
-import scipy.interpolate
 import sys
 from typing import Any, Dict, List, Mapping, Type
 import warnings
@@ -38,10 +34,12 @@ from pachyderm.utils import epsilon
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
+from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import general as plot_general
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
+from jet_hadron.analysis import correlations_helpers
 from jet_hadron.analysis import fit as fitting
 from jet_hadron.analysis import generic_tasks
 
@@ -50,9 +48,6 @@ from rootpy.io import root_open
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
 ROOT.PyConfig.IgnoreCommandLineOptions = True
-
-# Typing helper
-Hist = Type[ROOT.TH1]
 
 # Handle rootpy warning
 warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
@@ -141,26 +136,6 @@ class JetHCorrelationProjector(projectors.HistProjector):
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
-
-    # Properties
-    # Define as static variables since they don't depend on any particular instance
-    hist_name_format = "jetH%(label)s_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}"
-    hist_name_format2D = hist_name_format % {"label": "DEtaDPhi"}
-    # Standard 1D hists
-    hist_name_format_dPhi = hist_name_format % {"label": "DPhi"}
-    hist_name_format_dPhi_array = hist_name_format % {"label": "DPhi"} + "Array"
-    hist_name_format_dEta = hist_name_format % {"label": "DEta"}
-    hist_name_format_dEta_array = hist_name_format % {"label": "DEta"} + "Array"
-    # Subtracted 1D hists
-    hist_name_format_dPhi_subtracted = hist_name_format_dPhi + "_subtracted"
-    hist_name_format_dPhi_subtracted_array = hist_name_format_dPhi_array + "_subtracted"
-    hist_name_format_dEta_subtracted = hist_name_format_dEta + "_subtracted"
-    hist_name_format_dEta_subtracted_array = hist_name_format_dEta_array + "_subtracted"
-
-    # These is nothing here to format - it's just the jet spectra
-    # However, the variable name will stay the same for clarity
-    hist_name_format_trigger = "jetH_trigger_pt"
-    fit_name_format = hist_name_format % {"label": "Fit"}
 
     def __init__(self, *args, **kwargs):
         """ """
@@ -267,9 +242,9 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Process some general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
         ...
         # Get configuration
-        processingOptions = self.taskConfig["processingOptions"]
+        processing_options = self.taskConfig["processing_options"]
 
-        if processingOptions["generalHistograms"]:
+        if processing_options["generalHistograms"]:
             # 1D hists
             hists1D = {
                 "zVertex": "fHistZVertex",
@@ -302,83 +277,14 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def generate2DCorrelationsTHnSparse(self):
         """ Generate raw and mixed event 2D correlations. """
-
-        # Project the histograms
-        # Includes the trigger, raw signal 2D, and mixed event 2D hists
-        for projector in self.sparseProjectors:
-            projector.Project()
-
-        # Determine nTrig for the jet pt bins
-        nTrig = {}
-        triggerObservable = self.triggerJetPt[self.histNameFormatTrigger]
-        for iJetPtBin in params.iterateOverJetPtBins(self.config):
-            """
-            When retrieving the number of triggers, carefully noting the information below.
-            >>> hist = ROOT.TH1D("test", "test", 10, 0, 10)
-            >>> x = 2, y = 5
-            >>> hist.FindBin(x)
-            2
-            >>> hist.FindBin(x+epsilon)
-            2
-            >>> hist.FindBin(y)
-            6
-            >>> hist.FindBin(y-epsilon)
-            5
-
-            NOTE: The bin + epsilon on the lower bin is not strictly necessary, but it is used for consistency.
-            """
-            triggerHist = triggerObservable.hist
-            logger.debug("Find bin({}+epsilon): {} to Find bin({}-epsilon): {}".format(
-                params.jetPtBins[iJetPtBin],
-                triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
-                params.jetPtBins[iJetPtBin + 1],
-                triggerHist.FindBin(params.jetPtBins[iJetPtBin + 1] - epsilon))
-            )
-            nTrigInJetPtBin = triggerHist.Integral(
-                triggerHist.FindBin(params.jetPtBins[iJetPtBin] + epsilon),
-                triggerHist.FindBin(params.jetPtBins[iJetPtBin + 1] - epsilon)
-            )
-            logger.info("nTrig for [{}, {}): {}".format(params.jetPtBins[iJetPtBin], params.jetPtBins[iJetPtBin + 1], nTrigInJetPtBin))
-            nTrig[iJetPtBin] = nTrigInJetPtBin
-
-        # TODO: Use a broader range of pt for mixed events like Joel?
-        for (rawObservable, mixedEventObservable) in zip(itervalues(self.rawSignal2D), itervalues(self.mixedEvents2D)):
-            # Check to ensure that we've zipped properly
-            if rawObservable.jetPtBin != mixedEventObservable.jetPtBin or rawObservable.trackPtBin != mixedEventObservable.trackPtBin:
-                raise ValueError("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(
-                    rawObservable.jetPtBin,
-                    rawObservable.trackPtBin,
-                    mixedEventObservable.jetPtBin,
-                    mixedEventObservable.trackPtBin)
-                )
-
-            logger.debug("Processing correlations raw: {} (hist: {}), and mixed: {} (hist: {})".format(rawObservable, rawObservable.hist.hist, mixedEventObservable, mixedEventObservable.hist.hist))
-
-            # Helper dict
-            binningDict = {"trackPtBin": rawObservable.trackPtBin, "jetPtBin": rawObservable.jetPtBin}
-
-            # Normalize and post process the raw observable
-            postProcessingArgs = {"observable": rawObservable,
-                                  "normalizationFactor": nTrig[binningDict["jetPtBin"]],
-                                  "titleLabel": "Raw signal"}
-            postProcessingArgs.update(binningDict)
-            JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
-
-            # Normalize and post process the mixed event observable
-            normalizationFactor = self.measureMixedEventNormalization(mixedEvent = mixedEventObservable.hist, **binningDict)
-            postProcessingArgs.update({"observable": mixedEventObservable,
-                                       "normalizationFactor": normalizationFactor,
-                                       "titleLabel": "Mixed Event"})
-            JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
-
-            # Rebin
-            # TODO: Work on rebin quality...
+        ...
 
     def generate2DSignalCorrelation(self):
         """ Generate 2D signal correlation.
 
         Intentionally decoupled for creating the raw and mixed event hists so that the THnSparse can be swapped out when desired.
         """
+        ...
         for (rawObservable, mixedEventObservable) in zip(itervalues(self.rawSignal2D), itervalues(self.mixedEvents2D)):
             # Check to ensure that we've zipped properly
             if rawObservable.jetPtBin != mixedEventObservable.jetPtBin or rawObservable.trackPtBin != mixedEventObservable.trackPtBin:
@@ -970,145 +876,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 sys.exit(1)
 
     def measureMixedEventNormalization(self, mixedEvent, jetPtBin, trackPtBin):
-        """ Determine normalization of the mixed event.
-        """
-        # Project to 1D dPhi so it can be used with the signal finder
-        # We need to project over a range of constant eta to be able to use the extracted max in the 2D
-        # mixed event. Joel uses [-0.4, 0.4], but it really seems to drop in the 0.4 bin, so instead I'll
-        # use 0.3 This value also depends on the max track eta. For 0.9, it should be 0.4 (0.9-0.5), but
-        # for 0.8, it should be 0.3 (0.8-0.5)
-        etaLimits = self.taskConfig["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
-        # Scale the 1D norm by the eta range.
-        etaLimitBins = [mixedEvent.GetYaxis().FindBin(etaLimits[0] + epsilon), mixedEvent.GetYaxis().FindBin(etaLimits[1] - epsilon)]
-        # This is basically just a sanity check that the selected values align with the binning
-        projectionLength = mixedEvent.GetYaxis().GetBinUpEdge(etaLimitBins[1]) - mixedEvent.GetYaxis().GetBinLowEdge(etaLimitBins[0])
-        logger.info("Scale factor from 1D to 2D: {}".format(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength))
-        peakFindingHist = mixedEvent.ProjectionX("{}_peakFindingHist".format(mixedEvent.GetName()), etaLimitBins[0], etaLimitBins[1])
-        peakFindingHist.Scale(mixedEvent.GetYaxis().GetBinWidth(1) / projectionLength)
-        peakFindingArray = histogram.Histogram1D(peakFindingHist).y
-        #logger.debug("peakFindingArray: {}".format(peakFindingArray))
-
-        # Using moving average
-        movingAvg = utils.moving_average(peakFindingArray, n = 36)
-        maxMovingAvg = max(movingAvg)
-
-        compareNormalizationOptions = self.taskConfig["mixedEventNormalizationOptions"].get("compareOptions", False)
-        if compareNormalizationOptions:
-            logger.info("Comparing mixed event normalization options!")
-            self.compareMixedEventNormalizationOptions(
-                mixedEvent = mixedEvent, jetPtBin = jetPtBin, trackPtBin = trackPtBin,
-                etaLimits = etaLimits,
-                peakFindingHist = peakFindingHist,
-                peakFindingArray = peakFindingArray,
-                maxMovingAvg = maxMovingAvg
-            )
-
-        mixedEventNormalization = maxMovingAvg
-        if not mixedEventNormalization != 0:
-            logger.warning("Could not normalize the mixed event hist \"{0}\" due to no data at (0,0)!".format(mixedEvent.GetName()))
-            mixedEventNormalization = 1
-
-        return mixedEventNormalization
-
-    def compareMixedEventNormalizationOptions(self, mixedEvent, jetPtBin, trackPtBin, etaLimits, peakFindingHist, peakFindingArray, maxMovingAvg):
-        """ Compare mixed event normalization options.
-
-        The large window over which the normalization is extracted seems to be important to avoid fluctatuions.
-
-        Also allows for comparison of:
-            - Continuous wave transform with width ~ pi
-            - Smoothing data assuming the points are distributed as a gaussian with options of:
-                - Max of smoothed function
-                - Moving average over pi of smoothed function
-            - Moving average over pi
-            - Linear 1D fit
-            - Linear 2D fit
-
-        All of the above were also performed over a 2 bin rebin except for the gaussian smoothed function.
-        """
-        # Create rebinned hist
-        # The rebinned hist may be less susceptible to noise, so it should be compared.
-        # Only rebin the 2D in dPhi because otherwise the dEta bins will not align with the limits
-        mixedEventRebin = mixedEvent.Rebin2D(2, 1, mixedEvent.GetName() + "Rebin")
-        mixedEventRebin.Scale(1. / (2. * 1.))
-        peakFindingHistRebin = peakFindingHist.Rebin(2, peakFindingHist.GetName() + "Rebin")
-        peakFindingHistRebin.Scale(1. / 2.)
-        # Note that peak finding will only be performed on the 1D hist
-        peakFindingArrayRebin = histogram.Histogram1D(peakFindingHistRebin).y
-
-        # Define points where the plots and functions can be evaluted
-        linSpace = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peakFindingArray))
-        linSpaceRebin = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peakFindingArrayRebin))
-
-        # Using CWT
-        # See: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.signal.find_peaks_cwt.html
-        # and: https://stackoverflow.com/a/42285002
-        peakLocations = scipy.signal.find_peaks_cwt(peakFindingArray, widths = np.arange(20, 50, .1))
-        peakLocationsRebin = scipy.signal.find_peaks_cwt(peakFindingArrayRebin, widths = np.arange(10, 25, .05))
-        logger.info("peakLocations: {}, values: {}".format(peakLocations, peakFindingArray[peakLocations]))
-
-        # Using gaussian smoothing
-        # See: https://stackoverflow.com/a/22291860
-        f = scipy.interpolate.interp1d(linSpace, peakFindingArray)
-        # Resample for higher resolution
-        linSpaceResample = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, 7200)
-        fResample = f(linSpaceResample)
-        # Gaussian
-        # std deviation is in x!
-        window = scipy.signal.gaussian(1000, 300)
-        smoothedArray = scipy.signal.convolve(fResample, window / window.sum(), mode="same")
-        #maxSmoothed = np.amax(smoothedArray)
-        #logger.debug("maxSmoothed: {}".format(maxSmoothed))
-        # Moving average on smoothed curve
-        smoothedMovingAvg = utils.moving_average(smoothedArray, n = int(len(smoothedArray) // 2))
-        maxSmoothedMovingAvg = max(smoothedMovingAvg)
-
-        # Moving average with rebin
-        movingAvgRebin = utils.moving_average(peakFindingArrayRebin, n = 18)
-        maxMovingAvgRebin = max(movingAvgRebin)
-
-        # Fit using TF1 over some range
-        # Fit the deltaPhi away side
-        fit1D = fitting.fit1DMixedEventNormalization(peakFindingHist, [1. / 2. * np.pi, 3. / 2. * np.pi])
-        maxLinearFit1D = fit1D.GetParameter(0)
-        fit1DRebin = fitting.fit1DMixedEventNormalization(peakFindingHistRebin, [1. / 2. * np.pi, 3. / 2. * np.pi])
-        maxLinearFit1DRebin = fit1DRebin.GetParameter(0)
-        fit2D = fitting.fit2DMixedEventNormalization(mixedEvent, [1. / 2. * np.pi, 3. / 2. * np.pi], etaLimits)
-        maxLinearFit2D = fit2D.GetParameter(0)
-        fit2DRebin = fitting.fit2DMixedEventNormalization(mixedEventRebin, [1. / 2. * np.pi, 3. / 2. * np.pi], etaLimits)
-        maxLinearFit2DRebin = fit2DRebin.GetParameter(0)
-
-        logger.debug("linear1D: {}, linear1DRebin: {}".format(maxLinearFit1D, maxLinearFit1DRebin))
-        logger.debug("linear2D: {}, linear2DRebin: {}".format(maxLinearFit2D, maxLinearFit2DRebin))
-
-        plot_correlations.mixedEventNormalization(
-            self,
-            # For labeling purposes
-            histName = peakFindingHist.GetName(),
-            etaLimits = etaLimits,
-            jetPtTitle = params.generateJetPtRangeString(jetPtBin),
-            trackPtTitle = params.generateTrackPtRangeString(trackPtBin),
-            # Basic data
-            linSpace = linSpace,
-            peakFindingArray = peakFindingArray,
-            linSpaceRebin = linSpaceRebin,
-            peakFindingArrayRebin = peakFindingArrayRebin,
-            # CWT
-            peakLocations = peakLocations,
-            peakLocationsRebin = peakLocationsRebin,
-            # Moving Average
-            maxMovingAvg = maxMovingAvg,
-            maxMovingAvgRebin = maxMovingAvgRebin,
-            # Smoothed gaussian
-            linSpaceResample = linSpaceResample,
-            smoothedArray = smoothedArray,
-            maxSmoothedMovingAvg = maxSmoothedMovingAvg,
-            # Linear fits
-            maxLinearFit1D = maxLinearFit1D,
-            maxLinearFit1DRebin = maxLinearFit1DRebin,
-            maxLinearFit2D = maxLinearFit2D,
-            maxLinearFit2DRebin = maxLinearFit2DRebin,
-        )
+        """ Determine normalization of the mixed event. """
+        ...
 
     #################################
     # Utility functions for the class
@@ -1184,21 +953,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         with open(os.path.join(self.outputPrefix, "resultsCombined.tex"), "wb") as f:
             f.write(outputText.encode())
-
-    @staticmethod
-    def postProjectionProcessing2DCorrelation(observable, normalizationFactor, titleLabel, jetPtBin, trackPtBin):
-        """ Basic post processing tasks for a new 2D correlation observable. """
-        hist = observable.hist
-
-        # Scale
-        hist.Scale(1.0 / normalizationFactor)
-
-        # Set title, labels
-        jetPtBinsTitle = params.generateJetPtRangeString(jetPtBin)
-        trackPtBinsTitle = params.generateTrackPtRangeString(trackPtBin)
-        hist.SetTitle("{} with {}, {}".format(titleLabel, jetPtBinsTitle, trackPtBinsTitle))
-        hist.GetXaxis().SetTitle("#Delta#varphi")
-        hist.GetYaxis().SetTitle("#Delta#eta")
 
     @staticmethod
     def postProjectionProcessing1DCorrelation(observable, normalizationFactor, rebinFactor, titleLabel, jetPtBin, trackPtBin):
@@ -1313,15 +1067,15 @@ class JetHAnalysis(analysis_objects.JetHBase):
     def runProjections(self):
         """ Steering function for plotting Jet-H histograms. """
         # Get configuration
-        processingOptions = self.taskConfig["processingOptions"]
+        processing_options = self.taskConfig["processing_options"]
 
         # Only need to check if file exists for the first if statement because we cannot get past there without somehow having some hists
-        fileExists = os.path.isfile(os.path.join(self.outputPrefix, self.outputFilename))
+        file_exists = os.path.isfile(os.path.join(self.outputPrefix, self.outputFilename))
 
         # NOTE: Only normalize hists when plotting, and then only do so to a copy!
-        #       The exceptions are the 2D correlations, which are normalized by nTrig for the raw correlation and the maximum efficiency
+        #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation and the maximum efficiency
         #       for the mixed events. They are excepted because we don't have a purpose for such unnormalized hists.
-        if processingOptions["generate2DCorrelations"] or not fileExists:
+        if processing_options["generate2DCorrelations"] or not file_exists:
             # Generate and process the 2D correlations
             # First generate the projectors
             logger.info("Generating 2D projectors")
@@ -1338,20 +1092,20 @@ class JetHAnalysis(analysis_objects.JetHBase):
             self.writeTriggerJetSpectra()
 
             # Ensure we execute the next step
-            processingOptions["generate1DCorrelations"] = True
+            processing_options["generate1DCorrelations"] = True
         else:
             # Initialize the 2D correlations from the file
             logger.info("Loading 2D correlations and trigger jet spectra from file")
             self.InitFromRootFile(Correlations2D = True)
             self.InitFromRootFile(TriggerJetSpectra = True)
 
-        if processingOptions["plot2DCorrelations"]:
+        if processing_options["plot2DCorrelations"]:
             logger.info("Plotting 2D correlations")
             plot_correlations.plot2DCorrelations(self)
             logger.info("Plotting RPF example region")
             plot_correlations.plotRPFFitRegions(self)
 
-        if processingOptions["generate1DCorrelations"]:
+        if processing_options["generate1DCorrelations"]:
             # First generate the projectors
             logger.info("Generating 1D projectors")
             self.generateCorrelationProjectors()
@@ -1369,12 +1123,12 @@ class JetHAnalysis(analysis_objects.JetHBase):
             # Write the properly scaled projections
             self.write1DCorrelations()
 
-            if processingOptions["plot1DCorrelations"]:
+            if processing_options["plot1DCorrelations"]:
                 logger.info("Plotting 1D correlations")
                 plot_correlations.plot1DCorrelations(self)
 
             # Ensure that the next step in the chain is run
-            processingOptions["fit1DCorrelations"] = True
+            processing_options["fit1DCorrelations"] = True
         else:
             # Initialize the 1D correlations from the file
             logger.info("Loading 1D correlations from file")
@@ -1395,15 +1149,15 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         # Get the first analysis so we can get configuration options, etc
         _, firstAnalysis = next(generic_config.unrollNestedDict(analyses))
-        processingOptions = firstAnalysis.taskConfig["processingOptions"]
+        processing_options = firstAnalysis.taskConfig["processing_options"]
 
         # Run the fitting code
-        if processingOptions["fit1DCorrelations"]:
+        if processing_options["fit1DCorrelations"]:
             if firstAnalysis.collisionSystem == params.collisionSystem.PbPb:
                 # Run the combined fit over the analyses
                 epFit = JetHAnalysis.fitCombinedSignalAndBackgroundRegion(analyses)
 
-                if processingOptions["plot1DCorrelationsWithFits"]:
+                if processing_options["plot1DCorrelationsWithFits"]:
                     # Plot the result
                     plot_fit.PlotRPF(epFit)
             else:
@@ -1422,7 +1176,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 self.write1DFits()
 
                 # Ensure that the next step in the chain is run
-                processingOptions["subtract1DCorrelations"] = True
+                processing_options["subtract1DCorrelations"] = True
         else:
             # TODO: This isn't well defined because self isn't defined.
             #       Need to think more about how to handle it properly.
@@ -1445,14 +1199,14 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         # Get the first analysis so we can get configuration options, etc
         _, firstAnalysis = next(generic_config.unrollNestedDict(analyses))
-        processingOptions = firstAnalysis.taskConfig["processingOptions"]
+        processing_options = firstAnalysis.taskConfig["processing_options"]
 
         # Subtracted fit functions from the correlations
-        if processingOptions["subtract1DCorrelations"]:
+        if processing_options["subtract1DCorrelations"]:
             logger.info("Subtracting EP dPhi hists")
             epFit.SubtractEPHists()
 
-            if processingOptions["plotSubtracted1DCorrelations"]:
+            if processing_options["plotSubtracted1DCorrelations"]:
                 plot_fit.PlotSubtractedEPHists(epFit)
 
             logger.info("Comparing to Joel")
@@ -1469,10 +1223,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
             sys.exit(1)
 
         # Get processing options
-        processingOptions = self.taskConfig["processingOptions"]
+        processing_options = self.taskConfig["processing_options"]
 
         # Subtracted fit functions from the correlations
-        if processingOptions["subtract1DCorrelations"]:
+        if processing_options["subtract1DCorrelations"]:
             # Subtract fit functions
             logger.info("Subtracting fit functions.")
             logger.info("Subtracting side-band fit from signal region.")
@@ -1484,12 +1238,12 @@ class JetHAnalysis(analysis_objects.JetHBase):
             self.writeSubtracted1DCorrelations()
             self.writeSubtracted1DFits()
 
-            if processingOptions["plot1DCorrelationsWithFits"]:
+            if processing_options["plot1DCorrelationsWithFits"]:
                 logger.info("Plotting 1D correlations with fits")
                 plot_correlations.plot1DCorrelationsWithFits(self)
 
             # Ensure that the next step in the chain is run
-            processingOptions["extractWidths"] = True
+            processing_options["extractWidths"] = True
         else:
             # Initialize subtracted hists from the file
             pass
@@ -1504,10 +1258,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
             sys.exit(1)
 
         # Get processing options
-        processingOptions = self.taskConfig["processingOptions"]
+        processing_options = self.taskConfig["processing_options"]
 
         # Extract yields
-        if processingOptions["extractYields"]:
+        if processing_options["extractYields"]:
             # Setup yield limits
             # 1.0 is the value from the semi-central analysis.
             yieldLimit = self.config.get("yieldLimit", 1.0)
@@ -1517,23 +1271,23 @@ class JetHAnalysis(analysis_objects.JetHBase):
             #logger.info("jetH AS yields: {}".format(self.yieldsAS))
 
             # Plot
-            if processingOptions["plotYields"]:
+            if processing_options["plotYields"]:
                 plot_extracted.plotYields(self)
 
-            processingOptions["extractWidths"] = True
+            processing_options["extractWidths"] = True
         else:
             # Initialize yields from the file
             pass
 
         # Extract widths
-        if processingOptions["extractWidths"]:
+        if processing_options["extractWidths"]:
             # Extract widths
             logger.info("Extracting widths from the fits.")
             self.extractWidths()
             #logger.info("jetH AS widths: {}".format(self.widthsAS))
 
             # Plot
-            if processingOptions["plotWidths"]:
+            if processing_options["plotWidths"]:
                 plot_extracted.plotWidths(self)
         else:
             # Initialize widths from the file
@@ -1611,9 +1365,9 @@ class GeneralHistogramsManager(generic_tasks.TaskManager):
 
 @dataclass
 class CorrelationsHistogram:
-    raw: Hist
-    mixed_event: Hist
-    corrected: Hist
+    raw_2d: Hist
+    mixed_event_2d: Hist
+    signal_2d: Hist
     delta_phi: Hist
     delta_eta: Hist
 
@@ -1628,6 +1382,26 @@ class Correlations(analysis_objects.JetHReactionPlane):
         track_pt: Track pt bin.
         ...
     """
+    # Properties
+    # Define as static variables since they don't depend on any particular instance
+    hist_name_format = "jetH%(label)s_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}"
+    hist_name_format2D = hist_name_format % {"label": "DEtaDPhi"}
+    # Standard 1D hists
+    hist_name_format_dPhi = hist_name_format % {"label": "DPhi"}
+    hist_name_format_dPhi_array = hist_name_format % {"label": "DPhi"} + "Array"
+    hist_name_format_dEta = hist_name_format % {"label": "DEta"}
+    hist_name_format_dEta_array = hist_name_format % {"label": "DEta"} + "Array"
+    # Subtracted 1D hists
+    hist_name_format_dPhi_subtracted = hist_name_format_dPhi + "_subtracted"
+    hist_name_format_dPhi_subtracted_array = hist_name_format_dPhi_array + "_subtracted"
+    hist_name_format_dEta_subtracted = hist_name_format_dEta + "_subtracted"
+    hist_name_format_dEta_subtracted_array = hist_name_format_dEta_array + "_subtracted"
+
+    # These is nothing here to format - it's just the jet spectra
+    # However, the variable name will stay the same for clarity
+    hist_name_format_trigger = "jetH_trigger_pt"
+    fit_name_format = hist_name_format % {"label": "Fit"}
+
     def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Analysis parameters
@@ -1644,7 +1418,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.projectors: List[Type[projectors.HistProjectors]] = []
 
         # Relevant histograms
-        self.correlations_hist: CorrelationsHistogram
+        self.number_of_triggers_hist: Hist
+        self.correlation_hists: CorrelationsHistogram
+
+        # Other relevant analysis information
+        self.number_of_triggers: int = 0
 
     def _setup_projectors(self):
         """ Setup the THnSparse projectors. """
@@ -1722,12 +1500,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Trigger projector
         #
         # Note that it has no jet pt or trigger pt dependence.
-        # We will select jet pt ranges later when determining nTrig
+        # We will select jet pt ranges later when determining n_trig
         ###########################
         projection_information = {}
         # Attempt to format for consistency, although it doesn't do anything for the trigger projection
         trigger_input_dict = {
-            self.hist_name_format_trigger.format(**projection_information): self.input_hists["fhnTrigger"]
+            self.hist_name_format_trigger.format(**projection_information): self.input_hists["fhn_trigger"]
         }
         trigger_projector = JetHObservableSparseProjector(
             observable_dict = self.trigger_jet_pt,
@@ -1754,7 +1532,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 **full_axis_range
             )
         )
-        self.projectors.append(trigger_projector)
+        self.sparse_projectors.append(trigger_projector)
 
         # Jet and track pt bin dependent cuts
         projection_information = {"jet_pt_bin": self.jet_pt.bin, "track_pt_bin": self.track_pt.bin}
@@ -1783,11 +1561,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Projection Axes
         raw_signal_projector.projection_axes.append(delta_phi_axis)
         raw_signal_projector.projection_axes.append(delta_eta_axis)
-        self.projectors.append(raw_signal_projector)
+        self.sparse_projectors.append(raw_signal_projector)
 
         ###########################
         # Mixed Event projector
         ###########################
+        # TODO: Use a broader range of pt for mixed events like Joel?
         projection_information["tag"] = "mixed"
         mixed_event_input_dict = {self.hist_name_format2D.format(**projection_information): self.input_hists["fhnMixedEvents"]}
         mixed_event_projector = JetHCorrelationSparseProjector(
@@ -1807,7 +1586,191 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Projection Axes
         mixed_event_projector.projection_axes.append(delta_phi_axis)
         mixed_event_projector.projection_axes.append(delta_eta_axis)
-        self.projectors.append(mixed_event_projector)
+        self.sparse_projectors.append(mixed_event_projector)
+
+    def _determine_number_of_triggers(self) -> int:
+        """ Determine the number of triggers for the specific analysis parameters. """
+        return correlations_helpers.determine_number_of_triggers(
+            hist = self.number_of_triggers_hist,
+            jet_pt = self.jet_pt,
+        )
+
+    def setup(self, input_hists):
+        """ Setup the correlations object. """
+        # Setup the input hists and projectors
+        super().setup(input_hists = input_hists)
+
+        # Determine n_trig for the object.
+        self.number_of_triggers = self._determine_number_of_triggers()
+
+    def _post_creation_processing_for_2D_correlation(self, hist: Hist, normalization_factor: float, title: str) -> None:
+        """ Perform post creation processing for 2D correlations. """
+        correlations_helpers.post_projection_processing_for_2D_correlation(
+            hist = hist, normalization_factor = normalization_factor, title = title,
+            jet_pt = self.jet_pt, track_pt = self.track_pt,
+        )
+
+    def _compoare_mixed_event_normalization_options(self, mixed_event: Hist) -> None:
+        """ Compare mixed event normalization options. """
+        eta_limits = self.task_config["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
+
+        # Create the comparison
+        (
+            # Basic data
+            peak_finding_hist,
+            lin_space, peak_finding_hist_array,
+            lin_space_rebin, peak_finding_hist_array_rebin,
+            # CWT
+            peak_locations,
+            peak_locations_rebin,
+            # Moving Average
+            max_moving_avg,
+            max_moving_avg_rebin,
+            # Smoothed gaussian
+            lin_space_resample,
+            smoothed_array,
+            max_smoothed_moving_avg,
+            # Linear fits
+            max_linear_fit_1d,
+            max_linear_fit_1d_rebin,
+            max_linear_fit_2d,
+            max_linear_fit_2d_rebin,
+        ) = correlations_helpers.compare_mixed_event_normalization_options(
+            mixed_event = mixed_event, eta_limits = eta_limits,
+        )
+
+        # Plot the comparison
+        plot_correlations.mixed_event_normalization(
+            self,
+            # For labeling purposes
+            hist_name = peak_finding_hist.GetName(),
+            eta_limits = eta_limits,
+            jet_pt_title = params.generate_jet_pt_range_string(self.jet_pt),
+            track_pt_title = params.generate_track_pt_range_string(self.track_pt),
+            # Basic data
+            lin_space = lin_space,
+            peak_finding_hist_array = peak_finding_hist_array,
+            lin_space_rebin = lin_space_rebin,
+            peak_finding_hist_array_rebin = peak_finding_hist_array_rebin,
+            # CWT
+            peak_locations = peak_locations,
+            peak_locations_rebin = peak_locations_rebin,
+            # Moving Average
+            max_moving_avg = max_moving_avg,
+            max_moving_avg_rebin = max_moving_avg_rebin,
+            # Smoothed gaussian
+            lin_space_resample = lin_space_resample,
+            smoothed_array = smoothed_array,
+            max_smoothed_moving_avg = max_smoothed_moving_avg,
+            # Linear fits
+            max_linear_fit_1d = max_linear_fit_1d,
+            max_linear_fit_1d_rebin = max_linear_fit_1d_rebin,
+            max_linear_fit_2d = max_linear_fit_2d,
+            max_linear_fit_2d_rebin = max_linear_fit_2d_rebin,
+        )
+
+    def _measure_mixed_event_normalization(self, mixed_event: Hist) -> float:
+        """ Measure the mixed event normalization. """
+        # See the note on the selecting the eta_limits in `correlations_helpers.measure_mixed_event_normalization(...)`
+        eta_limits = self.task_config["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
+        return correlations_helpers.measure_mixed_event_normalization(
+            mixed_event = mixed_event,
+            eta_limits = eta_limits,
+        )
+
+    def _create_2d_raw_and_mixed_correlations(self):
+        """ Generate raw and mixed event 2D correlations. """
+        # Project the histograms
+        # Includes the trigger, raw signal 2D, and mixed event 2D hists
+        for projector in self.sparse_projectors:
+            projector.Project()
+
+        # Raw signal hist post processing.
+        self._post_creation_processing_for_2d_correlation(
+            hist = self.correlation_hists.raw_2d,
+            normalization_factor = self.number_of_triggers,
+            title = "Raw signal",
+        )
+
+        # Compare mixed event normalization options
+        # We must do this before scaling the mixed event (otherwsie we will get the wrong scaling values.)
+        if self.task_config["mixedEventNormalizationOptions"].get("compareOptions", False):
+            self._compoare_mixed_event_normalization_options(
+                mixed_event = self.correlation_hists.mixed_event_2d
+            )
+
+        # Normalize and post process the mixed event observable
+        mixed_event_normalization_factor = self._measure_mixed_event_normalization(
+            mixed_event = self.correlation_hists.mixed_event_2d
+        )
+        self._post_creation_processing_for_2d_correlation(
+            hist = self.correlation_hists.mixed_event_2d,
+            normalization_factor = mixed_event_normalization_factor,
+            title = "Mixed event",
+        )
+
+        # Rebin
+        # TODO: Work on rebin quality...
+
+    def _create_2d_signal_correlation(self):
+        """ Create 2D signal correlation for raw and mixed correlations.
+
+        This method is intentionally decoupled for creating the raw and mixed event hists so that the
+        THnSparse can be swapped out when desired.
+        """
+        # The signal correlation is the raw signal divided by the mixed events
+        self.correlation_hists.signal_2d = self.correlation_hists.raw_2d.Clone(
+            self.hist_name_format2D.format(jet_pt_bin = self.jet_pt.bin, track_pt_bin = self.track_pt.bin, tag = "corr")
+        )
+        self.correlation_hists.signal_2d.Divide(self.correlation_hists.mixed_event_2d)
+
+        self._post_creation_processing_for_2d_correlation(
+            hist = self.correlation_hists.signal_2d,
+            normalization_factor = 1.0,
+            title = "Correlation",
+        )
+
+    def _run_2d_projections(self):
+        """ Run the correlations 2D projections. """
+        # Get configuration
+        processing_options = self.task_config["processing_options"]
+
+        # Only need to check if file exists for the first if statement because we cannot get past there without somehow having some hists
+        file_exists = os.path.isfile(os.path.join(self.output_prefix, self.output_filename))
+
+        # NOTE: Only normalize hists when plotting, and then only do so to a copy!
+        #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation and the maximum efficiency
+        #       for the mixed events. They are excepted because we don't have a purpose for such unnormalized hists.
+        if processing_options["generate2DCorrelations"] or not file_exists:
+            # Then generate the correlations by utilizing the projectors
+            logger.info("Projecting 2D correlations")
+            self._create_2d_raw_and_mixed_correlations()
+            # Create the signal correlation
+            self._create_2d_signal_correlation()
+
+            # Write the correlations
+            self.write2DCorrelations()
+            # Write triggers
+            self.writeTriggerJetSpectra()
+
+            # Ensure we execute the next step
+            processing_options["generate1DCorrelations"] = True
+        else:
+            # Initialize the 2D correlations from the file
+            logger.info("Loading 2D correlations and trigger jet spectra from file")
+            self.InitFromRootFile(Correlations2D = True)
+            self.InitFromRootFile(TriggerJetSpectra = True)
+
+        if processing_options["plot2DCorrelations"]:
+            logger.info("Plotting 2D correlations")
+            plot_correlations.plot2DCorrelations(self)
+            logger.info("Plotting RPF example region")
+            plot_correlations.plotRPFFitRegions(self)
+
+    def run_projectors(self):
+        """ Run all analysis steps through projectors. """
+
+        self._run_2d_projections()
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
