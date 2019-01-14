@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" Utilities for the jet-hadron anaylsis
+""" Analysis objects for the jet-hadron anaylsis
 
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
