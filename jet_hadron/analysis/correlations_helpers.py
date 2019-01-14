@@ -92,6 +92,40 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     hist.GetXaxis().SetTitle("#Delta#varphi")
     hist.GetYaxis().SetTitle("#Delta#eta")
 
+def calculate_bin_width_scale_factor(hist: Hist, additional_scale_factor: float = 1.0) -> float:
+    """ Calculate the bin width scale factor of a histogram.
+
+    Args:
+        hist: Hist to use for calculating the scale factor.
+        additional_scale_factor: An additional scale factor to include in the caluclation.
+    Returns:
+        The bin width scale factor for the hist.
+    """
+    # The first bin should always exist!
+    bin_width_scale_factor = hist.GetXaxis().GetBinWidth(1)
+    # Because of a ROOT quirk, even a TH1* hist has a Y and Z axis, with 1 bin
+    # each. This bin has bin width 1, so it doesn't change anything if we multiply
+    # by that bin width. So we just do it for all histograms.
+    # This has the benefit that we don't need explicit dependence on an imported
+    # ROOT package.
+    bin_width_scale_factor *= hist.GetYaxis().GetBinWidth(1)
+    bin_width_scale_factor *= hist.GetZaxis().GetBinWidth(1)
+
+    final_scale_factor = additional_scale_factor / bin_width_scale_factor
+
+    return final_scale_factor
+
+def scale_by_bin_width(hist: Hist) -> None:
+    """ Scale a histogram by it's bin width.
+
+    Args:
+        hist: Hist to be scaled.
+    Returns:
+        None. The histogram is scaled in place.
+    """
+    scale_factor = calculate_bin_width_scale_factor(hist)
+    hist.Scale(scale_factor)
+
 def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[float, float]) -> Tuple[Hist, np.ndarray]:
     """ Get the peak finding hist and array from the mixed event.
 
