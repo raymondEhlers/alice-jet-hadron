@@ -676,35 +676,54 @@ class AnalysisBin(ABC):
     """ Represent a binned quantity.
 
     Attributes:
-        bin: Bin number of the binned quantity.
-        range: Min and miximum of the bin.
+        range: Min and maximum of the bin.
         name: Name of the analysis bin (based on the class name).
     """
-    bin: int
     range: params.SelectedRange
 
     def __str__(self) -> str:
-        return str(self.bin)
+        return str(f"{self.name} Range: ({self.range.min}, {self.range.max})")
 
     @property
     def name(self) -> str:
-        """ Convert class name into captial case. For example: 'JetPtBin' -> 'Jet Pt Bin'. """
+        """ Convert class name into capital case. For example: 'JetPtBin' -> 'Jet Pt Bin'. """
         return re.sub("([a-z])([A-Z])", r"\1 \2", self.__class__.__name__)
+
+@dataclass(frozen = True)
+class EtaBin(AnalysisBin):
+    """ A eta bin, along with the associated eta range.
+
+    We don't need to implement anything else. We just needed to instantiate this with the name
+    of the class so that we can differentiate it from other bins.
+    """
+    ...
+
+@dataclass(frozen = True)
+class PhiBin(AnalysisBin):
+    """ A phi bin, along with the associated phi range.
+
+    We don't need to implement anything else. We just needed to instantiate this with the name
+    of the class so that we can differentiate it from other bins.
+    """
+    ...
 
 @dataclass(frozen = True)
 class PtBin(AnalysisBin, ABC):
     """ Represents a pt bin.
 
-    Note:
-        We have this intermediate class to be able to reference to pt bins generically.
-        However, it adds no further attributes.
+    This object includes a bin number because pt bins have a natural bin ordering that isn't necessarily
+    meaningful for other binned quantities.
 
     Attributes:
-        bin: Pt bin.
-        range: Min and miximum of the bin.
+        range: Min and maximum of the bin.
+        bin: Pt bin. This is meaningful for pt bins because they are ordered.
         name: Name of the pt bin (based on the class name).
     """
-    ...
+    bin: int
+
+    def __str__(self) -> str:
+        """ Redefine the string to return the bin number. """
+        return str(self.bin)
 
 @dataclass(frozen = True)
 class TrackPtBin(PtBin):
@@ -733,40 +752,22 @@ class PtHardBin(PtBin):
     """
     train_number: int
 
-@dataclass(frozen = True)
-class EtaBin(AnalysisBin):
-    """ A eta bin, along with the associated eta range.
-
-    We don't need to implement anything else. We just needed to instantiate this with the name
-    of the class so that we can differentiate it from other bins.
-    """
-    ...
-
-@dataclass(frozen = True)
-class PhiBin(AnalysisBin):
-    """ A phi bin, along with the associated phi range.
-
-    We don't need to implement anything else. We just needed to instantiate this with the name
-    of the class so that we can differentiate it from other bins.
-    """
-    ...
-
 class AnalysisBins(ABC):
     """ Define an array of analysis bins.
 
-    As an example, consider the example of ``JetPtBins``.
+    As an example, consider the example of ``EtaBins``.
 
     .. code-block:: yaml
 
-        - pt_bins: !JetPtBins [5, 11, 21]
+        - eta_bins: !EtaBins [0, 0.4, 0.6]
 
     yields
 
     .. code-block:: python
 
-        >>> pt_bins = [
-        ...     JetPtBin(bin = 1, range = (5, 11)),
-        ...     JetPtBin(bin = 2, range = (11, 21)),
+        >>> eta_bins = [
+        ...     EtaBin(range = (0., 0.4)),
+        ...     EtaBin(range = (0.4, 0.6)),
         ... ]
 
     Note:
@@ -781,18 +782,79 @@ class AnalysisBins(ABC):
         #logger.debug(f"Using representer, {data}")
         values = [constructor.construct_object(v) for v in data.value]
         bins = []
-        for i, (val, val_next) in enumerate(zip(values[:-1], values[1:])):
-            bins.append(cls._class(bin = i + 1, range = params.SelectedRange(min = val, max = val_next)))
+        for val, val_next in zip(values[:-1], values[1:]):
+            bins.append(cls._class(range = params.SelectedRange(min = val, max = val_next)))
         return bins
 
-class TrackPtBins(AnalysisBins):
+class EtaBins(AnalysisBins):
+    """ Define an array of eta bins.
+
+    It reads arrays registered under the tag ``!EtaBins``.
+    """
+    _class = EtaBin
+
+class PhiBins:
+    """ Define an array of eta bins.
+
+    It reads arrays registered under the tag ``!PhiBins``.
+    """
+    _class = PhiBin
+
+    @classmethod
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PhiBin]:
+        """ Convert input YAML list to set of ``PtBin``(s). """
+        #logger.debug(f"Using representer, {data}")
+        # Extract values
+        values = [constructor.construct_object(v) for v in data.value]
+        # Scale very thing by a factor of pi for convenience.
+        values = [v * np.pi for v in values]
+        bins = []
+        for val, val_next in zip(values[:-1], values[1:]):
+            bins.append(cls._class(range = params.SelectedRange(min = val, max = val_next)))
+        return bins
+
+class PtBins(ABC):
+    """ Define an array of pt bins.
+
+    As an example, consider the example of ``JetPtBins``.
+
+    .. code-block:: yaml
+
+        - pt_bins: !JetPtBins [5, 11, 21]
+
+    yields
+
+    .. code-block:: python
+
+        >>> pt_bins = [
+        ...     JetPtBin(range = (5, 11), bin = 1),
+        ...     JetPtBin(range = (11, 21), bin = 2),
+        ... ]
+
+    Note:
+        This is just convenience function for YAML. It isn't round-trip because we would never use write back out.
+        This just allow us to define the bins in a compact manner when we write YAML.
+    """
+    _class: Type[PtBin]
+
+    @classmethod
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PtBin]:
+        """ Convert input YAML list to set of ``AnalysisBin``(s). """
+        #logger.debug(f"Using representer, {data}")
+        values = [constructor.construct_object(v) for v in data.value]
+        bins = []
+        for i, (val, val_next) in enumerate(zip(values[:-1], values[1:])):
+            bins.append(cls._class(range = params.SelectedRange(min = val, max = val_next), bin = i + 1))
+        return bins
+
+class TrackPtBins(PtBins):
     """ Define an array of track pt bins.
 
     It reads arrays registered under the tag ``!TrackPtBins``.
     """
     _class = TrackPtBin
 
-class JetPtBins(AnalysisBins):
+class JetPtBins(PtBins):
     """ Define an array of jet pt bins.
 
     It reads arrays registered under the tag ``!JetPtBins``.
@@ -845,31 +907,4 @@ class PtHardBins:
             )
         return pt_bins
 
-class EtaBins(AnalysisBins):
-    """ Define an array of eta bins.
-
-    It reads arrays registered under the tag ``!EtaBins``.
-    """
-    _class = EtaBin
-
-class PhiBins:
-    """ Define an array of eta bins.
-
-    It reads arrays registered under the tag ``!EtaBins``.
-    """
-    _class = PhiBin
-
-    @classmethod
-    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PhiBin]:
-        """ Convert input YAML list to set of ``PtBin``(s). """
-        #logger.debug(f"Using representer, {data}")
-        # Extract values
-        values = [constructor.construct_object(v) for v in data.value]
-        # Scale very thing by a factor of pi for convenience.
-        values = [v * np.pi for v in values]
-
-        bins = []
-        for i, (val, val_next) in enumerate(zip(values[:-1], values[1:])):
-            bins.append(cls._class(bin = i + 1, range = params.SelectedRange(min = val, max = val_next)))
-        return bins
 
