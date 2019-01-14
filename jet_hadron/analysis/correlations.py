@@ -280,45 +280,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
     def generate2DSignalCorrelation(self):
         """ Generate 2D signal correlation.
 
-        Intentionally decoupled for creating the raw and mixed event hists so that the THnSparse can be swapped out when desired.
+        Intentionally decoupled for creating the raw and mixed event hists so that the THnSparse can be swapped out
+        when desired.
         """
         ...
-        for (rawObservable, mixedEventObservable) in zip(itervalues(self.rawSignal2D), itervalues(self.mixedEvents2D)):
-            # Check to ensure that we've zipped properly
-            if rawObservable.jetPtBin != mixedEventObservable.jetPtBin or rawObservable.trackPtBin != mixedEventObservable.trackPtBin:
-                raise ValueError("Mismatch in jet or track pt bins. raw: (jet: {}, track: {}), mixed: (jet: {}, track: {})!!".format(
-                    rawObservable.jetPtBin,
-                    rawObservable.trackPtBin,
-                    mixedEventObservable.jetPtBin,
-                    mixedEventObservable.trackPtBin)
-                )
-
-            # Define for convenience
-            jetPtBin = rawObservable.jetPtBin
-            trackPtBin = rawObservable.trackPtBin
-            binningDict = {"trackPtBin": trackPtBin, "jetPtBin": jetPtBin}
-
-            # Correlation - Divide signal by mixed events
-            correlation = rawObservable.hist.Clone(self.histNameFormat2D.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = "corr"))
-            correlation.Divide(mixedEventObservable.hist.hist)
-
-            # Create the observable
-            signal2DObservable = analysis_objects.CorrelationObservable(
-                jetPtBin = jetPtBin,
-                trackPtBin = trackPtBin,
-                hist = analysis_objects.HistContainer(correlation)
-            )
-
-            # Post process the signal 2D hist
-            postProcessingArgs = {}
-            postProcessingArgs.update({"observable": signal2DObservable,
-                                       "normalizationFactor": 1.0,
-                                       "titleLabel": "Correlation"})
-            postProcessingArgs.update(binningDict)
-            JetHAnalysis.postProjectionProcessing2DCorrelation(**postProcessingArgs)
-
-            # Save the observable
-            self.signal2D[correlation.GetName()] = signal2DObservable
 
     def generate1DCorrelations(self):
         """ Generate 1D Correlation by projecting 2D correlations. """
@@ -347,11 +312,11 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 # Since this is hard-coded, it is calculated very explicitly so it will
                 # be caught if the values are modified.
                 # Ranges are multiplied by 2 because the ranges are symmetric
-                signalMinVal = params.etaBins[params.etaBins.index(0.0)]
-                signalMaxVal = params.etaBins[params.etaBins.index(0.6)]
+                signalMinVal = params.eta_bins[params.eta_bins.index(0.0)]
+                signalMaxVal = params.eta_bins[params.eta_bins.index(0.6)]
                 signalRange = (signalMaxVal - signalMinVal) * 2
-                backgroundMinVal = params.etaBins[params.etaBins.index(0.8)]
-                backgroundMaxVal = params.etaBins[params.etaBins.index(1.2)]
+                backgroundMinVal = params.eta_bins[params.eta_bins.index(0.8)]
+                backgroundMaxVal = params.eta_bins[params.eta_bins.index(1.2)]
                 backgroundRange = (backgroundMaxVal - backgroundMinVal) * 2
 
                 ################
@@ -390,6 +355,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         In particular, scale the 1D hists by their bin widths so no further scaling is necessary.
         """
+        ...
         for hists in self.hists1DStandard:
             #logger.debug("len(hists): {}, hists.keys(): {}".format(len(hists), hists.keys()))
             for name, observable in iteritems(hists):
@@ -403,123 +369,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def generateCorrelationProjectors(self):
         """ Generate correlation projectors (2D -> 1D) """
-        # Helper which defines the full axis range
-        fullAxisRange = {"min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
-                         "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)}
-
-        ###########################
-        # dPhi Signal
-        ###########################
-        projectionInformation = {"correlationType": analysis_objects.JetHCorrelationType.signal_dominated,
-                                 "axis": JetHCorrelationAxis.delta_phi}
-        projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiSignalProjector = JetHCorrelationProjector(
-            observable_dict = self.dPhi,
-            observables_to_project_from = self.signal2D,
-            projectionNameFormat = self.histNameFormatDPhi,
-            projectionInformation = projectionInformation
-        )
-        # Select signal dominated region in eta
-        # Could be a single range, but this is conceptually clearer when compared to the background
-        # dominated region. Need to do this as projection dependent cuts because it is selecting different
-        # ranges on the same axis
-        dPhiSignalProjector.projectionDependentCutAxes.append([
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_eta,
-                axis_range_name = "NegativeEtaSignalDominated",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.6)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0)] - epsilon)
-            )
-        ])
-        dPhiSignalProjector.projectionDependentCutAxes.append([
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_eta,
-                axis_range_name = "PositiveEtaSignalDominated",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.6)] - epsilon)
-            )
-        ])
-        dPhiSignalProjector.projectionAxes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_phi,
-                axis_range_name = "deltaPhi",
-                **fullAxisRange
-            )
-        )
-        self.correlationProjectors.append(dPhiSignalProjector)
-
-        ###########################
-        # dPhi Background dominated
-        ###########################
-        projectionInformation = {"correlationType": analysis_objects.JetHCorrelationType.background_dominated,
-                                 "axis": JetHCorrelationAxis.delta_phi}
-        projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dPhiBackgroundProjector = JetHCorrelationProjector(
-            observable_dict = self.dPhiSideBand,
-            observables_to_project_from = self.signal2D,
-            projectionNameFormat = self.histNameFormatDPhi,
-            projectionInformation = projectionInformation
-        )
-        # Select background dominated region in eta
-        # Redundant to find the index, but it helps check that it is actually in the list!
-        # Need to do this as projection dependent cuts because it is selecting different ranges
-        # on the same axis
-        dPhiBackgroundProjector.projectionDependentCutAxes.append([
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_eta,
-                axis_range_name = "NegativeEtaBackgroundDominated",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(1.2)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, -1 * params.etaBins[params.etaBins.index(0.8)] - epsilon)
-            )
-        ])
-        dPhiBackgroundProjector.projectionDependentCutAxes.append([
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_eta,
-                axis_range_name = "PositiveEtaBackgroundDominated",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(0.8)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.etaBins[params.etaBins.index(1.2)] - epsilon)
-            )
-        ])
-        dPhiBackgroundProjector.projectionAxes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_phi,
-                axis_range_name = "deltaPhi",
-                **fullAxisRange
-            )
-        )
-        self.correlationProjectors.append(dPhiBackgroundProjector)
-
-        ###########################
-        # dEta NS
-        ###########################
-        projectionInformation = {"correlationType": analysis_objects.JetHCorrelationType.near_side,
-                                 "axis": JetHCorrelationAxis.delta_eta}
-        projectionInformation["tag"] = projectionInformation["correlationType"].str()
-        dEtaNSProjector = JetHCorrelationProjector(
-            observable_dict = self.dEtaNS,
-            observables_to_project_from = self.signal2D,
-            projectionNameFormat = self.histNameFormatDEta,
-            projectionInformation = projectionInformation
-        )
-        # Select near side in delta phi
-        dEtaNSProjector.additionalAxisCuts.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_phi,
-                axis_range_name = "deltaPhiNearSide",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(-1. * math.pi / 2.)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phiBins[params.phiBins.index(1. * math.pi / 2.)] - epsilon)
-            )
-        )
-        # No projection dependent cut axes
-        dEtaNSProjector.projectionDependentCutAxes.append([])
-        dEtaNSProjector.projectionAxes.append(
-            HistAxisRange(
-                axis_type = JetHCorrelationAxis.delta_eta,
-                axis_range_name = "deltaEta",
-                **fullAxisRange
-            )
-        )
-        self.correlationProjectors.append(dEtaNSProjector)
+        ...
 
     def convert1DRootHistsToArray(self, inputHists, outputHists):
         """ Convert requested 1D hists to hist array format. """
@@ -651,12 +501,12 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 yieldError = yieldError.value
 
                 # Scale by track pt bin width
-                trackPtBinWidth = params.trackPtBins[observable.trackPtBin + 1] - params.trackPtBins[observable.trackPtBin]
+                trackPtBinWidth = self.track_pt.range.max - self.track_pt.range.min
                 yieldValue /= trackPtBinWidth
                 yieldError /= trackPtBinWidth
 
                 # Store yield
-                yields["{}_yield".format(name)] = analysis_objects.ExtractedObservable(
+                yields[f"{name}_yield"] = analysis_objects.ExtractedObservable(
                     jetPtBin = observable.jetPtBin,
                     trackPtBin = observable.trackPtBin,
                     value = yieldValue,
@@ -1062,34 +912,12 @@ class JetHAnalysis(analysis_objects.JetHBase):
         #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation and the maximum efficiency
         #       for the mixed events. They are excepted because we don't have a purpose for such unnormalized hists.
         if processing_options["generate2DCorrelations"] or not file_exists:
-            # Generate and process the 2D correlations
-            # First generate the projectors
-            logger.info("Generating 2D projectors")
-            self.generateSparseProjectors()
-            # Then generate the correlations by utilizing the projectors
-            logger.info("Projecting 2D correlations")
-            self.generate2DCorrelationsTHnSparse()
-            # Create the signal correlation
-            self.generate2DSignalCorrelation()
-
-            # Write the correlations
-            self.write2DCorrelations()
-            # Write triggers
-            self.writeTriggerJetSpectra()
-
-            # Ensure we execute the next step
-            processing_options["generate1DCorrelations"] = True
+            ...
         else:
-            # Initialize the 2D correlations from the file
-            logger.info("Loading 2D correlations and trigger jet spectra from file")
-            self.InitFromRootFile(Correlations2D = True)
-            self.InitFromRootFile(TriggerJetSpectra = True)
+            ...
 
         if processing_options["plot2DCorrelations"]:
-            logger.info("Plotting 2D correlations")
-            plot_correlations.plot2DCorrelations(self)
-            logger.info("Plotting RPF example region")
-            plot_correlations.plotRPFFitRegions(self)
+            ...
 
         if processing_options["generate1DCorrelations"]:
             # First generate the projectors
@@ -1350,12 +1178,20 @@ class GeneralHistogramsManager(generic_tasks.TaskManager):
         )
 
 @dataclass
-class CorrelationsHistogram:
-    raw_2d: Hist
-    mixed_event_2d: Hist
-    signal_2d: Hist
-    delta_phi: Hist
-    delta_eta: Hist
+class CorrelationHistograms2D:
+    raw: Hist
+    mixed_event: Hist
+    signal: Hist
+
+@dataclass
+class CorrelationHistogramsDeltaPhi:
+    signal_dominated: Hist
+    background_dominated: Hist
+
+@dataclass
+class CorrelationHistogramsDeltaEta:
+    near_side: Hist
+    away_side: Hist
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
@@ -1373,15 +1209,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
     hist_name_format = "jetH%(label)s_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}"
     hist_name_format2D = hist_name_format % {"label": "DEtaDPhi"}
     # Standard 1D hists
-    hist_name_format_dPhi = hist_name_format % {"label": "DPhi"}
-    hist_name_format_dPhi_array = hist_name_format % {"label": "DPhi"} + "Array"
-    hist_name_format_dEta = hist_name_format % {"label": "DEta"}
-    hist_name_format_dEta_array = hist_name_format % {"label": "DEta"} + "Array"
+    hist_name_format_deltaPhi = hist_name_format % {"label": "DPhi"}
+    hist_name_format_deltaPhi_array = hist_name_format % {"label": "DPhi"} + "Array"
+    hist_name_format_deltaEta = hist_name_format % {"label": "DEta"}
+    hist_name_format_deltaEta_array = hist_name_format % {"label": "DEta"} + "Array"
     # Subtracted 1D hists
-    hist_name_format_dPhi_subtracted = hist_name_format_dPhi + "_subtracted"
-    hist_name_format_dPhi_subtracted_array = hist_name_format_dPhi_array + "_subtracted"
-    hist_name_format_dEta_subtracted = hist_name_format_dEta + "_subtracted"
-    hist_name_format_dEta_subtracted_array = hist_name_format_dEta_array + "_subtracted"
+    hist_name_format_deltaPhi_subtracted = hist_name_format_deltaPhi + "_subtracted"
+    hist_name_format_deltaPhi_subtracted_array = hist_name_format_deltaPhi_array + "_subtracted"
+    hist_name_format_deltaEta_subtracted = hist_name_format_deltaEta + "_subtracted"
+    hist_name_format_deltaEta_subtracted_array = hist_name_format_deltaEta_array + "_subtracted"
 
     # These is nothing here to format - it's just the jet spectra
     # However, the variable name will stay the same for clarity
@@ -1407,7 +1243,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Relevant histograms
         self.number_of_triggers_hist: Hist
-        self.correlation_hists: CorrelationsHistogram
+        self.correlation_hists_2d: CorrelationHistograms2D
+        self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi
+        self.correlation_hists_delta_eta: CorrelationHistogramsDeltaEta
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
@@ -1436,8 +1274,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 if hist:
                     hist.Write()
 
-    def _setup_projectors(self):
-        """ Setup the THnSparse projectors. """
+    def _setup_sparse_projectors(self) -> None:
+        """ Setup the THnSparse projectors.
+
+        The created projectors are added to the ``sparse_projectors`` list.
+        """
         # Helper which defines the full axis range
         full_axis_range = {
             "min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -1473,13 +1314,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
             axis_range_name = "reaction_plane",
             **reaction_plane_axis_range,
         )
-        # dPhi full axis
+        # delta_phi full axis
         delta_phi_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.delta_phi,
             axis_range_name = "delta_phi",
             **full_axis_range,
         )
-        # dEta full axis
+        # delta_eta full axis
         delta_eta_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.delta_eta,
             axis_range_name = "delta_eta",
@@ -1526,7 +1367,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             projection_information = projection_information
         )
         # Take advantage of existing centrality and event plane object, but need to copy and modify the axis type
-        if self.collision_system != params.collision_system.pp:
+        if self.collision_system != params.CollisionSystem.pp:
             trigger_centrality_cut_axis = copy.deepcopy(centrality_cut_axis)
             trigger_centrality_cut_axis.axis_type = JetHTriggerSparse.centrality
             trigger_projector.additional_axis_cuts.append(trigger_centrality_cut_axis)
@@ -1599,6 +1440,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         mixed_event_projector.projection_axes.append(delta_phi_axis)
         mixed_event_projector.projection_axes.append(delta_eta_axis)
         self.sparse_projectors.append(mixed_event_projector)
+
+    def _setup_projectors(self):
+        """ Setup the projectors for the analyiss. """
+        self._setup_sparse_projectors()
+        self._setup_1d_projectors()
 
     def _determine_number_of_triggers(self) -> int:
         """ Determine the number of triggers for the specific analysis parameters. """
@@ -1778,9 +1624,190 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Plotting RPF example region")
             plot_correlations.plotRPFFitRegions(self)
 
+    def _setup_1d_projectors(self) -> None:
+        """ Setup 2D -> 1D correlation projectors.
+
+        The created projectors are added to the ``sparse_projectors`` list.
+        """
+        # Helper which defines the full axis range
+        full_axis_range = {
+            "min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
+            "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
+        }
+
+        ###########################
+        # delta_phi Signal
+        ###########################
+        projection_information = {
+            "correlationType": analysis_objects.JetHCorrelationType.signal_dominated,
+            "axis": JetHCorrelationAxis.delta_phi
+        }
+        projection_information["tag"] = str(projection_information["correlationType"])
+        delta_phi_signal_projector = JetHCorrelationProjector(
+            observable_dict = self.delta_phi,
+            observables_to_project_from = self.signal2D,
+            projection_name_format = self.hist_name_format_delta_phi,
+            projection_information = projection_information
+        )
+        # Select signal dominated region in eta
+        # Could be a single range, but this is conceptually clearer when compared to the background
+        # dominated region. Need to do this as projection dependent cuts because it is selecting different
+        # ranges on the same axis
+        delta_phi_signal_projector.projection_dependent_cut_axes.append([
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_eta,
+                axis_range_name = "negative_eta_signal_dominated",
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0.6)] + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0)] - epsilon
+                ),
+            )
+        ])
+        delta_phi_signal_projector.projection_dependent_cut_axes.append([
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_eta,
+                axis_range_name = "Positive_eta_signal_dominated",
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0)] + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0.6)] - epsilon
+                ),
+            )
+        ])
+        delta_phi_signal_projector.projection_axes.append(
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_phi,
+                axis_range_name = "delta_phi",
+                **full_axis_range
+            )
+        )
+        self.correlation_projectors.append(delta_phi_signal_projector)
+
+        ###########################
+        # delta_phi Background dominated
+        ###########################
+        projection_information = {
+            "correlation_type": analysis_objects.JetHCorrelationType.background_dominated,
+            "axis": JetHCorrelationAxis.delta_phi
+        }
+        projection_information["tag"] = str(projection_information["correlation_type"])
+        delta_phi_background_projector = JetHCorrelationProjector(
+            observable_dict = self.delta_phiSideBand,
+            observables_to_project_from = self.signal2D,
+            projection_name_format = self.hist_name_format_delta_phi,
+            projection_information = projection_information
+        )
+        # Select background dominated region in eta
+        # Redundant to find the index, but it helps check that it is actually in the list!
+        # Need to do this as projection dependent cuts because it is selecting different ranges
+        # on the same axis
+        delta_phi_background_projector.projection_dependent_cut_axes.append([
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_eta,
+                axis_range_name = "negative_eta_background_dominated",
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(1.2)] + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0.8)] - epsilon
+                ),
+            )
+        ])
+        delta_phi_background_projector.projection_dependent_cut_axes.append([
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_eta,
+                axis_range_name = "positive_eta_background_dominated",
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0.8)] + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(1.2)] - epsilon
+                ),
+            )
+        ])
+        delta_phi_background_projector.projection_axes.append(
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_phi,
+                axis_range_name = "delta_phi",
+                **full_axis_range
+            )
+        )
+        self.correlation_projectors.append(delta_phi_background_projector)
+
+        ###########################
+        # delta_eta NS
+        ###########################
+        projection_information = {
+            "correlationType": analysis_objects.JetHCorrelationType.near_side,
+            "axis": JetHCorrelationAxis.delta_eta
+        }
+        projection_information["tag"] = str(projection_information["correlationType"])
+        delta_eta_ns_projector = JetHCorrelationProjector(
+            observable_dict = self.delta_etaNS,
+            observables_to_project_from = self.signal2D,
+            projection_name_format = self.hist_name_format_delta_eta,
+            projection_information = projection_information
+        )
+        # Select near side in delta phi
+        delta_eta_ns_projector.additional_axis_cuts.append(
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_phi,
+                axis_range_name = "deltaPhiNearSide",
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(-1. * math.pi / 2.)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] - epsilon)
+            )
+        )
+        # No projection dependent cut axes
+        delta_eta_ns_projector.projection_dependent_cut_axes.append([])
+        delta_eta_ns_projector.projection_axes.append(
+            HistAxisRange(
+                axis_type = JetHCorrelationAxis.delta_eta,
+                axis_range_name = "delta_eta",
+                **full_axis_range
+            )
+        )
+        self.correlation_projectors.append(delta_eta_ns_projector)
+
+    def _post_1d_projection_scaling(self):
+        """ Perform post-projection scalings to avoid needing to scale the fit functions later. """
+        # Since the histograms are always referencing the same root object, the stored hists
+        # will also be updated.
+        for hist in [self.correlation_hists_delta_phi.as_dict().values()] + [self.correlation_hists_delta_eta.as_dict().values()]:
+            correlations_helpers.scale_by_bin_width(hist)
+
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
-        ...
+        if self.processing_options["generate1DCorrelations"]:
+            # Project in 1D
+            logger.info("Projecting 1D correlations")
+            self._create_1d_correlations()
+
+            # Perform post-projection scalings to avoid needing to scale the fit functions later
+            logger.info("Performing post projection histogram scalings")
+            self._post_1d_projection_scaling()
+
+            # Create hist arrays
+            self.convertDPhiHists()
+
+            # Write the properly scaled projections
+            self.write1DCorrelations()
+
+            if self.processing_options["plot1DCorrelations"]:
+                logger.info("Plotting 1D correlations")
+                plot_correlations.plot1DCorrelations(self)
+
+            # Ensure that the next step in the chain is run
+            self.processing_options["fit1DCorrelations"] = True
+        else:
+            # Initialize the 1D correlations from the file
+            logger.info("Loading 1D correlations from file")
+            self.InitFromRootFile(Correlations1D = True)
+            self.InitFromRootFile(Correlations1DArray = True, exitOnFailure = False)
+
+        self.ran_projections = True
 
     def run_projections(self):
         """ Run all analysis steps through projectors. """

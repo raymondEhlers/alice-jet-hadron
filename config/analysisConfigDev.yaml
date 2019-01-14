@@ -38,7 +38,7 @@ trainNumber: &trainNumber 3360
 
 # 11H track and jet pt bins
 _jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
-_track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
+_track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
 
 Correlations:
     mixedEventNormalizationOptions:
