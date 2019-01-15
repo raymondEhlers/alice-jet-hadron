@@ -47,6 +47,7 @@ Correlations:
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false
+    joelsCorrelationsFilePath: "joelsCentralCorrelations"
     processingOptions:
         # General histograms
         generalHistograms: false

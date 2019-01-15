@@ -1551,7 +1551,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
             logger.info("Plotting RPF example region")
-            if self.processing_options["plotRPFHighlights"]:
+            # TODO: Remove this bin value check...
+            if self.processing_options["plotRPFHighlights"] and self.jet_pt.bin == 2 and self.track_pt.bin == 4:
                 plot_correlations.plot_RPF_fit_regions(self)
 
     def _setup_1d_projectors(self) -> None:
@@ -1796,6 +1797,16 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.debug(f"hist: {hist}")
                 correlations_helpers.scale_by_bin_width(hist)
 
+    def _compare_to_joel(self):
+        """ Compare 1D correlations against Joel's produced correlations. """
+        # Need minus 1 just to conform with convention.
+        # TODO: Update
+        comparison_track_pt_bin = self.track_pt.bin - 1
+        comparison_filename = f"RPF_sysScaleCorrelations{comparison_track_pt_bin}rebinX2bg.root"
+        comparison_filename = os.path.join(self.processing_options["joelsCentralCorrelations"], comparison_filename)
+        comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
+        logger.debug(f"{comparison_hists}")
+
     def _convert_1d_correlations(self):
         """ Convert 1D correlations to Histograms. """
         ...
@@ -1819,6 +1830,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             if self.processing_options["plot1DCorrelations"]:
                 logger.info("Plotting 1D correlations")
                 plot_correlations.plot_1d_correlations(self)
+
+            # TODO: Can only compare after fit...
+            #self._compare_to_joel()
 
             # TODO: Uncomment
             # Create hist arrays
