@@ -68,7 +68,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
 
     return number_of_triggers
 
-def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title: str,
+def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title_label: str,
                                                   jet_pt: analysis_objects.JetPtBin,
                                                   track_pt: analysis_objects.TrackPtBin) -> None:
     """ Basic post processing tasks for a new 2D correlation observable.
@@ -76,7 +76,7 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     Args:
         hist: Histogram to be post processed.
         normalization_factor: Factor by which the hist should be scaled.
-        title: Histogram title.
+        title_label: Histogram title label.
         jet_pt: Jet pt bin.
         track_pt: Track pt bin.
     Returns:
@@ -88,7 +88,7 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     # Set title, axis labels
     jet_pt_bins_title = params.generate_jet_pt_range_string(jet_pt)
     track_pt_bins_title = params.generate_track_pt_range_string(track_pt)
-    hist.SetTitle(f"{title} with {jet_pt_bins_title}, {track_pt_bins_title}")
+    hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
     hist.GetXaxis().SetTitle("#Delta#varphi")
     hist.GetYaxis().SetTitle("#Delta#eta")
 
@@ -309,4 +309,26 @@ def compare_mixed_event_normalization_options(mixed_event: Hist,
         max_linear_fit2D,
         max_linear_fit2D_rebin,
     )
+
+def post_creation_processing_for_1d_correlations(hist: Hist,
+                                                 normalization_factor: float,
+                                                 rebin_factor: int,
+                                                 title_label: str,
+                                                 jet_pt: analysis_objects.JetPtBin,
+                                                 track_pt: analysis_objects.TrackPtBin) -> None:
+    """ Basic post processing tasks for a new 1D correlation observable. """
+    # Rebin to decrease the fluctuations in the correlations
+    hist.Rebin(rebin_factor)
+    hist.Scale(1.0 / rebin_factor)
+
+    # Scale
+    hist.Scale(1.0 / normalization_factor)
+
+    # Set title, labels
+    jet_pt_bins_title = params.generate_jet_pt_range_string(jet_pt)
+    track_pt_bins_title = params.generate_track_pt_range_string(track_pt)
+    hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
+    hist.GetXaxis().SetTitle("#Delta#varphi")
+    # TODO: This isn't the right label!!
+    hist.GetYaxis().SetTitle("#Delta#eta")
 

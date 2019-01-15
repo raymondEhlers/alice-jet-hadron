@@ -97,29 +97,31 @@ class JetHCorrelationProjector(projectors.HistProjector):
     """ Projector for the Jet-h 2D correlation hists to 1D correlation hists. """
     def projection_name(self, **kwargs):
         """ Define the projection name for the Jet-H response matrix projector """
-        observable = kwargs["input_observable"]
-        track_pt_bin = observable.track_pt_bin
-        jet_pt_bin = observable.jet_pt_bin
-        logger.info("Projecting hist name: {}".format(self.projection_name_format.format(track_pt_bin = track_pt_bin, jet_pt_bin = jet_pt_bin, **kwargs)))
-        return self.projection_name_format.format(track_pt_bin = track_pt_bin, jet_pt_bin = jet_pt_bin, **kwargs)
+        #observable = kwargs["input_observable"]
+        track_pt = kwargs["track_pt"]
+        jet_pt = kwargs["jet_pt"]
+        #track_pt_bin = observable.track_pt_bin
+        #jet_pt_bin = observable.jet_pt_bin
+        logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
+        return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
 
-    def get_hist(self, observable, *args, **kwargs):
-        """ Return the histogram which is inside of an HistContainer object which is stored in an CorrelationObservable object."""
-        return observable.hist.hist
+    #def get_hist(self, observable, *args, **kwargs):
+    #    """ Return the histogram which is inside of an HistContainer object which is stored in an CorrelationObservable object."""
+    #    return observable.hist.hist
 
-    def output_hist(self, output_hist, projection_name, *args, **kwargs):
-        """ Creates a HistContainer in a CorrelationObservable to store the output. """
-        # In principle, we could pass `**kwargs`, but this could get dangerous if names changes later and initialize something
-        # unexpected in the constructor, so instead we'll be explicit
-        input_observable = kwargs["input_observable"]
-        output_observable = analysis_objects.CorrelationObservable1D(
-            jet_pt_bin = input_observable.jet_pt_bin,
-            track_pt_bin = input_observable.track_pt_bin,
-            axis = kwargs["axis"],
-            correlation_type = kwargs["correlation_type"],
-            hist = analysis_objects.HistContainer(output_hist)
-        )
-        return output_observable
+    #def output_hist(self, output_hist, projection_name, *args, **kwargs):
+    #    """ Creates a HistContainer in a CorrelationObservable to store the output. """
+    #    # In principle, we could pass `**kwargs`, but this could get dangerous if names changes later and initialize something
+    #    # unexpected in the constructor, so instead we'll be explicit
+    #    input_observable = kwargs["input_observable"]
+    #    output_observable = analysis_objects.CorrelationObservable1D(
+    #        jet_pt_bin = input_observable.jet_pt_bin,
+    #        track_pt_bin = input_observable.track_pt_bin,
+    #        axis = kwargs["axis"],
+    #        correlation_type = kwargs["correlation_type"],
+    #        hist = analysis_objects.HistContainer(output_hist)
+    #    )
+    #    return output_observable
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
@@ -275,68 +277,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def generate1DCorrelations(self):
         """ Generate 1D Correlation by projecting 2D correlations. """
-
-        # Project the histograms
-        # Includes the dPhi signal dominated, dPhi background dominated, and dEta near side
-        for projector in self.correlationProjectors:
-            projector.Project()
-
-        # Post process and scale
-        for hists in self.hists1DStandard:
-            for name, observable in iteritems(hists):
-                logger.info("Post projection processing of 1D correlation {}".format(name))
-
-                # Define for convenience
-                jetPtBin = observable.jetPtBin
-                trackPtBin = observable.trackPtBin
-                binningDict = {"trackPtBin": trackPtBin, "jetPtBin": jetPtBin}
-
-                # Determine normalization factor
-                # We only apply this so we don't unnecessarily scale the signal region.
-                # However, it is then important that we report the eta range in which we measure!
-                normalizationFactor = 1
-                # TODO: IMPORTANT: Remove hard code here and restore proper scaling!
-                # Scale is dependent on the signal and background range
-                # Since this is hard-coded, it is calculated very explicitly so it will
-                # be caught if the values are modified.
-                # Ranges are multiplied by 2 because the ranges are symmetric
-                signalMinVal = params.eta_bins[params.eta_bins.index(0.0)]
-                signalMaxVal = params.eta_bins[params.eta_bins.index(0.6)]
-                signalRange = (signalMaxVal - signalMinVal) * 2
-                backgroundMinVal = params.eta_bins[params.eta_bins.index(0.8)]
-                backgroundMaxVal = params.eta_bins[params.eta_bins.index(1.2)]
-                backgroundRange = (backgroundMaxVal - backgroundMinVal) * 2
-
-                ################
-                # If we wanted to plug into the projectors (it would take some work), we could do something like:
-                ## Determine the min and max values
-                #axis = projector.axis(observable.hist.hist)
-                #min_val = rangeSet.min_val(axis)
-                #max_val = rangeSet.max_val(axis)
-                ## Determine the projection range for proper scaling.
-                #projectionRange += (axis.GetBinUpEdge(max_val) - axis.GetBinLowEdge(min_val))
-                ################
-                # Could also consider trying to get the projector directly and apply it to a hist
-                ################
-
-                if observable.correlationType == analysis_objects.JetHCorrelationType.background_dominated:
-                    # Scale by (signal region)/(background region)
-                    # NOTE: Will be applied as `1/normalizationFactor`, so the value is the inverse
-                    #normalizationFactor = backgroundRange/signalRange
-                    normalizationFactor = backgroundRange
-                    logger.debug("Scaling background by normalizationFactor {}".format(normalizationFactor))
-                else:
-                    normalizationFactor = signalRange
-                    logger.debug("Scaling signal by normalizationFactor {}".format(normalizationFactor))
-
-                # Post process and scale
-                postProcessingArgs = {}
-                postProcessingArgs.update({"observable": observable,
-                                           "normalizationFactor": normalizationFactor,
-                                           "rebinFactor": 2,
-                                           "titleLabel": "{}, {}".format(observable.correlationType.name, str(observable.axis))})
-                postProcessingArgs.update(binningDict)
-                JetHAnalysis.postProjectionProcessing1DCorrelation(**postProcessingArgs)
+        ...
 
     def post1DProjectionScaling(self):
         """ Perform post projection scalings.
@@ -781,21 +722,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
     @staticmethod
     def postProjectionProcessing1DCorrelation(observable, normalizationFactor, rebinFactor, titleLabel, jetPtBin, trackPtBin):
         """ Basic post processing tasks for a new 1D correlation observable. """
-        hist = observable.hist
-
-        # Rebin to decrease the fluctuations in the correlations
-        hist.Rebin(rebinFactor)
-        hist.Scale(1.0 / rebinFactor)
-
-        # Scale
-        hist.Scale(1.0 / normalizationFactor)
-
-        # Set title, labels
-        jetPtBinsTitle = params.generateJetPtRangeString(jetPtBin)
-        trackPtBinsTitle = params.generateTrackPtRangeString(trackPtBin)
-        hist.SetTitle("{} with {}, {}".format(titleLabel, jetPtBinsTitle, trackPtBinsTitle))
-        hist.GetXaxis().SetTitle("#Delta#varphi")
-        hist.GetYaxis().SetTitle("#Delta#eta")
+        ...
 
     @staticmethod
     def printProperty(name, val):
@@ -1179,10 +1106,16 @@ class CorrelationHistogramsDeltaPhi:
     signal_dominated: Hist
     background_dominated: Hist
 
+    def asdict(self) -> Dict[str, Hist]:
+        return dataclasses.asdict(self)
+
 @dataclass
 class CorrelationHistogramsDeltaEta:
     near_side: Hist
     away_side: Hist
+
+    def asdict(self) -> Dict[str, Hist]:
+        return dataclasses.asdict(self)
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
@@ -1231,6 +1164,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.projectors: List[Type[projectors.HistProjectors]] = []
         # For convenience since it is frequently accessed.
         self.processing_options = self.task_config["processingOptions"]
+        # Status information
+        self.ran_projections: bool = False
 
         # Relevant histograms
         self.number_of_triggers_hist: Hist = None
@@ -1434,9 +1369,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.sparse_projectors.append(mixed_event_projector)
 
     def _setup_projectors(self):
-        """ Setup the projectors for the analyiss. """
+        """ Setup the projectors for the analysis. """
         self._setup_sparse_projectors()
-        self._setup_1d_projectors()
+        # TODO: Can we move this back? It had to be moved because the input hists are undefined at this point.
+        #self._setup_1d_projectors()
 
     def _determine_number_of_triggers(self) -> int:
         """ Determine the number of triggers for the specific analysis parameters. """
@@ -1450,10 +1386,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Setup the input hists and projectors
         super().setup(input_hists = input_hists)
 
-    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title: str) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str) -> None:
         """ Perform post creation processing for 2D correlations. """
         correlations_helpers.post_projection_processing_for_2d_correlation(
-            hist = hist, normalization_factor = normalization_factor, title = title,
+            hist = hist, normalization_factor = normalization_factor, title_label = title_label,
             jet_pt = self.jet_pt, track_pt = self.track_pt,
         )
 
@@ -1525,7 +1461,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             eta_limits = eta_limits,
         )
 
-    def _create_2d_raw_and_mixed_correlations(self):
+    def _create_2d_raw_and_mixed_correlations(self) -> None:
         """ Generate raw and mixed event 2D correlations. """
         # Project the histograms
         # Includes the trigger, raw signal 2D, and mixed event 2D hists
@@ -1540,7 +1476,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.raw,
             normalization_factor = self.number_of_triggers,
-            title = "Raw signal",
+            title_label = "Raw signal",
         )
 
         # Compare mixed event normalization options
@@ -1557,11 +1493,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.mixed_event,
             normalization_factor = mixed_event_normalization_factor,
-            title = "Mixed event",
+            title_label = "Mixed event",
         )
 
         # Rebin
-        # TODO: Work on rebin quality...
+        # TODO: Work on rebin quality... I think we just rebin later?
 
     def _create_2d_signal_correlation(self):
         """ Create 2D signal correlation for raw and mixed correlations.
@@ -1578,7 +1514,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.signal,
             normalization_factor = 1.0,
-            title = "Correlation",
+            title_label = "Correlation",
         )
 
     def _run_2d_projections(self):
@@ -1613,9 +1549,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         if self.processing_options["plot2DCorrelations"]:
             logger.info("Plotting 2D correlations")
-            plot_correlations.plot2DCorrelations(self)
+            plot_correlations.plot_2d_correlations(self)
             logger.info("Plotting RPF example region")
-            plot_correlations.plot_RPF_fit_regions(self)
+            if self.processing_options["plotRPFHighlights"]:
+                plot_correlations.plot_RPF_fit_regions(self)
 
     def _setup_1d_projectors(self) -> None:
         """ Setup 2D -> 1D correlation projectors.
@@ -1633,7 +1570,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         projection_information = {
             "correlation_type": analysis_objects.JetHCorrelationType.signal_dominated,
-            "axis": JetHCorrelationAxis.delta_phi
+            "axis": JetHCorrelationAxis.delta_phi,
+            "jet_pt": self.jet_pt,
+            "track_pt": self.track_pt,
         }
         projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
         delta_phi_signal_projector = JetHCorrelationProjector(
@@ -1685,7 +1624,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         projection_information = {
             "correlation_type": analysis_objects.JetHCorrelationType.background_dominated,
-            "axis": JetHCorrelationAxis.delta_phi
+            "axis": JetHCorrelationAxis.delta_phi,
+            "jet_pt": self.jet_pt,
+            "track_pt": self.track_pt,
         }
         projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
         delta_phi_background_projector = JetHCorrelationProjector(
@@ -1737,7 +1678,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         projection_information = {
             "correlation_type": analysis_objects.JetHCorrelationType.near_side,
-            "axis": JetHCorrelationAxis.delta_eta
+            "axis": JetHCorrelationAxis.delta_eta,
+            "jet_pt": self.jet_pt,
+            "track_pt": self.track_pt,
         }
         projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
         delta_eta_ns_projector = JetHCorrelationProjector(
@@ -1767,33 +1710,122 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         self.correlation_projectors.append(delta_eta_ns_projector)
 
+    def _create_1d_correlations(self) -> None:
+        # Project the histograms
+        # Includes the dPhi signal dominated, dPhi background dominated, and dEta near side
+        for projector in self.correlation_projectors:
+            projector.project()
+
+        # Post process and scale
+        # TODO: Add in delta_eta hists
+        for correlation_axis, hists in [(JetHCorrelationAxis.delta_phi, self.correlation_hists_delta_phi.asdict())]:
+            for name, hist in hists.items():
+                logger.info(f"Post projection processing of 1D correlation {name}")
+
+                # Determine normalization factor
+                # We only apply this so we don't unnecessarily scale the signal region.
+                # However, it is then important that we report the eta range in which we measure!
+                normalization_factor = 1.
+                # TODO: IMPORTANT: Remove hard code here and restore proper scaling!
+                # Scale is dependent on the signal and background range
+                # Since this is hard-coded, it is calculated very explicitly so it will
+                # be caught if the values are modified.
+                # Ranges are multiplied by 2 because the ranges are symmetric
+                signal_min_val = params.eta_bins[params.eta_bins.index(0.0)]
+                signal_max_val = params.eta_bins[params.eta_bins.index(0.6)]
+                signal_range = (signal_max_val - signal_min_val) * 2.
+                background_min_val = params.eta_bins[params.eta_bins.index(0.8)]
+                background_max_val = params.eta_bins[params.eta_bins.index(1.2)]
+                background_range = (background_max_val - background_min_val) * 2.
+
+                ################
+                # If we wanted to plug into the projectors (it would take some work), we could do something like:
+                ## Determine the min and max values
+                #axis = projector.axis(hist)
+                #min_val = rangeSet.min_val(axis)
+                #max_val = rangeSet.max_val(axis)
+                ## Determine the projection range for proper scaling.
+                #projectionRange += (axis.GetBinUpEdge(max_val) - axis.GetBinLowEdge(min_val))
+                ################
+                # Could also consider trying to get the projector directly and apply it to a hist
+                ################
+
+                # TODO: Improve the quality of this check. This is too fragile.
+                if "background" in name:
+                    # Scale by (signal region)/(background region)
+                    # NOTE: Will be applied as `1/normalization_factor`, so the value is the inverse
+                    #normalization_factor = background_range/signal_range
+                    normalization_factor = background_range
+                    logger.debug(f"Scaling background by normalization_factor {normalization_factor}")
+                else:
+                    normalization_factor = signal_range
+                    logger.debug(f"Scaling signal by normalization_factor {normalization_factor}")
+
+                # Post process and scale
+                rebin_factor = 2
+                title_label = f"{name}, {str(correlation_axis)}"
+                self._post_creation_processing_for_1d_correlation(
+                    hist = hist,
+                    normalization_factor = normalization_factor,
+                    rebin_factor = rebin_factor,
+                    title_label = title_label,
+                )
+
+    def _post_creation_processing_for_1d_correlation(self, hist: Hist,
+                                                     normalization_factor: float,
+                                                     rebin_factor: int,
+                                                     title_label: str):
+        """ Basic post processing tasks for a new 1D correlation. """
+        correlations_helpers.post_creation_processing_for_1d_correlations(
+            hist = hist,
+            normalization_factor = normalization_factor,
+            rebin_factor = rebin_factor,
+            title_label = title_label,
+            jet_pt = self.jet_pt,
+            track_pt = self.track_pt,
+        )
+
     def _post_1d_projection_scaling(self):
-        """ Perform post-projection scalings to avoid needing to scale the fit functions later. """
+        """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
         # Since the histograms are always referencing the same root object, the stored hists
         # will also be updated.
-        for hist in [self.correlation_hists_delta_phi.as_dict().values()] + [self.correlation_hists_delta_eta.as_dict().values()]:
-            correlations_helpers.scale_by_bin_width(hist)
+        # TODO: Include back the delta_eta hists.
+        #for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+        for hists in [self.correlation_hists_delta_phi]:
+            for hist in hists.asdict().values():
+                logger.debug(f"hist: {hist}")
+                correlations_helpers.scale_by_bin_width(hist)
+
+    def _convert_1d_correlations(self):
+        """ Convert 1D correlations to Histograms. """
+        ...
 
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
         if self.processing_options["generate1DCorrelations"]:
+            # Setup the projectors here.
+            logger.info("Setting up 1D correlations projectors.")
+            self._setup_1d_projectors()
+
             # Project in 1D
             logger.info("Projecting 1D correlations")
             self._create_1d_correlations()
 
-            # Perform post-projection scalings to avoid needing to scale the fit functions later
-            logger.info("Performing post projection histogram scalings")
+            # Perform post-projection scaling to avoid needing to scale the fit functions later
+            logger.info("Performing post projection histogram scaling")
             self._post_1d_projection_scaling()
 
-            # Create hist arrays
-            self.convertDPhiHists()
-
-            # Write the properly scaled projections
-            self.write1DCorrelations()
-
+            # TODO: Move the methods below back above this line
             if self.processing_options["plot1DCorrelations"]:
                 logger.info("Plotting 1D correlations")
-                plot_correlations.plot1DCorrelations(self)
+                plot_correlations.plot_1d_correlations(self)
+
+            # TODO: Uncomment
+            # Create hist arrays
+            #self._convert_1d_correlations()
+
+            # Write the properly scaled projections
+            #self.write1DCorrelations()
 
             # Ensure that the next step in the chain is run
             self.processing_options["fit1DCorrelations"] = True
@@ -1863,12 +1895,12 @@ class CorrelationsManager(generic_class.EqualityMixin):
         # Fitting
         # To successfully fit, we need all histograms from a given reaction plane orientation.
         # TODO: Investigate whether mypy is right here...
-        for jet_pt in self.selected_analysis_options["jet_pt_bin"]:  # type: ignore
-            for track_pt in self.selected_analysis_options["track_pt_bin"]:  # type: ignore
-                logger.debug(f"Selection: jet_pt: {jet_pt}, track_pt: {track_pt}")
-                for key_index, analysis in \
-                        analysis_config.iterate_with_selected_objects(self.analyses, jet_pt_bin = jet_pt, track_pt_bin = track_pt):
-                    logger.debug(f"{key_index}")
+        #for jet_pt in self.selected_analysis_options["jet_pt_bin"]:  # type: ignore
+        #    for track_pt in self.selected_analysis_options["track_pt_bin"]:  # type: ignore
+        #        logger.debug(f"Selection: jet_pt: {jet_pt}, track_pt: {track_pt}")
+        #        for key_index, analysis in \
+        #                analysis_config.iterate_with_selected_objects(self.analyses, jet_pt_bin = jet_pt, track_pt_bin = track_pt):
+        #            logger.debug(f"{key_index}")
 
         return True
 

@@ -53,6 +53,7 @@ Correlations:
         # 2D
         generate2DCorrelations: true
         plot2DCorrelations: true
+        plotRPFHighlights: true
         # 1D
         generate1DCorrelations: true
         plot1DCorrelations: true

@@ -30,7 +30,7 @@ import ROOT
 # Setup logger
 logger = logging.getLogger(__name__)
 
-def plot2DCorrelations(jet_hadron):
+def plot_2d_correlations(jet_hadron):
     """ Plot the 2D correlations. """
     canvas = ROOT.TCanvas("canvas2D", "canvas2D")
 
@@ -122,15 +122,17 @@ def plot2DCorrelations(jet_hadron):
 
         canvas.Clear()
 
-def plot1DCorrelations(jetH):
+def plot_1d_correlations(jet_hadron):
+    """ Plot the 1D correlations defined here. """
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
 
-    for histCollection in jetH.hists1D:
-        for name, observable in histCollection.items():
+    # TODO: Include the delta_eta hists.
+    for hists in [jet_hadron.correlation_hists_delta_phi]:
+        for name, hist in hists.asdict().items():
             # Draw the 1D histogram.
             # NOTE: that we don't want to scale the histogram here by the bin width because we've already done that!
-            observable.hist.Draw("")
-            plot_base.saveCanvas(jetH, canvas, observable.hist.GetName())
+            hist.Draw("")
+            plot_base.saveCanvas(jet_hadron, canvas, hist.GetName())
 
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
