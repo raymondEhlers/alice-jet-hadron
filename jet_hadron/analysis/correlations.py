@@ -528,16 +528,16 @@ class JetHAnalysis(analysis_objects.JetHBase):
                     error = fit.GetParError(parameterNumber)
                 )
 
-    def writeToRootFile(self, observable_dict, mode = "UPDATE"):
+    def writeToRootFile(self, output_observable, mode = "UPDATE"):
         """ Write output list to a file """
         ...
 
-    def writeHistsToYAML(self, observable_dict, mode = "wb"):
+    def writeHistsToYAML(self, output_observable, mode = "wb"):
         """ Write hist to YAML file. """
 
         logger.info("Saving hist arrays!")
 
-        for histCollection in observable_dict:
+        for histCollection in output_observable:
             for name, observable in iteritems(histCollection):
                 if isinstance(observable, analysis_objects.Observable):
                     hist = observable.hist
@@ -1361,8 +1361,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self.hist_name_format_trigger.format(**projection_information): self.input_hists["fhn_trigger"]
         }
         trigger_projector = JetHObservableSparseProjector(
-            observable_dict = self.trigger_jet_pt,
-            observables_to_project_from = trigger_input_dict,
+            output_observable = self.trigger_jet_pt,
+            observable_to_project_from = trigger_input_dict,
             projection_name_format = self.hist_name_format_trigger,
             projection_information = projection_information
         )
@@ -1396,8 +1396,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         projection_information["tag"] = "raw"
         raw_signal_input_dict = {self.hist_name_format2D.format(**projection_information): self.input_hists["fhnJH"]}
         raw_signal_projector = JetHCorrelationSparseProjector(
-            observable_dict = self.rawSignal2D,
-            observables_to_project_from = raw_signal_input_dict,
+            output_observable = self.rawSignal2D,
+            observable_to_project_from = raw_signal_input_dict,
             projection_name_format = self.hist_name_format2D,
             projection_information = projection_information,
         )
@@ -1423,8 +1423,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         projection_information["tag"] = "mixed"
         mixed_event_input_dict = {self.hist_name_format2D.format(**projection_information): self.input_hists["fhnMixedEvents"]}
         mixed_event_projector = JetHCorrelationSparseProjector(
-            observable_dict = self.mixed_events2D,
-            observables_to_project_from = mixed_event_input_dict,
+            output_observable = self.mixed_events2D,
+            observable_to_project_from = mixed_event_input_dict,
             projection_name_format = self.hist_name_format2D,
             projection_information = projection_information,
         )
@@ -1644,8 +1644,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         }
         projection_information["tag"] = str(projection_information["correlationType"])
         delta_phi_signal_projector = JetHCorrelationProjector(
-            observable_dict = self.delta_phi,
-            observables_to_project_from = self.signal2D,
+            output_observable = self.delta_phi,
+            observable_to_project_from = self.signal2D,
             projection_name_format = self.hist_name_format_delta_phi,
             projection_information = projection_information
         )
@@ -1695,8 +1695,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         }
         projection_information["tag"] = str(projection_information["correlation_type"])
         delta_phi_background_projector = JetHCorrelationProjector(
-            observable_dict = self.delta_phiSideBand,
-            observables_to_project_from = self.signal2D,
+            output_observable = self.delta_phiSideBand,
+            observable_to_project_from = self.signal2D,
             projection_name_format = self.hist_name_format_delta_phi,
             projection_information = projection_information
         )
@@ -1746,8 +1746,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         }
         projection_information["tag"] = str(projection_information["correlationType"])
         delta_eta_ns_projector = JetHCorrelationProjector(
-            observable_dict = self.delta_etaNS,
-            observables_to_project_from = self.signal2D,
+            output_observable = self.delta_etaNS,
+            observable_to_project_from = self.signal2D,
             projection_name_format = self.hist_name_format_delta_eta,
             projection_information = projection_information
         )

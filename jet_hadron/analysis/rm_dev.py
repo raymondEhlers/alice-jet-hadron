@@ -125,8 +125,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Response matrix
         #################
         response_matrix = ResponseMatrixProjector(
-            observable_dict = self.hists["responseMatrixPtHard"],
-            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            output_observable = self.hists["responseMatrixPtHard"],
+            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "responseMatrix"
         )
         response_matrix.additional_axis_cuts.append(
@@ -162,8 +162,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Unmatched part level jet pt
         ###################
         unmatched_part_level_jet_spectra = ResponseMatrixProjector(
-            observable_dict = self.hists["unmatchedJetSpectraPartLevelPtHard"],
-            observables_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
+            output_observable = self.hists["unmatchedJetSpectraPartLevelPtHard"],
+            observable_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
             projection_name_format = "unmatchedJetSpectraPartLevel"
         )
         # Can't apply a leading cluster cut on part level, since we don't have clusters
@@ -182,8 +182,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # (Matched) Part level jet pt
         ###################
         part_level_jet_spectra = ResponseMatrixProjector(
-            observable_dict = self.hists["jetSpectraPartLevelPtHard"],
-            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            output_observable = self.hists["jetSpectraPartLevelPtHard"],
+            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "jetSpectraPartLevel"
         )
         part_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
@@ -203,8 +203,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Unmatched det level jet pt
         ##################
         unmatched_det_level_jet_spectra = ResponseMatrixProjector(
-            observable_dict = self.hists["unmatchedJetSpectraDetLevelPtHard"],
-            observables_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
+            output_observable = self.hists["unmatchedJetSpectraDetLevelPtHard"],
+            observable_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
             projection_name_format = "unmatchedJetSpectraDetLevel"
         )
         unmatched_det_level_jet_spectra.additional_axis_cuts.append(
@@ -230,8 +230,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # (Matched) Det level jet pt
         ##################
         det_level_jet_spectra = ResponseMatrixProjector(
-            observable_dict = self.hists["jetSpectraDetLevelPtHard"],
-            observables_to_project_from = self.hists["responseMatrixPtHardSparse"],
+            output_observable = self.hists["jetSpectraDetLevelPtHard"],
+            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
             projection_name_format = "jetSpectraDetLevel"
         )
         det_level_jet_spectra.additional_axis_cuts.append(
