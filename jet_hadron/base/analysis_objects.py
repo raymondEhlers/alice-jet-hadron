@@ -169,11 +169,13 @@ class JetHReactionPlane(JetHBinnedAnalysis):
         """
         logger.debug(f"input_filename: {self.input_filename}")
         if input_hists is None:
-            input_hists = histogram.get_histograms_in_list(
+            temp_input_hists = histogram.get_histograms_in_list(
                 filename = self.input_filename,
                 input_list = self.input_list_name
             )
-        self.input_hists = input_hists
+        else:
+            temp_input_hists = input_hists[self.input_list_name]
+        self.input_hists = temp_input_hists
 
         return len(self.input_hists) > 0
 

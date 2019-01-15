@@ -51,11 +51,11 @@ Correlations:
         # General histograms
         generalHistograms: false
         # 2D
-        generate2DCorrelations: false
-        plot2DCorrelations: false
+        generate2DCorrelations: true
+        plot2DCorrelations: true
         # 1D
-        generate1DCorrelations: false
-        plot1DCorrelations: false
+        generate1DCorrelations: true
+        plot1DCorrelations: true
         # Fit and subtract
         fit1DCorrelations: true
         plot1DCorrelationsWithFits: true
@@ -68,10 +68,17 @@ Correlations:
         extractWidths: false
         plotWidths: false
     override:
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/{task_name}"
+        2.76:
+            trainNumber: 3360
+        5.02:
+            trainNumber: 4358
         iterables:
             reaction_plane_orientation: true
             track_pt_bin: *TrackPtBins11h
             jet_pt_bin: *JetPtBins11h
+
 GeneralHists:
     componentsToPlot:
         JetH:

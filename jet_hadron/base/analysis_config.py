@@ -281,7 +281,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
         formatting_options = formatting_options,
     )
 
-    logger.debug(f"KeyIndex: {KeyIndex}, objects: {objects}")
+    #logger.debug(f"KeyIndex: {KeyIndex}, objects: {objects}")
 
     return (KeyIndex, returned_iterables, objects)
 

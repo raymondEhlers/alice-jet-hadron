@@ -159,7 +159,7 @@ def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[
         eta_limit_bins[0], eta_limit_bins[1]
     )
     peak_finding_hist.Scale(mixed_event.GetYaxis().GetBinWidth(1) / projection_length)
-    peak_finding_hist_array = histogram.Histogram1D(peak_finding_hist).y
+    peak_finding_hist_array = histogram.Histogram1D.from_existing_hist(peak_finding_hist).y
     #logger.debug("peak_finding_hist_array: {}".format(peak_finding_hist_array))
 
     return peak_finding_hist, peak_finding_hist_array
@@ -241,7 +241,7 @@ def compare_mixed_event_normalization_options(mixed_event: Hist,
     # Scale back down to account for the rebin.
     peak_finding_hist_rebin.Scale(1. / 2.)
     # Note that peak finding will only be performed on the 1D hist
-    peak_finding_hist_array_rebin = histogram.Histogram1D(peak_finding_hist_rebin).y
+    peak_finding_hist_array_rebin = histogram.Histogram1D.from_existing_hist(peak_finding_hist_rebin).y
 
     # Define points where the plots and functions can be evaluted
     lin_space = np.linspace(-0.5 * np.pi, 3. / 2 * np.pi, len(peak_finding_hist_array))

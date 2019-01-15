@@ -20,107 +20,107 @@ from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
+# TODO: Resolve this.... Either put this module the base package or change otherwise...
+from jet_hadron.analysis import correlations_helpers
 
 import ROOT
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
-def plot2DCorrelations(jetH):
+def plot2DCorrelations(jet_hadron):
     """ Plot the 2D correlations. """
     canvas = ROOT.TCanvas("canvas2D", "canvas2D")
 
     # Iterate over 2D hists
-    for histCollection in jetH.hists2D:
-        for name, observable in histCollection.items():
-            # Retrieve hist and plot
+    for name, hist in jet_hadron.correlation_hists_2d.asdict().items():
+        logger.debug(f"name: {name}, hist: {hist}")
+        # We don't want to scale the mixed event hist because we already determined the normalization
+        if "mixed" not in name:
+            correlations_helpers.scale_by_bin_width(hist)
 
-            # We don't want to scale the mixed event hist because we already determined the normalization
-            if "mixed" in name:
-                hist = observable.hist
+        # We don't need the title with all of the labeling
+        hist.SetTitle("")
+
+        # Draw plot
+        hist.Draw("surf2")
+
+        # Label axes
+        hist.GetXaxis().CenterTitle(True)
+        hist.GetXaxis().SetTitleSize(0.08)
+        hist.GetXaxis().SetLabelSize(0.06)
+        hist.GetYaxis().CenterTitle(True)
+        hist.GetYaxis().SetTitleSize(0.08)
+        # If I remove this, it looks worse, even though this is not supposed to do anything
+        hist.GetYaxis().SetTitleOffset(1.2)
+        hist.GetYaxis().SetLabelSize(0.06)
+        hist.GetZaxis().CenterTitle(True)
+        hist.GetZaxis().SetTitleSize(0.06)
+        hist.GetZaxis().SetLabelSize(0.05)
+        hist.GetZaxis().SetTitleOffset(0.8)
+        canvas.SetLeftMargin(0.13)
+
+        if "mixed" in name:
+            hist.GetZaxis().SetTitle(r"$a(\Delta\varphi,\Delta\eta)$")
+            hist.GetZaxis().SetTitleOffset(0.9)
+        else:
+            z_title = r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
+            if "corr" in name:
+                z_title = z_title % {"label": ""}
             else:
-                hist = observable.hist.createScaledByBinWidthHist()
+                z_title = z_title % {"label": r"_{\mathrm{raw}}"}
+                # Decrease size so it doesn't overlap with the other labels
+                hist.GetZaxis().SetTitleSize(0.05)
 
-            # We don't need the title with all of the labeling
-            hist.SetTitle("")
+            hist.GetZaxis().SetTitle(z_title)
 
-            # Draw plot
-            hist.Draw("surf2")
+        # Add labels
+        # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
+        # Instead, print to EPS and then convert to PDF
+        alice_label = str(jet_hadron.alice_label)
+        system_label = params.system_label(
+            energy = jet_hadron.collision_energy,
+            system = jet_hadron.collision_system,
+            activity = jet_hadron.event_activity
+        )
+        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = params.jet_properties_label(jet_hadron.jet_pt)
+        assoc_pt = params.generate_track_pt_range_string(jet_hadron.track_pt)
+        logger.debug(f"label: {alice_label}, system_label: {system_label}, constituent_cuts: {constituent_cuts}, leading_hadron: {leading_hadron}, jet_pt: {jet_pt}, assoc_pt: {assoc_pt}")
 
-            # Label axes
-            hist.GetXaxis().CenterTitle(True)
-            hist.GetXaxis().SetTitleSize(0.08)
-            hist.GetXaxis().SetLabelSize(0.06)
-            hist.GetYaxis().CenterTitle(True)
-            hist.GetYaxis().SetTitleSize(0.08)
-            # If I remove this, it looks worse, even though this is not supposed to do anything
-            hist.GetYaxis().SetTitleOffset(1.2)
-            hist.GetYaxis().SetLabelSize(0.06)
-            hist.GetZaxis().CenterTitle(True)
-            hist.GetZaxis().SetTitleSize(0.06)
-            hist.GetZaxis().SetLabelSize(0.05)
-            hist.GetZaxis().SetTitleOffset(0.8)
-            canvas.SetLeftMargin(0.13)
+        tex = ROOT.TLatex()
+        tex.SetTextSize(0.04)
+        # Upper left side
+        tex.DrawLatexNDC(.03, .96, alice_label)
+        tex.DrawLatexNDC(.005, .91, system_label)
+        tex.DrawLatexNDC(.005, .86, jet_pt)
+        tex.DrawLatexNDC(.005, .81, jet_finding)
 
-            if "mixed" in name:
-                hist.GetZaxis().SetTitle(r"$a(\Delta\varphi,\Delta\eta)$")
-                hist.GetZaxis().SetTitleOffset(0.9)
-            else:
-                zTitle = r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
-                if "corr" in name:
-                    zTitle = zTitle % {"label": ""}
-                else:
-                    zTitle = zTitle % {"label": r"_{\mathrm{raw}}"}
-                    # Decrease size so it doesn't overlap with the other labels
-                    hist.GetZaxis().SetTitleSize(0.05)
+        # Upper right side
+        tex.DrawLatexNDC(.67, .96, assoc_pt)
+        tex.DrawLatexNDC(.73, .91, constituent_cuts)
+        tex.DrawLatexNDC(.75, .86, leading_hadron)
 
-                hist.GetZaxis().SetTitle(zTitle)
+        # Reproduce ROOT problems with the below. Plot in ROOT on a canvas will look fine, but
+        # when printed to PDF, will display the raw latex (for most symbols, but not all)
+        #text = ROOT.TLatex()
+        #text.DrawLatexNDC(.1, .3, r"Hello")
+        #text.DrawLatexNDC(.1, .4, "#sqrt{test}")
+        ## Visual corruption shows up with a "\"
+        #text.DrawLatexNDC(.1, .5, "\sqrt{test}")
+        ## This one doesn't work, but the others do!
+        #text.DrawLatexNDC(.1, .6, "#mathrm{test}")
+        #text.DrawLatexNDC(.1, .7, "\mathrm{test}")
 
-            # Add labels
-            # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
-            # Instead, print to EPS and then convert to PDF
-            aliceLabel = jetH.aliceLabel.str()
-            systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
-                                             system = jetH.collisionSystem,
-                                             activity = jetH.eventActivity)
-            (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
-            assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
-            #logger.debug("label: {}, systemLabel: {}, constituentCuts: {}, leadingHadron: {}, jetPt: {}, assocPt: {}".format(aliceLabel, systemLabel, constituentCuts, leadingHadron, jetPt, assocPt))
+        # Save plot
+        plot_base.saveCanvas(jet_hadron, canvas, hist.GetName())
 
-            tex = ROOT.TLatex()
-            tex.SetTextSize(0.04)
-            # Upper left side
-            tex.DrawLatexNDC(.03, .96, aliceLabel)
-            tex.DrawLatexNDC(.005, .91, systemLabel)
-            tex.DrawLatexNDC(.005, .86, jetPt)
-            tex.DrawLatexNDC(.005, .81, jetFinding)
+        # Draw as colz to view more precisely
+        hist.Draw("colz")
+        plot_base.saveCanvas(jet_hadron, canvas, hist.GetName() + "colz")
 
-            # Upper right side
-            tex.DrawLatexNDC(.67, .96, assocPt)
-            tex.DrawLatexNDC(.73, .91, constituentCuts)
-            tex.DrawLatexNDC(.75, .86, leadingHadron)
-
-            # Reproduce ROOT problems with the below. Plot in ROOT on a canvas will look fine, but
-            # when printed to PDF, will display the raw latex (for most symbols, but not all)
-            #text = ROOT.TLatex()
-            #text.DrawLatexNDC(.1, .3, r"Hello")
-            #text.DrawLatexNDC(.1, .4, "#sqrt{test}")
-            ## Visual corruption shows up with a "\"
-            #text.DrawLatexNDC(.1, .5, "\sqrt{test}")
-            ## This one doesn't work, but the others do!
-            #text.DrawLatexNDC(.1, .6, "#mathrm{test}")
-            #text.DrawLatexNDC(.1, .7, "\mathrm{test}")
-
-            # Save plot
-            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
-
-            # Draw as colz to view more precisely
-            hist.Draw("colz")
-            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName() + "colz")
-
-            canvas.Clear()
+        canvas.Clear()
 
 def plot1DCorrelations(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
@@ -130,7 +130,7 @@ def plot1DCorrelations(jetH):
             # Draw the 1D histogram.
             # NOTE: that we don't want to scale the histogram here by the bin width because we've already done that!
             observable.hist.Draw("")
-            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plot_base.saveCanvas(jetH, canvas, observable.hist.GetName())
 
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
@@ -143,7 +143,7 @@ def plot1DCorrelationsWithFits(jetH):
             # Create scaled hist and plot it
             observable.hist.Draw("")
             fit.Draw("same")
-            plotBase.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plot_base.saveCanvas(jetH, canvas, observable.hist.GetName())
 
 def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
                               # For labeling purposes
@@ -222,11 +222,11 @@ def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    plotBase.savePlot(jet_hadron, fig, hist_name)
+    plot_base.savePlot(jet_hadron, fig, hist_name)
     # Close the figure
     plt.close(fig)
 
-def defineHighlightRegions():
+def define_highlight_regions():
     """ Define regions to highlight.
 
     The user should modify or override this function if they want to define different ranges. By default,
@@ -238,7 +238,7 @@ def defineHighlightRegions():
         list: highlightRegion objects, suitably defined for highlighting the signal and background regions.
     """
     # Select the highlighted regions.
-    highlightRegions = []
+    highlight_regions = []
     # NOTE: The edge color is still that of the colormap, so there is still a hint of the origin
     #       colormap, although the facecolors are replaced by selected highlight colors
     palette = sns.color_palette()
@@ -247,45 +247,43 @@ def defineHighlightRegions():
     # Blue used for the signal data color
     # NOTE: Blue really doesn't look good with ROOT_kBird, so for that case, the
     #       signal fit color, seaborn green, should be used.
-    signalColor = palette[0] + (1.0,)
-    signalRegion = highlight_RPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signalColor)
-    signalRegion.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
-    highlightRegions.append(signalRegion)
+    signal_color = palette[0] + (1.0,)
+    signal_region = highlight_RPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signal_color)
+    signal_region.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
+    highlight_regions.append(signal_region)
 
     # Background
     # Red used for background data color
-    backgroundColor = palette[2] + (1.0,)
-    backgroundPhiRange = (-np.pi / 2, np.pi / 2)
-    backgroundRegion = highlight_RPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", backgroundColor)
-    backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
-    backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))  # noqa: E201, E241
-    highlightRegions.append(backgroundRegion)
+    background_color = palette[2] + (1.0,)
+    background_phi_range = (-np.pi / 2, np.pi / 2)
+    background_region = highlight_RPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", background_color)
+    background_region.addHighlightRegion(background_phi_range, (-1.2, -0.8))
+    background_region.addHighlightRegion(background_phi_range, ( 0.8,  1.2))  # noqa: E201, E241
+    highlight_regions.append(background_region)
 
-    return highlightRegions
+    return highlight_regions
 
-def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
+def plot_RPF_fit_regions(jet_hadron):
     """ Plot showing highlighted RPF fit regions.
 
     Args:
-        jetH (JetHAnalysis.JetHAnalysis): Main analysis object.
-        jetPtBin (int): Jet pt bin of the hist to be plotted.
-        trackPtBin (int): Track pt bin of the hist to be plotted.
+        jet_hadron (JetHAnalysis.Correlations): Main analysis object.
     """
     # Retrieve the hist to be plotted
     # Here we selected the corrected 2D correlation
     # Bins are currently selected arbitrarily
-    observable = jetH.signal2D[jetH.histNameFormat2D.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = "corr")]
+    hist = jet_hadron.correlation_hists_2d.signal
 
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
-        # TODO: Determmine if color overlays are better here!
-        (fig, ax) = highlight_RPF.plotRPFFitRegions(histogram.getArrayFromHist2D(observable.hist.hist),
-                                                    highlightRegions = defineHighlightRegions(),
+        # TODO: Determine if color overlays are better here!
+        (fig, ax) = highlight_RPF.plotRPFFitRegions(histogram.get_array_from_hist2D(hist),
+                                                    highlightRegions = define_highlight_regions(),
                                                     useColorOverlay = False)
 
         # Add additional labeling
         # Axis
-        # Needed to fix zaxis rotation. See: https://stackoverflow.com/a/21921168
+        # Needed to fix z axis rotation. See: https://stackoverflow.com/a/21921168
         ax.zaxis.set_rotate_label(False)
         ax.set_zlabel(r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$", rotation=90)
         # Set the distance from axis to label in pixels.
@@ -295,39 +293,41 @@ def plotRPFFitRegions(jetH, jetPtBin = 1, trackPtBin = 4):
         ax.yaxis.labelpad = 15
         ax.zaxis.labelpad = 12
         # Overall
-        aliceLabel = jetH.aliceLabel.str()
-        systemLabel = params.systemLabel(energy = jetH.collisionEnergy,
-                                         system = jetH.collisionSystem,
-                                         activity = jetH.eventActivity)
-        (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(observable.jetPtBin)
-        assocPt = params.generateTrackPtRangeString(observable.trackPtBin)
+        alice_label = str(jet_hadron.alice_label)
+        system_label = params.system_label(
+            energy = jet_hadron.collision_energy,
+            system = jet_hadron.collision_system,
+            activity = jet_hadron.event_activity
+        )
+        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = params.jet_properties_label(jet_hadron.jet_pt)
+        assoc_pt = params.generate_track_pt_range_string(jet_hadron.track_pt)
 
         # Upper left side
-        upperLeftText = ""
-        upperLeftText += aliceLabel
-        upperLeftText += "\n" + systemLabel
-        upperLeftText += "\n" + jetPt
-        upperLeftText += "\n" + jetFinding
+        upper_left_text = ""
+        upper_left_text += alice_label
+        upper_left_text += "\n" + system_label
+        upper_left_text += "\n" + jet_pt
+        upper_left_text += "\n" + jet_finding
 
         # Upper right side
-        upperRightText = ""
-        upperRightText += leadingHadron
-        upperRightText += "\n" + constituentCuts
-        upperRightText += "\n" + assocPt
+        upper_right_text = ""
+        upper_right_text += leading_hadron
+        upper_right_text += "\n" + constituent_cuts
+        upper_right_text += "\n" + assoc_pt
 
         # Need a different text function since we have a 3D axis
-        ax.text2D(0.01, 0.99, upperLeftText,
+        ax.text2D(0.01, 0.99, upper_left_text,
                   horizontalalignment = "left",
                   verticalalignment = "top",
                   multialignment = "left",
                   transform = ax.transAxes)
-        ax.text2D(0.00, 0.00, upperRightText,
+        ax.text2D(0.00, 0.00, upper_right_text,
                   horizontalalignment = "left",
                   verticalalignment = "bottom",
                   multialignment = "left",
                   transform = ax.transAxes)
 
         # Finish up
-        plotBase.savePlot(jetH, fig, "highlightRPFRegions")
+        plot_base.savePlot(jet_hadron, fig, "highlightRPFRegions")
         plt.close(fig)
 
