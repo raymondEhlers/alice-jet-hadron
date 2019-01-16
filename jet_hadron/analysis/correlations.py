@@ -1797,6 +1797,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.debug(f"hist: {hist}")
                 correlations_helpers.scale_by_bin_width(hist)
 
+    def _compare_to_other_hist(self, our_hist: Hist, their_hist: Hist):
+        # Validation
+        for h in [our_hist, their_hist]:
+            if not isinstance(h, histogram.Histogram1D):
+                h = histogram.Histogram1D.from_existing_hist(h)
+
+        # Make the comparison.
+
+    def _compare_unsubtracted_1d_correlations(self):
+        """ Compare unsubtracted 1d correlation. """
+
+        # Hist name: "allReconstructedSignalwithErrorsNOMnosub"
+        ...
+
     def _compare_to_joel(self):
         """ Compare 1D correlations against Joel's produced correlations. """
         # Need minus 1 just to conform with convention.
