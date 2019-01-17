@@ -230,7 +230,7 @@ class HistPlotter:
         if isinstance(self.get_first_hist(), ROOT.TH2):
             self.plot_2D_hists(fig = fig, ax = ax)
         elif isinstance(self.get_first_hist(), ROOT.TH1):
-            self.plot_1D_hists()
+            self.plot_1D_hists(fig = fig, ax = ax)
         else:
             raise ValueError("Histogram must be 1D or 2D. Type provided: {type(self.get_first_hist())}")
 
@@ -374,9 +374,16 @@ class HistPlotter:
         # See: https://stackoverflow.com/a/42092305
         #axFromPlot.collections[0].colorbar.set_label(label)
 
-    def plot_1D_hists(self) -> None:
-        """ Plot (a collection of) 1D histograms. """
-        # TODO: Update to use object oriented `ax` instead of just `plt`.
+    def plot_1D_hists(self, fig, ax) -> None:
+        """ Plot (a collection of) 1D histograms.
+
+        Args:
+            fig: Figure from matplotlib
+            ax: Axis from matplotlib.
+        Raises:
+            ValueError: If more than one histogram is stored in the ``hists``, which doesn't make sense for
+                2D hist, which doesn't make sense for 2D hists.
+        """
         # Set colors before plotting because it's not handled automatically
         color_palette_args: Dict[str, Union[str, int]] = {}
         if len(self.hists) > 6:
@@ -404,7 +411,7 @@ class HistPlotter:
                 # some modified options. An additional 0 neds to be appended to the end of the data so
                 # the arrays are the same length (this appears to be imposed as an mpl requirement), but
                 # it is not meaningful.
-                plt.step(
+                ax.step(
                     hist1D.bin_edges, np.append(hist1D.y, [0]),
                     where = "post",
                     label = hist.GetTitle(),
@@ -412,8 +419,8 @@ class HistPlotter:
                 )
             else:
                 # A more standard plot, with each value at the bin center
-                plt.plot(hist1D.x, hist1D.y, label = hist.GetTitle(), color = next(currentColorPalette))
+                ax.plot(hist1D.x, hist1D.y, label = hist.GetTitle(), color = next(currentColorPalette))
 
         # Only plot the legend for 1D hists where it may be stacked. For 2D hists,
         # we will only plot one quantity, so the legend isn't really necessary.
-        plt.legend(loc="best")
+        ax.legend(loc="best")

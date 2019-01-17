@@ -15,6 +15,7 @@ import warnings
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_config
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.analysis import generic_tasks
 
@@ -48,7 +49,7 @@ class EMCalCorrectionsLabel(enum.Enum):
 
     # Handle YAML serialization
     @classmethod
-    def to_yaml(cls, representer: yaml.Represneter, data: yaml.T_EnumToYaml) -> yaml.ruamel.yaml.nodes.ScalarNodes:
+    def to_yaml(cls, representer: yaml.Representer, data: yaml.T_EnumToYAML) -> yaml.ruamel.yaml.nodes.ScalarNode:
         """ Encore YAML representation.
 
         We want to write the name of the enumeration instead of the ``str()`` value.
@@ -165,25 +166,33 @@ def eta_phi_match_hist_names(hist_options_name, options):
     # List of pt bins
     pt_bins = processing_options["ptBins"]
     # We don't load these from YAML to avoid having to frequently copy them
-    pt_bin_ranges = [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, 200]
+    _possible_pt_bin_ranges = [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
+    # NOTE: Careful! We are using 0 indexed pt bins here, which is different than the standard when iterating with YAML.
+    possible_pt_bins = [
+        analysis_objects.TrackPtBin(bin = i, range = params.SelectedRange(min = low, max = high))
+        for i, (low, high) in enumerate(zip(_possible_pt_bin_ranges[:-1], _possible_pt_bin_ranges[1:]))
+    ]
 
     hist_names = []
     for angle in angles:
         for cent_dict in cent_bins:
             cent_bin, cent_label = next(iter(cent_dict.items()))
-            for pt_bin in pt_bins:
+            for track_pt in possible_pt_bins:
+                # Only process the track pt bins that are selected.
+                if track_pt.bin not in pt_bins:
+                    continue
                 for eta_dict in eta_directions:
                     eta_direction, eta_direction_label = next(iter(eta_dict.items()))
                     # Determine hist name
-                    name = hist_name.format(angle = angle, cent = cent_bin, ptBin = pt_bin, etaDirection = eta_direction)
+                    name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin, eta_direction = eta_direction)
                     # Determine label
                     # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
                     # the pt label. Instead, we generate the string directly.
                     pt_bin_label = params.generate_pt_range_string(
-                        arr = pt_bin_ranges,
-                        bin_val = pt_bin,
+                        pt_bin = track_pt,
                         lower_label = r"\mathrm{T}",
-                        upper_label = r""
+                        upper_label = r"",
+                        only_show_lower_value_for_last_bin = True,
                     )
 
                     angle_label = determine_angle_label(angle)
@@ -195,7 +204,7 @@ def eta_phi_match_hist_names(hist_options_name, options):
 
     # Assign the newly created names
     options["histNames"] = hist_names
-    logger.debug("Assigning histNames {hist_names}")
+    logger.debug(f"Assigning histNames {hist_names}")
 
     return options
 

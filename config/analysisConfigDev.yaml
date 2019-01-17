@@ -44,6 +44,9 @@ etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
 phiBins: !PhiBins [-0.5, 0.5, 1.5]
 
 Correlations:
+    deltaEtaRanges:
+        signalDominated: [-0.6, 0.6]
+        backgroundDominated: [0.8, 1.2]
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false
@@ -299,7 +302,7 @@ EMCalCorrections:
                 textLabel:
                     <<: *matchDistLabel
                 histNames:
-                    - "fHistMatch{angle}_{cent}_{ptBin}_{etaDirection}": ""
+                    - "fHistMatch{angle}_{cent}_{pt_bin}_{eta_direction}": ""
                 # Below isn't in the HistPlotter, but is instead used for customization of the histNames
                 processing: &matchDifferentialProcessing
                     func_name: "eta_phi_match_hist_names"
