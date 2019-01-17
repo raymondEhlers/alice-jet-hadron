@@ -122,7 +122,7 @@ class JetHResponseMatrix(object):
             for arg in args:
                 logger.warning("Received unexpected ordered arg {}".format(args))
         if kwargs:
-            for key, val in kwargs.iteritems():
+            for key, val in kwargs.items():
                 logger.warning("Received unexpected keyword arg {}: {}".format(key, val))
 
         # Required values
@@ -184,37 +184,37 @@ class JetHResponseMatrix(object):
 
         # Define histograms
         self.hists = {"responseMatrix": None, "responseMatrixErrors": None,
-                      "responseMatrixPtHard": collections.OrderedDict(),
-                      "responseMatrixPtHardSparse": collections.OrderedDict(),
+                      "responseMatrixPtHard": {},
+                      "responseMatrixPtHardSparse": {},
                       "sampleTaskJetSpectraPartLevel": None,
-                      "sampleTaskJetSpectraPartLevelPtHard": collections.OrderedDict(),
+                      "sampleTaskJetSpectraPartLevelPtHard": {},
                       "unmatchedJetSpectraPartLevel": None,
-                      "unmatchedJetSpectraPartLevelPtHard": collections.OrderedDict(),
-                      "unmatchedPartLevelJetsPtHardSparse": collections.OrderedDict(),
+                      "unmatchedJetSpectraPartLevelPtHard": {},
+                      "unmatchedPartLevelJetsPtHardSparse": {},
                       "jetSpectraPartLevel": None,
-                      "jetSpectraPartLevelPtHard": collections.OrderedDict(),
-                      "partLevelJetsPtHardSparse": collections.OrderedDict(),
+                      "jetSpectraPartLevelPtHard": {},
+                      "partLevelJetsPtHardSparse": {},
                       "unmatchedJetSpectraDetLevel": None,
-                      "unmatchedJetSpectraDetLevelPtHard": collections.OrderedDict(),
-                      "unmatchedDetLevelJetsPtHardSparse": collections.OrderedDict(),
+                      "unmatchedJetSpectraDetLevelPtHard": {},
+                      "unmatchedDetLevelJetsPtHardSparse": {},
                       "jetSpectraDetLevel": None,
-                      "jetSpectraDetLevelPtHard": collections.OrderedDict(),
-                      "detLevelJetsPtHardSparse": collections.OrderedDict(),
+                      "jetSpectraDetLevelPtHard": {},
+                      "detLevelJetsPtHardSparse": {},
                       "ptHardSpectra": None, "ptHardSpectraAfterEventSelection": None,
-                      "ptHardSpectraPtHard": collections.OrderedDict(),
-                      "ptHardSpectraAfterEventSelectionPtHard": collections.OrderedDict(),
+                      "ptHardSpectraPtHard": {},
+                      "ptHardSpectraAfterEventSelectionPtHard": {},
                       "crossSection": None, "crossSectionAfterEventSelection": None,
-                      "crossSectionPtHard": collections.OrderedDict(),
-                      "crossSectionAfterEventSelectionPtHard": collections.OrderedDict(),
+                      "crossSectionPtHard": {},
+                      "crossSectionAfterEventSelectionPtHard": {},
                       "nTrials": None, "nTrialsAfterEventSelection": None,
-                      "nTrialsPtHard": collections.OrderedDict(),
-                      "nTrialsAfterEventSelectionPtHard": collections.OrderedDict(),
+                      "nTrialsPtHard": {},
+                      "nTrialsAfterEventSelectionPtHard": {},
                       "nEvents": None, "nEventsAfterEventSelection": None,
-                      "nEventsPtHard": collections.OrderedDict(),
-                      "nEventsAfterEventSelectionPtHard": collections.OrderedDict()}
+                      "nEventsPtHard": {},
+                      "nEventsAfterEventSelectionPtHard": {}}
 
         # Scale factors
-        self.scaleFactors = collections.OrderedDict()
+        self.scaleFactors = {}
         # Projectors
         self.projectors = []
         self.postScaleAndMergeProjectors = []
@@ -461,7 +461,7 @@ class JetHResponseMatrix(object):
         """ Set SumW2 on the THn hists before using them for anything. """
 
         for hists in [self.hists["unmatchedDetLevelJetsPtHardSparse"], self.hists["unmatchedPartLevelJetsPtHardSparse"], self.hists["responseMatrixPtHardSparse"]]:
-            for hist in hists.itervalues():
+            for hist in hists.values():
                 hist.Sumw2()
 
     def ProjectPostScaledAndMergedHists(self):
@@ -496,7 +496,7 @@ class JetHResponseMatrix(object):
         partSpectraProjector.Project()
 
         # Retrieve projection output and scale properly
-        self.hists["partSpectraProjection"] = next(outputDict.itervalues())
+        self.hists["partSpectraProjection"] = next(outputDict.values())
         # Scale because we project over 20 1 GeV bins
         self.hists["partSpectraProjection"].Scale(1.0 / 20.0)
         self.hists["partSpectraProjection"].SetDirectory(0)
@@ -638,7 +638,7 @@ class JetHResponseMatrix(object):
                 self.hists["jetSpectraDetLevel"].Write()
 
                 for dictOfHists in [self.hists["ptHardSpectraPtHard"], self.hists["sampleTaskJetSpectraPartLevelPtHard"], self.hists["jetSpectraPartLevelPtHard"], self.hists["jetSpectraDetLevelPtHard"], self.hists["responseMatrixPtHard"]]:
-                    for ptHardBin, hist in dictOfHists.iteritems():
+                    for ptHardBin, hist in dictOfHists.items():
                         hist.Write()
 
     def InitFromRootFile(self):
@@ -647,7 +647,7 @@ class JetHResponseMatrix(object):
         logger.info("Loading histograms from ROOT file located at \"{}\"".format(inputFilename))
         with histogram.RootOpen(inputFilename, "READ") as f:
             histNames = {"responseMatrix": self.GetResponseMatrixName(), "responseMatrixErrors": None}
-            for dictName, histName in histNames.iteritems():
+            for dictName, histName in histNames.items():
                 if not histName:
                     histName = dictName
                 logger.debug("dictName: {}, histName: {}".format(dictName, histName))
@@ -656,7 +656,7 @@ class JetHResponseMatrix(object):
                 self.hists[dictName] = hist
             if not self.productionRootFile:
                 histNames = {"partSpectraProjection": None, "ptHardSpectra": None, "sampleTaskJetSpectraPartLevel": None, "jetSpectraPartLevel": None, "jetSpectraDetLevel": None}
-                for dictName, histName in histNames.iteritems():
+                for dictName, histName in histNames.items():
                     if not histName:
                         histName = dictName
                     logger.debug("dictName: {}, histName: {}".format(dictName, histName))
@@ -669,7 +669,7 @@ class JetHResponseMatrix(object):
                 # Add or change the name for the individual pt hard spectra
                 histNames["responseMatrix"] = None
                 histNames["ptHardSpectra"] = "fHist"  # Leave out "PtHard" here since it will be added back in below
-                for dictName, histName in histNames.iteritems():
+                for dictName, histName in histNames.items():
                     if not histName:
                         histName = dictName
                     dictName = "{dictName}PtHard".format(dictName = dictName)
@@ -849,7 +849,7 @@ class JetHResponseMatrix(object):
     def ExtractAndApplyRelativePtHardBinScaleFactors(self):
         """ Get relative scaling for each pt hard bin and scale the scale factors by each relative value """
         nTotalEvents = 0.
-        nEventsPtHard = collections.OrderedDict()
+        nEventsPtHard = {}
         for ptHardBin in self.scaleFactors.iterkeys():
             # Get the number of accepted events (bin 1)
             nEvents = self.hists["nEventsPtHard"][ptHardBin].GetBinContent(1)
@@ -858,7 +858,7 @@ class JetHResponseMatrix(object):
 
         nEventsAvg = nTotalEvents / len(self.scaleFactors)
 
-        for ptHardBin, scaleFactor in self.scaleFactors.iteritems():
+        for ptHardBin, scaleFactor in self.scaleFactors.items():
             self.scaleFactors[ptHardBin] = scaleFactor * nEventsAvg / nEventsPtHard[ptHardBin]
 
     def ProjectSparses(self):
@@ -906,7 +906,7 @@ class JetHResponseMatrix(object):
         if not isinstance(ptHardHists, collections.Iterable):
             raise ValueError("Must be an iterable of histograms to scale! Passed hists: {0}".format(ptHardHists))
 
-        for ptHardBin, ptHardHist in ptHardHists.iteritems():
+        for ptHardBin, ptHardHist in ptHardHists.items():
             # Check for outliers
             # This is _not_ the same when an angle is selected compared to when processing all angles together unless performed carefully!!
             # Fortunately, the function handles this properly
@@ -928,14 +928,14 @@ class JetHResponseMatrix(object):
             raise ValueError("Must be an iterable of histograms to scale! Passed hists: {0}".format(ptHardHists))
 
         logger.debug("ptHardHists: {}".format(ptHardHists))
-        hist = ptHardHists.itervalues().next().Clone(mergedHistName)
+        hist = ptHardHists.values().next().Clone(mergedHistName)
         # Reset so we can just Add() all hists without worrying which hist is being processed
         hist.Reset()
         # However, we must ensure that Sumw2 is still set!
         hist.Sumw2()
         logger.debug("hist: {0}".format(hist))
 
-        for i, ptHardHist in enumerate(ptHardHists.itervalues()):
+        for i, ptHardHist in enumerate(ptHardHists.values()):
             # Add hist
             hist.Add(ptHardHist)
 
@@ -1017,14 +1017,14 @@ class JetHResponseMatrix(object):
 
         # Print out configuration
         logger.info("Arguments:")
-        for key, val in args.iteritems():
+        for key, val in args.items():
             printProperty(key, val)
 
         # Define arguments
         #jetHArgs = {"configFile": args.configFile, "clusterBias": args.clusterBias, "productionRootFile": args.productionRootFile, "useFloatHists": args.useFloatHists, "collisionSystem": args.collisionSystem}
         jetHArgs = args
 
-        JetHResponseEP = collections.OrderedDict()
+        JetHResponseEP = {}
         JetHResponse = None
         if jetHArgs.get("runAllAngles", False):
             # NOTE: To get outlier removal correct, it's best to start with all angles, as it has the best statistics.
@@ -1360,7 +1360,7 @@ def plot1DPtHardHists(full, ptHardList, canvas, outputPath, ptHardBinning = []):
         legend.SetNColumns(2)
         legend.SetBorderSize(0)
 
-    for (ptHardBin, spectra), color in zip(ptHardList.iteritems(), sns.husl_palette(n_colors=len(ptHardList))):
+    for (ptHardBin, spectra), color in zip(ptHardList.items(), sns.husl_palette(n_colors=len(ptHardList))):
         color = ROOT.TColor.GetColor(*color)
         #logger.debug("Color: {0}".format(color))
         spectra.SetMarkerStyle(ROOT.kFullCircle + int(ptHardBin))
@@ -1425,9 +1425,9 @@ def plotParticleSpectraProjection(JetHResponseEP):
     #    legend.SetHeader("Event Plane Angle")
 
     # Store the cloned histograms so they stay in scope
-    hists = collections.OrderedDict()
+    hists = {}
 
-    for i, ((epAngle, jetH), color, marker, fillType) in enumerate(zip(JetHResponseEP.iteritems(), colors, markers, fillTypes)):
+    for i, ((epAngle, jetH), color, marker, fillType) in enumerate(zip(JetHResponseEP.items(), colors, markers, fillTypes)):
         histTemp = jetH.hists["partSpectraProjection"]
         hist = histTemp.Clone("{histName}_clone".format(histName = histTemp.GetName()))
         hists[epAngle] = hist
@@ -1530,14 +1530,14 @@ def plotParticleSpectraProjection(JetHResponseEP):
 
     canvas.SetLogy()
 
-    outputPath = next(JetHResponseEP.itervalues()).OutputPathWithoutAngleInName()
+    outputPath = next(JetHResponseEP.values()).OutputPathWithoutAngleInName()
     logger.info("Particle level projection outputPath: {0}".format(outputPath))
     filename = os.path.join(outputPath, "partSpectraProjection.{}")
     canvas.SaveAs(filename.format("pdf"))
     canvas.SaveAs(filename.format("C"))
 
 def checkAgreementOfAllAnglesVsSumOfAngles(JetHResponseEP):
-    outputPath = next(JetHResponseEP.itervalues()).OutputPathWithoutAngleInName()
+    outputPath = next(JetHResponseEP.values()).OutputPathWithoutAngleInName()
     outputPath = os.path.join(outputPath, "{filenameLabel}.pdf")
 
     hist = JetHResponseEP[ReactionPlaneOrientation.kInPlane].hists["partSpectraProjection"]
@@ -1587,19 +1587,19 @@ def checkAgreementOfAllAnglesVsSumOfAngles(JetHResponseEP):
     c.SaveAs(outputPath.format(filenameLabel = "{}Log".format(filenameLabel)))
 
 def packageMatricesIntoOneFile(JetHResponseEP):
-    jetH = next(JetHResponseEP.itervalues())
+    jetH = next(JetHResponseEP.values())
     outputPath = jetH.OutputPathWithoutAngleInName()
     responseMatrixName = jetH.GetResponseMatrixName()
 
-    hists = collections.OrderedDict()
-    for epAngle, jetH in JetHResponseEP.iteritems():
+    hists = {}
+    for epAngle, jetH in JetHResponseEP.items():
         hist = jetH.hists["responseMatrix"]
         hists[epAngle] = hist.Clone("{histName}_{epAngle}".format(histName = responseMatrixName, epAngle = str(epAngle)))
 
     outputFilename = os.path.join(outputPath, "JESCorrection.root")
     logger.info("Writing merged output to {0}".format(outputFilename))
     with histogram.RootOpen(outputFilename, "RECREATE") as f:  # noqa: F841
-        for h in hists.itervalues():
+        for h in hists.values():
             h.Write()
 
 def parseArguments():

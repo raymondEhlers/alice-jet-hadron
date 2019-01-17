@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-# Py2/3
-from future.utils import itervalues
-from future.utils import iteritems
-
-import collections
 #import IPython
 import itertools
 import logging
@@ -260,8 +255,8 @@ class JetHEPFit(object):
         self.analyses = jetHAnalyses
         # Store the necessary information per EP angle
         # Dicts are of the form [(jetPtBin, trackPtBin)][epAngle][correlationType]
-        self.fits = collections.OrderedDict()
-        self.fitContainers = collections.OrderedDict()
+        self.fits = {}
+        self.fitContainers = {}
 
         # Determine configuration
         # The configurations should all be the same, except for the EP (which isn't in the config anyway)
@@ -317,7 +312,7 @@ class JetHEPFit(object):
         #logger.debug("describe func: {}".format(probfit.describe(func)))
 
         # Apply each value to the fit function
-        fit = probfit.nputil.vector_apply(func, xValue, *list(itervalues(argsForFuncCall)))
+        fit = probfit.nputil.vector_apply(func, xValue, *list(argsForFuncCall.values()))
 
         return fit
 
@@ -349,16 +344,16 @@ class JetHEPFit(object):
         # Setup fit and cost functions
         # Define the fits
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
-            #for signal_dominated, background_dominated in zip(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
+            #for signal_dominated, background_dominated in zip(jetH.dPhiArray.values(), jetH.dPhiSideBandArray.values()):
             assert keys[0] == jetH.reaction_plane_orientation
-            for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
+            for observable in itertools.chain(jetH.dPhiArray.values(), jetH.dPhiSideBandArray.values()):
                 retVal = self.CheckIfFitIsEnabled(jetH.reaction_plane_orientation, observable.correlationType)
                 if retVal == False:
                     continue
 
                 # Create the dict if it doesn't already exist
                 if (observable.jetPtBin, observable.trackPtBin) not in self.fits:
-                    self.fits[(observable.jetPtBin, observable.trackPtBin)] = collections.OrderedDict()
+                    self.fits[(observable.jetPtBin, observable.trackPtBin)] = {}
 
                 # Retrieve data
                 x = observable.hist.x
@@ -402,7 +397,7 @@ class JetHEPFit(object):
         if not self.performFit:
             logger.info("Loading stored fit parameters")
             # Load the fit containers from file instead
-            for (jetPtBin, trackPtBin), fitsDict in iteritems(self.fits):
+            for (jetPtBin, trackPtBin), fitsDict in self.fits.items():
                 fitCont = analysis_objects.FitContainer.initFromYAML(prefix = self.outputPrefix,
                         objType = self.overallFitLabel,
                         jetPtBin = jetPtBin,
@@ -415,11 +410,11 @@ class JetHEPFit(object):
             return
 
         # Create overall cost function and perform the fit
-        for (jetPtBin, trackPtBin), fitsDict in iteritems(self.fits):
+        for (jetPtBin, trackPtBin), fitsDict in self.fits.items():
             logger.info("Processing jetPtBin {}, trackPtBin: {}".format(jetPtBin, trackPtBin))
 
             logger.debug("fitsDict: {}".format(fitsDict))
-            fitObj = probfit.SimultaneousFit(*list(itervalues(fitsDict)))
+            fitObj = probfit.SimultaneousFit(*list(fitsDict.values()))
 
             # Definition variable initiation through a dictionary!
             minuitArgs = {}
@@ -500,7 +495,7 @@ class JetHEPFit(object):
             self.fitContainers[(jetPtBin, trackPtBin)] = fitCont
 
         # Since we performed the fit, we should save out the information in the containers
-        for fitCont in itervalues(self.fitContainers):
+        for fitCont in self.fitContainers.values():
             fitCont.saveToYAML(self.outputPrefix)
 
         # We need to reclculate the errors if they will be shown, since we've modified the fit
@@ -510,7 +505,7 @@ class JetHEPFit(object):
         # Perform error calculate
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             assert keys[0] == jetH.reaction_plane_orientation
-            for observable in itertools.chain(itervalues(jetH.dPhiArray), itervalues(jetH.dPhiSideBandArray)):
+            for observable in itertools.chain(jetH.dPhiArray.values(), jetH.dPhiSideBandArray.values()):
                 retVal = self.CheckIfFitIsEnabled(jetH.reaction_plane_orientation, observable.correlationType)
                 # Always calculate for all angles because we will subtract and we want the errors from the fit on that plot
                 # TODO: Is this okay / right???
@@ -539,7 +534,7 @@ class JetHEPFit(object):
                         # Load stored errors
                         if not self.performFit:
                             #logger.debug("Checking error fit data for {}: {}".format(identifier, fitCont.errors))
-                            for identifier, data in iteritems(fitCont.errors):
+                            for identifier, data in fitCont.errors.items():
                                 #logger.warning("len(data): {}, data: {}, identifier: {}".format(len(data), data, identifier))
                                 if len(data) == 0:
                                     logger.warning("Errors for fit container ({},{}), identifier: {} should already be loaded, but don't appear to be. Please check the error object!".format(jetPtBin, trackPtBin, identifier))
@@ -554,7 +549,7 @@ class JetHEPFit(object):
             # Need to do after the above loops are completed because the errors depend on epAngle, dataType
             # Could write above, but it would be wasteful (freuqently overwritting the same yaml file)
             if self.includeFitError and self.calculateFitError:
-                for fitCont in itervalues(self.fitContainers):
+                for fitCont in self.fitContainers.values():
                     # Rewrite the fit container with the new errors
                     logger.debug("Writing errors for fitCont ({}, {})".format(fitCont.jetPtBin, fitCont.trackPtBin))
                     fitCont.saveToYAML(self.outputPrefix)
@@ -598,12 +593,12 @@ class JetHEPFit(object):
             # Add in x for func the function call
             argsForFuncCall["x"] = val
 
-            #logger.debug("Actual list of args: {}".format(list(itervalues(argsForFuncCall))))
+            #logger.debug("Actual list of args: {}".format(list(argsForFuncCall.values())))
 
             # We need to calculate the derivative once per x value
             start = time.time()
             logger.debug("Calculating the gradient for point {}.".format(i))
-            partialDerivative = partialDerivatives(list(itervalues(argsForFuncCall)))
+            partialDerivative = partialDerivatives(list(argsForFuncCall.values()))
             end = time.time()
             logger.debug("Finished calculating the graident in {} seconds.".format(end-start))
 
@@ -613,7 +608,7 @@ class JetHEPFit(object):
                 for jName in funcArgs:
                     # Evaluate the partial derivative at a point
                     # Must be called as a list!
-                    listOfArgsForFuncCall = list(itervalues(argsForFuncCall))
+                    listOfArgsForFuncCall = list(argsForFuncCall.values())
                     iNameIndex = listOfArgsForFuncCall.index(argsForFuncCall[iName])
                     jNameIndex = listOfArgsForFuncCall.index(argsForFuncCall[jName])
                     #logger.debug("Calculating error for iName: {}, iNameIndex: {} jName: {}, jNameIndex: {}".format(iName, iNameIndex, jName, jNameIndex))
@@ -634,7 +629,7 @@ class JetHEPFit(object):
     def SubtractEPHists(self):
         for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
             assert keys[0] == jetH.reaction_plane_orientation
-            for observable in itervalues(jetH.dPhiArray):
+            for observable in jetH.dPhiArray.values():
                 #retVal = self.CheckIfFitIsEnabled(epAngle, observable.correlationType)
                 #if retVal == False:
                 #    continue
@@ -681,11 +676,11 @@ class JetHEPFit(object):
 
     def RetrieveWidths(self):
         """ Extract widths from the fits. """
-        widths = collections.OrderedDict()
+        widths = {}
         # Retrieve the widths parameter and it's error
         for location in ["ns", "as"]:
-            widths[location] = collections.OrderedDict()
-            for (jetPtBin, trackPtBin), fitCont in iteritems(self.fitContainers):
+            widths[location] = {}
+            for (jetPtBin, trackPtBin), fitCont in self.fitContainers.items():
                 value = fitCont.params["{}Sigma".format(location)]
                 error = fitCont.params["error_{}Sigma".format(location)]
                 widths[location][(jetPtBin, trackPtBin)] = analysis_objects.ExtractedObservable(jetPtBin = jetPtBin,
@@ -710,7 +705,7 @@ class JetHEPFit(object):
         funcDescription.pop(funcDescription.index("x"))
 
         # Define the arguments we will call
-        argsForFuncCall = collections.OrderedDict()
+        argsForFuncCall = {}
         # Store the argument for x first
         argsForFuncCall["x"] = xValue
         # Store the rest of the arguments in order

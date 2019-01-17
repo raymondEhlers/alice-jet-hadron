@@ -5,11 +5,6 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-# Py2/3 compatibility
-from future.utils import iteritems
-from future.utils import itervalues
-
-import collections
 import copy
 import ctypes
 import dataclasses
@@ -144,18 +139,18 @@ class JetHAnalysis(analysis_objects.JetHBase):
         self.correlationProjectors = []
 
         # General histograms
-        self.generalHists1D = collections.OrderedDict()
-        self.generalHists2D = collections.OrderedDict()
+        self.generalHists1D = {}
+        self.generalHists2D = {}
 
         self.generalHists = [self.generalHists1D, self.generalHists2D]
 
         # Trigger jet pt. Used for calculating N_trig
-        self.triggerJetPt = collections.OrderedDict()
+        self.triggerJetPt = {}
 
         # 2D correlations
-        self.rawSignal2D = collections.OrderedDict()
-        self.mixedEvents2D = collections.OrderedDict()
-        self.signal2D = collections.OrderedDict()
+        self.rawSignal2D = {}
+        self.mixedEvents2D = {}
+        self.signal2D = {}
 
         # All 2D hists
         # NOTE: We can't use an iterator here because we rely on them being separate for initializing from ROOT files.
@@ -164,16 +159,16 @@ class JetHAnalysis(analysis_objects.JetHBase):
         self.hists2D = [self.rawSignal2D, self.mixedEvents2D, self.signal2D]
 
         # 1D correlations
-        self.dPhi = collections.OrderedDict()
-        self.dPhiArray = collections.OrderedDict()
-        self.dPhiSubtracted = collections.OrderedDict()
-        self.dPhiSubtractedArray = collections.OrderedDict()
-        self.dPhiSideBand = collections.OrderedDict()
-        self.dPhiSideBandArray = collections.OrderedDict()
-        self.dEtaNS = collections.OrderedDict()
-        self.dEtaNSArray = collections.OrderedDict()
-        self.dEtaNSSubtracted = collections.OrderedDict()
-        self.dEtaNSSubtractedArray = collections.OrderedDict()
+        self.dPhi = {}
+        self.dPhiArray = {}
+        self.dPhiSubtracted = {}
+        self.dPhiSubtractedArray = {}
+        self.dPhiSideBand = {}
+        self.dPhiSideBandArray = {}
+        self.dEtaNS = {}
+        self.dEtaNSArray = {}
+        self.dEtaNSSubtracted = {}
+        self.dEtaNSSubtractedArray = {}
 
         # All 1D hists
         self.hists1D = [self.dPhi, self.dPhiSubtracted, self.dPhiSideBand, self.dEtaNS, self.dEtaNSSubtracted]
@@ -187,11 +182,11 @@ class JetHAnalysis(analysis_objects.JetHBase):
         self.hists1DSubtractedArray = [self.dPhiSubtractedArray, self.dEtaNSSubtractedArray]
 
         # 1D fits
-        self.dPhiFit = collections.OrderedDict()
-        self.dPhiSideBandFit = collections.OrderedDict()
-        self.dPhiSubtractedFit = collections.OrderedDict()
-        self.dEtaNSFit = collections.OrderedDict()
-        self.dEtaNSSubtractedFit = collections.OrderedDict()
+        self.dPhiFit = {}
+        self.dPhiSideBandFit = {}
+        self.dPhiSubtractedFit = {}
+        self.dEtaNSFit = {}
+        self.dEtaNSSubtractedFit = {}
 
         # All 1D fits
         self.fits1D = [self.dPhiFit, self.dPhiSideBandFit, self.dPhiSubtractedFit, self.dEtaNSFit, self.dEtaNSSubtractedFit]
@@ -201,17 +196,17 @@ class JetHAnalysis(analysis_objects.JetHBase):
         self.fits1DSubtracted = [self.dPhiSubtractedFit, self.dEtaNSSubtractedFit]
 
         # Yields
-        self.yieldsNS = collections.OrderedDict()
-        self.yieldsAS = collections.OrderedDict()
-        self.yieldsDEtaNS = collections.OrderedDict()
+        self.yieldsNS = {}
+        self.yieldsAS = {}
+        self.yieldsDEtaNS = {}
 
         # All yields
         self.yields = [self.yieldsNS, self.yieldsAS, self.yieldsDEtaNS]
 
         # Widths
-        self.widthsNS = collections.OrderedDict()
-        self.widthsAS = collections.OrderedDict()
-        self.widthsDEtaNS = collections.OrderedDict()
+        self.widthsNS = {}
+        self.widthsAS = {}
+        self.widthsDEtaNS = {}
 
         # All widths
         self.widths = [self.widthsNS, self.widthsAS, self.widthsDEtaNS]
@@ -222,7 +217,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def assignGeneralHistsFromDict(self, histDict, outputDict):
         """ Simple helper to assign hists named in a dict to an output dict. """
-        for name, histName in iteritems(histDict):
+        for name, histName in histDict.items():
             # NOTE: The hist may not always exist, so we return None if it doesn't!
             outputDict[name] = self.inputHists.get(histName, None)
 
@@ -287,7 +282,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         ...
         for hists in self.hists1DStandard:
             #logger.debug("len(hists): {}, hists.keys(): {}".format(len(hists), hists.keys()))
-            for name, observable in iteritems(hists):
+            for name, observable in hists.items():
                 scaleFactor = observable.hist.calculateFinalScaleFactor()
                 #logger.info("Post projection scaling of hist {} with scale factor 1/{}".format(name, 1/scaleFactor))
                 observable.hist.Scale(scaleFactor)
@@ -302,7 +297,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def convert1DRootHistsToArray(self, inputHists, outputHists):
         """ Convert requested 1D hists to hist array format. """
-        for observable in itervalues(inputHists):
+        for observable in inputHists.values():
             outputHistName = self.histNameFormatDPhiArray.format(jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin, tag = observable.correlationType.str())
             histArray = analysis_objects.HistArray.initFromRootHist(observable.hist.hist)
             outputHists[outputHistName] = analysis_objects.CorrelationObservable1D(
@@ -353,7 +348,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Fit the selected 1D correlations. """
         fitOptions = self.config["fitOptions"]
 
-        for name, observable in iteritems(hists):
+        for name, observable in hists.items():
             # Fit the unsubtracted delta phi hist
             logger.debug("Fitting observable {} (named: {}) with function {}".format(observable, name, fitFunction))
             fit = fitFunction(observable.hist, trackPtBin = observable.trackPtBin, zyam = fitOptions["zyam"], disableVN = fitOptions["disableVN"], setFixedVN = fitOptions["fixedVN"])
@@ -375,7 +370,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     def subtract1DCorrelations(self, hists, signalFits, backgroundFits, subtractedHists, subtractedFits):
         """ Subtract the fit from seleected 1D correlations. """
-        for ((name, observable), signalFit, bgFit) in zip(iteritems(hists), itervalues(signalFits), itervalues(backgroundFits)):
+        for ((name, observable), signalFit, bgFit) in zip(hists.items(), signalFits.values(), backgroundFits.values()):
             logger.debug("name: {}, observable: {}, signalFit: {}, bgFit: {}".format(name, observable, signalFit, bgFit))
             # Create a clone of the dPhi hist to subtract
             subtractedHist = observable.hist.Clone("{}_subtracted".format(name))
@@ -418,8 +413,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
                       "AS": [math.pi, self.yieldsAS, self.dPhiSubtracted, self.dPhiSubtractedFit],
                       "dEtaNS": [0, self.yieldsDEtaNS, self.dEtaNSSubtracted, self.dEtaNSSubtractedFit]}
 
-        for location, (centralValue, yields, hists, fits) in iteritems(parameters):
-            for (name, observable), fit in zip(iteritems(hists), itervalues(fits)):
+        for location, (centralValue, yields, hists, fits) in parameters.items():
+            for (name, observable), fit in zip(hists.items(), fits.values()):
                 # Extract yield
                 min_val = observable.hist.GetXaxis().FindBin(centralValue - yieldLimit + utils.epsilon)
                 max_val = observable.hist.GetXaxis().FindBin(centralValue + yieldLimit - utils.epsilon)
@@ -448,8 +443,8 @@ class JetHAnalysis(analysis_objects.JetHBase):
                       "AS": [5, self.widthsAS, self.dPhiSubtracted, self.dPhiSubtractedFit],
                       "dEtaNS": [2, self.widthsDEtaNS, self.dEtaNSSubtracted, self.dEtaNSSubtractedFit]}
 
-        for location, (parameterNumber, widths, hists, fits) in iteritems(parameters):
-            for (name, observable), fit in zip(iteritems(hists), itervalues(fits)):
+        for location, (parameterNumber, widths, hists, fits) in parameters.items():
+            for (name, observable), fit in zip(hists.items(), fits.values()):
                 widths["{}_width".format(name)] = analysis_objects.ExtractedObservable(
                     jetPtBin = observable.jetPtBin,
                     trackPtBin = observable.trackPtBin,
@@ -467,7 +462,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         logger.info("Saving hist arrays!")
 
         for histCollection in output_observable:
-            for name, observable in iteritems(histCollection):
+            for name, observable in histCollection.items():
                 if isinstance(observable, analysis_objects.Observable):
                     hist = observable.hist
                 else:
@@ -653,7 +648,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         # Define the histograms that should be included
         # Of the form (name, tag, caption)
-        histsToWriteOut = collections.OrderedDict()
+        histsToWriteOut = {}
         # Raw
         histsToWriteOut["raw"] = (self.histNameFormat2D, "raw", r"Raw correlation function with the efficiency correction $\epsilon(\pT{},\eta{})$ applied, but before acceptance correction via the mixed events. This correlation is for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # Mixed
@@ -690,7 +685,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
             # Iterate over the hists to be included
             binDict = {"jetPtBin": jetPtBin, "trackPtBin": trackPtBin}
-            for (name, tag, description) in itervalues(histsToWriteOut):
+            for (name, tag, description) in histsToWriteOut.values():
                 # Define name
                 baseDict = {"tag": tag}
                 baseDict.update(binDict)

@@ -73,7 +73,6 @@ setup(
     # This is usually the minimal set of the required packages.
     # Packages should be installed via pip -r requirements.txt !
     install_requires=[
-        "future",
         "ruamel.yaml",
         "IPython",
         "scipy",
