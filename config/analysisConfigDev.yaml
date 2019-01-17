@@ -181,6 +181,8 @@ Response:
             pt_hard_bin: *PtHardBins10Bins
 
 EMCalCorrections:
+    # Track pt bins that are used when binning various cluster-track matching histograms.
+    track_pt_bins: !TrackPtBins [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
     componentsToPlot:
         CellEnergy:
             # Specialize via a specific histogram name
@@ -310,7 +312,7 @@ EMCalCorrections:
                     centBins:
                         - 0: "Pos. tracks"
                         - 5: "Neg. tracks"
-                    ptBins: [0]
+                    ptBins: [1]
                     etaDirections:
                         - 0: $\eta < 0$
                         - 1: $\eta > 0$
@@ -318,42 +320,42 @@ EMCalCorrections:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [1]
+                    ptBins: [2]
             MatchDifferential2:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [2]
+                    ptBins: [3]
             MatchDifferential3:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [3]
+                    ptBins: [4]
             MatchDifferential4:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [4]
+                    ptBins: [5]
             MatchDifferential5:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [5]
+                    ptBins: [6]
             MatchDifferential6:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [6]
+                    ptBins: [7]
             MatchDifferential7:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [7]
+                    ptBins: [8]
             MatchDifferential8:
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
-                    ptBins: [8]
+                    ptBins: [9]
             plotAdditional: false
         ClusterHadronicCorrection:
             # By following the same order as how the histograms are stored in the file,

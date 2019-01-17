@@ -9,7 +9,7 @@ import enum
 import logging
 import os
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 import warnings
 
 from pachyderm import yaml
@@ -85,6 +85,8 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         # Afterwards, we can initialize the base class
         super().__init__(*args, **kwargs)
 
+        self.track_pt_bins = self.task_config["track_pt_bins"]
+
     def hist_specific_processing(self) -> None:
         """ Perform processing on specific histograms in the input hists.
 
@@ -129,28 +131,29 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
             func = getattr(this_module, func_name)
             if func:
                 logger.debug(f"Calling func_name {func_name} (func {func}) for hist options {hist_options_name}")
-                options = func(hist_options_name, options)
+                options = func(hist_options_name, options, possible_track_pt_bins = self.track_pt_bins)
                 logger.debug(f"Options after return: {options}")
             else:
                 raise ValueError(func_name, f"Requested function for hist options {hist_options_name} doesn't exist!")
 
         return options
 
-def eta_phi_match_hist_names(hist_options_name, options):
+def eta_phi_match_hist_names(hist_options_name: str, options: Dict[str, Any], possible_track_pt_bins: Sequence[analysis_objects.TrackPtBin]) -> Dict[str, Any]:
     """ Generate hist names based on the available options.
 
     This approach allows generating of hist config options using for loops
     while still being defined in YAML.
 
     Note:
-        This function is called via histOptionsSpecificProcessing(...), so it is not
+        This function is called via hist_options_specific_processing(...), so it is not
         referenced directly in the source.
 
     Args:
-        histOptionsName (str): Name of the hist options.
-        options (dict): Associated set of hist options.
+        hist_options_name: Name of the hist options.
+        options: Associated set of hist options.
+        possible_track_pt_bins: Track pt bins used for this component.
     Returns:
-        dict: Updated set of hist options.
+        Updated set of hist options.
     """
     # Pop this value so it won't cause issues when creating the hist plotter later.
     processing_options = options.pop("processing")
@@ -164,27 +167,21 @@ def eta_phi_match_hist_names(hist_options_name, options):
     # {Number: label}
     eta_directions = processing_options["etaDirections"]
     # List of pt bins
-    pt_bins = processing_options["ptBins"]
-    # We don't load these from YAML to avoid having to frequently copy them
-    _possible_pt_bin_ranges = [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
-    # NOTE: Careful! We are using 0 indexed pt bins here, which is different than the standard when iterating with YAML.
-    possible_pt_bins = [
-        analysis_objects.TrackPtBin(bin = i, range = params.SelectedRange(min = low, max = high))
-        for i, (low, high) in enumerate(zip(_possible_pt_bin_ranges[:-1], _possible_pt_bin_ranges[1:]))
-    ]
+    selected_pt_bins = processing_options["ptBins"]
 
     hist_names = []
     for angle in angles:
         for cent_dict in cent_bins:
             cent_bin, cent_label = next(iter(cent_dict.items()))
-            for track_pt in possible_pt_bins:
+            for track_pt in possible_track_pt_bins:
                 # Only process the track pt bins that are selected.
-                if track_pt.bin not in pt_bins:
+                if track_pt.bin not in selected_pt_bins:
                     continue
                 for eta_dict in eta_directions:
                     eta_direction, eta_direction_label = next(iter(eta_dict.items()))
                     # Determine hist name
-                    name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin, eta_direction = eta_direction)
+                    # NOTE: Convert the pt bin to 0 indexed to retrieve the correct hist.
+                    name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin - 1, eta_direction = eta_direction)
                     # Determine label
                     # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
                     # the pt label. Instead, we generate the string directly.
