@@ -1105,6 +1105,7 @@ class CorrelationHistograms2D:
 class CorrelationHistogramsDeltaPhi:
     signal_dominated: Hist
     background_dominated: Hist
+    axis = JetHCorrelationAxis.delta_phi
 
     def asdict(self) -> Dict[str, Hist]:
         return dataclasses.asdict(self)
@@ -1113,6 +1114,7 @@ class CorrelationHistogramsDeltaPhi:
 class CorrelationHistogramsDeltaEta:
     near_side: Hist
     away_side: Hist
+    axis: JetHCorrelationAxis = JetHCorrelationAxis.delta_eta
 
     def asdict(self) -> Dict[str, Hist]:
         return dataclasses.asdict(self)
