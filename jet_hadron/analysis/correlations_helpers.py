@@ -314,6 +314,7 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
                                                  normalization_factor: float,
                                                  rebin_factor: int,
                                                  title_label: str,
+                                                 axis_label: str,
                                                  jet_pt: analysis_objects.JetPtBin,
                                                  track_pt: analysis_objects.TrackPtBin) -> None:
     """ Basic post processing tasks for a new 1D correlation observable. """
@@ -328,7 +329,6 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     jet_pt_bins_title = params.generate_jet_pt_range_string(jet_pt)
     track_pt_bins_title = params.generate_track_pt_range_string(track_pt)
     hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
-    hist.GetXaxis().SetTitle("#Delta#varphi")
-    # TODO: This isn't the right label!!
-    hist.GetYaxis().SetTitle("#Delta#eta")
+    hist.GetXaxis().SetTitle(axis_label)
+    hist.GetYaxis().SetTitle(f"dN/d{axis_label}")
 

@@ -79,6 +79,14 @@ class JetHCorrelationAxis(enum.Enum):
         """ Return the name of the correlations axis. """
         return self.name
 
+    def display_str(self) -> str:
+        """ Return the name of the correlation axis for display using latex. """
+        angle = self.name.split("_")[1]
+        if angle == "phi":
+            angle = "var" + angle
+
+        return r"$\Delta" + "\\" + angle + "$"
+
 class JetHCorrelationSparseProjector(projectors.HistProjector):
     """ Projector for THnSparse into 2D histograms.
 
@@ -1745,18 +1753,21 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     normalization_factor = normalization_factor,
                     rebin_factor = rebin_factor,
                     title_label = title_label,
+                    axis_label = params.use_label_with_root(correlation_axis.display_str()),
                 )
 
     def _post_creation_processing_for_1d_correlation(self, hist: Hist,
                                                      normalization_factor: float,
                                                      rebin_factor: int,
-                                                     title_label: str):
+                                                     title_label: str,
+                                                     axis_label: str):
         """ Basic post processing tasks for a new 1D correlation. """
         correlations_helpers.post_creation_processing_for_1d_correlations(
             hist = hist,
             normalization_factor = normalization_factor,
             rebin_factor = rebin_factor,
             title_label = title_label,
+            axis_label = axis_label,
             jet_pt = self.jet_pt,
             track_pt = self.track_pt,
         )
