@@ -92,31 +92,10 @@ class JetHCorrelationProjector(projectors.HistProjector):
     """ Projector for the Jet-h 2D correlation hists to 1D correlation hists. """
     def projection_name(self, **kwargs):
         """ Define the projection name for the Jet-H response matrix projector """
-        #observable = kwargs["input_observable"]
         track_pt = kwargs["track_pt"]
         jet_pt = kwargs["jet_pt"]
-        #track_pt_bin = observable.track_pt_bin
-        #jet_pt_bin = observable.jet_pt_bin
         logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
         return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
-
-    #def get_hist(self, observable, *args, **kwargs):
-    #    """ Return the histogram which is inside of an HistContainer object which is stored in an CorrelationObservable object."""
-    #    return observable.hist.hist
-
-    #def output_hist(self, output_hist, projection_name, *args, **kwargs):
-    #    """ Creates a HistContainer in a CorrelationObservable to store the output. """
-    #    # In principle, we could pass `**kwargs`, but this could get dangerous if names changes later and initialize something
-    #    # unexpected in the constructor, so instead we'll be explicit
-    #    input_observable = kwargs["input_observable"]
-    #    output_observable = analysis_objects.CorrelationObservable1D(
-    #        jet_pt_bin = input_observable.jet_pt_bin,
-    #        track_pt_bin = input_observable.track_pt_bin,
-    #        axis = kwargs["axis"],
-    #        correlation_type = kwargs["correlation_type"],
-    #        hist = analysis_objects.HistContainer(output_hist)
-    #    )
-    #    return output_observable
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
@@ -1198,7 +1177,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 if hist:
                     hist.Write()
 
-    def _init_from_root_file(self):
+    def _init_from_root_file(self, **kwargs) -> bool:
         raise NotImplementedError("Need to move from the previous implementation.")
 
     def _setup_sparse_projectors(self) -> None:
@@ -1367,9 +1346,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _setup_projectors(self):
         """ Setup the projectors for the analysis. """
+        # NOTE: It's best to define the projector right before utilizing it. Here, this runs as the last
+        #       step of the setup, and then these projectors are executed immeidately.
+        #       This is the best practice because we can only define the projectors for single objects once
+        #       the histogram that it will project from exists. If it doesn't yet exist, the projector will
+        #       fail because it stores the value (ie the hist) at the time of the projector definition.
         self._setup_sparse_projectors()
-        # TODO: Can we move this back? It had to be moved because the input hists are undefined at this point.
-        #self._setup_1d_projectors()
 
     def _determine_number_of_triggers(self) -> int:
         """ Determine the number of triggers for the specific analysis parameters. """
@@ -1465,8 +1447,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         for projector in self.sparse_projectors:
             projector.project()
 
-        # Determine n_trig for the object.
-        # TODO: Can this be moved to somewhere more appropriate?
+        # Determine number of triggers for the analysis.
         self.number_of_triggers = self._determine_number_of_triggers()
 
         # Raw signal hist post processing.
@@ -1493,10 +1474,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             title_label = "Mixed event",
         )
 
-        # Rebin
-        # TODO: Work on rebin quality... I think we just rebin later?
-
-    def _create_2d_signal_correlation(self):
+    def _create_2d_signal_correlation(self) -> None:
         """ Create 2D signal correlation for raw and mixed correlations.
 
         This method is intentionally decoupled for creating the raw and mixed event hists so that the
@@ -1514,7 +1492,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             title_label = "Correlation",
         )
 
-    def _run_2d_projections(self):
+    def _run_2d_projections(self) -> None:
         """ Run the correlations 2D projections. """
         # Only need to check if file exists for this if statement because we cannot get past there
         # without somehow having some hists
