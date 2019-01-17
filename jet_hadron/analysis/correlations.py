@@ -1534,9 +1534,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
             logger.info("Plotting RPF example region")
-            # TODO: Remove this bin value check...
-            if self.processing_options["plotRPFHighlights"] and self.jet_pt.bin == 2 and self.track_pt.bin == 4:
-                plot_correlations.plot_RPF_fit_regions(self)
+            if self.processing_options["plotRPFHighlights"]:
+                plot_correlations.plot_RPF_fit_regions(
+                    self,
+                    filename = "highlight_RPF_regions_jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
+                )
 
     def _setup_1d_projectors(self) -> None:
         """ Setup 2D -> 1D correlation projectors.

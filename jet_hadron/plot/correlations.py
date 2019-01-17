@@ -265,11 +265,14 @@ def define_highlight_regions():
 
     return highlight_regions
 
-def plot_RPF_fit_regions(jet_hadron):
+def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -> None:
     """ Plot showing highlighted RPF fit regions.
 
     Args:
-        jet_hadron (JetHAnalysis.Correlations): Main analysis object.
+        jet_hadron: Main analysis object.
+        filename: Filename under which the hist should be saved.
+    Returns:
+        None
     """
     # Retrieve the hist to be plotted
     # Here we selected the corrected 2D correlation
@@ -279,9 +282,11 @@ def plot_RPF_fit_regions(jet_hadron):
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
         # TODO: Determine if color overlays are better here!
-        (fig, ax) = highlight_RPF.plotRPFFitRegions(histogram.get_array_from_hist2D(hist),
-                                                    highlightRegions = define_highlight_regions(),
-                                                    useColorOverlay = False)
+        (fig, ax) = highlight_RPF.plotRPFFitRegions(
+            histogram.get_array_from_hist2D(hist),
+            highlightRegions = define_highlight_regions(),
+            useColorOverlay = False
+        )
 
         # Add additional labeling
         # Axis
@@ -330,6 +335,5 @@ def plot_RPF_fit_regions(jet_hadron):
                   transform = ax.transAxes)
 
         # Finish up
-        plot_base.savePlot(jet_hadron, fig, "highlightRPFRegions")
+        plot_base.savePlot(jet_hadron, fig, filename)
         plt.close(fig)
-
