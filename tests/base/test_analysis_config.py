@@ -8,7 +8,6 @@
 import copy
 import logging
 import pytest
-import ruamel.yaml
 
 from pachyderm import generic_config
 from pachyderm import yaml
@@ -121,8 +120,8 @@ override:
             responseTaskName: "ignoreThisValue"
 """
 
-    yaml = ruamel.yaml.YAML()
-    data = yaml.load(test_yaml)
+    yml = yaml.yaml()
+    data = yml.load(test_yaml)
     return data
 
 def test_basic_selected_overrides(logging_mixin, basic_config, override_options_helper):
