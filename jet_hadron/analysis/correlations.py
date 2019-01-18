@@ -16,7 +16,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, Dict, List, Mapping, Type
+from typing import Any, Dict, List, Mapping, Optional, Type
 import warnings
 
 from pachyderm import generic_class
@@ -448,18 +448,18 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
         logger.info("Saving hist arrays!")
 
-        for histCollection in output_observable:
-            for name, observable in histCollection.items():
-                if isinstance(observable, analysis_objects.Observable):
-                    hist = observable.hist
-                else:
-                    hist = observable
+        #for histCollection in output_observable:
+        #    for name, observable in histCollection.items():
+        #        if isinstance(observable, analysis_objects.Observable):
+        #            hist = observable.hist
+        #        else:
+        #            hist = observable
 
-                hist.saveToYAML(prefix = self.outputPrefix,
-                                objType = observable.correlationType,
-                                jetPtBin = observable.jetPtBin,
-                                trackPtBin = observable.trackPtBin,
-                                fileAccessMode = mode)
+        #        hist.saveToYAML(prefix = self.outputPrefix,
+        #                        objType = observable.correlationType,
+        #                        jetPtBin = observable.jetPtBin,
+        #                        trackPtBin = observable.trackPtBin,
+        #                        fileAccessMode = mode)
 
     def writeGeneralHistograms(self):
         """ Write general histograms to file. """
@@ -526,7 +526,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
                 histName = self.histNameFormatTrigger
                 hist = f.Get(histName)
                 if hist:
-                    self.triggerJetPt[histName] = analysis_objects.Observable(hist = analysis_objects.HistContainer(hist))
+                    #self.triggerJetPt[histName] = analysis_objects.Observable(hist = analysis_objects.HistContainer(hist))
                     # Ensure that the hist doesn't disappear when the file closes
                     hist.SetDirectory(0)
                 else:
@@ -1084,9 +1084,15 @@ class CorrelationHistograms2D:
         return dataclasses.asdict(self)
 
 @dataclass
+class CorrelationObservable1D:
+    type: analysis_objects.JetHCorrelationType
+    axis: JetHCorrelationAxis
+    hist: Hist
+
+@dataclass
 class CorrelationHistogramsDeltaPhi:
-    signal_dominated: Hist
-    background_dominated: Hist
+    signal_dominated: Optional[CorrelationObservable1D]
+    background_dominated: Optional[CorrelationObservable1D]
     axis = JetHCorrelationAxis.delta_phi
 
     def asdict(self) -> Dict[str, Hist]:
@@ -1094,8 +1100,8 @@ class CorrelationHistogramsDeltaPhi:
 
 @dataclass
 class CorrelationHistogramsDeltaEta:
-    near_side: Hist
-    away_side: Hist
+    near_side: Optional[CorrelationObservable1D]
+    away_side: Optional[CorrelationObservable1D]
     axis: JetHCorrelationAxis = JetHCorrelationAxis.delta_eta
 
     def asdict(self) -> Dict[str, Hist]:
