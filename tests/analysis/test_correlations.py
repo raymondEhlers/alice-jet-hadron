@@ -9,11 +9,6 @@ By necessity, these won't be extensive, but we can cover some functionality.
 
 import pytest  # noqa: F401
 
-from jet_hadron.analysis import correlations
+from jet_hadron.analysis import correlations  # noqa: F401
 
-def test_jet_hadron_correlation_axis_display(logging_mixin):
-    """ Test for displaying a jet_hadron correlation axis. """
-
-    axis = correlations.JetHCorrelationAxis.delta_phi
-
-    assert axis.display_str() == r"$\Delta\varphi$"
+# Nothing to test at the moment due to refactoring.

@@ -88,6 +88,7 @@ setup(
         "probfit",
         "numdifftools",
         "pachyderm",
+        "reaction_plane_fit",
     ],
 
     # Include additional files
