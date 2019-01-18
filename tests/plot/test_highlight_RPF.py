@@ -18,21 +18,21 @@ def scaleColorToMax1(colors):
     """ Scale all colors to max 1 (from 255). """
     return tuple(map(highlight_RPF.convertColorToMax1, colors))
 
-def testConvertColorsToMax1(logging_mixin):
+def test_convert_colors_to_max_1(logging_mixin):
     """ Test the scaling of a color from [0, 255] -> [0, 1]. """
     assert highlight_RPF.convertColorToMax1(0) == 0
     assert highlight_RPF.convertColorToMax1(51) == 0.2
     assert highlight_RPF.convertColorToMax1(64) == 64 / 255.
     assert highlight_RPF.convertColorToMax1(255) == 1
 
-def testConvertColrosToMax255(logging_mixin):
+def test_convert_colros_to_max_255(logging_mixin):
     """ Test the scaling of a color from [0,1] -> [0, 255]. """
     assert highlight_RPF.convertColorToMax255(0) == 0
     assert highlight_RPF.convertColorToMax255(0.2) == 51
     assert highlight_RPF.convertColorToMax255(0.25) == 64
     assert highlight_RPF.convertColorToMax255(1) == 255
 
-def testOverlayColors(logging_mixin):
+def test_overlay_colors(logging_mixin):
     """ Test determining colors using the "overlay" method. """
     # Example 1
     background = scaleColorToMax1((169, 169, 169))
@@ -47,7 +47,7 @@ def testOverlayColors(logging_mixin):
     result = scaleColorToMax1((154, 90, 42))
     assert numpy.allclose(highlight_RPF.overlayColors(foreground = foreground, background = background), result, 0.005)
 
-def testScreenColors(logging_mixin):
+def test_screen_colors(logging_mixin):
     """ Test determining colors using the "screen" method. """
     # Start with a simple example
     foreground = scaleColorToMax1((0, 0, 0))
