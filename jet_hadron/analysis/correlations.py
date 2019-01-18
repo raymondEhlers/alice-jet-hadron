@@ -1698,7 +1698,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _create_1d_correlations(self) -> None:
         # Project the histograms
-        # Includes the dPhi signal dominated, dPhi background dominated, and dEta near side
+        # Includes the delta phi signal dominated, delta phi background dominated, and delta eta near side
         for projector in self.correlation_projectors:
             projector.project()
 
@@ -1792,12 +1792,25 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 h = histogram.Histogram1D.from_existing_hist(h)
 
         # Make the comparison.
-
-    def _compare_unsubtracted_1d_correlations(self):
-        """ Compare unsubtracted 1d correlation. """
-
-        # Hist name: "allReconstructedSignalwithErrorsNOMnosub"
         ...
+
+    def _compare_unsubtracted_1d_signal_correlation_to_joel(self):
+        """ Compare Joel's unsubtracted delta phi signal region correlations to mine. """
+        map_to_joels_hist_names = {
+            params.ReactionPlaneOrientation.all: "all",
+            params.ReactionPlaneOrientation.in_plane: "in",
+            params.ReactionPlaneOrientation.mid_plane: "mid",
+            params.ReactionPlaneOrientation.out_of_plane: "out",
+        }
+
+        # Example hist name for all orientations: "allReconstructedSignalwithErrorsNOMnosub"
+        joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
+        joel_hist_name += "ReconstructedSignalwithErrorsNOMnosub"
+
+        self._compare_to_other_hist(
+            our_hist = self.correlation_hists_delta_phi.signal_dominated,
+            theirs = self.comparison_hists[joel_hist_name]
+        )
 
     def _compare_to_joel(self):
         """ Compare 1D correlations against Joel's produced correlations. """

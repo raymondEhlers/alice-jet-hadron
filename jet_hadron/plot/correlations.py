@@ -134,6 +134,9 @@ def plot_1d_correlations(jet_hadron):
             hist.Draw("")
             plot_base.saveCanvas(jet_hadron, canvas, hist.GetName())
 
+    # TODO: Plot signal correlations on top of background correlations.
+    plot_base.saveCanvas(...)
+
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
 
