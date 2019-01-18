@@ -134,8 +134,22 @@ def plot_1d_correlations(jet_hadron):
             hist.Draw("")
             plot_base.save_canvas(jet_hadron, canvas, hist.GetName())
 
-    # TODO: Plot signal correlations on top of background correlations.
-    plot_base.save_canvas(...)
+    plot_1d_signal_and_background_root(jet_hadron, jet_hadron.correlation_hists_delta_phi)
+
+def plot_1d_signal_and_background_root(jet_hadron, hists) -> None:
+    """ Plot 1D signal and background ROOT hists on a single plot. """
+    canvas = ROOT.TCanvas("canvas1D", "canvas1D")
+
+    # Plot signal and background correlations on the same plot
+    hists.signal_dominated.Draw("")
+    hists.background_dominated.SetMarkerColor(ROOT.kBlue)
+    hists.background_dominated.Draw("same")
+    output_name = jet_hadron.hist_name_format_delta_phi.format(
+        jet_pt_bin = jet_hadron.jet_pt.bin,
+        track_pt_bin = jet_hadron.track_pt.bin,
+        tag = "signal_background_comparion",
+    )
+    plot_base.save_canvas(jet_hadron, canvas, output_name)
 
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
