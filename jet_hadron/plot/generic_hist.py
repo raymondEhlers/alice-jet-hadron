@@ -22,7 +22,7 @@ from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -253,7 +253,7 @@ class HistPlotter:
             raise ValueError("No output name passed or set for the object! Please set a name.")
 
         # Save and close the figure
-        plotBase.savePlot(obj, fig, output_name)
+        plot_base.save_plot(obj, fig, output_name)
         plt.close(fig)
 
     def plot_2D_hists(self, fig, ax) -> None:
@@ -303,7 +303,7 @@ class HistPlotter:
         kwargs["norm"] = normalizationFunction(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array))
         logger.debug("min: {}, max: {}".format(np.nanmin(hist_array), np.nanmax(hist_array)))
         # Colormap is the default from sns.heatmap
-        kwargs["cmap"] = plotBase.prepareColormap(sns.cm.rocket)
+        kwargs["cmap"] = plot_base.prepare_colormap(sns.cm.rocket)
         # Label is included so we could use a legend if we want
         kwargs["label"] = self.get_first_hist().GetTitle()
 

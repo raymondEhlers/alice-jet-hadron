@@ -114,11 +114,11 @@ def plot_2d_correlations(jet_hadron):
         #text.DrawLatexNDC(.1, .7, "\mathrm{test}")
 
         # Save plot
-        plot_base.saveCanvas(jet_hadron, canvas, hist.GetName())
+        plot_base.save_canvas(jet_hadron, canvas, hist.GetName())
 
         # Draw as colz to view more precisely
         hist.Draw("colz")
-        plot_base.saveCanvas(jet_hadron, canvas, hist.GetName() + "colz")
+        plot_base.save_canvas(jet_hadron, canvas, hist.GetName() + "colz")
 
         canvas.Clear()
 
@@ -132,10 +132,10 @@ def plot_1d_correlations(jet_hadron):
             # Draw the 1D histogram.
             # NOTE: that we don't want to scale the histogram here by the bin width because we've already done that!
             hist.Draw("")
-            plot_base.saveCanvas(jet_hadron, canvas, hist.GetName())
+            plot_base.save_canvas(jet_hadron, canvas, hist.GetName())
 
     # TODO: Plot signal correlations on top of background correlations.
-    plot_base.saveCanvas(...)
+    plot_base.save_canvas(...)
 
 def plot1DCorrelationsWithFits(jetH):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
@@ -148,7 +148,7 @@ def plot1DCorrelationsWithFits(jetH):
             # Create scaled hist and plot it
             observable.hist.Draw("")
             fit.Draw("same")
-            plot_base.saveCanvas(jetH, canvas, observable.hist.GetName())
+            plot_base.save_canvas(jetH, canvas, observable.hist.GetName())
 
 def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
                               # For labeling purposes
@@ -227,7 +227,7 @@ def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    plot_base.savePlot(jet_hadron, fig, hist_name)
+    plot_base.save_plot(jet_hadron, fig, hist_name)
     # Close the figure
     plt.close(fig)
 
@@ -338,5 +338,5 @@ def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -
                   transform = ax.transAxes)
 
         # Finish up
-        plot_base.savePlot(jet_hadron, fig, filename)
+        plot_base.save_plot(jet_hadron, fig, filename)
         plt.close(fig)

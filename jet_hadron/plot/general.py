@@ -11,7 +11,7 @@ import logging
 
 import rootpy.ROOT as ROOT
 
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def drawAndSaveGeneralHist(jetH, canvas, hists, drawOpt = ""):
                 resetLog = True
 
             hist.Draw(drawOpt)
-            plotBase.saveCanvas(jetH, canvas, name)
+            plot_base.save_canvas(jetH, canvas, name)
 
             if resetLog:
                 canvas.SetLogy(False)
@@ -57,5 +57,5 @@ def plotTriggerJetSpectra(jetH):
         canvas = ROOT.TCanvas("canvas", "canvas")
         canvas.SetLogy(True)
         jetH.triggerJetPt[jetH.histNameFormatTrigger].hist.Draw()
-        plotBase.saveCanvas(jetH, canvas, jetH.histNameFormatTrigger)
+        plot_base.save_canvas(jetH, canvas, jetH.histNameFormatTrigger)
 

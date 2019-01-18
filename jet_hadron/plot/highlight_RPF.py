@@ -33,7 +33,7 @@ import ROOT
 
 from pachyderm import histogram
 
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT!
@@ -282,7 +282,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
     if isinstance(colormap, str):
         colormap = plt.get_cmap(colormap)
     # Set bad values to white with not transparency
-    colormap = plotBase.prepareColormap(colormap)
+    colormap = plot_base.prepare_colormap(colormap)
 
     # Plot surface(s)
     surf = surfacePlotForHighlighting(ax, X, Y, histArray, colormap = colormap)
@@ -448,8 +448,8 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
 
         # Save and finish up
         # The figure will be saved at outputPrefix/outputPath.printingExtension
-        outputWrapeer = plotBase.plottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
-        plotBase.savePlot(outputWrapeer, fig, outputPath = "highlightRPFRegions")
+        outputWrapeer = plot_base.PlottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
+        plot_base.save_plot(outputWrapeer, fig, output_path = "highlightRPFRegions")
         plt.close(fig)
 
 def parseArguments():

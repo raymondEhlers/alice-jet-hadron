@@ -21,7 +21,7 @@ from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
     fig.tight_layout()
 
     # Save plot
-    plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Minuit"))
+    plot_base.save_plot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Minuit"))
     # Cleanup
     plt.close(fig)
 
@@ -283,7 +283,7 @@ def PlotRPF(epFitObj):
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
+        plot_base.save_plot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
 
         # Cleanup
         plt.close(fig)
@@ -301,7 +301,7 @@ def PlotRPF(epFitObj):
         axesResidual[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        plotBase.savePlot(epFitObj, figResidual, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Residual"))
+        plot_base.save_plot(epFitObj, figResidual, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "Residual"))
 
         # Cleanup
         plt.close(figResidual)
@@ -455,7 +455,7 @@ def PlotSubtractedEPHists(epFitObj):
         axes[3].legend(handles = noDuplicates.values(), labels = noDuplicates.keys(), loc="best", fontsize = plottingSettings["legend.fontsize"])
 
         # Save plot
-        plotBase.savePlot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "_subtracted"))
+        plot_base.save_plot(epFitObj, fig, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "_subtracted"))
 
         # Cleanup
         plt.close(fig)
@@ -470,7 +470,7 @@ def PlotSubtractedEPHists(epFitObj):
         axisAll.legend(loc="best", fontsize = 16)
 
         # Save plot
-        plotBase.savePlot(epFitObj, figAll, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "AllAngles_subtracted"))
+        plot_base.save_plot(epFitObj, figAll, epFitObj.fitNameFormat.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str() + "AllAngles_subtracted"))
 
         # Cleanup
         plt.close(figAll)
@@ -540,7 +540,7 @@ def CompareToJoel(epFitObj):
 
         # Save plot
         # TODO: Define this name in the class!
-        plotBase.savePlot(epFitObj, fig, "joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}_subtracted".format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
+        plot_base.save_plot(epFitObj, fig, "joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}_subtracted".format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
 
         # Cleanup
         plt.close(fig)

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import rootpy.ROOT as ROOT
 
 from jet_hadron.base import params as params
-from jet_hadron.plot import base as plotBase
+from jet_hadron.plot import base as plot_base
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ def plotExtractedValues(jetH, values, parameters):
     legend.Draw("same")
 
     # Save plot
-    plotBase.saveCanvas(jetH, canvas, tag)
+    plot_base.save_canvas(jetH, canvas, tag)
 
 def createExtractedValuesLegend(collisionSystem, tag):
     """ Create legends for extracted value plots. """
@@ -188,7 +188,7 @@ def PlotWidthsNew(jetH, widths):
 
         # Save plot
         # TODO: Define this name in the class!
-        plotBase.savePlot(jetH, fig, "widths{}RPF".format(location.upper()))
+        plot_base.save_plot(jetH, fig, "widths{}RPF".format(location.upper()))
 
         # Cleanup
         plt.close(fig)
