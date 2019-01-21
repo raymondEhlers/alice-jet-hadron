@@ -86,6 +86,11 @@ class HistPlotter:
         self.use_pcolor_mesh = usePColorMesh
         self.step_plot = stepPlot
 
+    def __repr__(self) -> str:
+        """ Representation of the object. """
+        values = ("{k!s} = {v!r}".format(k = k, v = v) for k, v in self.__dict__.items())
+        return "{}({})".format(self.__class__.__name__, ", ".join(values))
+
     def get_first_hist(self) -> ROOT.TH1:
         return next(iter(self.hists))
 
