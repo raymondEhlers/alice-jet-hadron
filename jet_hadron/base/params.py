@@ -14,7 +14,7 @@ import logging
 import numbers
 import numpy as np
 import re
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import yaml
@@ -264,6 +264,10 @@ class SelectedRange:
     min: float
     max: float
 
+    def __iter__(self) -> Iterator[Tuple[str, float]]:
+        for k, v in vars(self).items():
+            yield k, v
+
 @dataclass(frozen = True)
 class ReactionPlaneBinInformation:
     """ Helper for storing reaction plane bin information.
@@ -358,8 +362,8 @@ class EventActivity(enum.Enum):
         ret_val = ""
         # For inclusive, we want to return an empty string.
         if self != EventActivity.inclusive:
-            logger.debug(f"asdict: {dataclasses.asdict(self.value_range)}")
-            ret_val = r"%(min)s\mbox{-}%(max)s\mbox{\%%}" % dataclasses.asdict(self.value_range)
+            logger.debug(f"dict: {dict(self.value_range)}")
+            ret_val = r"%(min)s\mbox{-}%(max)s\mbox{\%%}" % dict(self.value_range)
         return ret_val
 
     # Handle YAML serialization
@@ -430,6 +434,10 @@ class SelectedAnalysisOptions:
 
     def __iter__(self) -> Iterable[Any]:
         return iter(dataclasses.astuple(self))
+
+    #def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    #    for k, v in vars(self).items():
+    #        yield k, v
 
 # For use with overriding configuration values
 SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore

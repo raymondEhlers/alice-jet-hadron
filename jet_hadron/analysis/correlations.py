@@ -7,7 +7,6 @@
 
 import copy
 import ctypes
-import dataclasses
 from dataclasses import dataclass
 import enum
 #import IPython
@@ -16,7 +15,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, ClassVar, Dict, List, Mapping, Optional, Type
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Type
 import warnings
 
 from pachyderm import generic_class
@@ -87,6 +86,21 @@ class JetHCorrelationProjector(projectors.HistProjector):
         jet_pt = kwargs["jet_pt"]
         logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
         return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
+
+    def output_hist(self, output_hist: Hist,
+                    input_observable: Any,
+                    **kwargs: Dict[str, Any]) -> analysis_objects.CorrelationObservable1D:
+        """ Wrap the output histogram with some additional information. """
+        correlation_type = kwargs["type"]
+        correlation_axis = kwargs["axis"]
+        # Help out mypy
+        assert isinstance(correlation_type, analysis_objects.JetHCorrelationType)
+        assert isinstance(correlation_axis, analysis_objects.JetHCorrelationAxis)
+        return analysis_objects.CorrelationObservable1D(
+            type = correlation_type,
+            axis = correlation_axis,
+            hist = output_hist,
+        )
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
@@ -1063,26 +1077,33 @@ class CorrelationHistograms2D:
     mixed_event: Hist
     signal: Hist
 
-    def asdict(self) -> Dict[str, Hist]:
-        return dataclasses.asdict(self)
+    def __iter__(self) -> Iterator[Tuple[str, Hist]]:
+        # NOTE: dataclasses.asdict(...) is recursive, so it's far
+        #       too aggressive for our purposes!
+        for k, v in vars(self).items():
+            yield k, v
 
 @dataclass
 class CorrelationHistogramsDeltaPhi:
     signal_dominated: Optional[analysis_objects.CorrelationObservable1D]
     background_dominated: Optional[analysis_objects.CorrelationObservable1D]
-    axis: ClassVar[analysis_objects.JetHCorrelationAxis] = analysis_objects.JetHCorrelationAxis.delta_phi
 
-    def asdict(self) -> Dict[str, Hist]:
-        return dataclasses.asdict(self)
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.CorrelationObservable1D]]:
+        # NOTE: dataclasses.asdict(...) is recursive, so it's far
+        #       too aggressive for our purposes!
+        for k, v in vars(self).items():
+            yield k, v
 
 @dataclass
 class CorrelationHistogramsDeltaEta:
     near_side: Optional[analysis_objects.CorrelationObservable1D]
     away_side: Optional[analysis_objects.CorrelationObservable1D]
-    axis: ClassVar[analysis_objects.JetHCorrelationAxis] = analysis_objects.JetHCorrelationAxis.delta_eta
 
-    def asdict(self) -> Dict[str, Hist]:
-        return dataclasses.asdict(self)
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.CorrelationObservable1D]]:
+        # NOTE: dataclasses.asdict(...) is recursive, so it's far
+        #       too aggressive for our purposes!
+        for k, v in vars(self).items():
+            yield k, v
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
@@ -1314,6 +1335,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Mixed Event projector
         ###########################
         # TODO: Use a broader range of pt for mixed events like Joel?
+        #       To do so, just find bins of higher values.
         projection_information["tag"] = "mixed"
         mixed_event_projector = JetHCorrelationSparseProjector(
             observable_to_project_from = self.input_hists["fhnMixedEvents"],
@@ -1538,12 +1560,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # delta_phi signal
         ###########################
         projection_information = {
-            "correlation_type": analysis_objects.JetHCorrelationType.signal_dominated,
+            "type": analysis_objects.JetHCorrelationType.signal_dominated,
             "axis": analysis_objects.JetHCorrelationAxis.delta_phi,
+            # For labeling purposes
             "jet_pt": self.jet_pt,
             "track_pt": self.track_pt,
         }
-        projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
+        projection_information["tag"] = str(projection_information["type"])  # type: ignore
         delta_phi_signal_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
             output_observable = self.correlation_hists_delta_phi,
@@ -1592,12 +1615,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # delta_phi Background dominated
         ###########################
         projection_information = {
-            "correlation_type": analysis_objects.JetHCorrelationType.background_dominated,
+            "type": analysis_objects.JetHCorrelationType.background_dominated,
             "axis": analysis_objects.JetHCorrelationAxis.delta_phi,
+            # For labeling purposes
             "jet_pt": self.jet_pt,
             "track_pt": self.track_pt,
         }
-        projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
+        projection_information["tag"] = str(projection_information["type"])  # type: ignore
         delta_phi_background_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
             output_observable = self.correlation_hists_delta_phi,
@@ -1646,12 +1670,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # delta_eta NS
         ###########################
         projection_information = {
-            "correlation_type": analysis_objects.JetHCorrelationType.near_side,
+            "type": analysis_objects.JetHCorrelationType.near_side,
             "axis": analysis_objects.JetHCorrelationAxis.delta_eta,
+            # For labeling purposes
             "jet_pt": self.jet_pt,
             "track_pt": self.track_pt,
         }
-        projection_information["tag"] = str(projection_information["correlation_type"])  # type: ignore
+        projection_information["tag"] = str(projection_information["type"])  # type: ignore
         delta_eta_ns_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
             output_observable = self.correlation_hists_delta_eta,
@@ -1686,10 +1711,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
             projector.project()
 
         # Post process and scale
-        # TODO: Add in delta_eta hists
-        for correlation_axis, hists in [(analysis_objects.JetHCorrelationAxis.delta_phi, self.correlation_hists_delta_phi.asdict())]:
-            for name, hist in hists.items():
-                logger.info(f"Post projection processing of 1D correlation {name}")
+        for correlations in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+            # Help out mypy...
+            assert isinstance(correlations, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
+
+            for name, observable in correlations:
+                logger.info(f"Post projection processing of 1D correlation: {observable.axis}, {observable.type}")
 
                 # Determine normalization factor
                 # We only apply this so we don't unnecessarily scale the signal region.
@@ -1719,8 +1746,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Could also consider trying to get the projector directly and apply it to a hist
                 ################
 
-                # TODO: Improve the quality of this check. This is too fragile.
-                if "background" in name:
+                if observable.type == analysis_objects.JetHCorrelationType.background_dominated \
+                        and observable.axis == analysis_objects.JetHCorrelationAxis.delta_phi:
                     # Scale by (signal region)/(background region)
                     # NOTE: Will be applied as `1/normalization_factor`, so the value is the inverse
                     #normalization_factor = background_range/signal_range
@@ -1732,13 +1759,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
                 # Post process and scale
                 rebin_factor = 2
-                title_label = f"{name}, {str(correlation_axis)}"
+                title_label = f"{str(observable.axis)}, {str(observable.type)}"
                 self._post_creation_processing_for_1d_correlation(
-                    hist = hist,
+                    hist = observable.hist,
                     normalization_factor = normalization_factor,
                     rebin_factor = rebin_factor,
                     title_label = title_label,
-                    axis_label = params.use_label_with_root(correlation_axis.display_str()),
+                    axis_label = params.use_label_with_root(observable.axis.display_str()),
                 )
 
     def _post_creation_processing_for_1d_correlation(self, hist: Hist,
@@ -1761,12 +1788,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
         # Since the histograms are always referencing the same root object, the stored hists
         # will also be updated.
-        # TODO: Include back the delta_eta hists.
-        #for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
-        for hists in [self.correlation_hists_delta_phi]:
-            for hist in hists.asdict().values():
-                logger.debug(f"hist: {hist}")
-                correlations_helpers.scale_by_bin_width(hist)
+        for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+            for _, observable in hists:
+                logger.debug(f"hist: {observable}")
+                correlations_helpers.scale_by_bin_width(observable.hist)
 
     def _compare_to_other_hist(self, our_hist: Hist, their_hist: Hist):
         # Validation
