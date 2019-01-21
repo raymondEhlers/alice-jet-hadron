@@ -223,7 +223,10 @@ class JetHReactionPlane(JetHBinnedAnalysis):
                 input_list = self.input_list_name
             )
         else:
-            temp_input_hists = input_hists[self.input_list_name]
+            try:
+                temp_input_hists = input_hists[self.input_list_name]
+            except KeyError as e:
+                raise KeyError(f"Available lists: {input_hists}") from e
         self.input_hists = temp_input_hists
 
         return len(self.input_hists) > 0

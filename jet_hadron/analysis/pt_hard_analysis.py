@@ -9,6 +9,8 @@ import logging
 from typing import Any, Dict, Mapping, Type
 
 from pachyderm import histogram
+from pachyderm import projectors
+from pachyderm import remove_outliers
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -44,6 +46,10 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.use_after_event_selection_information = self.task_config.get("use_after_event_selection_information", False)
         self.train_number = self.pt_hard_bin.train_number
         self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
+
+        # Outliers removal
+        self.moving_average_threshold = self.task_config.get("moving_average_threshold", 1.0)
+        self.outliers_manager: remove_outliers.OutliersRemovalManager
 
         # Histograms
         self.pt_hard_spectra: Hist
@@ -117,6 +123,14 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         result = self._retrieve_histograms(input_hists = input_hists)
         if result is False:
             raise ValueError("Could not retrieve histograms.")
+
+        # Setup outliers removal
+        self.outliers_manager = remove_outliers.OutliersRemovalManager(
+            particle_level_axis = projectors.TH1AxisType.y_axis,
+            moving_average_threshold = 1.0,
+        )
+
+        # Extract scale factors and number of events in the particular pt hard bin.
         self.scale_factor = self._extract_scale_factor()
         if not self.scale_factor > 0.:
             raise ValueError("Failed to extract scale factor.")
@@ -131,11 +145,15 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         """ Calculate the scale factor rescaled for the different number of events in each pt hard bin. """
         return self.scale_factor * average_number_of_events / self.number_of_events
 
-    def remove_outliers(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+    def outliers_removal(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+        """ Remove outliers from the stored histograms. """
         # TODO: Implement
-        pass
+        self.outliers_manager.run()
+
+        return False
 
     def scale_histograms(self, analysis: Type[analysis_objects.JetHBase]) -> bool:
+        """ Scale the selected histograms by the calculated scale factors. """
         # TODO: Implement
         pass
 
@@ -159,7 +177,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.scale_factor = self._calculate_rescale_factor(average_number_of_events)
 
         # Remove outliers from the given analysis object.
-        result = self.outlier_removal(analysis)
+        result = self.outliers_removal(analysis)
         if result is False:
             raise RuntimeError("Outlier removal failed.")
 

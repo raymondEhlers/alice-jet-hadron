@@ -325,7 +325,7 @@ class ResponseManager(generic_class.EqualityMixin):
         # Cache input hists so we can avoid repeatedly opening files
         input_hists: Dict[Any, Dict[str, Any]] = {}
 
-        # Run the RM projectors
+        # Run the response matrix projectors
         for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
             logger.debug(f"{pt_hard_bin}")
             input_hists[pt_hard_bin] = {}
@@ -349,9 +349,10 @@ class ResponseManager(generic_class.EqualityMixin):
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
-        # Finally, scaling the projected histograms according to their pt hard bins.
+        # Finally, scaling the projected histograms according to their pt hard bins,
+        # outliers removal.
         for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
-            pt_hard_bin = self.pt_hard_bin[pt_hard_bin_index]
+            pt_hard_bin = self.pt_hard_bins[pt_hard_bin_index]
             for _, analysis in \
                     analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
                 pt_hard_bin.run(analysis = analysis, average_number_of_events = average_number_of_events)
