@@ -487,7 +487,6 @@ EMCalCorrections:
 
 EMCalEmbedding:
     componentsToPlot:
-        # TODO: Handle multiple pt hard bins (trains)
         # TODO: Add AliEventCuts support
         CrossSection:
             textLabel:
@@ -527,6 +526,7 @@ EMCalEmbedding:
         trainNumber: 3231
         iterables:
             reaction_plane_orientation: false
+            pt_hard_bin: *PtHardBins10Bins
 
 bias:
     track:

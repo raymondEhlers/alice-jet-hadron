@@ -32,7 +32,8 @@ def plot_2d_correlations(jet_hadron):
     canvas = ROOT.TCanvas("canvas2D", "canvas2D")
 
     # Iterate over 2D hists
-    for name, hist in jet_hadron.correlation_hists_2d:
+    for name, initial_hist in jet_hadron.correlation_hists_2d:
+        hist = initial_hist.Clone(f"{initial_hist.GetName()}_scaled")
         logger.debug(f"name: {name}, hist: {hist}")
         # We don't want to scale the mixed event hist because we already determined the normalization
         if "mixed" not in name:
@@ -99,23 +100,12 @@ def plot_2d_correlations(jet_hadron):
         tex.DrawLatexNDC(.73, .91, constituent_cuts)
         tex.DrawLatexNDC(.75, .86, leading_hadron)
 
-        # Reproduce ROOT problems with the below. Plot in ROOT on a canvas will look fine, but
-        # when printed to PDF, will display the raw latex (for most symbols, but not all)
-        #text = ROOT.TLatex()
-        #text.DrawLatexNDC(.1, .3, r"Hello")
-        #text.DrawLatexNDC(.1, .4, "#sqrt{test}")
-        ## Visual corruption shows up with a "\"
-        #text.DrawLatexNDC(.1, .5, "\sqrt{test}")
-        ## This one doesn't work, but the others do!
-        #text.DrawLatexNDC(.1, .6, "#mathrm{test}")
-        #text.DrawLatexNDC(.1, .7, "\mathrm{test}")
-
         # Save plot
-        plot_base.save_canvas(jet_hadron, canvas, hist.GetName())
+        plot_base.save_canvas(jet_hadron, canvas, initial_hist.GetName())
 
         # Draw as colz to view more precisely
         hist.Draw("colz")
-        plot_base.save_canvas(jet_hadron, canvas, hist.GetName() + "colz")
+        plot_base.save_canvas(jet_hadron, canvas, initial_hist.GetName() + "colz")
 
         canvas.Clear()
 
