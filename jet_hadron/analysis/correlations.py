@@ -16,7 +16,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, ClassVar, Dict, List, Mapping, Optional, Type
 import warnings
 
 from pachyderm import generic_class
@@ -1070,7 +1070,7 @@ class CorrelationHistograms2D:
 class CorrelationHistogramsDeltaPhi:
     signal_dominated: Optional[analysis_objects.CorrelationObservable1D]
     background_dominated: Optional[analysis_objects.CorrelationObservable1D]
-    axis = analysis_objects.JetHCorrelationAxis.delta_phi
+    axis: ClassVar[analysis_objects.JetHCorrelationAxis] = analysis_objects.JetHCorrelationAxis.delta_phi
 
     def asdict(self) -> Dict[str, Hist]:
         return dataclasses.asdict(self)
@@ -1079,7 +1079,7 @@ class CorrelationHistogramsDeltaPhi:
 class CorrelationHistogramsDeltaEta:
     near_side: Optional[analysis_objects.CorrelationObservable1D]
     away_side: Optional[analysis_objects.CorrelationObservable1D]
-    axis = analysis_objects.JetHCorrelationAxis.delta_eta
+    axis: ClassVar[analysis_objects.JetHCorrelationAxis] = analysis_objects.JetHCorrelationAxis.delta_eta
 
     def asdict(self) -> Dict[str, Hist]:
         return dataclasses.asdict(self)
