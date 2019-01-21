@@ -401,10 +401,10 @@ class LeadingHadronBias(generic_class.EqualityMixin):
     For determining the actual value, see anaylsisConfig.determineLeadingHadronBias(...)
 
     Args:
-        type (params.leadingHadronBiasType): Type of leading hadron bias.
-        value (float): Value of the leading hadron bias.
+        type: Type of leading hadron bias.
+        value: Value of the leading hadron bias.
     """
-    def __init__(self, type, value):
+    def __init__(self, type: LeadingHadronBiasType, value: float):
         self.type = type
         # If the leadingHadronBias is disabled, then the value is irrelevant and should be set to 0.
         if self.type == LeadingHadronBiasType.NA:
@@ -418,9 +418,9 @@ class LeadingHadronBias(generic_class.EqualityMixin):
         as NA, it simply returns "NA".
         """
         if self.type != LeadingHadronBiasType.NA:
-            return "{type}Bias{value}".format(type = self.type, value = self.value)
+            return f"{self.type}Bias{self.value}"
         else:
-            return "{type}".format(type = self.type, value = self.value)
+            return f"{self.type}"
 
 @dataclass
 class SelectedAnalysisOptions:
@@ -430,14 +430,17 @@ class SelectedAnalysisOptions:
     leading_hadron_bias: Union[LeadingHadronBias, LeadingHadronBiasType]
 
     def asdict(self) -> Dict[str, Any]:
+        """ Returns a dictionary of the selected analysis options.
+
+        Note:
+            For an unclear reason, this appears to depends on the recursive nature
+            of ``asdict(...)`` to convert the leading hadron bias.
+        """
         return dataclasses.asdict(self)
 
-    def __iter__(self) -> Iterable[Any]:
-        return iter(dataclasses.astuple(self))
-
-    #def __iter__(self) -> Iterator[Tuple[str, Any]]:
-    #    for k, v in vars(self).items():
-    #        yield k, v
+    def __iter__(self) -> Iterator[Any]:
+        for v in vars(self).values():
+            yield v
 
 # For use with overriding configuration values
 SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
