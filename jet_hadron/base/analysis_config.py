@@ -7,7 +7,7 @@
 
 import argparse
 import logging
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Dict, Mapping, Sequence, Set, Tuple
 
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
@@ -181,16 +181,22 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
     )
     return (selected_analysis_options, additional_validated_args)
 
-def construct_from_configuration_file(task_name: str, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, obj: Any, additional_possible_iterables: Dict[str, Any] = None) -> ConstructedObjects:
+def construct_from_configuration_file(task_name: str, config_filename: str,
+                                      selected_analysis_options: params.SelectedAnalysisOptions,
+                                      obj: Any,
+                                      additional_possible_iterables: Dict[str, Any] = None,
+                                      additional_classes_to_register: Sequence[Any] = None) -> ConstructedObjects:
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
         task_name: Name of the analysis task.
         config_filename: Filename of the yaml config.
-        selected_analysis_options (params.SelectedAnalysisOptions): Selected analysis options.
+        selected_analysis_options: Selected analysis options.
         obj (object): The object to be constructed.
-        additional_possible_iterables(dict): Additional iterators to use when creating the objects,
-            in the form of "name" : list(values). Default: None.
+        additional_possible_iterables: Additional iterators to use when creating the objects,
+            in the form of "name": list(values). Default: None.
+        additional_classes_to_register: Additional classes to register from YAML object
+            construction.
     Returns:
         (object, list, dict): Roughly, (KeyIndex, names, objects). Specifically, the key_index is a
             new dataclass which defines the parameters used to create the object, names is the names
@@ -202,6 +208,8 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     (selected_analysis_options, additional_validated_args) = validate_arguments(selected_analysis_options)
     if additional_possible_iterables is None:
         additional_possible_iterables = {}
+    if additional_classes_to_register is None:
+        additional_classes_to_register = []
 
     # Setup iterables
     # Selected on event plane and q vector are required since they are included in
@@ -214,9 +222,11 @@ def construct_from_configuration_file(task_name: str, config_filename: str, sele
     possible_iterables.update({k: v for k, v in additional_possible_iterables.items() if k not in possible_iterables})
 
     # Classes to register for reconstruction within YAML
-    classes_to_register = set([
+    classes_to_register: Set[Any] = set([
         # Add any additional classses that are needed and aren't defined in params or analysis_objects.
     ])
+    # Add requested iterables
+    classes_to_register.update(additional_classes_to_register)
     # We also want all possible iterables, but we have to skip None iterables (which are defined in the YAML),
     # and thus must already be listed above.
     classes_to_register.update([v for v in possible_iterables.values() if v])
