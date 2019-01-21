@@ -1152,7 +1152,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         hist_names = ["raw", "mixed_event", "signal"]
         self._write_to_root_file(hists = self.correlation_hists_2d, hist_names = hist_names)
 
-    def _write_trigger_jet_spectra(self):
+    def _write_trigger_jet_spectra(self) -> None:
         """ Write trigger jet spectra to file. """
         self._write_to_root_file(hists = self, hist_names = ["number_of_triggers_hist"])
 
@@ -1179,7 +1179,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Helper which defines the full axis range
         full_axis_range = {
             "min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
-            "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
+            "max_val": HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins),
         }
 
         # Define common axes
