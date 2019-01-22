@@ -159,6 +159,31 @@ def plot1DCorrelationsWithFits(jetH):
             fit.Draw("same")
             plot_base.save_canvas(jetH, canvas, observable.hist.GetName())
 
+def comparison_1d(jet_hadron,
+                  our_hist: histogram.Histogram1D,
+                  their_hist: histogram.Histogram1D,
+                  title: str, x_label: str, y_label: str,
+                  output_name: str):
+    """ Compare our hist and their hist. """
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot data
+    ax.errorbar(our_hist.x, our_hist.y, yerr = our_hist.errors, label = "Our hist")
+    ax.errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
+
+    # Set plot properties
+    ax.set_title(title)
+    ax.set_xlabel(r"$\Delta\varphi$")
+    ax.set_ylabel(r"$\mathrm{dN}/\mathrm{d}\varphi$")
+    ax.legend(loc = "best")
+
+    # Final adjustments
+    fig.tight_layout()
+
+    plot_base.save_plot(jet_hadron, fig, output_name)
+
+    plt.close(fig)
+
 def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
                               # For labeling purposes
                               hist_name: str, eta_limits: Sequence[float], jet_pt_title: str, track_pt_title: str,

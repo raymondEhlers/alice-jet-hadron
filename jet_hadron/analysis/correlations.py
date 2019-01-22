@@ -1542,7 +1542,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             if self.processing_options["plotRPFHighlights"]:
                 plot_correlations.plot_RPF_fit_regions(
                     self,
-                    filename = "highlight_RPF_regions_jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
+                    filename = f"highlight_RPF_regions_jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
                 )
 
     def _setup_1d_projectors(self) -> None:
@@ -1704,6 +1704,44 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         self.correlation_projectors.append(delta_eta_ns_projector)
 
+        ###########################
+        # delta_eta AS
+        ###########################
+        projection_information = {
+            "type": analysis_objects.JetHCorrelationType.away_side,
+            "axis": analysis_objects.JetHCorrelationAxis.delta_eta,
+            # For labeling purposes
+            "jet_pt": self.jet_pt,
+            "track_pt": self.track_pt,
+        }
+        projection_information["tag"] = str(projection_information["type"])  # type: ignore
+        delta_eta_as_projector = JetHCorrelationProjector(
+            observable_to_project_from = self.correlation_hists_2d.signal,
+            output_observable = self.correlation_hists_delta_eta,
+            output_attribute_name = "away_side",
+            projection_name_format = self.hist_name_format_delta_eta,
+            projection_information = projection_information,
+        )
+        # Select away side in delta phi
+        delta_eta_as_projector.additional_axis_cuts.append(
+            HistAxisRange(
+                axis_type = analysis_objects.JetHCorrelationAxis.delta_phi,
+                axis_range_name = "deltaPhiAwaySide",
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(3. * math.pi / 2.)] - epsilon)
+            )
+        )
+        # No projection dependent cut axes
+        delta_eta_as_projector.projection_dependent_cut_axes.append([])
+        delta_eta_as_projector.projection_axes.append(
+            HistAxisRange(
+                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_range_name = "delta_eta",
+                **full_axis_range
+            )
+        )
+        self.correlation_projectors.append(delta_eta_as_projector)
+
     def _create_1d_correlations(self) -> None:
         # Project the histograms
         # Includes the delta phi signal dominated, delta phi background dominated, and delta eta near side
@@ -1714,8 +1752,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         for correlations in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
             # Help out mypy...
             assert isinstance(correlations, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
-
             for name, observable in correlations:
+                logger.debug(f"name: {name}, observable: {observable}")
                 logger.info(f"Post projection processing of 1D correlation: {observable.axis}, {observable.type}")
 
                 # Determine normalization factor
@@ -1793,17 +1831,30 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.debug(f"hist: {observable}")
                 correlations_helpers.scale_by_bin_width(observable.hist)
 
-    def _compare_to_other_hist(self, our_hist: Hist, their_hist: Hist):
+    def _compare_to_other_hist(self,
+                               our_hist: Hist, their_hist: Hist,
+                               title: str, x_label: str, y_label: str,
+                               output_name: str) -> None:
         # Validation
-        for h in [our_hist, their_hist]:
-            if not isinstance(h, histogram.Histogram1D):
-                h = histogram.Histogram1D.from_existing_hist(h)
+        if not isinstance(our_hist, histogram.Histogram1D):
+            our_hist = histogram.Histogram1D.from_existing_hist(our_hist)
+        if not isinstance(their_hist, histogram.Histogram1D):
+            their_hist = histogram.Histogram1D.from_existing_hist(their_hist)
 
         # Make the comparison.
-        ...
+        plot_correlations.comparison_1d(
+            jet_hadron = self,
+            our_hist = our_hist,
+            their_hist = their_hist,
+            title = title,
+            x_label = x_label,
+            y_label = y_label,
+            output_name = output_name,
+        )
 
-    def _compare_unsubtracted_1d_signal_correlation_to_joel(self):
+    def _compare_unsubtracted_1d_signal_correlation_to_joel(self, comparison_hists):
         """ Compare Joel's unsubtracted delta phi signal region correlations to mine. """
+        # Define map by hand because it's out of our control.
         map_to_joels_hist_names = {
             params.ReactionPlaneOrientation.all: "all",
             params.ReactionPlaneOrientation.in_plane: "in",
@@ -1816,19 +1867,28 @@ class Correlations(analysis_objects.JetHReactionPlane):
         joel_hist_name += "ReconstructedSignalwithErrorsNOMnosub"
 
         self._compare_to_other_hist(
-            our_hist = self.correlation_hists_delta_phi.signal_dominated,
-            theirs = self.comparison_hists[joel_hist_name]
+            our_hist = self.correlation_hists_delta_phi.signal_dominated.hist,
+            their_hist = comparison_hists[joel_hist_name],
+            title = f"Unsubtracted 1D: {self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}, {params.generate_jet_pt_range_string(self.jet_pt)}, {params.generate_track_pt_range_string(self.track_pt)}",
+            x_label = r"$\Delta\varphi$",
+            y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
+            output_name = self.hist_name_format_delta_phi.format(
+                jet_pt_bin = self.jet_pt.bin,
+                track_pt_bin =self.track_pt.bin,
+                tag = "joel_comparion_unsub",
+            ),
         )
 
     def _compare_to_joel(self):
         """ Compare 1D correlations against Joel's produced correlations. """
-        # Need minus 1 just to conform with convention.
-        # TODO: Update
+        # Need track_pt_bin - 1 to conform with convention the 0-index convention.
         comparison_track_pt_bin = self.track_pt.bin - 1
         comparison_filename = f"RPF_sysScaleCorrelations{comparison_track_pt_bin}rebinX2bg.root"
-        comparison_filename = os.path.join(self.processing_options["joelsCentralCorrelations"], comparison_filename)
+        comparison_filename = os.path.join(self.task_config["joelsCorrelationsFilePath"], comparison_filename)
         comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
         logger.debug(f"{comparison_hists}")
+
+        self._compare_unsubtracted_1d_signal_correlation_to_joel(comparison_hists)
 
     def _convert_1d_correlations(self):
         """ Convert 1D correlations to Histograms. """
@@ -1851,11 +1911,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
             # TODO: Move the methods below back above this line
             if self.processing_options["plot1DCorrelations"]:
+                logger.info("Comparing unsubtracted correlations to Joel's.")
+                self._compare_to_joel()
                 logger.info("Plotting 1D correlations")
                 plot_correlations.plot_1d_correlations(self)
-
-            # TODO: Can only compare after fit...
-            #self._compare_to_joel()
 
             # TODO: Uncomment
             # Create hist arrays
