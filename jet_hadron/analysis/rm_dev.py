@@ -95,11 +95,11 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         self.response_matrix: Hist
         self.response_matrix_errirs: Hist
 
-        self.part_level_hists: ResponseHistograms
-        self.det_level_hists: ResponseHistograms
+        self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
+        self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
 
-    def _setup_projectors(self):
-        # TODO: Figure out projectors with single histograms.
+    def _setup_projectors(self) -> None:
+        """ Setup the sparse projectors. """
         # Helper range
         full_axis_range = {
             "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -111,8 +111,12 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             logger.info("Using full EP angle range")
         else:
             reaction_plane_axis_range = {
-                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin),
-                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(None, self.reaction_plane_orientation.value.bin)
+                "min_val": projectors.HistAxisRange.apply_func_to_find_bin(
+                    None, self.reaction_plane_orientation.value.bin
+                ),
+                "max_val": projectors.HistAxisRange.apply_func_to_find_bin(
+                    None, self.reaction_plane_orientation.value.bin
+                )
             }
             logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
@@ -125,16 +129,21 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Response matrix
         #################
         response_matrix = ResponseMatrixProjector(
-            output_observable = self.hists["responseMatrixPtHard"],
-            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "responseMatrix"
+            observable_to_project_from = self.input_hists["fHistMatching"],
+            output_observable = self,
+            output_attribute_name = "response_matrix",
+            projection_name_format = "responseMatrix",
         )
         response_matrix.additional_axis_cuts.append(
             projectors.HistAxisRange(
                 axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.clusterBias
+                ),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.GetNbins
+                )
             )
         )
         response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
@@ -158,13 +167,14 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(response_matrix)
 
-        ###################
+        #############################
         # Unmatched part level jet pt
-        ###################
+        #############################
         unmatched_part_level_jet_spectra = ResponseMatrixProjector(
-            output_observable = self.hists["unmatchedJetSpectraPartLevelPtHard"],
-            observable_to_project_from = self.hists["unmatchedPartLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraPartLevel"
+            observable_to_project_from = self.input_hists["fHistJets2"],
+            output_observable = self.part_level_hists,
+            output_attribute_name = "unmatched_jet_spectra",
+            projection_name_format = "unmatchedJetSpectraPartLevel",
         )
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
@@ -178,13 +188,14 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(unmatched_part_level_jet_spectra)
 
-        ###################
+        #############################
         # (Matched) Part level jet pt
-        ###################
+        #############################
         part_level_jet_spectra = ResponseMatrixProjector(
-            output_observable = self.hists["jetSpectraPartLevelPtHard"],
-            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraPartLevel"
+            observable_to_project_from = self.input_hists["fHistMatching"],
+            output_observable = self.part_level_hists,
+            output_attribute_name = "jet_spectra",
+            projection_name_format = "jetSpectraPartLevel",
         )
         part_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
@@ -199,17 +210,23 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(part_level_jet_spectra)
 
-        ##################
+        ############################
         # Unmatched det level jet pt
-        ##################
+        ############################
         unmatched_det_level_jet_spectra = ResponseMatrixProjector(
-            output_observable = self.hists["unmatchedJetSpectraDetLevelPtHard"],
-            observable_to_project_from = self.hists["unmatchedDetLevelJetsPtHardSparse"],
-            projection_name_format = "unmatchedJetSpectraDetLevel"
+            observable_to_project_from = self.input_hists["fHistJets1"],
+            output_observable = self.det_level_hists,
+            output_attribute_name = "unmatched_jet_spectra",
+            projection_name_format = "unmatchedJetSpectraDetLevel",
         )
+
+        # The leading particle axis varies depending on whether the event plane is included in the sparse.
+        leading_particle_axis = ResponseMakerJetsSparse.leading_particle_PP
+        if self.collision_system in [params.CollisionSystem.PbPb, params.CollisionSystem.embedPythia, params.CollisionSystem.embedPP]:
+            leading_particle_axis = ResponseMakerJetsSparse.leading_particle_PbPb
         unmatched_det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.leading_particle_PbPb if self.collision_system == analysis_objects.CollisionSystem.kPbPb else ResponseMakerJetsSparse.leading_particle_PP,
+                axis_type = leading_particle_axis,
                 axis_range_name = "unmatchedDetLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
@@ -226,13 +243,14 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(unmatched_det_level_jet_spectra)
 
-        ##################
+        ############################
         # (Matched) Det level jet pt
-        ##################
+        ############################
         det_level_jet_spectra = ResponseMatrixProjector(
-            output_observable = self.hists["jetSpectraDetLevelPtHard"],
-            observable_to_project_from = self.hists["responseMatrixPtHardSparse"],
-            projection_name_format = "jetSpectraDetLevel"
+            observable_to_project_from = self.input_hists["fHistMatching"],
+            output_observable = self.det_level_hists,
+            output_attribute_name = "jet_spectra",
+            projection_name_format = "jetSpectraDetLevel",
         )
         det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
@@ -253,7 +271,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Save the projector for later use
         self.projectors.append(det_level_jet_spectra)
 
-    def run_projectors(self):
+    def run_projectors(self) -> None:
         """ Execute the projectors to create the projected histograms. """
         # Perform the various projections
         for projector in self.projectors:
@@ -341,7 +359,7 @@ class ResponseManager(generic_class.EqualityMixin):
                     raise ValueError(f"Setup of {key_index} analysis object failed.")
                 analysis.run_projectors()
 
-        # Setup the pt hard bins
+        # Setup the pt hard bin analysis objects.
         for _, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
             pt_hard_bin.setup()
 
@@ -349,8 +367,7 @@ class ResponseManager(generic_class.EqualityMixin):
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
-        # Finally, scaling the projected histograms according to their pt hard bins,
-        # outliers removal.
+        # Finally, remove outliers and scale the projected histograms according to their pt hard bins.
         for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
             pt_hard_bin = self.pt_hard_bins[pt_hard_bin_index]
             for _, analysis in \
