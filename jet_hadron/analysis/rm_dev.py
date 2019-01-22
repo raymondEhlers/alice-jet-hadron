@@ -50,17 +50,13 @@ class ResponseMakerJetsSparse(enum.Enum):
     leading_particle_PbPb = 5
 
 class ResponseMatrixProjector(projectors.HistProjector):
-    """ Projector for the Jet-h response matrix THnSparse. """
-    def ProjectionName(self, **kwargs):
-        """ Define the projection name for the JetH RM projector """
-        ptHardBin = kwargs["inputKey"]
-        hist = kwargs["inputHist"]
-        logger.debug("Projecting pt hard bin: {0}, hist: {1}, projectionName: {2}".format(ptHardBin, hist.GetName(), self.projection_name_format.format(ptHardBin = ptHardBin)))
-        return self.projection_name_format.format(ptHardBin = ptHardBin)
+    """ Projector for the Jet-h response matrix THnSparse.
 
-    def OutputKeyName(self, inputKey, outputHist, *args, **kwargs):
-        """ Retrun the input key, which is the pt hard bin"""
-        return inputKey
+    Note:
+        Nothing more is needed at the moment, but we keep it to simpify customization in
+        the future.
+    """
+    ...
 
 class ResponseMatrixPtHardAnalysis(pt_hard_analysis.PtHardAnalysis):
     def remove_outliers(self):
@@ -139,7 +135,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
                 axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, self.clusterBias
+                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value
                 ),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.GetNbins
@@ -228,7 +224,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             projectors.HistAxisRange(
                 axis_type = leading_particle_axis,
                 axis_range_name = "unmatchedDetLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.leading_hadron_bias.value),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
             )
         )
@@ -256,7 +252,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             projectors.HistAxisRange(
                 axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.clusterBias),
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.leading_hadron_bias.value),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
             )
         )
@@ -325,25 +321,23 @@ class ResponseManager(generic_class.EqualityMixin):
         )
 
     def setup(self) -> None:
-        for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
-            logger.debug(f"{pt_hard_bin}")
-            input_hists: Dict[str, Any] = {}
-            for key_index, analysis in \
-                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
-                # We should now have all RP orientations.
-                # We are effectively caching the input hists here.
-                if not input_hists:
-                    input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
-                logger.debug(f"{key_index}")
-                analysis.setup(input_hists = input_hists)
-
-    def run(self) -> bool:
-        logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
+        #for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
+        #    logger.debug(f"{pt_hard_bin}")
+        #    input_hists: Dict[str, Any] = {}
+        #    for key_index, analysis in \
+        #            analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
+        #        # We should now have all RP orientations.
+        #        # We are effectively caching the input hists here.
+        #        if not input_hists:
+        #            input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
+        #        logger.debug(f"{key_index}")
+        #        logger.debug(f"input_hists: {pprint.pformat(input_hists)}")
+        #        analysis.setup(input_hists = input_hists)
 
         # Cache input hists so we can avoid repeatedly opening files
         input_hists: Dict[Any, Dict[str, Any]] = {}
 
-        # Run the response matrix projectors
+        # Setup the response matrix analysis objects and run the response matrix projectors
         for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
             logger.debug(f"{pt_hard_bin}")
             input_hists[pt_hard_bin] = {}
@@ -354,7 +348,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 if not input_hists[pt_hard_bin]:
                     input_hists[pt_hard_bin] = histogram.get_histograms_in_file(filename = analysis.input_filename)
                 logger.debug(f"{key_index}")
-                result = analysis.setup(input_hists = input_hists)
+                result = analysis.setup(input_hists = input_hists[pt_hard_bin])
                 if result is not True:
                     raise ValueError(f"Setup of {key_index} analysis object failed.")
                 analysis.run_projectors()
@@ -362,6 +356,12 @@ class ResponseManager(generic_class.EqualityMixin):
         # Setup the pt hard bin analysis objects.
         for _, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
             pt_hard_bin.setup()
+
+    def run(self) -> bool:
+        logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
+
+        # Setup the response matrix and pt hard analysis objets.
+        self.setup()
 
         # We have to determine the relative scale factors after the setup because they depend on the number of
         # events in all pt hard bins.
@@ -399,6 +399,8 @@ def run_from_terminal():
     logging.basicConfig(level = logging.DEBUG)
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
+    # Quiet down pachyderm generic config
+    logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
 
     # Setup the analysis
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
