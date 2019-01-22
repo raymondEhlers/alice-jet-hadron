@@ -89,6 +89,7 @@ setup(
         "numdifftools",
         "pachyderm",
         "reaction_plane_fit",
+        "coloredlogs",
     ],
 
     # Include additional files

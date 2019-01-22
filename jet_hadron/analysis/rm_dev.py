@@ -5,6 +5,7 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
 """
 
+import coloredlogs
 from dataclasses import dataclass
 import enum
 import logging
@@ -339,7 +340,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Setup the response matrix analysis objects and run the response matrix projectors
         for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
-            logger.debug(f"{pt_hard_bin}")
+            logger.debug(f"pt_hard_bin: {pt_hard_bin}")
             input_hists[pt_hard_bin] = {}
             for key_index, analysis in \
                     analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
@@ -396,7 +397,11 @@ class ResponseManager(generic_class.EqualityMixin):
 
 def run_from_terminal():
     # Basic setup
-    logging.basicConfig(level = logging.DEBUG)
+    # This replaces ``logging.basicConfig(...)``.
+    coloredlogs.install(
+        level = logging.DEBUG,
+        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
+    )
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down pachyderm generic config
