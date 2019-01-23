@@ -90,6 +90,7 @@ setup(
         "pachyderm",
         "reaction_plane_fit",
         "coloredlogs",
+        "enlighten",
     ],
 
     # Include additional files

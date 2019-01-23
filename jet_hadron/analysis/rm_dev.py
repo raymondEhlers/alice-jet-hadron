@@ -7,6 +7,7 @@
 
 import coloredlogs
 from dataclasses import dataclass
+import enlighten
 import enum
 import logging
 import pprint
@@ -89,8 +90,8 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         self.projectors: List[ResponseMatrixProjector] = []
 
         # Relevant histograms
-        self.response_matrix: Hist
-        self.response_matrix_errirs: Hist
+        self.response_matrix: Hist = None
+        self.response_matrix_errirs: Hist = None
 
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
@@ -301,6 +302,9 @@ class ResponseManager(generic_class.EqualityMixin):
         if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
             raise ValueError("Selected iterables pt hard bins differ from the pt hard bins of the pt hard bin analysis objects. Selected iterables: {self.selected_iterables['pt_hard_bins']}, pt hard analysis iterables: {pt_hard_iterables}")
 
+        # Monitor the progress of the analysis.
+        self.progress_manager = enlighten.get_manager()
+
     def construct_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct ResponseMatrix objects based on iterables in a configuration file. """
         return analysis_config.construct_from_configuration_file(
@@ -322,41 +326,42 @@ class ResponseManager(generic_class.EqualityMixin):
         )
 
     def setup(self) -> None:
-        #for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
-        #    logger.debug(f"{pt_hard_bin}")
-        #    input_hists: Dict[str, Any] = {}
-        #    for key_index, analysis in \
-        #            analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
-        #        # We should now have all RP orientations.
-        #        # We are effectively caching the input hists here.
-        #        if not input_hists:
-        #            input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
-        #        logger.debug(f"{key_index}")
-        #        logger.debug(f"input_hists: {pprint.pformat(input_hists)}")
-        #        analysis.setup(input_hists = input_hists)
-
+        """ Setup and prepare the analysis objects. """
         # Cache input hists so we can avoid repeatedly opening files
         input_hists: Dict[Any, Dict[str, Any]] = {}
 
-        # Setup the response matrix analysis objects and run the response matrix projectors
-        for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
-            logger.debug(f"pt_hard_bin: {pt_hard_bin}")
-            input_hists[pt_hard_bin] = {}
-            for key_index, analysis in \
-                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
-                # We should now have all RP orientations.
-                # We are caching the values here to minimize opening files.
-                if not input_hists[pt_hard_bin]:
-                    input_hists[pt_hard_bin] = histogram.get_histograms_in_file(filename = analysis.input_filename)
-                logger.debug(f"{key_index}")
-                result = analysis.setup(input_hists = input_hists[pt_hard_bin])
-                if result is not True:
-                    raise ValueError(f"Setup of {key_index} analysis object failed.")
-                analysis.run_projectors()
+        with self.progress_manager.counter(total = len(self.analyses),
+                                           desc = "Configuring: ",
+                                           unit = "responses") as setting_up:
+            # Setup the response matrix analysis objects and run the response matrix projectors
+            for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
+                logger.debug(f"pt_hard_bin: {pt_hard_bin}")
+                input_hists[pt_hard_bin] = {}
+                for key_index, analysis in \
+                        analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin):
+                    # We should now have all RP orientations.
+                    # We are caching the values here to minimize opening files.
+                    if not input_hists[pt_hard_bin]:
+                        input_hists[pt_hard_bin] = histogram.get_histograms_in_file(filename = analysis.input_filename)
+                    logger.debug(f"key_index: {key_index}")
+                    result = analysis.setup(input_hists = input_hists[pt_hard_bin])
+                    if result is not True:
+                        raise ValueError(f"Setup of {key_index} analysis object failed.")
+                    analysis.run_projectors()
 
-        # Setup the pt hard bin analysis objects.
-        for _, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
-            pt_hard_bin.setup()
+                    # Update progress
+                    setting_up.update()
+
+        with self.progress_manager.counter(total = len(self.pt_hard_bins),
+                                           desc = "Setting up: ",
+                                           unit = "pt hard bins") as setting_up:
+            # Setup the pt hard bin analysis objects.
+            for key_index, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+                logger.debug(f"pt_hard_bin key: {key_index.pt_hard_bin}, input_hists[pt_hard_bin]: {input_hists[key_index.pt_hard_bin]}")
+                pt_hard_bin.setup(input_hists = input_hists[key_index.pt_hard_bin])
+
+                # Update progress
+                setting_up.update()
 
     def run(self) -> bool:
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
