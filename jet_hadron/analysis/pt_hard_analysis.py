@@ -89,8 +89,15 @@ class PtHardAnalysis(analysis_objects.JetHBase):
 
     def _extract_scale_factor(self) -> float:
         """ Extract the scale factor from the stored information. """
+        # Pt hard bin 1 is stored in root indexed by 2 by convention, so we need
+        # a +1 to get the proper values.
         cross_section = self.cross_section.GetBinContent(self.pt_hard_bin.bin + 1) * self.cross_section.GetEntries()
         n_trials = self.n_trials.GetBinContent(self.pt_hard_bin.bin + 1)
+
+        # Helpful for debugging empty values, but otherwise, it's excessively verbose.
+        #for i in range(0, self.n_trials.GetNcells()):
+        #    logger.debug(f"i: {i}, n_trials: {self.n_trials.GetBinContent(i)}")
+        #logger.debug(f"cross_section: {cross_section}, n_trials: {n_trials}")
 
         scale_factor = 0
         if n_trials > 0:

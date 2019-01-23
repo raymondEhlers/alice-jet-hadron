@@ -330,10 +330,10 @@ class ResponseManager(generic_class.EqualityMixin):
         # Cache input hists so we can avoid repeatedly opening files
         input_hists: Dict[Any, Dict[str, Any]] = {}
 
+        # Setup the response matrix analysis objects and run the response matrix projectors
         with self.progress_manager.counter(total = len(self.analyses),
                                            desc = "Configuring: ",
                                            unit = "responses") as setting_up:
-            # Setup the response matrix analysis objects and run the response matrix projectors
             for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
                 logger.debug(f"pt_hard_bin: {pt_hard_bin}")
                 input_hists[pt_hard_bin] = {}
@@ -352,12 +352,11 @@ class ResponseManager(generic_class.EqualityMixin):
                     # Update progress
                     setting_up.update()
 
+        # Setup the pt hard bin analysis objects.
         with self.progress_manager.counter(total = len(self.pt_hard_bins),
                                            desc = "Setting up: ",
                                            unit = "pt hard bins") as setting_up:
-            # Setup the pt hard bin analysis objects.
             for key_index, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
-                logger.debug(f"pt_hard_bin key: {key_index.pt_hard_bin}, input_hists[pt_hard_bin]: {input_hists[key_index.pt_hard_bin]}")
                 pt_hard_bin.setup(input_hists = input_hists[key_index.pt_hard_bin])
 
                 # Update progress
