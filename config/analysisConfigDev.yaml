@@ -87,30 +87,30 @@ Correlations:
 GeneralHists:
     componentsToPlot:
         JetH:
-            ZVertex:
+            ZVertex: !HistPlotter
                 title: "Z vertex"
                 textLabel:
                     enabled: true
-            Centrality:
+            Centrality: !HistPlotter
                 title: "Centrality"
                 textLabel:
                     enabled: true
-            EventPlane:
+            EventPlane: !HistPlotter
                 title: "Event plane orientations"
                 textLabel:
                     enabled: true
-            JetMatchingSameEventCuts:
+            JetMatchingSameEventCuts: !HistPlotter
                 textLabel:
                     enabled: true
-            JetMatchingMixedEventCuts:
+            JetMatchingMixedEventCuts: !HistPlotter
                 textLabel:
                     enabled: true
-            TrackPt:
+            TrackPt: !HistPlotter
                 #title: Associated track $\mathit{p}_{\mathrm{T}}$
                 logy: true
                 textLabel:
                     enabled: true
-            JetPt:
+            JetPt: !HistPlotter
                 logy: true
                 textLabel:
                     enabled: true
@@ -119,7 +119,7 @@ GeneralHists:
                     - "fHistJetPt_1": "10-30%"
                     - "fHistJetPt_2": "30-50%"
                     - "fHistJetPt_3": "50-90%"
-            JetPtBias:
+            JetPtBias: !HistPlotter
                 logy: true
                 textLabel:
                     enabled: true
@@ -128,11 +128,11 @@ GeneralHists:
                     - "fHistJetPtBias_1": "10-30%"
                     - "fHistJetPtBias_2": "30-50%"
                     - "fHistJetPtBias_3": "50-90%"
-            JetEtaPhi:
+            JetEtaPhi: !HistPlotter
                 title: $\eta-\phi$ of jets in correlations
                 textLabel:
                     enabled: true
-            JetHEtaPhi:
+            JetHEtaPhi: !HistPlotter
                 title: $\eta-\phi$ of charged hadrons in correlations
                 textLabel:
                     enabled: true
@@ -186,8 +186,10 @@ EMCalCorrections:
     componentsToPlot:
         CellEnergy:
             # Specialize via a specific histogram name
-            CellEnergy: &CellEnergy
+            CellEnergy: !HistPlotter &CellEnergy
                 # The spectra fall off rather quickly
+                # linting fails here for whatever reason...
+                # yamllint disable-line rule:indentation
                 xLimits: [0, 4]
                 title: "Cell energy"
                 logy: true
@@ -207,14 +209,14 @@ EMCalCorrections:
                     - "CellEnergyDistAfter": "After energy calibration"
             plotAdditional: true
         CellBadChannel:
-            CellEnergy:
+            CellEnergy: !HistPlotter
                 <<: *CellEnergy
                 histNames:
                     - "CellEnergyDistBefore": "Before bad channel removal"
                     - "CellEnergyDistAfter": "After bad channel removal"
             plotAdditional: true
         CellTimeCalib:
-            CellTime:
+            CellTime: !HistPlotter
                 title: "Cell time"
                 xLimits: [-300e-9, 900e-9]
                 scientificNotationOnAxis: "both"
@@ -226,7 +228,7 @@ EMCalCorrections:
                     - "CellTimeDistAfter": "After time calibration"
             plotAdditional: true
         Clusterizer:
-            ProcessingTime:
+            ProcessingTime: !HistPlotter
                 title: "Clusterizer processing time"
                 textLabel:
                     enabled: true
@@ -235,25 +237,27 @@ EMCalCorrections:
                     - "CPUTime": "CPU time"
             plotAdditional: false
         ClusterExotics:
-            EtaPhiDistBefore: &exoticsEtaPhi
+            EtaPhiDistBefore: !HistPlotter &exoticsEtaPhi
                 # Don't use quotes if we are using latex
+                # linting fails here for whatever reason...
+                # yamllint disable-line rule:indentation
                 title: Cluster $\eta,\phi$ before exotics removal
                 outputName: "ClusterEtaPhiBeforeExotics"
                 yLimits: [1.25, 3.5]
                 logz: true
                 textLabel:
                     clusterLabel: true
-            EtaPhiDistAfter:
+            EtaPhiDistAfter: !HistPlotter
                 <<: *exoticsEtaPhi
                 title: Cluster $\eta,\phi$ after exotics removal
                 outputName: "ClusterEtaPhiAfterExotics"
-            ExoticsRemoved:
+            ExoticsRemoved: !HistPlotter
                 <<: *exoticsEtaPhi
                 title: $\eta, \phi$ of cluster removed during exotic cut
                 outputName: "ClusterEtaPhiRemovedByExotics"
                 histNames:
                     - "hExoticsEtaPhiRemoved": ""
-            ExoticClusters:
+            ExoticClusters: !HistPlotter
                 title: "Energy of Exotic Clusters"
                 outputName: "ExoticClusterEnergy"
                 logy: true
@@ -263,7 +267,7 @@ EMCalCorrections:
                     - "EnergyExoticClusters": "Exotic Clusters"
             plotAdditional: true
         ClusterNonLinearity:
-            EnergyDist:
+            EnergyDist: !HistPlotter
                 title: "Non-linearity cluster energy spectra"
                 logy: true
                 textLabel:
@@ -271,7 +275,9 @@ EMCalCorrections:
                 histNames:
                     - "EnergyDistBefore": "Before non-linearity"
                     - "EnergyDistAfter": "After non-linearity"
-            EnergyTimeDistBefore: &energyTimeDist
+            EnergyTimeDistBefore: !HistPlotter &energyTimeDist
+                # linting fails here for whatever reason...
+                # yamllint disable-line rule:indentation
                 yLimits: [-300e-9, 400e-9]
                 xLimits: [0, 80]
                 logz: true
@@ -279,13 +285,13 @@ EMCalCorrections:
                 title: Cluster energy vs time before cluster non-linearity
                 textLabel:
                     clusterLabel: true
-            EnergyTimeDistAfter:
+            EnergyTimeDistAfter: !HistPlotter
                 <<: *energyTimeDist
                 outputName: EnergyTimeAfterNonLinearity
                 title: Cluster energy vs time after cluster non-linearity
             plotAdditional: true
         ClusterTrackMatcher:
-            MatchDistAll:
+            MatchDistAll: !HistPlotter
                 title: "All cluster-track matches"
                 xLabel: $\Delta\eta$, $\Delta\varphi$
                 xLimits: [-0.12, 0.12]
@@ -296,7 +302,9 @@ EMCalCorrections:
                 histNames:
                     - "MatchEtaAll": $\eta$ matches
                     - "MatchPhiAll": $\varphi$ matches
-            MatchDifferential0: &matchDifferential
+            MatchDifferential0: !HistPlotter &matchDifferential
+                # linting fails here for whatever reason...
+                # yamllint disable-line rule:indentation
                 title: $\Delta\eta$, $\Delta\varphi$ matches
                 xLabel: $\Delta\eta$, $\Delta\varphi$
                 xLimits: [-0.12, 0.12]
@@ -316,42 +324,42 @@ EMCalCorrections:
                     etaDirections:
                         - 0: $\eta < 0$
                         - 1: $\eta > 0$
-            MatchDifferential1:
+            MatchDifferential1: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [2]
-            MatchDifferential2:
+            MatchDifferential2: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [3]
-            MatchDifferential3:
+            MatchDifferential3: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [4]
-            MatchDifferential4:
+            MatchDifferential4: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [5]
-            MatchDifferential5:
+            MatchDifferential5: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [6]
-            MatchDifferential6:
+            MatchDifferential6: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [7]
-            MatchDifferential7:
+            MatchDifferential7: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
                     ptBins: [8]
-            MatchDifferential8:
+            MatchDifferential8: !HistPlotter
                 <<: *matchDifferential
                 processing:
                     <<: *matchDifferentialProcessing
@@ -360,7 +368,7 @@ EMCalCorrections:
         ClusterHadronicCorrection:
             # By following the same order as how the histograms are stored in the file,
             # we can be assured that the proper hist is matched to the proper config.
-            MatchEtaPhiAll:
+            MatchEtaPhiAll: !HistPlotter
                 title: $\Delta\eta$, $\Delta\varphi$ matches (track $\leftrightarrow$ cluster)
                 outputName: "EtaPhiMatches"
                 logz: true
@@ -370,7 +378,7 @@ EMCalCorrections:
                     textLocation: [0.35, 0.92]
                 histNames:
                     - "fHistMatchEtaPhiAll": "Matches"
-            MatchEtaPhiAllCl:
+            MatchEtaPhiAllCl: !HistPlotter
                 title: $\Delta\eta$, $\Delta\varphi$ matches from clusters
                 outputName: "EtaPhiMatchesFromClusters"
                 logz: true
@@ -380,7 +388,7 @@ EMCalCorrections:
                     textLocation: [0.35, 0.92]
                 histNames:
                     - "fHistMatchEtaPhiAllCl": "Matches"
-            TrackPESub:
+            TrackPESub: !HistPlotter
                 outputName: "TrackPESub"
                 xLabel: $\sum p$ (GeV) weighted with $E_{\mathrm{sub}}$
                 xLimits: [0, 175]
@@ -392,7 +400,7 @@ EMCalCorrections:
                     # 0, 5 are 0-10%
                     - "fHistEsubPch_0": "Positive charged tracks"
                     - "fHistEsubPch_5": "Negative charged tracks"
-            TrackPVsEOverPRatio:
+            TrackPVsEOverPRatio: !HistPlotter
                 outputName: "TrackPEOverPRatio"
                 title: $\sum p_{\mathrm{track}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
                 xLimits: [0, 150]
@@ -404,7 +412,7 @@ EMCalCorrections:
                 histNames:
                     # 0 is 0-10%
                     - "fHistEsubPchRatAll_0": ""
-            EClusVsEOverPRatio:
+            EClusVsEOverPRatio: !HistPlotter
                 outputName: "ClusterEoverPRatio"
                 title: $E_{\mathrm{cluster}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
                 xLimits: [0, 150]
@@ -414,7 +422,7 @@ EMCalCorrections:
                 histNames:
                     # 0 is 0-10%
                     - "fHistMatchEvsP_0": ""
-            EOverPVsCent:
+            EOverPVsCent: !HistPlotter
                 outputName: "EOverPCent"
                 title: &eOverPVsCentTitle $E_{\mathrm{cluster}}$ / $p_{\mathrm{track}}$ vs Cent
                 logz: true
@@ -423,7 +431,7 @@ EMCalCorrections:
                     textLocation: [0.35, 0.15]
                 histNames:
                     - "EoPCent": ""
-            NMatchesVsCent:
+            NMatchesVsCent: !HistPlotter
                 title: &nMatchesVsCentTitle "N matches vs centrality"
                 logz: true
                 textLabel:
@@ -431,7 +439,7 @@ EMCalCorrections:
                 histNames:
                     - "NMatchesCent": *nMatchesVsCentTitle
             # Oversubtracted hists
-            OversubVsClusE:
+            OversubVsClusE: !HistPlotter
                 outputName: "OversubVsClusE"
                 title: Oversubtracted E vs $E_{\textrm{cluster}}$
                 logz: true
@@ -439,7 +447,7 @@ EMCalCorrections:
                     <<: *clusterTrackLabel
                 histNames:
                     - "fHistOversub_0": ""
-            OversubVsClusEFromEmbedClusters:
+            OversubVsClusEFromEmbedClusters: !HistPlotter
                 outputName: "OversubVsClusEFromEmbedClusters"
                 title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated clusters
                 logz: true
@@ -447,7 +455,7 @@ EMCalCorrections:
                     <<: *clusterTrackLabel
                 histNames:
                     - "fHistOversubMCClusters_0": ""
-            OversubVsClusEFromDataClusters:
+            OversubVsClusEFromDataClusters: !HistPlotter
                 outputName: "OversubVsClusEFromDataClusters"
                 title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated clusters
                 logz: true
@@ -455,7 +463,7 @@ EMCalCorrections:
                     <<: *clusterTrackLabel
                 histNames:
                     - "fHistOversubNonMCClusters_0": ""
-            OversubVsClusEFromEmbedTracks:
+            OversubVsClusEFromEmbedTracks: !HistPlotter
                 outputName: "OversubVsClusEFromEmbedTracks"
                 title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated tracks
                 logz: true
@@ -463,7 +471,7 @@ EMCalCorrections:
                     <<: *clusterTrackLabel
                 histNames:
                     - "fHistEmbTrackMatchesOversub_0": ""
-            OversubVsClusEFromDataTracks:
+            OversubVsClusEFromDataTracks: !HistPlotter
                 outputName: "OversubVsClusEFromDataTracks"
                 title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated tracks
                 logz: true
