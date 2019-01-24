@@ -14,7 +14,7 @@ import matplotlib.ticker
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
 import re
 import seaborn as sns
-from typing import Dict, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import rootpy.ROOT as ROOT
 
@@ -22,6 +22,7 @@ from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
+from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import base as plot_base
 
 # Setup logger
@@ -38,29 +39,30 @@ class HistPlotter:
         snake_case.
     """
     def __init__(self,
-                 histNames = None,
-                 hist = None,
-                 hists = None,
-                 outputName = "",
-                 title = None,
-                 automaticTitleFromName = False,
-                 exactNameMatch = False,
-                 xLabel = None,
-                 yLabel = None,
-                 zLabel = None,
-                 xLimits = None,
-                 yLimits = None,
-                 textLabel = None,
-                 scientificNotationOnAxis = "",
-                 logy = False,
-                 logz = False,
-                 surface = False,
-                 usePColorMesh = False,
-                 stepPlot = True):
+                 histNames: List[Dict[str, str]] = None,
+                 hist: Hist = None,
+                 hists: List[Hist] = None,
+                 outputName: str = "",
+                 title: str = None,
+                 automaticTitleFromName: bool = False,
+                 exactNameMatch: bool = False,
+                 xLabel: str = None,
+                 yLabel: str = None,
+                 zLabel: str = None,
+                 xLimits: Tuple[float, float] = None,
+                 yLimits: Tuple[float, float] = None,
+                 textLabel: Dict[str, Any] = None,
+                 scientificNotationOnAxis: str = "",
+                 logy: bool = False,
+                 logz: bool = False,
+                 surface: bool = False,
+                 usePColorMesh: bool = False,
+                 stepPlot: bool = True,
+                 processing: Dict[str, Any] = None):
         # A list of dictionaries, with key hist_name and value hist_title
         if histNames is None:
-            histNames = {}
-        self.hist_names = histNames
+            histNames = [{}]
+        self.hist_names: List[Dict[str, str]] = histNames
         if hists is None:
             hists = []
         self.hists = hists
@@ -85,6 +87,9 @@ class HistPlotter:
         self.surface = surface
         self.use_pcolor_mesh = usePColorMesh
         self.step_plot = stepPlot
+        # Processing needs to be executed externally.
+        if processing is None:
+            processing = {}
 
     def __repr__(self) -> str:
         """ Representation of the object. """

@@ -20,6 +20,7 @@ from pachyderm import histogram
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
+from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import generic_hist as plot_generic_hist
 
 logger = logging.getLogger(__name__)
@@ -138,7 +139,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         return (component_hists_configuration_options, plot_additional)
 
     def determine_whether_hist_is_in_hist_object(self, found_match: bool,
-                                                 hist, hist_object_name: str,
+                                                 hist: Hist, hist_object_name: str,
                                                  hist_object: plot_generic_hist.HistPlotter,
                                                  component_hists: Dict[str, plot_generic_hist.HistPlotter]) -> bool:
         """ Determine whether the given histogram belongs in the given hist object.
