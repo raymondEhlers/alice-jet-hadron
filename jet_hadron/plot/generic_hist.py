@@ -283,7 +283,7 @@ class HistPlotter:
         plot_base.save_plot(obj, fig, final_output_name)
         plt.close(fig)
 
-    def plot_2D_hists(self, fig, ax) -> None:
+    def plot_2D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
         """ Plot a 2D hist using matplotlib.
 
         Note:
@@ -401,7 +401,7 @@ class HistPlotter:
         # See: https://stackoverflow.com/a/42092305
         #axFromPlot.collections[0].colorbar.set_label(label)
 
-    def plot_1D_hists(self, fig, ax) -> None:
+    def plot_1D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
         """ Plot (a collection of) 1D histograms.
 
         Args:

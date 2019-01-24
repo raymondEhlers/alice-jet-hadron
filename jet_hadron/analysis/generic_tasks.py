@@ -56,9 +56,10 @@ def iterate_over_plot_configurations(plot_configurations: PlotConfigurations,
             yield name, config, path_to_plot_configuration
         else:
             #logger.debug(f"Going a level deeper for name: {name}, path: {path_to_plot_configuration}")
-            # Need to copy path when we iterate...
-            #path_to_plot_configuration.append(name)
+            # Need to copy path when we iterate. Otherwise, the additions will persist from
+            # one recursive call to another, leading to the wrong result.
             recurse_path = path_to_plot_configuration + [name]
+
             # We need to yield from to iterate over the result!
             yield from iterate_over_plot_configurations(
                 plot_configurations = config,
@@ -150,9 +151,6 @@ def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter,
                          f" Hist names: {plotter.hist_names}, hists: {plotter.hists}."
                          f" Input hists: {input_hists}")
 
-def _plot_histograms(plot_configurations, task_hists_obj) -> None:
-    """ Driver function to plotting the histograms contained in the object. """
-
 class PlotTaskHists(analysis_objects.JetHBase):
     """ Generic class to plot hists in analysis task.
 
@@ -189,7 +187,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         #    logger.debug("Hists:")
         #    logger.debug(pprint.pformat(self.hists))
 
-    def _setup_plot_configurations(self):
+    def _setup_plot_configurations(self) -> None:
         """ Fully setup the plot configuration objects. """
         _setup_plot_configurations(plot_configurations = self.plot_configurations)
 
@@ -224,7 +222,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         """
         pass
 
-    def _determine_hists_for_plot_configurations(self):
+    def _determine_hists_for_plot_configurations(self) -> None:
         """ Determine which hists belong to which plot configurations. """
         _determine_hists_for_plot_configurations(
             plot_configurations = self.plot_configurations,
