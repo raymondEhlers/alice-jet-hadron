@@ -6,7 +6,9 @@
 """
 
 from abc import ABC
+import coloredlogs
 import dataclasses
+import enlighten
 import enum
 import logging
 import os
@@ -73,10 +75,10 @@ def _setup_plot_configurations(plot_configurations: PlotConfigurations) -> None:
 
     for name, plot_config, _ in config_iter:
         # Set the hist_names based on the key name in the config.
-        logger.debug(f"key name {name}, plot_config: {plot_config}, type: {type(plot_config)}")
+        #logger.debug(f"key name {name}, plot_config: {plot_config}, type: {type(plot_config)}")
         # Cannot just use if hist_names because ``[{}]`` evalutes to true...
         if plot_config.hist_names == [{}]:
-            logger.debug(f"Assigning key name {name} to hist_names")
+            #logger.debug(f"Assigning key name {name} to hist_names")
             plot_config.hist_names = [{name: ""}]
 
 def _determine_hists_for_plot_configurations(plot_configurations: PlotConfigurations, input_hists: InputHists) -> None:
@@ -136,13 +138,14 @@ def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter,
                 # Keep the title as the hist name if we haven't specified it so we don't lose information
                 hist_title = hist_title if hist_title != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
 
-                logger.debug("Adding hist to existing config")
+                #logger.debug("Adding hist to existing config")
                 # Set the hist title (for legend, plotting, etc)
                 hist.SetTitle(hist_title)
 
                 plotter.hists.append(hist)
-                logger.debug(f"Hists after adding: {plotter.hists}")
+                #logger.debug(f"Hists after adding: {plotter.hists}")
 
+    logger.debug(f"After looking for hists, we have: hist_names: {plotter.hist_names}, hists: {plotter.hists}")
     # Validation the number of histograms that we've found to ensure that we've found as many as expected.
     # NOTE: We may have configurations defined for which there are no histogramms. In this case, no hists
     #       is okay.
@@ -174,6 +177,10 @@ class PlotTaskHists(analysis_objects.JetHBase):
         # Store the input histograms
         self.input_hists: Dict[str, Any] = {}
 
+        # Monitor the progress of the analysis.
+        self._progress_manager = enlighten.get_manager()
+        self._number_of_plot_configurations = 0
+
     def _retrieve_histograms(self) -> None:
         """ Retrieve hists corresponding to the task name.
 
@@ -202,15 +209,21 @@ class PlotTaskHists(analysis_objects.JetHBase):
         """ Run any additional plotting configuration processing. """
         config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
 
-        for name, plot_config, _ in config_iter:
-            if plot_config.processing:
-                func_name = plot_config.processing["func_name"]
-                # Retrieve the method from the class
-                func = getattr(self, func_name)
-                # Call the method with the plot configuration.
-                # We mainly pass in the object to provide access to any necessary parameters.
-                # Note that we don't pass ``self`` because we already bound to it using ``getattr(...)``.
-                func(plot_config = plot_config)
+        with self._progress_manager.counter(total = self._number_of_plot_configurations,
+                                            desc = "Plotting:",
+                                            unit = "histograms") as processing:
+            for name, plot_config, _ in config_iter:
+                if plot_config.processing:
+                    func_name = plot_config.processing["func_name"]
+                    # Retrieve the method from the class
+                    func = getattr(self, func_name)
+                    # Call the method with the plot configuration.
+                    # We mainly pass in the object to provide access to any necessary parameters.
+                    # Note that we don't pass ``self`` because we already bound to it using ``getattr(...)``.
+                    func(plot_config = plot_config)
+
+                # Update progress
+                processing.update()
 
     def _hist_specific_preprocessing(self) -> None:
         """ Perform processing on specific histograms in the input hists.
@@ -233,11 +246,20 @@ class PlotTaskHists(analysis_objects.JetHBase):
         """ Plot histograms. """
         config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
 
-        for name, plot_config, path in config_iter:
-            # Only attempt to plot if we actually have underlying hists.
-            if plot_config.hists:
-                logger.info(f"Plotting plot configuration {name} located at {os.path.join(*path)}")
-                plot_config.plot(self, output_name = os.path.join(*(path + [name])))
+        with self._progress_manager.counter(total = self._number_of_plot_configurations,
+                                            desc = "Processing:",
+                                            unit = "plot configurations") as progress:
+            for name, plot_config, path in config_iter:
+                # Only attempt to plot if we actually have underlying hists.
+                logger.debug(f"name: {name}, hists: {plot_config.hists}, plot_config: {plot_config}, path: {path}")
+                if plot_config.hists:
+                    logger.info(f"Plotting plot configuration {name} located at {path}")
+                    # NOTE: path could be empty here, so it's important that we include name in the
+                    #       call to ``os.path.join(...)``.
+                    plot_config.plot(self, output_name = os.path.join(*(path + [name])))
+
+                # Update progress
+                progress.update()
 
     def run(self, run_plotting: bool = True) -> bool:
         """ Process and plot the histograms for this task.
@@ -252,6 +274,9 @@ class PlotTaskHists(analysis_objects.JetHBase):
         Returns:
             True if the processing was successful.
         """
+        # Used to monitor processing process.
+        self._number_of_plot_configurations = len(list(iterate_over_plot_configurations(plot_configurations = self.plot_configurations)))
+
         # Perform preprocessing for both the plot configurations and the input histograms.
         self._plot_configuration_processing()
         self._hist_specific_preprocessing()
@@ -346,7 +371,10 @@ def run_helper(manager_class: Type[TaskManager], description: str) -> TaskManage
         The created and executed task manager.
     """
     # Basic setup
-    logging.basicConfig(level = logging.DEBUG)
+    coloredlogs.install(
+        level = logging.DEBUG,
+        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
+    )
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
