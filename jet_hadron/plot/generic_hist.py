@@ -242,7 +242,7 @@ class HistPlotter:
         elif isinstance(self.get_first_hist(), ROOT.TH1):
             self.plot_1D_hists(fig = fig, ax = ax)
         else:
-            raise ValueError("Histogram must be 1D or 2D. Type provided: {type(self.get_first_hist())}")
+            raise ValueError(f"Histogram must be 1D or 2D. Type provided: {type(self.get_first_hist())}")
 
         # Apply the options
         # Need to apply these here because rplt messes with them!
