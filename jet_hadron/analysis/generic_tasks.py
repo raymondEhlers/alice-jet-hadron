@@ -6,13 +6,12 @@
 """
 
 from abc import ABC
-import copy
 import dataclasses
 import enum
 import logging
 import os
 import pprint  # noqa: F401
-from typing import Any, Dict, Mapping, Tuple, Type
+from typing import Any, Dict, Iterator, List, Mapping, Tuple, Type, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -24,8 +23,135 @@ from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import generic_hist as plot_generic_hist
 
 logger = logging.getLogger(__name__)
-# Quiet down the matplotlib logging
-logging.getLogger("matplotlib").setLevel(logging.INFO)
+
+# Typing helpers
+PlotConfigurations = Dict[str, Union[plot_generic_hist.HistPlotter, Any]]
+InputHists = Dict[str, Union[Hist, Any]]
+
+def iterate_over_plot_configurations(plot_configurations: PlotConfigurations,
+                                     path_to_plot_configuration: List = None,
+                                     **kwargs) -> Iterator[Tuple[str, plot_generic_hist.HistPlotter, List[str]]]:
+    """ Iterate over the provided plot configurations.
+
+    This generator searches through the provided plot configurations recursively to find every
+    ``HistPlotter`` object that has been defined.
+
+    Args:
+        plot_configurations: Plot configurations over which one wants to operate.
+        path_to_plot_configuration: List of names necessary to get to the returned object.
+        kwargs: Additional arguments to pass to the recursive function call.
+    Returns:
+        Iterator over all of the ``HistPlotter`` objects found recursively in the plot configurations.
+    """
+    if path_to_plot_configuration is None:
+        path_to_plot_configuration = []
+
+    # NOTE: Commented out the debug messages because otherwise they are way too verbose.
+    #       But they are kept commented out because they are quite useful for debugging.
+    #logger.debug(f"Starting with config config: {plot_configurations} at path {path_to_plot_configuration}")
+    for name, config in plot_configurations.items():
+        #logger.debug(f"Looking at config name: {name}, config: {config} at path {path_to_plot_configuration}")
+        if isinstance(config, plot_generic_hist.HistPlotter):
+            #logger.debug(f"Yielding {name}, {config} at path {path_to_plot_configuration}")
+            yield name, config, path_to_plot_configuration
+        else:
+            #logger.debug(f"Going a level deeper for name: {name}, path: {path_to_plot_configuration}")
+            # Need to copy path when we iterate...
+            #path_to_plot_configuration.append(name)
+            recurse_path = path_to_plot_configuration + [name]
+            # We need to yield from to iterate over the result!
+            yield from iterate_over_plot_configurations(
+                plot_configurations = config,
+                path_to_plot_configuration = recurse_path,
+                **kwargs
+            )
+
+def _setup_plot_configurations(plot_configurations: PlotConfigurations) -> None:
+    """ Recursively setup the HistPlotter objects. """
+    config_iter = iterate_over_plot_configurations(plot_configurations = plot_configurations)
+
+    for name, plot_config, _ in config_iter:
+        # Set the hist_names based on the key name in the config.
+        logger.debug(f"key name {name}, plot_config: {plot_config}, type: {type(plot_config)}")
+        # Cannot just use if hist_names because ``[{}]`` evalutes to true...
+        if plot_config.hist_names == [{}]:
+            logger.debug(f"Assigning key name {name} to hist_names")
+            plot_config.hist_names = [{name: ""}]
+
+def _determine_hists_for_plot_configurations(plot_configurations: PlotConfigurations, input_hists: InputHists) -> None:
+    """ Determine which histogram lists correspond with each plot configuration.
+
+    The actual searching for and assignment of that histogram list to the plot configuration
+    is performed in ``assign_hists_to_plot_configurations(...)``. This function is called
+    recursively to determine the histograms for all plot configuration objects.
+
+    Args:
+        plot_configurations: Plot configurations.
+        input_hists: Histograms to be assigned to the plot configurations.
+    Returns:
+        None. The plot configurations are modified in place.
+    """
+    logger.debug(f"plot_configurations: {plot_configurations}, input_hists: {input_hists}")
+    for name, config in plot_configurations.items():
+        # If we have a HistPlotter, then look for and assign hists at the given recursion level.
+        if isinstance(config, plot_generic_hist.HistPlotter):
+            _assign_hists_to_plot_configurations(config, input_hists)
+        else:
+            # If we don't have a hist plotter, then we hists at this level to see if we can find a match
+            for hists_name, hists in input_hists.items():
+                if name in hists_name:
+                    # If we do find a match in the input hists dict, go the next level of recursion.
+                    # NOTE: We ignore the typing here because mypy doesn't like the recursive redefinition of
+                    #       plot_configurations.
+                    _determine_hists_for_plot_configurations(  # type: ignore
+                        plot_configurations = config,
+                        input_hists = input_hists[hists_name]
+                    )
+
+def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter, input_hists: InputHists) -> None:
+    """ Search for and assign hists to a HistPlotter.
+
+    Args:
+        plotter: ``HistPlotter`` which defines the desired hists and will have them assigned to them.
+    Returns:
+        None. The ``HistPlotter`` is modified in place.
+    """
+    for hist_label in plotter.hist_names:
+        # There should only be one key in the hist label
+        if len(hist_label) > 1:
+            raise ValueError(f"Too many entries in the hist_label object! Should only be 1! Object: {hist_label}")
+        hist_name, hist_title = next(iter(hist_label.items()))
+
+        for hist_key, hist in input_hists.items():
+            #logger.debug(f"Considering hist_name from plotter: {hist_name}, hist.GetName(): {hist.GetName()} with exact_name_match: {plotter.exact_name_match}")
+
+            # Check for match between the config object and the current hist
+            # The name can be required to be exact, but by default, it doesn't need to be
+            # NOTE: We use hist_key instead of hist.GetName() because input_hists may contain other dicts. Those other
+            #       dicts won't define GetName() (obviously), but the key will always be valid.
+            if (plotter.exact_name_match and hist_name == hist_key) \
+                    or (not plotter.exact_name_match and hist_name in hist_key):
+                logger.debug(f"Found match of hist name: {hist.GetName()} and HistPlotter hist name {hist_name}")
+                # Keep the title as the hist name if we haven't specified it so we don't lose information
+                hist_title = hist_title if hist_title != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
+
+                logger.debug("Adding hist to existing config")
+                # Set the hist title (for legend, plotting, etc)
+                hist.SetTitle(hist_title)
+
+                plotter.hists.append(hist)
+                logger.debug(f"Hists after adding: {plotter.hists}")
+
+    # Validation the number of histograms that we've found to ensure that we've found as many as expected.
+    # NOTE: We may have configurations defined for which there are no histogramms. In this case, no hists
+    #       is okay.
+    if len(plotter.hists) > 0 and len(plotter.hist_names) != len(plotter.hists):
+        raise ValueError(f"Found {len(plotter.hists)} hists, but expected {len(plotter.hist_names)}!"
+                         f" Hist names: {plotter.hist_names}, hists: {plotter.hists}."
+                         f" Input hists: {input_hists}")
+
+def _plot_histograms(plot_configurations, task_hists_obj) -> None:
+    """ Driver function to plotting the histograms contained in the object. """
 
 class PlotTaskHists(analysis_objects.JetHBase):
     """ Generic class to plot hists in analysis task.
@@ -43,21 +169,19 @@ class PlotTaskHists(analysis_objects.JetHBase):
         self.task_label = task_label
         # These are the objects for each component stored in the YAML config
         try:
-            self.components_from_YAML = self.task_config["componentsToPlot"]
+            self.plot_configurations: PlotConfigurations = self.task_config["componentsToPlot"]
         except KeyError as e:
             # Reraise with additional information. This is pretty common to forget.
             raise KeyError("Was \"componentsToPlot\" defined in the task configuration?") from e
-        # Contain the actual components, which consist of lists of hist configurations
-        self.components: Dict[str, Dict[str, plot_generic_hist.HistPlotter]] = {}
         # Store the input histograms
-        self.hists: Dict[str, Any] = {}
+        self.input_hists: Dict[str, Any] = {}
 
     def _retrieve_histograms(self) -> None:
         """ Retrieve hists corresponding to the task name.
 
         The histograms are stored in the ``hists`` attribute of the object.
         """
-        self.hists = histogram.get_histograms_in_list(self.input_filename, self.input_list_name)
+        self.input_hists = histogram.get_histograms_in_list(self.input_filename, self.input_list_name)
 
         # Don't process this line unless we are debugging because pprint may be slow
         # see: https://stackoverflow.com/a/11093247
@@ -65,11 +189,32 @@ class PlotTaskHists(analysis_objects.JetHBase):
         #    logger.debug("Hists:")
         #    logger.debug(pprint.pformat(self.hists))
 
+    def _setup_plot_configurations(self):
+        """ Fully setup the plot configuration objects. """
+        _setup_plot_configurations(plot_configurations = self.plot_configurations)
+
     def setup(self) -> None:
         """ Setup for processing and plotting. """
         self._retrieve_histograms()
 
-    def hist_specific_processing(self) -> None:
+        # Complete setup by setting up the contained plot configuration objects.
+        self._setup_plot_configurations()
+
+    def _plot_configuration_processing(self) -> None:
+        """ Run any additional plotting configuration processing. """
+        config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
+
+        for name, plot_config, _ in config_iter:
+            if plot_config.processing:
+                func_name = plot_config.processing["func_name"]
+                # Retrieve the method from the class
+                func = getattr(self, func_name)
+                # Call the method with the plot configuration.
+                # We mainly pass in the object to provide access to any necessary parameters.
+                # Note that we don't pass ``self`` because we already bound to it using ``getattr(...)``.
+                func(plot_config = plot_config)
+
+    def _hist_specific_preprocessing(self) -> None:
         """ Perform processing on specific histograms in the input hists.
 
         Each component and histogram in the input hists are searched for particular histograms.
@@ -78,6 +223,52 @@ class PlotTaskHists(analysis_objects.JetHBase):
         replacement of the existing hist and sometimes as an additional hist).
         """
         pass
+
+    def _determine_hists_for_plot_configurations(self):
+        """ Determine which hists belong to which plot configurations. """
+        _determine_hists_for_plot_configurations(
+            plot_configurations = self.plot_configurations,
+            input_hists = self.input_hists
+        )
+
+    def _plot_histograms(self) -> None:
+        """ Plot histograms. """
+        config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
+
+        for name, plot_config, path in config_iter:
+            # Only attempt to plot if we actually have underlying hists.
+            if plot_config.hists:
+                logger.info(f"Plotting plot configuration {name} located at {os.path.join(*path)}")
+                plot_config.plot(self, output_name = os.path.join(*(path + [name])))
+
+    def run(self, run_plotting: bool = True) -> bool:
+        """ Process and plot the histograms for this task.
+
+        Note:
+            Nearly all of these functions are defined at the module level, but the calls to
+            the functions are made through simple wrapping functions at the class level to
+            allow for the methods to be overridden.
+
+        Args:
+            run_plotting: If true, run plotting after the processing.
+        Returns:
+            True if the processing was successful.
+        """
+        # Perform preprocessing for both the plot configurations and the input histograms.
+        self._plot_configuration_processing()
+        self._hist_specific_preprocessing()
+
+        # Match and assign the histograms to the plot configurations
+        self._determine_hists_for_plot_configurations()
+
+        # Plotting
+        # Usually we want to plot, but we make it an option because writing out the plots
+        # takes much longer than the processing. So when we are developing the processing, it is
+        # helpful to not have to wait for the plotting.
+        if run_plotting:
+            self._plot_histograms()
+
+        return True
 
     def hist_options_specific_processing(self, hist_options_name: str, options: Dict[str, Any]) -> Dict[str, Any]:
         """ Run a particular processing functions for some set of hist options.
@@ -92,239 +283,6 @@ class PlotTaskHists(analysis_objects.JetHBase):
             Updated set of hist options.
         """
         return options
-
-    def define_plot_objects_for_component(self, component_name: str,
-                                          component_hists_options: Dict[str, Any]) -> Tuple[dict, bool]:
-        """ Define Hist Plotter options for a particular component based on the provided YAML config.
-
-        Args:
-            component_name: Name of the component.
-            component_hists_options: Hist options for a particular component.
-        Returns:
-            (Component hists configuration options contained in ``HistPlotter`` objects, whether other hists
-                in the component that are not configured by ``HistPlotter`` objects should also be plotted).
-        """
-        logger.debug(f"component_name: {component_name}, component_hist_options: {component_hists_options}")
-        # Make the output directory for the component.
-        component_output_path = os.path.join(self.output_prefix, component_name)
-        if not os.path.exists(component_output_path):
-            os.makedirs(component_output_path)
-
-        # Pop the value so all other names can be assumed to be histogram names
-        plot_additional = component_hists_options.pop("plotAdditional", False)
-        if plot_additional:
-            logger.info(f"Plotting additional histograms in component \"{component_name}\"")
-
-        # Create the defined component hists
-        # Each histogram in a component has a corresponding set of hist_options.
-        component_hists_configuration_options = {}
-        for hist_options_name, options in component_hists_options.items():
-            # Copy the options dict so we can add to it
-            hist_options: Dict[str, Any] = {}
-            logger.debug(f"hist_options_name: {hist_options_name}, options: {options}")
-            hist_options.update(options)
-            logger.debug(f"hist options: {hist_options}")
-            hist_names = hist_options.get("histNames", None)
-            if not hist_names:
-                # Use the hist options name as a proxy for the hist names if not specified
-                hist_options["histNames"] = [{hist_options_name: ""}]
-                logger.debug(f"Using hist names from config {hist_options_name}. histNames: {hist_options['histNames']}")
-
-            #logger.debug(f"Pre processing: hist options name: {hist_options_name}, hist_options: {hist_options}")
-            hist_options = self.hist_options_specific_processing(hist_options_name, hist_options)
-            logger.debug(f"Post processing: hist options name: {hist_options_name}, hist_options: {hist_options}")
-
-            component_hists_configuration_options[hist_options_name] = plot_generic_hist.HistPlotter(**hist_options)
-
-        return (component_hists_configuration_options, plot_additional)
-
-    def determine_whether_hist_is_in_hist_object(self, found_match: bool,
-                                                 hist: Hist, hist_object_name: str,
-                                                 hist_object: plot_generic_hist.HistPlotter,
-                                                 component_hists: Dict[str, plot_generic_hist.HistPlotter]) -> bool:
-        """ Determine whether the given histogram belongs in the given hist object.
-
-        Args:
-            found_match: True if a match has been found.
-            hist (ROOT.TH1): Histogram being added to a hist object.
-            hist_object_name: The name of the current hist
-            hist_object: Histogram plotting configuration.
-            component_hists: Where the match hist objects that are relevant to the component are stored.
-        Returns:
-            The value of found_match. Note that component_hists is modified in place.
-        Raises:
-            ValueError: If there is more than one set of values associated with a given hist_label.
-                This is invalid because each hist object should only have one configuration object
-                per key.
-        """
-        # Iterate over the hist names stored in the config object to determine whether the current
-        # hist belongs. Note that ``CommentedMapItemsView`` apparently returns items when directly
-        # iterated over, so we get the value a bit further down.
-        for hist_label in hist_object.hist_names:
-            # There should only be one key in the hist label
-            if len(hist_label) > 1:
-                raise ValueError(f"Too many entries in the hist_label object! Should only be 1! Object: {hist_label}")
-            hist_name, hist_title = next(iter(hist_label.items()))
-
-            #logger.debug(f"Considering hist_name from hist_object: {hist_name}, hist.GetName(): {hist.GetName()} with exact_name_match: {hist_object.exact_name_match}")
-
-            # Check for match between the config object and the current hist
-            # The name can be required to be exact, but by default, it doesn't need to be
-            if (hist_object.exact_name_match and hist_name == hist.GetName()) or (not hist_object.exact_name_match and hist_name in hist.GetName()):
-                logger.debug(f"Found match of hist name: {hist.GetName()} and options config name {hist_object_name}")
-                found_match = True
-                # Keep the title as the hist name if we haven't specified it so we don't lose information
-                hist_title = hist_title if hist_title != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
-
-                # Check if object is already in the component hists
-                obj = component_hists.get(hist_object_name, None)
-                if obj:
-                    # If the object already exists, we should add the hist to the list if there
-                    # are multiple hists requested for the object. If not, just ignore it
-                    if len(hist_object.hist_names) > 1:
-                        logger.debug("Adding hist to existing config")
-                        # Set the hist title (for legend, plotting, etc)
-                        hist.SetTitle(hist_title)
-
-                        obj.hists.append(hist)
-                        logger.debug(f"Hists after adding: {obj.hists}")
-                    else:
-                        logger.critical("Skipping hist because this object is only supposed to have one hist")
-                        continue
-                else:
-                    # Create a copy to store this particular histogram if we haven't already created
-                    # an object with this type of histogram because we can have multiple hists covered
-                    # by the same configurations options set
-                    obj = copy.deepcopy(hist_object)
-
-                    # Name will be from output_name if it is defined. If not, use hist_object_name if
-                    # there are multiple hists, or just the hist name if it only relates to one hist.
-                    name = obj.output_name if obj.output_name != "" else hist.GetName() if len(obj.hist_names) == 1 else hist_object_name
-                    logger.debug(f"Creating config for hist stored under {name}")
-                    component_hists[name] = obj
-
-                    # Set the hist title (for legend, plotting, etc)
-                    hist.SetTitle(hist_title)
-                    # Store the hist in the object
-                    obj.hists.append(hist)
-
-        return found_match
-
-    def assign_hists_to_plot_objects(self, component_hists_in_file: dict, hists_configuration_options: dict, plot_additional: bool) -> dict:
-        """ Assign input hists retrieved from a file to the defined Hist Plotters.
-
-        Args:
-            component_hists_in_file: Hists that are in a particular component. Keys are hist names
-            hists_configuration_options: ``HistPlotter`` hist configuration objects for a particular component.
-            plot_additional: If true, plot additional histograms in the component that are not specified in the config.
-        Returns:
-            HistPlotter configuration objects with input hists assigned to each object according to
-                the configuration.
-        """
-        component_hists: Dict[str, plot_generic_hist.HistPlotter] = {}
-        # First iterate over the available hists
-        for hist in component_hists_in_file.values():
-            logger.debug(f"Looking for match to hist {hist.GetName()}")
-            found_match = False
-            # Then iterate over the Hist Plotter configurations in the particular component.
-            # We are looking for the hists which belong in a particular config
-            for hist_object_name, hist_object in hists_configuration_options.items():
-                if logger.isEnabledFor(logging.DEBUG):
-                    debug_hist_names = [next(iter(hist_label)) for hist_label in hist_object.hist_names]
-                    # Only print the first five items so we aren't overwhelmed with information
-                    # "..." indicates that there are more than 5
-                    debug_hist_names_trimmed = ", ".join(debug_hist_names[:5]) if len(debug_hist_names) < 5 else ", ".join(debug_hist_names[:5] + ["..."])
-                    logger.debug(f"Considering hist_object \"{hist_object_name}\" for exact_name_match: {hist_object.exact_name_match}, hist_names (len {len(debug_hist_names)}): {debug_hist_names_trimmed}")
-
-                # Determine whether the hist belongs in the current hist object.
-                found_match = self.determine_whether_hist_is_in_hist_object(
-                    found_match = found_match,
-                    hist = hist,
-                    hist_object_name = hist_object_name,
-                    hist_object = hist_object,
-                    component_hists = component_hists
-                )
-
-            # Create a default hist object
-            if not found_match:
-                if plot_additional:
-                    logger.debug("No hist config options match found. Using default options...")
-                    component_hists[hist.GetName()] = plot_generic_hist.HistPlotter(hist = hist)
-                else:
-                    logger.debug(f"No match found and not plotting additional, so hist {hist.GetName()} will not be plotted.")
-
-        return component_hists
-
-    def match_hists_to_hist_configurations(self) -> None:
-        """ Match retrieved histograms to components and their plotting options.
-
-        This method iterates over the available hists from the file and then over the
-        hist options defined in YAML to try to find a match. Once a match is found,
-        the options are iterated over to create ``HistPlotter`` objects. Then the hists are assigned
-        to those newly created objects.
-
-        The results are stored in the components dict of the class.
-        """
-        # component_name_in_file is the name of the component_hists_in_file to which we want to compare
-        for component_name_in_file, component_hists_in_file in self.hists.items():
-            # component_hists_options are the config options for a component
-            for component_name, component_hists_options in self.components_from_YAML.items():
-                if component_name in component_name_in_file:
-                    # We've now matched the component name and configurations, we can move on to dealing with
-                    # the individual hists
-                    (hists_configuration_options, plot_additional) = self.define_plot_objects_for_component(
-                        component_name = component_name,
-                        component_hists_options = component_hists_options
-                    )
-                    logger.debug(f"Component name: {component_name}, hists_configuration_options: {hists_configuration_options}")
-
-                    # Assign hists from the component in the input file to a hist object
-                    component_hists = self.assign_hists_to_plot_objects(
-                        component_hists_in_file = component_hists_in_file,
-                        hists_configuration_options = hists_configuration_options,
-                        plot_additional = plot_additional
-                    )
-
-                    logger.debug("component_hists: {pprint.pformat(component_hists)}")
-                    for component_hist in component_hists.values():
-                        # Even though the hist names could be defined in order in the configuration,
-                        # the hists will not necessarily show up in alphabetical order when they are assigned to
-                        # the plot objects. So we sort them alphabetically here
-                        component_hist.hists = sorted(component_hist.hists, key = lambda hist: hist.GetName())
-                        logger.debug(f"component_hist: {component_hist}, hists: {component_hist.hists}, (first) hist name: {component_hist.get_first_hist().GetName()}")
-
-                    self.components[component_name] = component_hists
-
-    def plot_histograms(self) -> None:
-        """ Driver function to plotting the histograms contained in the object. """
-        for component_name, component_hists in self.components.items():
-            logger.info(f"Plotting hists for component {component_name}")
-
-            # Apply the options, draw the plot and save it
-            for hist_name, hist_obj in component_hists.items():
-                logger.debug(f"Processing hist obj {hist_name}")
-                hist_obj.plot(self, output_name = os.path.join(component_name, hist_name))
-
-    def run(self, run_plotting: bool = True) -> bool:
-        """ Process and plot the histograms for this task.
-
-        Args:
-            run_plotting: If true, run plotting after the processing.
-        Returns:
-            True if the processing was successful.
-        """
-        # Processing
-        self.hist_specific_processing()
-        self.match_hists_to_hist_configurations()
-
-        # Plotting
-        # Usually we want to plot, but we make it an option because writing out the plots
-        # takes much longer than the processing. So when we are developing the processing, it is
-        # helpful to not have to wait for the plotting.
-        if run_plotting:
-            self.plot_histograms()
-
-        return True
 
 class TaskManager(ABC, generic_class.EqualityMixin):
     """ Manages execution of the plotting of generic tasks.
@@ -353,6 +311,7 @@ class TaskManager(ABC, generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None, "track_pt_bin": None},
+            additional_classes_to_register = [plot_generic_hist.HistPlotter],
             obj = PlotTaskHists,
         )
 

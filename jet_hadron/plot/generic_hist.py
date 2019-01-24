@@ -12,6 +12,7 @@ import matplotlib.colors
 import matplotlib.ticker
 # For 3D plots
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
+import os
 import re
 import seaborn as sns
 from typing import Any, Dict, List, Tuple, Union
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Tuple, Union
 import rootpy.ROOT as ROOT
 
 from pachyderm import histogram
+from pachyderm import yaml
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
@@ -39,7 +41,7 @@ class HistPlotter:
         snake_case.
     """
     def __init__(self,
-                 histNames: List[Dict[str, str]] = None,
+                 hist_names: List[Dict[str, str]] = None,
                  hist: Hist = None,
                  hists: List[Hist] = None,
                  outputName: str = "",
@@ -60,9 +62,9 @@ class HistPlotter:
                  stepPlot: bool = True,
                  processing: Dict[str, Any] = None):
         # A list of dictionaries, with key hist_name and value hist_title
-        if histNames is None:
-            histNames = [{}]
-        self.hist_names: List[Dict[str, str]] = histNames
+        if hist_names is None:
+            hist_names = [{}]
+        self.hist_names: List[Dict[str, str]] = hist_names
         if hists is None:
             hists = []
         self.hists = hists
@@ -90,11 +92,38 @@ class HistPlotter:
         # Processing needs to be executed externally.
         if processing is None:
             processing = {}
+        self.processing = processing
 
     def __repr__(self) -> str:
         """ Representation of the object. """
         values = ("{k!s} = {v!r}".format(k = k, v = v) for k, v in self.__dict__.items())
         return "{}({})".format(self.__class__.__name__, ", ".join(values))
+
+    @classmethod
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "HistPlotter":
+        """ Create object from YAML using the constructor so default values will be specified.
+
+        It appears that when YAML creates an object, it doesn't pass arguments to the constructor, but rather
+        creates an empty object and then specifies the state of the particular variables specified. This is fine
+        except that it bypasses default values. To utilize default values, we need to take the arguments for
+        the object as a mapping and then pass them to the object constructor.
+
+        Unfortunately, this obvious approach doesn't work in all cases. In particular, when used, merge keys at
+        the next level are silently dropped after the mapping is constructed. I don't know why. To get around this,
+        we specify all arguments under the "kwargs" key, and then just pass those into the constructor. This works
+        as expected. So other than being an ugly hack, it's fine.
+        """
+        # First convert the object from a node to an easy to use mapping.
+        # We use the SafeConstructor to avoid needing to pass a poorly documented ``maptyp`` argument.
+        #logger.debug(f"Using representer, {data}")
+        data = yaml.ruamel.yaml.constructor.SafeConstructor.construct_mapping(constructor, data, deep = True)
+        #logger.debug(f"mapping after construction: {data}")
+        # Now that we have our mapping, ensure that only the kwargs are passed so that no other information is lost.
+        if "kwargs" not in data or not data["kwargs"] or len(data) > 1:
+            raise ValueError("Must only pass arguments under the 'kwargs' key.")
+
+        # Finally construct the object using the kwargs that were extracted via the mapping.
+        return cls(**data["kwargs"])
 
     def get_first_hist(self) -> ROOT.TH1:
         return next(iter(self.hists))
@@ -111,7 +140,7 @@ class HistPlotter:
 
     def apply_axis_settings(self, ax: matplotlib.axes.Axes) -> None:
         # Do not apply useMathText to the axis tick format!
-        # It is imcompatible with using latex randering
+        # It is incompatible with using latex rendering
         # If for some reason latex is turned off, one can use the lines below to only apply the option to axes which
         # support it (most seem to work fine with it)
         #logger.debug(f"x: {ax.get_xaxis().get_major_formatter()}, y: {ax.get_yaxis().get_major_formatter()}")
@@ -233,6 +262,11 @@ class HistPlotter:
                     transform = ax.transAxes)
 
     def plot(self, obj: analysis_objects.JetHBase, output_name: str = "") -> None:
+        # Ensure that the output directory is available.
+        path = os.path.join(obj.output_prefix, os.path.dirname(output_name))
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         # Make the plots
         fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -255,15 +289,16 @@ class HistPlotter:
         # Final plotting options
         plt.tight_layout()
 
-        # If a name was not passed (ie ""), then use whatever name was given.
-        # It is stil possible that that name could be empty, but that should be
-        # corrected by the user.
-        output_name = output_name if output_name != "" else self.output_name
-        if output_name == "":
-            raise ValueError("No output name passed or set for the object! Please set a name.")
+        # Determine the final output path
+        # Use ``self.output_name`` for the end of the output name if it's set. If it's not set, then we just
+        # use the plot configuration key name passed in via ``output_name``
+        final_output_name = output_name
+        if self.output_name:
+            final_output_name = os.path.join(os.path.dirname(final_output_name), self.output_name)
+        logger.debug(f"final_output_name: {final_output_name}, self.output_name: {self.output_name}")
 
         # Save and close the figure
-        plot_base.save_plot(obj, fig, output_name)
+        plot_base.save_plot(obj, fig, final_output_name)
         plt.close(fig)
 
     def plot_2D_hists(self, fig, ax) -> None:

@@ -9,14 +9,14 @@ import enum
 import logging
 import os
 import sys
-from typing import Any, Dict, Sequence
 import warnings
 
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_config
-from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
+from jet_hadron.base.typing_helpers import Hist
+from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.analysis import generic_tasks
 
 import rootpy.ROOT as ROOT
@@ -87,7 +87,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
 
         self.track_pt_bins = self.task_config["track_pt_bins"]
 
-    def hist_specific_processing(self) -> None:
+    def _hist_specific_preprocessing(self) -> None:
         """ Perform processing on specific histograms in the input hists.
 
         Each component and histogram in the input hists are searched for particular histograms.
@@ -96,114 +96,84 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         replacement of the existing hist and sometimes as an additional hist).
         """
         # Loop over available components in the hists
-        for component_name in self.hists:
+        for component_name in self.input_hists:
             # Clusterizer
             if "Clusterizer" in component_name:
                 # Only perform the scaling if the hist actually exists.
-                if "hCPUTime" in self.hists[component_name]:
-                    scale_CPU_time(self.hists[component_name]["hCPUTime"])
+                if "hCPUTime" in self.input_hists[component_name]:
+                    scale_CPU_time(self.input_hists[component_name]["hCPUTime"])
 
             if "ClusterExotics" in component_name:
                 hist_name = "hExoticsEtaPhiRemoved"
                 before_hist_name = "hEtaPhiDistBefore"
                 after_hist_name = "hEtaPhiDistAfter"
-                if before_hist_name in self.hists[component_name] and after_hist_name in self.hists[component_name]:
-                    self.hists[component_name][hist_name] = eta_phi_removed(
+                if before_hist_name in self.input_hists[component_name] and after_hist_name in self.input_hists[component_name]:
+                    self.input_hists[component_name][hist_name] = eta_phi_removed(
                         hist_name = hist_name,
-                        before_hist = self.hists[component_name][before_hist_name],
-                        after_hist = self.hists[component_name][after_hist_name]
+                        before_hist = self.input_hists[component_name][before_hist_name],
+                        after_hist = self.input_hists[component_name][after_hist_name]
                     )
 
-    def hist_options_specific_processing(self, hist_options_name: str, options: Dict[str, Any]) -> Dict[str, Any]:
-        """ Run a particular processing functions for some set of hist options.
+    def eta_phi_match_hist_names(self, plot_config: plot_generic_hist.HistPlotter) -> None:
+        """ Generate eta and phi hist names based on the available options.
 
-        It looks for a function name specified in the configuration, so a bit of care is
-        required to this safely.
+        This approach allows generating of hist config options using for loops while still being defined in YAML.
+
+        Note:
+            This function is called via hist_options_specific_processing(...), so it is not
+            referenced directly in the source.
 
         Args:
-            hist_options_name: Name of the hist options.
-            options: Associated set of hist options.
+            plot_config: Plot configuration to modify.
         Returns:
-            Updated set of hist options.
+            None. The plot configuration is updated in place.
         """
-        if "processing" in options:
-            func_name = options["processing"]["func_name"]
-            func = getattr(this_module, func_name)
-            if func:
-                logger.debug(f"Calling func_name {func_name} (func {func}) for hist options {hist_options_name}")
-                options = func(hist_options_name, options, possible_track_pt_bins = self.track_pt_bins)
-                logger.debug(f"Options after return: {options}")
-            else:
-                raise ValueError(func_name, f"Requested function for hist options {hist_options_name} doesn't exist!")
+        # Get the hist name template
+        # We don't care about the hist title
+        logger.debug(f"plot_config: {plot_config}, hist_names: {plot_config.hist_names}")
+        hist_name = next(iter(next(iter(plot_config.hist_names))))
+        # Angle name
+        angles = plot_config.processing["angles"]
+        # {Number: label}
+        cent_bins = plot_config.processing["centBins"]
+        # {Number: label}
+        eta_directions = plot_config.processing["etaDirections"]
+        # List of pt bins
+        selected_pt_bins = plot_config.processing["ptBins"]
 
-        return options
+        hist_names = []
+        for angle in angles:
+            for cent_dict in cent_bins:
+                cent_bin, cent_label = next(iter(cent_dict.items()))
+                for track_pt in self.track_pt_bins:
+                    # Only process the track pt bins that are selected.
+                    if track_pt.bin not in selected_pt_bins:
+                        continue
+                    for eta_dict in eta_directions:
+                        eta_direction, eta_direction_label = next(iter(eta_dict.items()))
+                        # Determine hist name
+                        # NOTE: Convert the pt bin to 0 indexed to retrieve the correct hist.
+                        name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin - 1, eta_direction = eta_direction)
+                        # Determine label
+                        # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
+                        # the pt label. Instead, we generate the string directly.
+                        pt_bin_label = params.generate_pt_range_string(
+                            pt_bin = track_pt,
+                            lower_label = r"\mathrm{T}",
+                            upper_label = r"",
+                            only_show_lower_value_for_last_bin = True,
+                        )
 
-def eta_phi_match_hist_names(hist_options_name: str, options: Dict[str, Any], possible_track_pt_bins: Sequence[analysis_objects.TrackPtBin]) -> Dict[str, Any]:
-    """ Generate hist names based on the available options.
+                        angle_label = determine_angle_label(angle)
+                        # Ex: "$\\Delta\\varphi$, Pos. tracks, $\\eta < 0$, $4 < \\mathit{p}_{\\mathrm{T}}< 5$"
+                        label = f"{angle_label}, {cent_label}, {eta_direction_label}, {pt_bin_label}"
+                        # Save in the expected format
+                        hist_names.append({name: label})
+                        #logger.debug("name: \"{}\", label: \"{}\"".format(name, label))
 
-    This approach allows generating of hist config options using for loops
-    while still being defined in YAML.
-
-    Note:
-        This function is called via hist_options_specific_processing(...), so it is not
-        referenced directly in the source.
-
-    Args:
-        hist_options_name: Name of the hist options.
-        options: Associated set of hist options.
-        possible_track_pt_bins: Track pt bins used for this component.
-    Returns:
-        Updated set of hist options.
-    """
-    # Pop this value so it won't cause issues when creating the hist plotter later.
-    processing_options = options.pop("processing")
-    # Get the hist name template
-    # We don't care about the hist title
-    hist_name = next(iter(next(iter(options["histNames"]))))
-    # Angle name
-    angles = processing_options["angles"]
-    # {Number: label}
-    cent_bins = processing_options["centBins"]
-    # {Number: label}
-    eta_directions = processing_options["etaDirections"]
-    # List of pt bins
-    selected_pt_bins = processing_options["ptBins"]
-
-    hist_names = []
-    for angle in angles:
-        for cent_dict in cent_bins:
-            cent_bin, cent_label = next(iter(cent_dict.items()))
-            for track_pt in possible_track_pt_bins:
-                # Only process the track pt bins that are selected.
-                if track_pt.bin not in selected_pt_bins:
-                    continue
-                for eta_dict in eta_directions:
-                    eta_direction, eta_direction_label = next(iter(eta_dict.items()))
-                    # Determine hist name
-                    # NOTE: Convert the pt bin to 0 indexed to retrieve the correct hist.
-                    name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin - 1, eta_direction = eta_direction)
-                    # Determine label
-                    # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
-                    # the pt label. Instead, we generate the string directly.
-                    pt_bin_label = params.generate_pt_range_string(
-                        pt_bin = track_pt,
-                        lower_label = r"\mathrm{T}",
-                        upper_label = r"",
-                        only_show_lower_value_for_last_bin = True,
-                    )
-
-                    angle_label = determine_angle_label(angle)
-                    # Ex: "$\\Delta\\varphi$, Pos. tracks, $\\eta < 0$, $4 < \\mathit{p}_{\\mathrm{T}}< 5$"
-                    label = f"{angle_label}, {cent_label}, {eta_direction_label}, {pt_bin_label}"
-                    # Save in the expected format
-                    hist_names.append({name: label})
-                    #logger.debug("name: \"{}\", label: \"{}\"".format(name, label))
-
-    # Assign the newly created names
-    options["histNames"] = hist_names
-    logger.debug(f"Assigning histNames {hist_names}")
-
-    return options
+        # Assign the newly created names
+        logger.debug(f"Assigning hist_names {hist_names}")
+        plot_config.hist_names = hist_names
 
 def determine_angle_label(angle: str) -> str:
     """ Determine the full angle label and return the corresponding latex.
@@ -222,7 +192,7 @@ def determine_angle_label(angle: str) -> str:
     return_value += r"\%s$" % (angle)
     return return_value
 
-def scale_CPU_time(hist: ROOT.TH1) -> None:
+def scale_CPU_time(hist: Hist) -> None:
     """ Rebin the CPU time for improved presentation.
 
     Time is only reported in increments of 10 ms. So we rebin by those 10 bins (since each bin is 1 ms)
@@ -268,6 +238,7 @@ class EMCalCorrectionsPlotManager(generic_tasks.TaskManager):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"task_label": EMCalCorrectionsLabel},
+            additional_classes_to_register = [plot_generic_hist.HistPlotter],
             obj = PlotEMCalCorrections,
         )
 
@@ -296,6 +267,7 @@ class EMCalEmbeddingPlotManager(generic_tasks.TaskManager):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
+            additional_classes_to_register = [plot_generic_hist.HistPlotter],
             obj = PlotEMCalEmbedding,
         )
 
