@@ -5,10 +5,13 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+import logging
 import pytest
 
 from jet_hadron.analysis import generic_tasks
 from jet_hadron.plot import generic_hist as plot_generic_hist
+
+logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def setup_input_objects_and_structures(mocker):
@@ -20,6 +23,9 @@ def setup_input_objects_and_structures(mocker):
     hist2 = mocker.MagicMock(spec = ["GetName", "GetTitle", "SetTitle"])
     hist2.GetName.return_value = "hist2"
     hist2.GetTitle.return_value = "hist2Title"
+    hist3 = mocker.MagicMock(spec = ["GetName", "GetTitle", "SetTitle"])
+    hist3.GetName.return_value = "hist3"
+    hist3.GetTitle.return_value = "hist3Title"
     # HistPlotters
     hist_plotter_1 = mocker.MagicMock(
         spec = plot_generic_hist.HistPlotter,
@@ -33,6 +39,12 @@ def setup_input_objects_and_structures(mocker):
         exact_name_match = True,
         hists = [],
     )
+    hist_plotter_3 = mocker.MagicMock(
+        spec = plot_generic_hist.HistPlotter,
+        hist_names = [{"hist3": ""}],
+        exact_name_match = True,
+        hists = [],
+    )
 
     # Setup input structure
     # Hists
@@ -43,6 +55,9 @@ def setup_input_objects_and_structures(mocker):
             },
             "hist2": hist2,
         },
+        "AliEmcalCorrectionCellEnergy": {
+            "hist3": hist3,
+        },
     }
     # Configuration
     plot_configurations = {
@@ -52,22 +67,28 @@ def setup_input_objects_and_structures(mocker):
             },
             "hist2": hist_plotter_2,
         },
+        "CellEnergy": {
+            "hist3": hist_plotter_3,
+        }
     }
 
     return (plot_configurations, input_hists,
             hist1, hist_plotter_1,
-            hist2, hist_plotter_2)
+            hist2, hist_plotter_2,
+            hist3, hist_plotter_3)
 
 def test_iterate_over_plot_configurations(logging_mixin, setup_input_objects_and_structures):
     """ Test iterating over plot configurations. """
     (plot_configurations, input_hists,
      hist1, hist_plotter_1,
-     hist2, hist_plotter_2) = setup_input_objects_and_structures
+     hist2, hist_plotter_2,
+     hist3, hist_plotter_3) = setup_input_objects_and_structures
 
     iter_config = generic_tasks.iterate_over_plot_configurations(plot_configurations = plot_configurations)
 
-    next(iter_config) == ("hist1", hist_plotter_1, ["CellBadChannel", "EventCuts", "hist1"])
-    next(iter_config) == ("hist2", hist_plotter_1, ["CellBadChannel", "hist2"])
+    assert next(iter_config) == ("hist1", hist_plotter_1, ["CellBadChannel", "EventCuts"])
+    assert next(iter_config) == ("hist2", hist_plotter_2, ["CellBadChannel"])
+    assert next(iter_config) == ("hist3", hist_plotter_3, ["CellEnergy"])
 
     # It should be exhausted now.
     with pytest.raises(StopIteration):
@@ -77,7 +98,8 @@ def test_determine_hists_for_plot_configurations(logging_mixin, setup_input_obje
     """ Test assigning hists to plot configurations. """
     (plot_configurations, input_hists,
      hist1, hist_plotter_1,
-     hist2, hist_plotter_2) = setup_input_objects_and_structures
+     hist2, hist_plotter_2,
+     hist3, hist_plotter_3) = setup_input_objects_and_structures
 
     # Determine which hists correspond to which plot configurations.
     generic_tasks._determine_hists_for_plot_configurations(
@@ -90,6 +112,8 @@ def test_determine_hists_for_plot_configurations(logging_mixin, setup_input_obje
     assert plot_configurations["CellBadChannel"]["EventCuts"]["hist1"].hists == [hist1]
     assert plot_configurations["CellBadChannel"]["hist2"] == hist_plotter_2
     assert plot_configurations["CellBadChannel"]["hist2"].hists == [hist2]
+    assert plot_configurations["CellEnergy"]["hist3"] == hist_plotter_3
+    assert plot_configurations["CellEnergy"]["hist3"].hists == [hist3]
 
 #def my_func(config, hists, output = None):
 #
