@@ -31,6 +31,7 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import general as plot_general
+from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
@@ -1068,6 +1069,7 @@ class GeneralHistogramsManager(generic_tasks.TaskManager):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"task_label": None, "pt_hard_bin": None},
+            additional_classes_to_register = [plot_generic_hist.HistPlotter],
             obj = PlotGeneralHistograms,
         )
 
@@ -1982,7 +1984,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
         self.setup()
 
         # Run the general hists
-        #self.general_histograms.run()
+        self.general_histograms.run()
 
         # First analysis step
         for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):

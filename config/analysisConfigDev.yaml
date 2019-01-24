@@ -86,67 +86,72 @@ Correlations:
 
 GeneralHists:
     componentsToPlot:
-        JetH:
-            ZVertex: !HistPlotter
-                kwargs:
-                    title: "Z vertex"
-                    text_label:
-                        enabled: true
-            Centrality: !HistPlotter
-                kwargs:
-                    title: "Centrality"
-                    text_label:
-                        enabled: true
-            EventPlane: !HistPlotter
-                kwargs:
-                    title: "Event plane orientations"
-                    text_label:
-                        enabled: true
-            JetMatchingSameEventCuts: !HistPlotter
-                kwargs:
-                    text_label:
-                        enabled: true
-            JetMatchingMixedEventCuts: !HistPlotter
-                kwargs:
-                    text_label:
-                        enabled: true
-            TrackPt: !HistPlotter
-                kwargs:
-                    title: Associated track $\mathit{p}_{\mathrm{T}}$
-                    logy: true
-                    text_label:
-                        enabled: true
-            JetPt: !HistPlotter
-                kwargs:
-                    logy: true
-                    text_label:
-                        enabled: true
-                    hist_names:
-                        - "fHistJetPt_0": "0-10%"
-                        - "fHistJetPt_1": "10-30%"
-                        - "fHistJetPt_2": "30-50%"
-                        - "fHistJetPt_3": "50-90%"
-            JetPtBias: !HistPlotter
-                kwargs:
-                    logy: true
-                    text_label:
-                        enabled: true
-                    hist_names:
-                        - "fHistJetPtBias_0": "0-10%"
-                        - "fHistJetPtBias_1": "10-30%"
-                        - "fHistJetPtBias_2": "30-50%"
-                        - "fHistJetPtBias_3": "50-90%"
-            JetEtaPhi: !HistPlotter
-                kwargs:
-                    title: $\eta-\phi$ of jets in correlations
-                    text_label:
-                        enabled: true
-            JetHEtaPhi: !HistPlotter
-                kwargs:
-                    title: $\eta-\phi$ of charged hadrons in correlations
-                    text_label:
-                        enabled: true
+        ZVertex: !HistPlotter
+            kwargs:
+                title: "Z vertex"
+                text_label:
+                    enabled: true
+        Centrality: !HistPlotter
+            kwargs:
+                title: "Centrality"
+                text_label:
+                    enabled: true
+        EventPlane: !HistPlotter
+            kwargs:
+                title: "Event plane orientations"
+                text_label:
+                    enabled: true
+        JetMatchingSameEventCuts: !HistPlotter
+            kwargs:
+                text_label:
+                    enabled: true
+        JetMatchingMixedEventCuts: !HistPlotter
+            kwargs:
+                text_label:
+                    enabled: true
+        TrackPt: !HistPlotter
+            kwargs:
+                title: Associated track $\mathit{p}_{\mathrm{T}}$
+                x_label: $\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$
+                y_label: $\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}$
+                logy: true
+                text_label:
+                    enabled: true
+        JetPt: !HistPlotter
+            kwargs:
+                logy: true
+                text_label:
+                    enabled: true
+                hist_names:
+                    - "fHistJetPt_0": "0-10\\%"
+                    - "fHistJetPt_1": "10-30\\%"
+                    - "fHistJetPt_2": "30-50\\%"
+                    - "fHistJetPt_3": "50-90\\%"
+        JetPtBias: !HistPlotter
+            kwargs:
+                logy: true
+                text_label:
+                    enabled: true
+                hist_names:
+                    - "fHistJetPtBias_0": "0-10\\%"
+                    - "fHistJetPtBias_1": "10-30\\%"
+                    - "fHistJetPtBias_2": "30-50\\%"
+                    - "fHistJetPtBias_3": "50-90\\%"
+        JetEtaPhi: !HistPlotter
+            kwargs:
+                title: $\eta-\phi$ of jets in correlations
+                text_label:
+                    enabled: true
+        JetHEtaPhi: !HistPlotter
+            kwargs:
+                title: $\eta-\phi$ of charged hadrons in correlations
+                text_label:
+                    enabled: true
     override:
+        2.76:
+            trainNumber: 3360
+        5.02:
+            trainNumber: 4358
         iterables:
             # Selected values explicitly so there are some iterables to create the object
             # (even though we don't need them).
