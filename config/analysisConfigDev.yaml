@@ -312,7 +312,7 @@ EMCalCorrections:
                     hist_names:
                         - "MatchEtaAll": $\eta$ matches
                         - "MatchPhiAll": $\varphi$ matches
-            MatchDifferential0: !HistPlotter
+            MatchDifferential1: !HistPlotter
                 kwargs: &matchDifferential
                     title: $\Delta\eta$, $\Delta\varphi$ matches
                     x_label: $\Delta\eta$, $\Delta\varphi$
@@ -325,61 +325,61 @@ EMCalCorrections:
                     processing: &matchDifferentialProcessing
                         func_name: "eta_phi_match_hist_names"
                         angles: ["Eta", "Phi"]
-                        centBins:
+                        cent_bins:
                             - 0: "Pos. tracks"
                             - 5: "Neg. tracks"
-                        ptBins: [1]
-                        etaDirections:
+                        pt_bins: [1]
+                        eta_directions:
                             - 0: $\eta < 0$
                             - 1: $\eta > 0$
-            MatchDifferential1: !HistPlotter
-                kwargs:
-                    <<: *matchDifferential
-                    processing:
-                        <<: *matchDifferentialProcessing
-                        ptBins: [2]
             MatchDifferential2: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [3]
+                        pt_bins: [2]
             MatchDifferential3: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [4]
+                        pt_bins: [3]
             MatchDifferential4: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [5]
+                        pt_bins: [4]
             MatchDifferential5: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [6]
+                        pt_bins: [5]
             MatchDifferential6: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [7]
+                        pt_bins: [6]
             MatchDifferential7: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [8]
+                        pt_bins: [7]
             MatchDifferential8: !HistPlotter
                 kwargs:
                     <<: *matchDifferential
                     processing:
                         <<: *matchDifferentialProcessing
-                        ptBins: [9]
+                        pt_bins: [8]
+            MatchDifferential9: !HistPlotter
+                kwargs:
+                    <<: *matchDifferential
+                    processing:
+                        <<: *matchDifferentialProcessing
+                        pt_bins: [9]
         ClusterHadronicCorrection:
             # By following the same order as how the histograms are stored in the file,
             # we can be assured that the proper hist is matched to the proper config.

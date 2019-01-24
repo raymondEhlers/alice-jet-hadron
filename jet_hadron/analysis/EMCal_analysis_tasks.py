@@ -135,11 +135,11 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         # Angle name
         angles = plot_config.processing["angles"]
         # {Number: label}
-        cent_bins = plot_config.processing["centBins"]
+        cent_bins = plot_config.processing["cent_bins"]
         # {Number: label}
-        eta_directions = plot_config.processing["etaDirections"]
+        eta_directions = plot_config.processing["eta_directions"]
         # List of pt bins
-        selected_pt_bins = plot_config.processing["ptBins"]
+        selected_pt_bins = plot_config.processing["pt_bins"]
 
         hist_names = []
         for angle in angles:
