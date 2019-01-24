@@ -23,8 +23,6 @@ WORKDIR ${JET_HADRON_ROOT}
 COPY --chown=overwatch:overwatch . ${JET_HADRON_ROOT}
 
 # Necessary for iminuit, probfit
-# TEMP: 22 Dec 2018 - Added rootpy here since we can't include it in setup.py (since ROOT may not
-#       be available). I'll remove the dependency in a bit
-RUN pip install --user --upgrade --no-cache-dir numpy cython rootpy
+RUN pip install --user --upgrade --no-cache-dir numpy cython
 # Install the jet-hadron analysis.
 RUN pip install --user --upgrade --no-cache-dir -e .[tests,dev,docs]

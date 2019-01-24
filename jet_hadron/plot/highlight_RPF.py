@@ -26,25 +26,13 @@ import matplotlib.pyplot as plt
 # Needed for 3D plots
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
 import seaborn as sns
-import sys
-import warnings
-
-import ROOT
 
 from pachyderm import histogram
 
 from jet_hadron.plot import base as plot_base
 
-# Tell ROOT to ignore command line options so args are passed to python
-# NOTE: Must be immediately after import ROOT!
-ROOT.PyConfig.IgnoreCommandLineOptions = True
-
 # Setup logger
 logger = logging.getLogger(__name__)
-
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-thisModule = sys.modules[__name__]
 
 ##########
 # Plotting

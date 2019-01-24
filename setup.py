@@ -79,11 +79,6 @@ setup(
         "numpy",
         "matplotlib",
         "seaborn",
-        # Not required at the moment, but hopefully for the future.
-        #"uproot",
-        # Skip rootpy so we can install the package without ROOT being available (so we can run flake8, etc,
-        # even if we skip the tests).
-        #"rootpy",
         "iminuit>=1.3",
         "probfit",
         "numdifftools",

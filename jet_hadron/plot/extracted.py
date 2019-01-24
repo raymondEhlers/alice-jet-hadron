@@ -13,7 +13,7 @@ import logging
 # Use matplotlib in some cases
 import matplotlib.pyplot as plt
 # And use ROOT in others
-import rootpy.ROOT as ROOT
+import ROOT
 
 from jet_hadron.base import params as params
 from jet_hadron.plot import base as plot_base

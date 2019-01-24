@@ -16,7 +16,6 @@ import pprint
 import math
 import sys
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Type
-import warnings
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -40,12 +39,6 @@ from jet_hadron.analysis import fit as fitting
 from jet_hadron.analysis import generic_tasks
 
 import ROOT
-# Tell ROOT to ignore command line options so args are passed to python
-# NOTE: Must be immediately after import ROOT!
-ROOT.PyConfig.IgnoreCommandLineOptions = True
-
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
 
 # Setup logger
 logger = logging.getLogger(__name__)

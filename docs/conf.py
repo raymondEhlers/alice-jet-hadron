@@ -140,7 +140,7 @@ htmlhelp_basename = 'ALICEJetHadronCorrelationsdoc'
 
 # -- Options for LaTeX output ------------------------------------------------
 
-latex_elements = {
+latex_elements = {  # type: ignore
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
@@ -224,6 +224,6 @@ class Mock(MagicMock):
         return MagicMock()
 
 # ROOT isn't available on RTD.  This works fine for our purposes.
-MOCK_MODULES = ["ROOT", "rootpy", "rootpy.io", "rootpy.ROOT"]
+MOCK_MODULES = ["ROOT"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 

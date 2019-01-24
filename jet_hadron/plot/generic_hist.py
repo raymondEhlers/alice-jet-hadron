@@ -18,8 +18,6 @@ import re
 import seaborn as sns
 from typing import Any, Dict, List, Tuple, Union
 
-import rootpy.ROOT as ROOT
-
 from pachyderm import histogram
 from pachyderm import yaml
 
@@ -107,7 +105,7 @@ class HistPlotter:
         # Finally construct the object using the kwargs that were extracted via the mapping.
         return cls(**data["kwargs"])
 
-    def get_first_hist(self) -> ROOT.TH1:
+    def get_first_hist(self) -> Hist:
         return next(iter(self.hists))
 
     def pre_draw_options(self) -> None:
@@ -172,6 +170,7 @@ class HistPlotter:
             ax.set_title(title)
 
         # Axis labels
+        import ROOT
         label_map = {
             "x": (self.x_label, ROOT.TH1.GetXaxis, ax.set_xlabel),
             "y": (self.y_label, ROOT.TH1.GetYaxis, ax.set_ylabel),
@@ -269,6 +268,7 @@ class HistPlotter:
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # Draw the hist
+        import ROOT
         if isinstance(self.get_first_hist(), ROOT.TH2):
             self.plot_2D_hists(fig = fig, ax = ax)
         elif isinstance(self.get_first_hist(), ROOT.TH1):

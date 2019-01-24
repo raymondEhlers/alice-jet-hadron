@@ -14,8 +14,6 @@ import matplotlib
 import numpy as np
 import seaborn as sns
 
-import rootpy.ROOT as ROOT
-
 from pachyderm import generic_config
 from pachyderm import histogram
 
@@ -485,6 +483,7 @@ def CompareToJoel(epFitObj):
 
     # Iterate over the data and subtract the hists
     for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.items():
+        import ROOT
         logger.info("Comparing with Joel's code for trackPtBin {}".format(trackPtBin))
 
         # TODO: Remove hard code

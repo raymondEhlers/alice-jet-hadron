@@ -28,9 +28,6 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base.params import ReactionPlaneOrientation
 
 import ROOT
-# Tell ROOT to ignore command line options so args are passed to python
-# NOTE: Must be immediately after import ROOT!
-ROOT.PyConfig.IgnoreCommandLineOptions = True
 
 # Configure ROOT
 # Run in batch mode

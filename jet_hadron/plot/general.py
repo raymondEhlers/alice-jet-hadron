@@ -9,8 +9,6 @@ Contains brief plotting functions which don't belong elsewhere
 
 import logging
 
-import rootpy.ROOT as ROOT
-
 from jet_hadron.plot import base as plot_base
 
 logger = logging.getLogger(__name__)
@@ -20,6 +18,7 @@ logger = logging.getLogger(__name__)
 ####
 def plotGeneralAnalysisHistograms(jetH):
     """ Plot general analysis histograms related to the JetH analysis. """
+    import ROOT
     canvas = ROOT.TCanvas("canvas", "canvas")
     # Hists
     drawAndSaveGeneralHist(jetH, canvas = canvas, hists = jetH.generalHists1D)
@@ -54,6 +53,7 @@ def plotTriggerJetSpectra(jetH):
     # Use the general histogrmms as a proxy, since usually if we want them, then we
     # also want the trigger spectra
     if jetH.taskConfig["processingOptions"]["generalHistograms"]:
+        import ROOT
         canvas = ROOT.TCanvas("canvas", "canvas")
         canvas.SetLogy(True)
         jetH.triggerJetPt[jetH.histNameFormatTrigger].hist.Draw()
