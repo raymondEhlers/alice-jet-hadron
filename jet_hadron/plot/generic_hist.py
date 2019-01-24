@@ -5,6 +5,7 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+from dataclasses import dataclass, InitVar
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,67 +33,48 @@ logger = logging.getLogger(__name__)
 # Use latex in matplotlib.
 plt.rc('text', usetex = True)
 
+@dataclass
 class HistPlotter:
     """ Handles generic plotting of histograms via matplotlib.
 
     Note:
-        Arguments are taken in camelCase to allow camelCase to be used in YAML. However,
-        within internal code, we want to use snake_case, so we assign those arguments to
-        snake_case.
+        We ignore the typing on some of these values because we really except them to be
+        ``None`` if they are not set. It's not the cleanest design, but it's fine for
+        our purposes.
     """
-    def __init__(self,
-                 hist_names: List[Dict[str, str]] = None,
-                 hist: Hist = None,
-                 hists: List[Hist] = None,
-                 outputName: str = "",
-                 title: str = None,
-                 automaticTitleFromName: bool = False,
-                 exactNameMatch: bool = False,
-                 xLabel: str = None,
-                 yLabel: str = None,
-                 zLabel: str = None,
-                 xLimits: Tuple[float, float] = None,
-                 yLimits: Tuple[float, float] = None,
-                 textLabel: Dict[str, Any] = None,
-                 scientificNotationOnAxis: str = "",
-                 logy: bool = False,
-                 logz: bool = False,
-                 surface: bool = False,
-                 usePColorMesh: bool = False,
-                 stepPlot: bool = True,
-                 processing: Dict[str, Any] = None):
-        # A list of dictionaries, with key hist_name and value hist_title
-        if hist_names is None:
-            hist_names = [{}]
-        self.hist_names: List[Dict[str, str]] = hist_names
-        if hists is None:
-            hists = []
-        self.hists = hists
+    hist_names: List[Dict[str, str]] = None  # type: ignore
+    hist: InitVar[Hist] = None
+    hists: List[Hist] = None  # type: ignore
+    output_name: str = ""
+    title: str = ""
+    automatic_title_from_name: bool = False
+    exact_name_match: bool = False
+    x_label: str = ""
+    y_label: str = ""
+    z_label: str = ""
+    x_limits: Tuple[float, float] = None  # type: ignore
+    y_limits: Tuple[float, float] = None  # type: ignore
+    text_label: Dict[str, Any] = None  # type: ignore
+    scientific_notation_on_axis: str = ""
+    logy: bool = False
+    logz: bool = False
+    surface: bool = False
+    use_pcolor_mesh: bool = False
+    step_plot: bool = True
+    processing: Dict[str, Any] = None  # type: ignore
+
+    def __post_init__(self, hist: Hist):
+        """ Final object initialization. """
+        # Dataclass fields don't always seem to play well with YAML. So we just do our final initialization here.
+        if self.hist_names is None:
+            self.hist_names = [{}]
+        if self.hists is None:
+            self.hists = []
+        if self.processing is None:
+            self.processing = {}
         # Store the hist in the list if it was passed
         if hist:
             self.hists.append(hist)
-        self.output_name = outputName
-        self.title = title
-        # Convert hist name to title by splitting on camel case
-        self.automatic_title_from_name = automaticTitleFromName
-        # If an exact hist name should be required
-        self.exact_name_match = exactNameMatch
-        self.x_label = xLabel
-        self.y_label = yLabel
-        self.z_label = zLabel
-        self.x_limits = xLimits
-        self.y_limits = yLimits
-        self.text_label = textLabel
-        self.scientific_notation_on_axis = scientificNotationOnAxis
-        self.logy = logy
-        self.logz = logz
-        self.surface = surface
-        self.use_pcolor_mesh = usePColorMesh
-        self.step_plot = stepPlot
-        # Processing needs to be executed externally.
-        if processing is None:
-            processing = {}
-        self.processing = processing
 
     def __repr__(self) -> str:
         """ Representation of the object. """

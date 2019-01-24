@@ -90,36 +90,36 @@ GeneralHists:
             ZVertex: !HistPlotter
                 kwargs:
                     title: "Z vertex"
-                    textLabel:
+                    text_label:
                         enabled: true
             Centrality: !HistPlotter
                 kwargs:
                     title: "Centrality"
-                    textLabel:
+                    text_label:
                         enabled: true
             EventPlane: !HistPlotter
                 kwargs:
                     title: "Event plane orientations"
-                    textLabel:
+                    text_label:
                         enabled: true
             JetMatchingSameEventCuts: !HistPlotter
                 kwargs:
-                    textLabel:
+                    text_label:
                         enabled: true
             JetMatchingMixedEventCuts: !HistPlotter
                 kwargs:
-                    textLabel:
+                    text_label:
                         enabled: true
             TrackPt: !HistPlotter
                 kwargs:
                     title: Associated track $\mathit{p}_{\mathrm{T}}$
                     logy: true
-                    textLabel:
+                    text_label:
                         enabled: true
             JetPt: !HistPlotter
                 kwargs:
                     logy: true
-                    textLabel:
+                    text_label:
                         enabled: true
                     hist_names:
                         - "fHistJetPt_0": "0-10%"
@@ -129,7 +129,7 @@ GeneralHists:
             JetPtBias: !HistPlotter
                 kwargs:
                     logy: true
-                    textLabel:
+                    text_label:
                         enabled: true
                     hist_names:
                         - "fHistJetPtBias_0": "0-10%"
@@ -139,12 +139,12 @@ GeneralHists:
             JetEtaPhi: !HistPlotter
                 kwargs:
                     title: $\eta-\phi$ of jets in correlations
-                    textLabel:
+                    text_label:
                         enabled: true
             JetHEtaPhi: !HistPlotter
                 kwargs:
                     title: $\eta-\phi$ of charged hadrons in correlations
-                    textLabel:
+                    text_label:
                         enabled: true
     override:
         iterables:
@@ -190,9 +190,6 @@ Response:
             reaction_plane_orientation: true
             pt_hard_bin: *PtHardBins10Bins
 
-_text_label_match_differential: &matchDistLabel
-_match_differential_options: &matchDifferential
-
 EMCalCorrections:
     # Track pt bins that are used when binning various cluster-track matching histograms.
     track_pt_bins: !TrackPtBins [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
@@ -202,10 +199,10 @@ EMCalCorrections:
             CellEnergy: !HistPlotter
                 kwargs: &CellEnergy
                     # The spectra fall off rather quickly
-                    xLimits: [0, 4]
+                    x_limits: [0, 4]
                     title: "Cell energy"
                     logy: true
-                    textLabel:
+                    text_label:
                         # "enabled" is not actually a real field - there just needs
                         # to be at least one field. Here, it could be removed
                         # because other values are specified, but it is kept as an
@@ -230,9 +227,9 @@ EMCalCorrections:
             CellTime: !HistPlotter
                 kwargs:
                     title: "Cell time"
-                    xLimits: [-300e-9, 900e-9]
-                    scientificNotationOnAxis: "both"
-                    textLabel:
+                    x_limits: [-300e-9, 900e-9]
+                    scientific_notation_on_axis: "both"
+                    text_label:
                         cellLabel: true
                     hist_names:
                         # Of the form "HistName": "HistTitle"
@@ -242,7 +239,7 @@ EMCalCorrections:
             ProcessingTime: !HistPlotter
                 kwargs:
                     title: "Clusterizer processing time"
-                    textLabel:
+                    text_label:
                         enabled: true
                     hist_names:
                         - "RealTime": "Clock time"
@@ -252,29 +249,29 @@ EMCalCorrections:
                 kwargs: &exoticsEtaPhi
                     # Don't use quotes if we are using latex
                     title: Cluster $\eta,\phi$ before exotics removal
-                    outputName: "ClusterEtaPhiBeforeExotics"
-                    yLimits: [1.25, 3.5]
+                    output_name: "ClusterEtaPhiBeforeExotics"
+                    y_limits: [1.25, 3.5]
                     logz: true
-                    textLabel:
+                    text_label:
                         clusterLabel: true
             EtaPhiDistAfter: !HistPlotter
                 kwargs:
                     <<: *exoticsEtaPhi
                     title: Cluster $\eta,\phi$ after exotics removal
-                    outputName: "ClusterEtaPhiAfterExotics"
+                    output_name: "ClusterEtaPhiAfterExotics"
             ExoticsRemoved: !HistPlotter
                 kwargs:
                     <<: *exoticsEtaPhi
                     title: $\eta, \phi$ of cluster removed during exotic cut
-                    outputName: "ClusterEtaPhiRemovedByExotics"
+                    output_name: "ClusterEtaPhiRemovedByExotics"
                     hist_names:
                         - "hExoticsEtaPhiRemoved": ""
             ExoticClusters: !HistPlotter
                 kwargs:
                     title: "Energy of Exotic Clusters"
-                    outputName: "ExoticClusterEnergy"
+                    output_name: "ExoticClusterEnergy"
                     logy: true
-                    textLabel:
+                    text_label:
                         clusterLabel: true
                     hist_names:
                         - "EnergyExoticClusters": "Exotic Clusters"
@@ -283,32 +280,32 @@ EMCalCorrections:
                 kwargs:
                     title: "Non-linearity cluster energy spectra"
                     logy: true
-                    textLabel:
+                    text_label:
                         clusterLabel: true
                     hist_names:
                         - "EnergyDistBefore": "Before non-linearity"
                         - "EnergyDistAfter": "After non-linearity"
             EnergyTimeDistBefore: !HistPlotter
                 kwargs: &energyTimeDist
-                    yLimits: [-300e-9, 400e-9]
-                    xLimits: [0, 80]
+                    y_limits: [-300e-9, 400e-9]
+                    x_limits: [0, 80]
                     logz: true
-                    outputName: EnergyTimeBeforeNonLinearity
+                    output_name: EnergyTimeBeforeNonLinearity
                     title: Cluster energy vs time before cluster non-linearity
-                    textLabel:
+                    text_label:
                         clusterLabel: true
             EnergyTimeDistAfter: !HistPlotter
                 kwargs:
                     <<: *energyTimeDist
-                    outputName: EnergyTimeAfterNonLinearity
+                    output_name: EnergyTimeAfterNonLinearity
                     title: Cluster energy vs time after cluster non-linearity
         ClusterTrackMatcher:
             MatchDistAll: !HistPlotter
                 kwargs:
                     title: "All cluster-track matches"
-                    xLabel: $\Delta\eta$, $\Delta\varphi$
-                    xLimits: [-0.12, 0.12]
-                    textLabel: &matchDistLabel
+                    x_label: $\Delta\eta$, $\Delta\varphi$
+                    x_limits: [-0.12, 0.12]
+                    text_label: &matchDistLabel
                         clusterLabel: true
                         trackLabel: true
                         textLocation: [0.25, 0.9]
@@ -318,10 +315,10 @@ EMCalCorrections:
             MatchDifferential0: !HistPlotter
                 kwargs: &matchDifferential
                     title: $\Delta\eta$, $\Delta\varphi$ matches
-                    xLabel: $\Delta\eta$, $\Delta\varphi$
-                    xLimits: [-0.12, 0.12]
-                    scientificNotationOnAxis: "y"
-                    textLabel:
+                    x_label: $\Delta\eta$, $\Delta\varphi$
+                    x_limits: [-0.12, 0.12]
+                    scientific_notation_on_axis: "y"
+                    text_label:
                         <<: *matchDistLabel
                     hist_names:
                         - "fHistMatch{angle}_{cent}_{pt_bin}_{eta_direction}": ""
@@ -389,10 +386,10 @@ EMCalCorrections:
             MatchEtaPhiAll: !HistPlotter
                 kwargs:
                     title: $\Delta\eta$, $\Delta\varphi$ matches (track $\leftrightarrow$ cluster)
-                    outputName: "EtaPhiMatches"
+                    output_name: "EtaPhiMatches"
                     logz: true
-                    exactNameMatch: true
-                    textLabel:
+                    exact_name_match: true
+                    text_label:
                         <<: *matchDistLabel
                         textLocation: [0.35, 0.92]
                     hist_names:
@@ -400,21 +397,21 @@ EMCalCorrections:
             MatchEtaPhiAllCl: !HistPlotter
                 kwargs:
                     title: $\Delta\eta$, $\Delta\varphi$ matches from clusters
-                    outputName: "EtaPhiMatchesFromClusters"
+                    output_name: "EtaPhiMatchesFromClusters"
                     logz: true
-                    exactNameMatch: true
-                    textLabel:
+                    exact_name_match: true
+                    text_label:
                         <<: *matchDistLabel
                         textLocation: [0.35, 0.92]
                     hist_names:
                         - "fHistMatchEtaPhiAllCl": "Matches"
             TrackPESub: !HistPlotter
                 kwargs:
-                    outputName: "TrackPESub"
-                    xLabel: $\sum p$ (GeV) weighted with $E_{\mathrm{sub}}$
-                    xLimits: [0, 175]
+                    output_name: "TrackPESub"
+                    x_label: $\sum p$ (GeV) weighted with $E_{\mathrm{sub}}$
+                    x_limits: [0, 175]
                     logy: true
-                    textLabel: &clusterTrackLabel
+                    text_label: &clusterTrackLabel
                         clusterLabel: true
                         trackLabel: true
                     hist_names:
@@ -423,13 +420,13 @@ EMCalCorrections:
                         - "fHistEsubPch_5": "Negative charged tracks"
             TrackPVsEOverPRatio: !HistPlotter
                 kwargs:
-                    outputName: "TrackPEOverPRatio"
+                    output_name: "TrackPEOverPRatio"
                     # yamllint disable-line rule:line-length
                     title: $\sum p_{\mathrm{track}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
-                    xLimits: [0, 150]
-                    yLimits: [0, 1.1]
+                    x_limits: [0, 150]
+                    y_limits: [0, 1.1]
                     logz: true
-                    textLabel: &clusterTrackLabelRight
+                    text_label: &clusterTrackLabelRight
                         <<: *clusterTrackLabel
                         textLocation: [0.71, 0.92]
                     hist_names:
@@ -437,22 +434,22 @@ EMCalCorrections:
                         - "fHistEsubPchRatAll_0": ""
             EClusVsEOverPRatio: !HistPlotter
                 kwargs:
-                    outputName: "ClusterEoverPRatio"
+                    output_name: "ClusterEoverPRatio"
                     # yamllint disable-line rule:line-length
                     title: $E_{\mathrm{cluster}}$ vs $E_{\mathrm{cluster}}$ / $\sum p_{\mathrm{track}}$ using all matches
-                    xLimits: [0, 150]
+                    x_limits: [0, 150]
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabelRight
                     hist_names:
                         # 0 is 0-10%
                         - "fHistMatchEvsP_0": ""
             EOverPVsCent: !HistPlotter
                 kwargs:
-                    outputName: "EOverPCent"
+                    output_name: "EOverPCent"
                     title: &eOverPVsCentTitle $E_{\mathrm{cluster}}$ / $p_{\mathrm{track}}$ vs Cent
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                         textLocation: [0.35, 0.15]
                     hist_names:
@@ -461,53 +458,53 @@ EMCalCorrections:
                 kwargs:
                     title: &nMatchesVsCentTitle "N matches vs centrality"
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "NMatchesCent": *nMatchesVsCentTitle
             # Oversubtracted hists
             OversubVsClusE: !HistPlotter
                 kwargs:
-                    outputName: "OversubVsClusE"
+                    output_name: "OversubVsClusE"
                     title: Oversubtracted E vs $E_{\textrm{cluster}}$
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "fHistOversub_0": ""
             OversubVsClusEFromEmbedClusters: !HistPlotter
                 kwargs:
-                    outputName: "OversubVsClusEFromEmbedClusters"
+                    output_name: "OversubVsClusEFromEmbedClusters"
                     title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated clusters
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "fHistOversubMCClusters_0": ""
             OversubVsClusEFromDataClusters: !HistPlotter
                 kwargs:
-                    outputName: "OversubVsClusEFromDataClusters"
+                    output_name: "OversubVsClusEFromDataClusters"
                     title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated clusters
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "fHistOversubNonMCClusters_0": ""
             OversubVsClusEFromEmbedTracks: !HistPlotter
                 kwargs:
-                    outputName: "OversubVsClusEFromEmbedTracks"
+                    output_name: "OversubVsClusEFromEmbedTracks"
                     title: Oversubtracted E vs $E_{\textrm{cluster}}$ for embedded dominated tracks
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "fHistEmbTrackMatchesOversub_0": ""
             OversubVsClusEFromDataTracks: !HistPlotter
                 kwargs:
-                    outputName: "OversubVsClusEFromDataTracks"
+                    output_name: "OversubVsClusEFromDataTracks"
                     title: Oversubtracted E vs $E_{\textrm{cluster}}$ for data dominated tracks
                     logz: true
-                    textLabel:
+                    text_label:
                         <<: *clusterTrackLabel
                     hist_names:
                         - "fHistNonEmbTrackMatchesOversub_0": ""
@@ -528,37 +525,37 @@ EMCalEmbedding:
     componentsToPlot:
         # TODO: Add AliEventCuts support
         CrossSection:
-            textLabel:
+            text_label:
                 enabled: true
             hist_names:
                 - "fHistXSection": "Pythia Cross Section"
         Trials:
-            textLabel:
+            text_label:
                 enabled: true
         PtHard:
-            textLabel:
+            text_label:
                 enabled: true
         EmbeddedEventRejection:
-            scientificNotationOnAxis: "y"
-            textLabel:
+            scientific_notation_on_axis: "y"
+            text_label:
                 enabled: true
         EmbeddedEventsAttempted:
-            xLimits: [0, 200]
+            x_limits: [0, 200]
             logy: true
-            scientificNotationOnAxis: "y"
-            textLabel:
+            scientific_notation_on_axis: "y"
+            text_label:
                 enabled: true
         NumberOfFiles:
-            yLabel: "Number"
-            textLabel:
+            y_label: "Number"
+            text_label:
                 enabled: true
         AbsoluteFileNumber:
-            xLabel: "File number"
-            yLabel: "Number"
-            textLabel:
+            x_label: "File number"
+            y_label: "Number"
+            text_label:
                 enabled: true
         InternalEventCuts:
-            textLabel:
+            text_label:
                 enabled: true
     override:
         inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
