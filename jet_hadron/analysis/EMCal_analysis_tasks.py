@@ -8,8 +8,6 @@
 import enum
 import logging
 import os
-import sys
-import warnings
 
 from pachyderm import yaml
 
@@ -19,18 +17,8 @@ from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.analysis import generic_tasks
 
-import rootpy.ROOT as ROOT
-
-# Tell ROOT to ignore command line options so args are passed to python
-# NOTE: Must be immediately after import ROOT and sometimes must be the first ROOT related import!
-ROOT.PyConfig.IgnoreCommandLineOptions = True
-
 # Setup logger
 logger = logging.getLogger(__name__)
-
-# Handle rootpy warning
-warnings.filterwarnings(action='ignore', category=RuntimeWarning, message=r'creating converter for unknown type "_Atomic\(bool\)"')
-this_module = sys.modules[__name__]
 
 class EMCalCorrectionsLabel(enum.Enum):
     """ Label of possible EMCal correction tasks.
@@ -214,8 +202,12 @@ def scale_CPU_time(hist: Hist) -> None:
     hist.Rebin(timeIncrement)
     hist.Scale(1.0 / timeIncrement)
 
-def eta_phi_removed(hist_name: str, before_hist: ROOT.TH2, after_hist: ROOT.TH2) -> ROOT.TH2:
+def eta_phi_removed(hist_name: str, before_hist: Hist, after_hist: Hist) -> Hist:
     """ Show the eta phi locations of clusters removed by the exotics cut.
+
+    This is created by subtracting the after removal hist from the before removal hist.
+    The before and after histograms are expected to be TH2 histograms, but in principle
+    they could be anything.
 
     Args:
         hist_name: Name of the new hist showing the removed clusters
