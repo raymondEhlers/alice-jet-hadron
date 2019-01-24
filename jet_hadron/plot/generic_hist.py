@@ -110,6 +110,12 @@ class HistPlotter:
     def get_first_hist(self) -> ROOT.TH1:
         return next(iter(self.hists))
 
+    def pre_draw_options(self) -> None:
+        """ Apply any necessary pre plot (draw) options. """
+        # We need to set the ROOT hist title here since it may contain invalid formatting.
+        # Since we reference it later, it's important to be able to change it to a valid string.
+        self.get_first_hist().SetTitle(self._determine_title())
+
     def apply_hist_settings(self, ax: matplotlib.axes.Axes) -> None:
         self.apply_axis_settings(ax)
 
@@ -138,7 +144,8 @@ class HistPlotter:
     def post_draw_options(self, ax: matplotlib.axes.Axes) -> None:
         pass
 
-    def apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:
+    def _determine_title(self) -> str:
+        """ Determine the histogram title. """
         # Title sanity check - we should only set one
         if self.automatic_title_from_name and self.title:
             raise ValueError("Set both automatic title extraction and an actual title. Please select only one setting")
@@ -153,6 +160,12 @@ class HistPlotter:
             title = re.sub('([a-z])([A-Z])', r'\1 \2', temp_title)
         else:
             title = self.title if self.title else self.get_first_hist().GetTitle()
+
+        return title
+
+    def apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:
+        """ Determine and apply the histogram title and axis labels. """
+        title = self._determine_title()
 
         if title:
             logger.debug(f"Set title: {title}")
@@ -248,6 +261,9 @@ class HistPlotter:
         path = os.path.join(obj.output_prefix, os.path.dirname(output_name))
         if not os.path.exists(path):
             os.makedirs(path)
+
+        # Make any pre draw adjustments.
+        self.pre_draw_options()
 
         # Make the plots
         fig, ax = plt.subplots(figsize=(8, 6))
