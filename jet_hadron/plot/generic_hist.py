@@ -110,9 +110,7 @@ class HistPlotter:
 
     def pre_draw_options(self) -> None:
         """ Apply any necessary pre plot (draw) options. """
-        # We need to set the ROOT hist title here since it may contain invalid formatting.
-        # Since we reference it later, it's important to be able to change it to a valid string.
-        self.get_first_hist().SetTitle(self._determine_title())
+        ...
 
     def apply_hist_settings(self, ax: matplotlib.axes.Axes) -> None:
         self.apply_axis_settings(ax)
@@ -140,7 +138,8 @@ class HistPlotter:
             ax.ticklabel_format(axis = self.scientific_notation_on_axis, style = "sci", scilimits = (0, 0))
 
     def post_draw_options(self, ax: matplotlib.axes.Axes) -> None:
-        pass
+        """ Apply possible post draw options (beyond those already implemented). """
+        ...
 
     def _determine_title(self) -> str:
         """ Determine the histogram title. """

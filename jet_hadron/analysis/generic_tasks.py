@@ -136,7 +136,7 @@ def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter,
                     or (not plotter.exact_name_match and hist_name in hist_key):
                 logger.debug(f"Found match of hist name: {hist.GetName()} and HistPlotter hist name {hist_name}")
                 # Keep the title as the hist name if we haven't specified it so we don't lose information
-                hist_title = hist_title if hist_title != "" else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
+                hist_title = hist_title if hist_title != "" else plotter.title if plotter.title else hist.GetTitle() if hist.GetTitle() != "" else hist.GetName()
 
                 #logger.debug("Adding hist to existing config")
                 # Set the hist title (for legend, plotting, etc)
