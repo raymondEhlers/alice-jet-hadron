@@ -86,6 +86,60 @@ Correlations:
 
 GeneralHists:
     componentsToPlot:
+        EventCuts:
+            CutStats: !HistPlotter
+                kwargs:
+                    title: "Cut stats"
+                    exact_name_match: true
+                    text_label:
+                        enabled: true
+                        textLocation: [0.82, 0.08]
+                    hist_names:
+                        - "fCutStats": "Before cuts"
+                        - "fCutStatsAfterTrigger": "After trigger selection"
+                        - "fCutStatsAfterMultSelection": "After MultSelection"
+            NormalizationHist: !HistPlotter
+                kwargs:
+                    title: "Event selection normalization"
+                    text_label:
+                        enabled: true
+                    hist_names:
+                        - "fNormalizationHist": ""
+            ZVertex: !HistPlotter
+                kwargs:
+                    title: "Z vertex"
+                    exact_name_match: true
+                    x_limits: [-20, 20]
+                    text_label:
+                        enabled: true
+                        textLocation: [0.5, 0.1]
+                    hist_names:
+                        - "Vtz_raw": "Before event cuts"
+                        - "Vtz_selected": "After event cuts"
+            Centrality: !HistPlotter
+                kwargs:
+                    title: "Centrality"
+                    y_limits: [3e5, 4.5e5]
+                    text_label:
+                        enabled: true
+                        textLocation: [0.5, 0.1]
+                    hist_names:
+                        - "Centrality_raw": "Before event cuts"
+                        - "Centrality_selected": "After event cuts"
+            MultiplicityVsCentralityBeforeCuts: !HistPlotter
+                kwargs:
+                    logz: true
+                    text_label:
+                        enabled: true
+                    hist_names:
+                        - "MultCentCorrelation_raw": ""
+            MultiplicityVsCentralityAfterCuts: !HistPlotter
+                kwargs:
+                    logz: true
+                    text_label:
+                        enabled: true
+                    hist_names:
+                        - "MultCentCorrelation_selected": ""
         ZVertex: !HistPlotter
             kwargs:
                 title: "Z vertex"
