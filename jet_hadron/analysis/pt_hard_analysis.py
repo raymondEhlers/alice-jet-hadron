@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, Mapping
 
 from pachyderm import histogram
 from pachyderm import projectors
@@ -58,7 +58,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.scale_factor: float = 0.0
         self.number_of_events: int = 0
 
-    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
+    def _retrieve_histograms(self, input_hists: Mapping[str, Any] = None) -> bool:
         """ Retrieve relevant histogram information.
 
         Args:
@@ -108,7 +108,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         """ Extract number of accepted events in the pt hard bin."""
         return self.n_events.GetBinContent(1)
 
-    def setup(self, input_hists: Dict[str, Any] = None) -> bool:
+    def setup(self, input_hists: Mapping[str, Any] = None) -> bool:
         """ Setup the pt hard bin objects.
 
         Note:
@@ -130,8 +130,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
 
         # Setup outliers removal
         self.outliers_manager = remove_outliers.OutliersRemovalManager(
-            particle_level_axis = projectors.TH1AxisType.y_axis,
-            moving_average_threshold = self.moving_average_threshold,
+            moving_average_threshold = self.moving_average_threshold
         )
 
         # Extract scale factors and number of events in the particular pt hard bin.
@@ -150,9 +149,10 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         return self.scale_factor * average_number_of_events / self.number_of_events
 
     def run(self, average_number_of_events: float,
-            hists: Sequence[Hist] = None,
-            analysis: analysis_objects.JetHBase = None,
-            hist_attribute_names: Sequence[str] = None) -> bool:
+            outliers_removal_axis: projectors.TH1AxisType,
+            hists: Mapping[str, Hist] = None,
+            analyses: Mapping[str, analysis_objects.JetHBase] = None,
+            hist_attribute_name: str = "") -> bool:
         """ Run the pt hard analysis.
 
         Histograms are often grouped together if we want them to remove outliers at the same index location.
@@ -162,11 +162,15 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         Args:
             average_number_of_events: Average number of events per pt hard bin. Must be calculated
                 externally from all of the pt hard bin analysis objects.
-            hists: Collection of histograms which should have outliers removed and scaled.
-            analysis: Analysis object to be processed according to values in this pt hard bin. Default: None,
-                in which case, the hists must be provided directly (in conjunction with ``hist_attribute_names``).
-            hist_attribute_names: Names of the attributes to retrieve the histograms. Default: None,
-                in which case, the hists must be provided directly (in conjunction with ``analysis``).
+            outliers_removal_axis: Projection axis to be used in outliers removal. Usually the particle level axis.
+            hists: Collection of histograms to be processed according to the values in this pt hard bin.
+                Default: None, in which case ``analyses`` and ``hist_attribute_name`` must be specified.
+            analyses: Analysis objects to be processed according to values in this pt hard bin. Keys are the identifier,
+                while the values are the objects. Must be specified in conjunction with ``hist_attribute_name``.
+                Default: None, in which case, the hists must be provided directly.
+            hist_attribute_name: Name of the attributes to retrieve the histogram from the analysis object. Must
+                be specified in conjunction with ``analyses``.  Default: None, in which case, the hists must be
+                provided directly.
         Returns:
             True if the process was successful.
         Raises:
@@ -177,48 +181,47 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         if self.setup_complete is not True:
             raise ValueError("Must complete setup of the pt hard object!")
         # Ensure we haven't passed too many arguments
-        if hists and (analysis or hist_attribute_names):
-            raise ValueError("Must not specify both hists and analysis or hist_attribute_names.")
+        if hists and (analyses or hist_attribute_name):
+            raise ValueError("Must not specify both hists and analyses or hist_attribute_name.")
         # We will use hists throughout regardless of the arguments, so we need to ensure that it is valid
         if hists is None:
-            hists = []
+            hists = {}
 
-        # Finally, extract the histograms from the analysis object if we specified those arguments.
-        if analysis or hist_attribute_names:
-            if not analysis or not hist_attribute_names:
-                raise ValueError("If specifying analysis and hist_attribute_names, then you must specify both!")
-            hists = _get_hists_from_analysis_object(analysis = analysis, hist_attribute_names = hist_attribute_names)
+        # Finally, extract the histograms from the analysis objects if we specified those arguments.
+        if analyses or hist_attribute_name:
+            if not analyses or not hist_attribute_name:
+                raise ValueError("If specifying analyses and hist_attribute_name, then you must specify both!")
+            hists = _get_hists_from_analysis_objects(analyses = analyses, hist_attribute_name = hist_attribute_name)
 
         # Final determination of the scale factor.
         self.scale_factor = self._calculate_rescale_factor(average_number_of_events)
 
-        # Remove outliers from the given analysis object.
-        self.outliers_manager.run(hists = hists)
+        # Remove outliers from the given hists.
+        self.outliers_manager.run(hists = hists, outliers_removal_axis = outliers_removal_axis)
 
         # Scale the requested histograms.
-        for h in hists:
+        for h in hists.values():
             h.Scale(self.scale_factor)
 
         return True
 
-def _get_hists_from_analysis_object(analysis: analysis_objects.JetHBase,
-                                    hist_attribute_names: Sequence[str]) -> List[Hist]:
+def _get_hists_from_analysis_objects(analyses: Mapping[str, analysis_objects.JetHBase],
+                                     hist_attribute_name: str) -> Dict[str, Hist]:
     """ Retrieve histograms from an analysis object stored under specified attribute names.
 
     Args:
-        analysis: Analysis object to be processed according to values in this pt hard bin.
-        hist_attribute_names: Names of the attributes to retrieve the histograms.
+        analyses: Analysis objects to be processed according to values in this pt hard bin.
+        hist_attribute_name: Names of the attributes to retrieve the histograms.
     Returns:
         Extracted histograms.
     """
-    hists: List[Hist] = []
-    for attr_name in hist_attribute_names:
-        hists.append(utils.recursive_getattr(analysis, attr_name))
-
+    hists: Dict[str, Hist] = {}
+    for key, analysis in analyses.items():
+        hists[key] = utils.recursive_getattr(analysis, hist_attribute_name)
     return hists
 
-def merge_pt_hard_binned_analyses(analyses: Dict[Any, analysis_objects.JetHBase],
-                                  hist_attribute_names,
+def merge_pt_hard_binned_analyses(analyses: Mapping[Any, analysis_objects.JetHBase],
+                                  hist_attribute_name,
                                   output_object) -> None:
     """ Merge together all scaled histograms.
 

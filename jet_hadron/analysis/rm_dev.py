@@ -91,7 +91,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
 
         # Relevant histograms
         self.response_matrix: Hist = None
-        self.response_matrix_errirs: Hist = None
+        self.response_matrix_errors: Hist = None
 
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
@@ -106,7 +106,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Reaction plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
             reaction_plane_axis_range = full_axis_range
-            logger.info("Using full EP angle range")
+            logger.debug("Using full EP angle range")
         else:
             reaction_plane_axis_range = {
                 "min_val": projectors.HistAxisRange.apply_func_to_find_bin(
@@ -116,7 +116,7 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
                     None, self.reaction_plane_orientation.value.bin
                 )
             }
-            logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
+            logger.debug(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
             axis_type = ResponseMakerMatchingSparse.det_level_reaction_plane_orientation,
             axis_range_name = "detLevelReactionPlaneOrientation",
@@ -296,7 +296,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Create the pt hard bins
         self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
-        (_, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
+        (self.pt_hard_bins_key_index, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
 
         # Validate that we have the same pt hard iterables.
         if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
@@ -332,7 +332,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Setup the response matrix analysis objects and run the response matrix projectors
         with self.progress_manager.counter(total = len(self.analyses),
-                                           desc = "Configuring: ",
+                                           desc = "Configuring and projecting:",
                                            unit = "responses") as setting_up:
             for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
                 logger.debug(f"pt_hard_bin: {pt_hard_bin}")
@@ -373,20 +373,62 @@ class ResponseManager(generic_class.EqualityMixin):
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
         # Finally, remove outliers and scale the projected histograms according to their pt hard bins.
+        # First, we determine the input information
+        @dataclass
+        class InputInfo:
+            """ Helper class to store information about processing an analysis object.
+
+            This basically just stores information in a nicely formatted and clear manner.
+
+            Attributes:
+                hist_attribute_name: Name of the attribute under which the hist is stored in the analysis object.
+                outliers_removal_axis: Projection axis for the particle level used in outliers removal.
+            """
+            hist_attribute_name: str
+            outliers_removal_axis: projectors.TH1AxisType
+        analysis_object_info = [
+            # Main response hists
+            InputInfo("response_matrix", projectors.TH1AxisType.y_axis),
+            InputInfo("response_matrix_errors", projectors.TH1AxisType.y_axis),
+        ]
+        # Part-, det-level spectra
+        for name in ["part", "det"]:
+            analysis_object_info.extend([
+                InputInfo(f"{name}_level_hists.jet_spectra", projectors.TH1AxisType.x_axis),
+                InputInfo(f"{name}_level_hists.unmatched_jet_spectra", projectors.TH1AxisType.x_axis),
+                InputInfo(f"{name}_level_hists.sample_task_jet_spectra", projectors.TH1AxisType.x_axis),
+            ])
+
+        # Now, perform the actual outliers removal and scaling.
+        with self.progress_manager.counter(total = len(self.pt_hard_bins),
+                                           desc = "Processing: ",
+                                           unit = "pt hard bins") as processing:
+            for pt_hard_key_index, pt_hard_bin in \
+                    analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+                # We need to perform the outliers removal in EP groups.
+                ep_analyses = {}
+                for analysis_key_index, analysis in \
+                        analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_key_index.pt_hard_bin):
+                    ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
+
+                for analysis_input in analysis_object_info:
+                    pt_hard_bin.run(
+                        average_number_of_events = average_number_of_events,
+                        outliers_removal_axis = analysis_input.outliers_removal_axis,
+                        analyses = ep_analyses,
+                        hist_attribute_name = analysis_input.hist_attribute_name,
+                    )
+
+                # Update progress
+                processing.update()
+
+        # Now merge the scale histograms into the final response matrix results.
+        #response_matrix = ResponseMatrix(...)
         for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
             pt_hard_bin = self.pt_hard_bins[pt_hard_bin_index]
             for _, analysis in \
                     analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
-                pt_hard_bin.run(analysis = analysis, average_number_of_events = average_number_of_events)
-
-        # Now merge the scale histograms into the final response matrix results.
-        #response_matrix = ResponseMatrix(...)
-
-        for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
-            pt_hard_bin = self.pt_hard_bin[pt_hard_bin_index]
-            for _, analysis in \
-                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
-                        pass
+                ...
 
         return True
 

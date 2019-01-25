@@ -245,6 +245,7 @@ _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
         10: 2710
 
 PtHardBins:
+    moving_average_threshold: 1.0
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
