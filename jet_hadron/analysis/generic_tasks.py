@@ -213,8 +213,8 @@ class PlotTaskHists(analysis_objects.JetHBase):
         config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
 
         with self._progress_manager.counter(total = self._number_of_plot_configurations,
-                                            desc = "Plotting:",
-                                            unit = "histograms") as processing:
+                                            desc = "Processing:",
+                                            unit = "plot configurations") as processing:
             for name, plot_config, _ in config_iter:
                 if plot_config.processing:
                     func_name = plot_config.processing["func_name"]
@@ -250,8 +250,8 @@ class PlotTaskHists(analysis_objects.JetHBase):
         config_iter = iterate_over_plot_configurations(plot_configurations = self.plot_configurations)
 
         with self._progress_manager.counter(total = self._number_of_plot_configurations,
-                                            desc = "Processing:",
-                                            unit = "plot configurations") as progress:
+                                            desc = "Plotting:",
+                                            unit = "histograms") as progress:
             for name, plot_config, path in config_iter:
                 # Only attempt to plot if we actually have underlying hists.
                 logger.debug(f"name: {name}, hists: {plot_config.hists}, plot_config: {plot_config}, path: {path}")
