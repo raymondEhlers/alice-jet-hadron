@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterator, List, Mapping, Tuple
 from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import projectors
+from pachyderm.utils import epsilon
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -290,13 +291,77 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             for _, hist in hists:
                 hist.Sumw2()
 
-    #def create_response_matrix_errors(self) -> Hist:
-    #    """ Create response matrix errors hist from the response matrix hist. """
-    #    # Validation
-    #    if self.response_matrix_errors:
-    #        raise ValueError("Response matrix errors has alraedy been created!")
-    #    if not self.response_matrix:
-    #        raise ValueError("Must create the response matrix first.")
+    def create_response_matrix_errors(self) -> Hist:
+        """ Create response matrix errors hist from the response matrix hist.
+
+        Args:
+            None.
+        Returns:
+            The newly created response matrix errors histogram.
+        """
+        # Validation
+        if self.response_matrix_errors:
+            raise ValueError("Response matrix errors has already been created!")
+        if not self.response_matrix:
+            raise ValueError("Must create the response matrix first.")
+
+        # Get response matrix for convenience
+        response_matrix = self.response_matrix
+
+        # Clone response matrix so that it automatically has the same limits
+        response_matrix_errors = response_matrix.Clone("responseMatrixErrors")
+        # Reset so that we can fill it with the errors
+        response_matrix_errors.Reset()
+
+        # Fill response matrix errors
+        # We don't fill in the overflow bins - they are rather irrelevant for the errors.
+        # NOTE: Careful with GetXaxis().GetFirst() -> The range can be restricted by SetRange()
+        for x in range(1, response_matrix.GetXaxis().GetNbins() + 1):
+            for y in range(1, response_matrix.GetYaxis().GetNbins() + 1):
+                fill_value = response_matrix.GetBinError(x, y)
+                #if fill_value > 1:
+                #    logger.debug(
+                #        f"Error > 1 before scaling: {fill_value},"
+                #        f" bin content: {response_matrix.GetBinContent(x, y)},"
+                #        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                #    )
+                if response_matrix.GetBinContent(x, y) > 0:
+                    if response_matrix.GetBinContent(x, y) < response_matrix.GetBinError(x, y):
+                        raise ValueError(
+                            "Bin content < bin error."
+                            f" Bin content: {response_matrix.GetBinContent(x, y)},"
+                            f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                        )
+                    fill_value = fill_value / response_matrix.GetBinContent(x, y)
+                else:
+                    if response_matrix.GetBinError(x, y) > epsilon:
+                        logger.warning(
+                            "No bin content, but associated error is non-zero."
+                            f" Content: {response_matrix.GetBinContent(x, y)},"
+                            f" error: {response_matrix.GetBinError(x, y)}"
+                        )
+                if fill_value > 1:
+                    logger.error(
+                        f"Error > 1 after scaling: {fill_value},"
+                        f" bin content: {response_matrix.GetBinContent(x, y)},"
+                        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                    )
+
+                # Fill hist
+                bin_number = response_matrix_errors.Fill(
+                    response_matrix_errors.GetXaxis().GetBinCenter(x),
+                    response_matrix_errors.GetYaxis().GetBinCenter(y),
+                    fill_value
+                )
+
+                # Check to ensure that we filled where we expected
+                if bin_number != response_matrix_errors.GetBin(x, y):
+                    raise ValueError(
+                        f"Mismatch between fill bin number ({bin_number})"
+                        f" and GetBin() ({response_matrix_errors.GetBin(x, y)})"
+                    )
+
+        return response_matrix_errors
 
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
