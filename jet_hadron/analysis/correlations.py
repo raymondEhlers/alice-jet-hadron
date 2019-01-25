@@ -5,9 +5,11 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+import coloredlogs
 import copy
 import ctypes
 from dataclasses import dataclass
+import enlighten
 import enum
 #import IPython
 import logging
@@ -15,7 +17,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Type
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -1144,7 +1146,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Basic information
         self.input_hists: Dict[str, Any] = {}
-        self.projectors: List[Type[projectors.HistProjectors]] = []
         # For convenience since it is frequently accessed.
         self.processing_options = self.task_config["processingOptions"]
         # Status information
@@ -1948,6 +1949,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
             selected_analysis_options = self.selected_analysis_options
         )
 
+        # Keep track of processing progress
+        self._progress_manager = enlighten.get_manager()
+
     def construct_correlations_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct Correlations objects based on iterables in a configuration file. """
         return analysis_config.construct_from_configuration_file(
@@ -1962,14 +1966,19 @@ class CorrelationsManager(generic_class.EqualityMixin):
         """ Setup the correlations manager. """
         # Retrieve input histograms (with caching).
         input_hists = {}
-        for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-            # We should now have all RP orientations.
-            # We are effectively caching the values here.
-            if not input_hists:
-                input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
-            logger.debug(f"{key_index}")
-            # Setup input histograms and projctors.
-            analysis.setup(input_hists = input_hists)
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Setting up:",
+                                            unit = "analysis objects") as setting_up:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # We should now have all RP orientations.
+                # We are effectively caching the values here.
+                if not input_hists:
+                    input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
+                logger.debug(f"{key_index}")
+                # Setup input histograms and projctors.
+                analysis.setup(input_hists = input_hists)
+                # Keep track of progress
+                setting_up.update()
 
     def run(self) -> bool:
         """ Run the analysis in the correlations manager. """
@@ -1980,8 +1989,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
         self.general_histograms.run()
 
         # First analysis step
-        for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-            analysis.run_projections()
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Projecting:",
+                                            unit = "analysis objects") as projecting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                analysis.run_projections()
+                # Keep track of progress
+                projecting.update()
 
         # Fitting
         # To successfully fit, we need all histograms from a given reaction plane orientation.
@@ -1998,7 +2012,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
 def run_from_terminal():
     """ Driver function for running the correlations analysis. """
     # Basic setup
-    logging.basicConfig(level = logging.DEBUG)
+    coloredlogs.install(
+        level = logging.DEBUG,
+        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
+    )
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down pachyderm
