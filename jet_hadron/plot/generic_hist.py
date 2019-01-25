@@ -105,24 +105,24 @@ class HistPlotter:
         # Finally construct the object using the kwargs that were extracted via the mapping.
         return cls(**data["kwargs"])
 
-    def get_first_hist(self) -> Hist:
+    def _first_hist(self) -> Hist:
         return next(iter(self.hists))
 
-    def pre_draw_options(self) -> None:
+    def _pre_draw_options(self) -> None:
         """ Apply any necessary pre plot (draw) options. """
         ...
 
-    def apply_hist_settings(self, ax: matplotlib.axes.Axes) -> None:
-        self.apply_axis_settings(ax)
+    def _apply_hist_settings(self, ax: matplotlib.axes.Axes) -> None:
+        self._apply_axis_settings(ax)
 
         if self.logy:
             logger.debug("Setting logy")
             ax.set_yscale("log")
 
-        self.apply_hist_limits(ax)
-        self.apply_hist_titles(ax)
+        self._apply_hist_limits(ax)
+        self._apply_hist_titles(ax)
 
-    def apply_axis_settings(self, ax: matplotlib.axes.Axes) -> None:
+    def _apply_axis_settings(self, ax: matplotlib.axes.Axes) -> None:
         # Do not apply useMathText to the axis tick format!
         # It is incompatible with using latex rendering
         # If for some reason latex is turned off, one can use the lines below to only apply the option to axes which
@@ -137,7 +137,7 @@ class HistPlotter:
             # axis could be x, y, or both
             ax.ticklabel_format(axis = self.scientific_notation_on_axis, style = "sci", scilimits = (0, 0))
 
-    def post_draw_options(self, ax: matplotlib.axes.Axes) -> None:
+    def _post_draw_options(self, ax: matplotlib.axes.Axes) -> None:
         """ Apply possible post draw options (beyond those already implemented). """
         ...
 
@@ -149,18 +149,18 @@ class HistPlotter:
 
         # Figure title
         if self.automatic_title_from_name:
-            temp_title = self.get_first_hist().GetTitle()
+            temp_title = self._first_hist().GetTitle()
             # Remove the common leading "h" in a hist name
             if temp_title[0] == "h":
                 temp_title = temp_title[1:]
             # For the regex, see: https://stackoverflow.com/a/43898219
             title = re.sub('([a-z])([A-Z])', r'\1 \2', temp_title)
         else:
-            title = self.title if self.title else self.get_first_hist().GetTitle()
+            title = self.title if self.title else self._first_hist().GetTitle()
 
         return title
 
-    def apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:
+    def _apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:
         """ Determine and apply the histogram title and axis labels. """
         title = self._determine_title()
 
@@ -178,7 +178,7 @@ class HistPlotter:
             if val:
                 label = val
             else:
-                label = axis(self.get_first_hist()).GetTitle()
+                label = axis(self._first_hist()).GetTitle()
                 # Convert any "#" (from ROOT) to "\" for latex
                 label = label.replace("#", "\\")
                 # Convert "%" -> "\%" to ensure that latex runs successfully
@@ -196,7 +196,7 @@ class HistPlotter:
             logger.debug(f"Apply {axis_name} axis title with label \"{label}\", axis {axis}, and apply_title function {apply_title}")
             apply_title(label)
 
-    def apply_hist_limits(self, ax: matplotlib.axes.Axes) -> None:
+    def _apply_hist_limits(self, ax: matplotlib.axes.Axes) -> None:
         if self.x_limits is not None:
             logger.debug(f"Setting x limits of {self.x_limits}")
             ax.set_xlim(self.x_limits)
@@ -204,7 +204,7 @@ class HistPlotter:
             logger.debug(f"Setting y limits of {self.y_limits}")
             ax.set_ylim(self.y_limits)
 
-    def add_text_labels(self, ax: matplotlib.axes.Axes, obj: analysis_objects.JetHBase) -> None:
+    def _add_text_labels(self, ax: matplotlib.axes.Axes, obj: analysis_objects.JetHBase) -> None:
         """ Add text labels to a plot.
 
         Available properties include:
@@ -261,27 +261,27 @@ class HistPlotter:
             os.makedirs(path)
 
         # Make any pre draw adjustments.
-        self.pre_draw_options()
+        self._pre_draw_options()
 
         # Make the plots
         fig, ax = plt.subplots(figsize=(8, 6))
 
         # Draw the hist
         import ROOT
-        if isinstance(self.get_first_hist(), ROOT.TH2):
-            self.plot_2D_hists(fig = fig, ax = ax)
-        elif isinstance(self.get_first_hist(), ROOT.TH1):
-            self.plot_1D_hists(fig = fig, ax = ax)
+        if isinstance(self._first_hist(), ROOT.TH2):
+            self._plot_2D_hists(fig = fig, ax = ax)
+        elif isinstance(self._first_hist(), ROOT.TH1):
+            self._plot_1D_hists(fig = fig, ax = ax)
         else:
-            raise ValueError(f"Histogram must be 1D or 2D. Type provided: {type(self.get_first_hist())}")
+            raise ValueError(f"Histogram must be 1D or 2D. Type provided: {type(self._first_hist())}")
 
         # Apply the options
         # Need to apply these here because rplt messes with them!
-        self.apply_hist_settings(ax)
+        self._apply_hist_settings(ax)
 
         # Apply post drawing options
-        self.post_draw_options(ax)
-        self.add_text_labels(ax, obj)
+        self._post_draw_options(ax)
+        self._add_text_labels(ax, obj)
 
         # Final plotting options
         plt.tight_layout()
@@ -298,7 +298,7 @@ class HistPlotter:
         plot_base.save_plot(obj, fig, final_output_name)
         plt.close(fig)
 
-    def plot_2D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
+    def _plot_2D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
         """ Plot a 2D hist using matplotlib.
 
         Note:
@@ -328,7 +328,7 @@ class HistPlotter:
         #       numpy axis conventions (?). We will have to transpose the data when we go to plot it.
         #       This is the same convention as used in root_numpy.
         X, Y, hist_array = histogram.get_array_from_hist2D(
-            hist = self.get_first_hist(),
+            hist = self._first_hist(),
             set_zero_to_NaN = True,
             return_bin_edges = not self.surface
         )
@@ -347,7 +347,7 @@ class HistPlotter:
         # Colormap is the default from sns.heatmap
         kwargs["cmap"] = plot_base.prepare_colormap(sns.cm.rocket)
         # Label is included so we could use a legend if we want
-        kwargs["label"] = self.get_first_hist().GetTitle()
+        kwargs["label"] = self._first_hist().GetTitle()
 
         logger.debug("kwargs: {}".format(kwargs))
 
@@ -401,7 +401,7 @@ class HistPlotter:
                                         **kwargs)
 
         # Draw the colorbar based on the drawn axis above.
-        label = self.z_label if self.z_label else self.get_first_hist().GetZaxis().GetTitle()
+        label = self.z_label if self.z_label else self._first_hist().GetZaxis().GetTitle()
         # NOTE: The mappable argument must be the separate axes, not the overall one
         # NOTE: This can cause the warning:
         #       '''
@@ -416,7 +416,7 @@ class HistPlotter:
         # See: https://stackoverflow.com/a/42092305
         #axFromPlot.collections[0].colorbar.set_label(label)
 
-    def plot_1D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
+    def _plot_1D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:
         """ Plot (a collection of) 1D histograms.
 
         Args:
