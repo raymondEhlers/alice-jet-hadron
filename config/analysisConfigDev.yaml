@@ -85,6 +85,7 @@ Correlations:
             jet_pt_bin: *JetPtBins11h
 
 GeneralHists:
+    enabled: False
     componentsToPlot:
         EventCuts: &EventCutsPlots
             CutStats: !HistPlotter

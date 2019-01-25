@@ -1051,10 +1051,26 @@ class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
     """ Task to plot general task hists.
 
     Note:
-        This current doesn't have any embedding specific functionality. It is created for clarity and to
-        encourage extension in the future.
+        This class inherits from the base class just to add the possibility of disabling the
+        task based on the configuration.
     """
-    ...
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Only run if it's enabled.
+        self.enabled = self.task_config["enabled"]
+
+    def setup(self) -> None:
+        if self.enabled:
+            super().setup()
+        else:
+            logger.info("General hists disabled. Skipping setup.")
+
+    def run(self, *args, **kwargs) -> bool:
+        if self.enabled:
+            return super().run(*args, **kwargs)
+        else:
+            logger.info("General hists disabled. Skipping running")
+            return False
 
 class GeneralHistogramsManager(generic_tasks.TaskManager):
     """ Manager for plotting general histograms. """
