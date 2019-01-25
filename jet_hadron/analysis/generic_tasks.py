@@ -102,7 +102,9 @@ def _determine_hists_for_plot_configurations(plot_configurations: PlotConfigurat
         else:
             # If we don't have a hist plotter, then we hists at this level to see if we can find a match
             for hists_name, hists in input_hists.items():
-                if name in hists_name:
+                # We check for whether the hists are a dict because we don't want to match
+                # if it's just to a single histogram.
+                if name in hists_name and isinstance(hists, dict):
                     # If we do find a match in the input hists dict, go the next level of recursion.
                     # NOTE: We ignore the typing here because mypy doesn't like the recursive redefinition of
                     #       plot_configurations.
@@ -125,6 +127,7 @@ def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter,
             raise ValueError(f"Too many entries in the hist_label object! Should only be 1! Object: {hist_label}")
         hist_name, hist_title = next(iter(hist_label.items()))
 
+        logger.debug(f"input_hists: {input_hists}")
         for hist_key, hist in input_hists.items():
             #logger.debug(f"Considering hist_name from plotter: {hist_name}, hist.GetName(): {hist.GetName()} with exact_name_match: {plotter.exact_name_match}")
 
@@ -152,7 +155,7 @@ def _assign_hists_to_plot_configurations(plotter: plot_generic_hist.HistPlotter,
     if len(plotter.hists) > 0 and len(plotter.hist_names) != len(plotter.hists):
         raise ValueError(f"Found {len(plotter.hists)} hists, but expected {len(plotter.hist_names)}!"
                          f" Hist names: {plotter.hist_names}, hists: {plotter.hists}."
-                         f" Input hists: {input_hists}")
+                         f"\nInput hists: {input_hists}")
 
 class PlotTaskHists(analysis_objects.JetHBase):
     """ Generic class to plot hists in analysis task.
