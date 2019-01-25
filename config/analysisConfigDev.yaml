@@ -143,18 +143,24 @@ GeneralHists:
         ZVertex: !HistPlotter
             kwargs:
                 title: "Z vertex"
+                x_limits: [-15, 15]
+                logy: true
                 text_label:
                     enabled: true
+                    textLocation: [0.5, 0.1]
         Centrality: !HistPlotter
             kwargs:
                 title: "Centrality"
+                scientific_notation_on_axis: "y"
                 text_label:
                     enabled: true
         EventPlane: !HistPlotter
             kwargs:
                 title: "Event plane orientations"
+                x_limits: [-2.5, 2.5]
                 text_label:
                     enabled: true
+                    textLocation: [0.1, 0.9]
         JetMatchingSameEventCuts: !HistPlotter
             kwargs:
                 text_label:
@@ -173,6 +179,7 @@ GeneralHists:
                     enabled: true
         JetPt: !HistPlotter
             kwargs:
+                title: Jet $\mathit{p}_{\mathrm{T}}$
                 logy: true
                 text_label:
                     enabled: true
@@ -183,6 +190,7 @@ GeneralHists:
                     - "fHistJetPt_3": "50-90\\%"
         JetPtBias: !HistPlotter
             kwargs:
+                title: Jet $\mathit{p}_{\mathrm{T}}$ which passes bias
                 logy: true
                 text_label:
                     enabled: true
@@ -196,9 +204,11 @@ GeneralHists:
                 title: $\eta-\phi$ of jets in correlations
                 text_label:
                     enabled: true
+                    textLocation: [0.1, 0.9]
         JetHEtaPhi: !HistPlotter
             kwargs:
                 title: $\eta-\phi$ of charged hadrons in correlations
+                logz: true
                 text_label:
                     enabled: true
     override:
