@@ -11,7 +11,7 @@ import enlighten
 import enum
 import logging
 import pprint
-from typing import Any, Dict, List, Mapping, Type
+from typing import Any, Dict, Iterator, List, Mapping, Tuple
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -20,13 +20,11 @@ from pachyderm import projectors
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
+from jet_hadron.base.typing_helpers import Hist
 
 from jet_hadron.analysis import pt_hard_analysis
 
 import ROOT
-
-# Typing helper
-Hist = Type[ROOT.TH1]
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +73,10 @@ class ResponseHistograms:
     jet_spectra: Hist
     unmatched_jet_spectra: Hist
     sample_task_jet_spectra: Hist
+
+    def __iter__(self) -> Iterator[Tuple[str, Hist]]:
+        for k, v in vars(self).items():
+            yield k, v
 
 class ResponseMatrix(analysis_objects.JetHReactionPlane):
     def __init__(self, *args, **kwargs):
@@ -275,6 +277,27 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         for projector in self.projectors:
             projector.project()
 
+    def set_sumw2(self) -> None:
+        """ Enable sumw2 on all hists.
+
+        It is enabled automatically in some cases, but it's better to ensure that it is always done.
+        """
+        self.response_matrix.Sumw2()
+        if self.response_matrix_errors:
+            self.response_matrix_errors.Sumw2()
+
+        for hists in [self.part_level_hists, self.det_level_hists]:
+            for _, hist in hists:
+                hist.Sumw2()
+
+    #def create_response_matrix_errors(self) -> Hist:
+    #    """ Create response matrix errors hist from the response matrix hist. """
+    #    # Validation
+    #    if self.response_matrix_errors:
+    #        raise ValueError("Response matrix errors has alraedy been created!")
+    #    if not self.response_matrix:
+    #        raise ValueError("Must create the response matrix first.")
+
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
@@ -331,6 +354,7 @@ class ResponseManager(generic_class.EqualityMixin):
         input_hists: Dict[Any, Dict[str, Any]] = {}
 
         # Setup the response matrix analysis objects and run the response matrix projectors
+        # By the time that this step is complete, we should have all histograms.
         with self.progress_manager.counter(total = len(self.analyses),
                                            desc = "Configuring and projecting:",
                                            unit = "responses") as setting_up:
@@ -348,6 +372,9 @@ class ResponseManager(generic_class.EqualityMixin):
                     if result is not True:
                         raise ValueError(f"Setup of {key_index} analysis object failed.")
                     analysis.run_projectors()
+
+                    # Esnure that all hists have sumw2 enabled
+                    analysis.set_sumw2()
 
                     # Update progress
                     setting_up.update()
@@ -389,7 +416,8 @@ class ResponseManager(generic_class.EqualityMixin):
         analysis_object_info = [
             # Main response hists
             InputInfo("response_matrix", projectors.TH1AxisType.y_axis),
-            InputInfo("response_matrix_errors", projectors.TH1AxisType.y_axis),
+            # We don't need to create the response matrix errors histogram at this point.
+            # Instead, we perform the scaling and merging first, and then create it afterwards.
         ]
         # Part-, det-level spectra
         for name in ["part", "det"]:
