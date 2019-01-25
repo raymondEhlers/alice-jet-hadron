@@ -86,7 +86,7 @@ Correlations:
 
 GeneralHists:
     componentsToPlot:
-        EventCuts:
+        EventCuts: &EventCutsPlots
             CutStats: !HistPlotter
                 kwargs:
                     title: "Cut stats"
@@ -592,7 +592,8 @@ EMCalCorrections:
 
 EMCalEmbedding:
     componentsToPlot:
-        # TODO: Add AliEventCuts support
+        EventCuts:
+            <<: *EventCutsPlots
         CrossSection:
             text_label:
                 enabled: true
