@@ -59,15 +59,6 @@ class ResponseMatrixProjector(projectors.HistProjector):
     """
     ...
 
-class ResponseMatrixPtHardAnalysis(pt_hard_analysis.PtHardAnalysis):
-    def remove_outliers(self):
-        # TODO: Implement
-        pass
-
-    def scale_histograms(self):
-        # TODO: Implement
-        pass
-
 @dataclass
 class ResponseHistograms:
     """ The main histograms for a response matrix. """
@@ -451,7 +442,7 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
-            obj = ResponseMatrixPtHardAnalysis,
+            obj = pt_hard_analysis.PtHardAnalysis,
         )
 
     def setup(self) -> None:
