@@ -260,6 +260,11 @@ Response:
         iterables:
             reaction_plane_orientation: true
             pt_hard_bin: *PtHardBins10Bins
+# Final response histograms.
+ResponseFinal:
+    override:
+        iterables:
+            reaction_plane_orientation: true
 
 EMCalCorrections:
     # Track pt bins that are used when binning various cluster-track matching histograms.

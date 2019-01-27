@@ -79,7 +79,98 @@ class ResponseHistograms:
         for k, v in vars(self).items():
             yield k, v
 
-class ResponseMatrix(analysis_objects.JetHReactionPlane):
+class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
+    """ Base response matrix class.
+
+    Stores the response matrix histograms. Often used for final response matrix histograms
+    after the intermediate steps are fully projected.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Relevant histograms
+        self.response_matrix: Hist = None
+        self.response_matrix_errors: Hist = None
+
+        self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
+        self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
+
+    def create_response_matrix_errors(self) -> Hist:
+        """ Create response matrix errors hist from the response matrix hist.
+
+        Args:
+            None.
+        Returns:
+            The newly created response matrix errors histogram.
+        """
+        # Validation
+        if self.response_matrix_errors:
+            raise ValueError("Response matrix errors has already been created!")
+        if not self.response_matrix:
+            raise ValueError("Must create the response matrix first.")
+
+        # Get response matrix for convenience
+        response_matrix = self.response_matrix
+
+        # Clone response matrix so that it automatically has the same limits
+        response_matrix_errors = response_matrix.Clone("responseMatrixErrors")
+        # Reset so that we can fill it with the errors
+        response_matrix_errors.Reset()
+
+        # Fill response matrix errors
+        # We don't fill in the overflow bins - they are rather irrelevant for the errors.
+        # NOTE: Careful with GetXaxis().GetFirst() -> The range can be restricted by SetRange()
+        for x in range(1, response_matrix.GetXaxis().GetNbins() + 1):
+            for y in range(1, response_matrix.GetYaxis().GetNbins() + 1):
+                fill_value = response_matrix.GetBinError(x, y)
+                #if fill_value > 1:
+                #    logger.debug(
+                #        f"Error > 1 before scaling: {fill_value},"
+                #        f" bin content: {response_matrix.GetBinContent(x, y)},"
+                #        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                #    )
+                if response_matrix.GetBinContent(x, y) > 0:
+                    if response_matrix.GetBinContent(x, y) < response_matrix.GetBinError(x, y):
+                        raise ValueError(
+                            "Bin content < bin error."
+                            f" Bin content: {response_matrix.GetBinContent(x, y)},"
+                            f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                        )
+                    fill_value = fill_value / response_matrix.GetBinContent(x, y)
+                else:
+                    if response_matrix.GetBinError(x, y) > epsilon:
+                        logger.warning(
+                            "No bin content, but associated error is non-zero."
+                            f" Content: {response_matrix.GetBinContent(x, y)},"
+                            f" error: {response_matrix.GetBinError(x, y)}"
+                        )
+                if fill_value > 1:
+                    logger.error(
+                        f"Error > 1 after scaling: {fill_value},"
+                        f" bin content: {response_matrix.GetBinContent(x, y)},"
+                        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
+                    )
+
+                # Fill hist
+                bin_number = response_matrix_errors.Fill(
+                    response_matrix_errors.GetXaxis().GetBinCenter(x),
+                    response_matrix_errors.GetYaxis().GetBinCenter(y),
+                    fill_value
+                )
+
+                # Check to ensure that we filled where we expected
+                if bin_number != response_matrix_errors.GetBin(x, y):
+                    raise ValueError(
+                        f"Mismatch between fill bin number ({bin_number})"
+                        f" and GetBin() ({response_matrix_errors.GetBin(x, y)})"
+                    )
+
+        return response_matrix_errors
+
+class ResponseMatrix(ResponseMatrixBase):
+    """ Main response matrix class.
+
+    Stores the response matrix histograms, as well as the methods to process the response matrix.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Pt hard bins are optional.
@@ -91,13 +182,6 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
         # Basic information
         self.input_hists: Dict[str, Any] = {}
         self.projectors: List[ResponseMatrixProjector] = []
-
-        # Relevant histograms
-        self.response_matrix: Hist = None
-        self.response_matrix_errors: Hist = None
-
-        self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
-        self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
 
     def _setup_projectors(self) -> None:
         """ Setup the sparse projectors. """
@@ -291,78 +375,6 @@ class ResponseMatrix(analysis_objects.JetHReactionPlane):
             for _, hist in hists:
                 hist.Sumw2()
 
-    def create_response_matrix_errors(self) -> Hist:
-        """ Create response matrix errors hist from the response matrix hist.
-
-        Args:
-            None.
-        Returns:
-            The newly created response matrix errors histogram.
-        """
-        # Validation
-        if self.response_matrix_errors:
-            raise ValueError("Response matrix errors has already been created!")
-        if not self.response_matrix:
-            raise ValueError("Must create the response matrix first.")
-
-        # Get response matrix for convenience
-        response_matrix = self.response_matrix
-
-        # Clone response matrix so that it automatically has the same limits
-        response_matrix_errors = response_matrix.Clone("responseMatrixErrors")
-        # Reset so that we can fill it with the errors
-        response_matrix_errors.Reset()
-
-        # Fill response matrix errors
-        # We don't fill in the overflow bins - they are rather irrelevant for the errors.
-        # NOTE: Careful with GetXaxis().GetFirst() -> The range can be restricted by SetRange()
-        for x in range(1, response_matrix.GetXaxis().GetNbins() + 1):
-            for y in range(1, response_matrix.GetYaxis().GetNbins() + 1):
-                fill_value = response_matrix.GetBinError(x, y)
-                #if fill_value > 1:
-                #    logger.debug(
-                #        f"Error > 1 before scaling: {fill_value},"
-                #        f" bin content: {response_matrix.GetBinContent(x, y)},"
-                #        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
-                #    )
-                if response_matrix.GetBinContent(x, y) > 0:
-                    if response_matrix.GetBinContent(x, y) < response_matrix.GetBinError(x, y):
-                        raise ValueError(
-                            "Bin content < bin error."
-                            f" Bin content: {response_matrix.GetBinContent(x, y)},"
-                            f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
-                        )
-                    fill_value = fill_value / response_matrix.GetBinContent(x, y)
-                else:
-                    if response_matrix.GetBinError(x, y) > epsilon:
-                        logger.warning(
-                            "No bin content, but associated error is non-zero."
-                            f" Content: {response_matrix.GetBinContent(x, y)},"
-                            f" error: {response_matrix.GetBinError(x, y)}"
-                        )
-                if fill_value > 1:
-                    logger.error(
-                        f"Error > 1 after scaling: {fill_value},"
-                        f" bin content: {response_matrix.GetBinContent(x, y)},"
-                        f" bin error: {response_matrix.GetBinError(x, y)}, ({x}, {y})"
-                    )
-
-                # Fill hist
-                bin_number = response_matrix_errors.Fill(
-                    response_matrix_errors.GetXaxis().GetBinCenter(x),
-                    response_matrix_errors.GetYaxis().GetBinCenter(y),
-                    fill_value
-                )
-
-                # Check to ensure that we filled where we expected
-                if bin_number != response_matrix_errors.GetBin(x, y):
-                    raise ValueError(
-                        f"Mismatch between fill bin number ({bin_number})"
-                        f" and GetBin() ({response_matrix_errors.GetBin(x, y)})"
-                    )
-
-        return response_matrix_errors
-
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
@@ -378,17 +390,36 @@ class ResponseManager(generic_class.EqualityMixin):
         self.config_filename = config_filename
         self.selected_analysis_options = selected_analysis_options
 
-        # Create the actual analysis objects.
+        # Create the actual response matrix objects.
         self.analyses: Mapping[Any, ResponseMatrix]
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_responses_from_configuration_file()
+        # Create the final response matrix objects.
+        self.final_responses: Mapping[Any, ResponseMatrixBase]
+        (self.final_responses_key_index, final_responses_selected_iterables, self.final_response) = \
+            self.construct_final_responses_from_configuration_file()
+
+        # Validate that we have the same reaction plane iterables
+        if not self.selected_iterables["reaction_plane_orientation"] == \
+                final_responses_selected_iterables["reaction_plane_orientation"]:
+                    raise ValueError(
+                        "Selected iterables for reaction plane orientations in the final response matrix objects differ"
+                        " from the reaction plane orientations for analysis response matrix objects."
+                        f" Selected iterables: {self.selected_iterables['reaction_plane_orientation']},"
+                        f" final responses iterables: {final_responses_selected_iterables}"
+                    )
 
         # Create the pt hard bins
         self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
-        (self.pt_hard_bins_key_index, pt_hard_iterables, self.pt_hard_bins) = self.construct_pt_hard_bins_from_configuration_file()
+        (self.pt_hard_bins_key_index, pt_hard_iterables, self.pt_hard_bins) = \
+            self.construct_pt_hard_bins_from_configuration_file()
 
         # Validate that we have the same pt hard iterables.
         if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
-            raise ValueError("Selected iterables pt hard bins differ from the pt hard bins of the pt hard bin analysis objects. Selected iterables: {self.selected_iterables['pt_hard_bins']}, pt hard analysis iterables: {pt_hard_iterables}")
+            raise ValueError(
+                "Selected iterables pt hard bins differ from the pt hard bins of the pt hard bin analysis objects."
+                f" Selected iterables: {self.selected_iterables['pt_hard_bins']},"
+                f" pt hard analysis iterables: {pt_hard_iterables}"
+            )
 
         # Monitor the progress of the analysis.
         self.progress_manager = enlighten.get_manager()
@@ -401,6 +432,16 @@ class ResponseManager(generic_class.EqualityMixin):
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
             obj = ResponseMatrix,
+        )
+
+    def construct_final_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        """ Construct final ResponseMatrixBase objects based on iterables in a configuration file. """
+        return analysis_config.construct_from_configuration_file(
+            task_name = "ResponseFinal",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
+            obj = ResponseMatrixBase,
         )
 
     def construct_pt_hard_bins_from_configuration_file(self) -> analysis_config.ConstructedObjects:
