@@ -16,12 +16,14 @@ from typing import Any, Dict, Iterator, List, Mapping, Tuple
 from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import projectors
+from pachyderm import utils
 from pachyderm.utils import epsilon
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
+from jet_hadron.plot import response_matrix as plot_response_matrix
 
 from jet_hadron.analysis import pt_hard_analysis
 
@@ -64,7 +66,7 @@ class ResponseHistograms:
     """ The main histograms for a response matrix. """
     jet_spectra: Hist
     unmatched_jet_spectra: Hist
-    sample_task_jet_spectra: Hist
+    #sample_task_jet_spectra: Hist
 
     def __iter__(self) -> Iterator[Tuple[str, Hist]]:
         for k, v in vars(self).items():
@@ -82,8 +84,25 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         self.response_matrix: Hist = None
         self.response_matrix_errors: Hist = None
 
-        self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
-        self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None, None)
+        self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None)
+        self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None)
+
+    def set_sumw2(self) -> None:
+        """ Enable sumw2 on all hists.
+
+        It is enabled automatically in some cases, but it's better to ensure that it is always done
+        if it's not enabled.
+        """
+        for hist in [self.response_matrix, self.response_matrix_errors]:
+            if hist and not hist.GetSumw2N() > 0:
+                logger.debug(f"hist: {hist.GetName()}")
+                hist.Sumw2()
+
+        for hists in [self.part_level_hists, self.det_level_hists]:
+            for _, hist in hists:
+                if hist and not hist.GetSumw2N() > 0:
+                    logger.debug(f"hist: {hist.GetName()}")
+                    hist.Sumw2()
 
     def create_response_matrix_errors(self) -> Hist:
         """ Create response matrix errors hist from the response matrix hist.
@@ -353,19 +372,6 @@ class ResponseMatrix(ResponseMatrixBase):
         for projector in self.projectors:
             projector.project()
 
-    def set_sumw2(self) -> None:
-        """ Enable sumw2 on all hists.
-
-        It is enabled automatically in some cases, but it's better to ensure that it is always done.
-        """
-        self.response_matrix.Sumw2()
-        if self.response_matrix_errors:
-            self.response_matrix_errors.Sumw2()
-
-        for hists in [self.part_level_hists, self.det_level_hists]:
-            for _, hist in hists:
-                hist.Sumw2()
-
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
 
@@ -386,7 +392,7 @@ class ResponseManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_responses_from_configuration_file()
         # Create the final response matrix objects.
         self.final_responses: Mapping[Any, ResponseMatrixBase]
-        (self.final_responses_key_index, final_responses_selected_iterables, self.final_response) = \
+        (self.final_responses_key_index, final_responses_selected_iterables, self.final_responses) = \
             self.construct_final_responses_from_configuration_file()
 
         # Validate that we have the same reaction plane iterables
@@ -489,7 +495,7 @@ class ResponseManager(generic_class.EqualityMixin):
     def run(self) -> bool:
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
 
-        # Setup the response matrix and pt hard analysis objets.
+        # Setup the response matrix and pt hard analysis objects.
         self.setup()
 
         # We have to determine the relative scale factors after the setup because they depend on the number of
@@ -521,12 +527,12 @@ class ResponseManager(generic_class.EqualityMixin):
             analysis_object_info.extend([
                 InputInfo(f"{name}_level_hists.jet_spectra", projectors.TH1AxisType.x_axis),
                 InputInfo(f"{name}_level_hists.unmatched_jet_spectra", projectors.TH1AxisType.x_axis),
-                InputInfo(f"{name}_level_hists.sample_task_jet_spectra", projectors.TH1AxisType.x_axis),
+                #InputInfo(f"{name}_level_hists.sample_task_jet_spectra", projectors.TH1AxisType.x_axis),
             ])
 
         # Now, perform the actual outliers removal and scaling.
         with self.progress_manager.counter(total = len(self.pt_hard_bins),
-                                           desc = "Processing: ",
+                                           desc = "Processing:",
                                            unit = "pt hard bins") as processing:
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
@@ -537,6 +543,8 @@ class ResponseManager(generic_class.EqualityMixin):
                     ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
 
                 for analysis_input in analysis_object_info:
+                    hists = [utils.recursive_getattr(ep_analysis, analysis_input.hist_attribute_name) for ep_analysis in ep_analyses.values()]
+                    logger.debug(f"hist_attribute_name: {analysis_input.hist_attribute_name}, hists: {hists}")
                     pt_hard_bin.run(
                         average_number_of_events = average_number_of_events,
                         outliers_removal_axis = analysis_input.outliers_removal_axis,
@@ -548,12 +556,49 @@ class ResponseManager(generic_class.EqualityMixin):
                 processing.update()
 
         # Now merge the scale histograms into the final response matrix results.
-        #response_matrix = ResponseMatrix(...)
-        for pt_hard_bin_index in self.selected_iterables["pt_hard_bin"]:
-            pt_hard_bin = self.pt_hard_bins[pt_hard_bin_index]
-            for _, analysis in \
-                    analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_bin_index):
-                ...
+        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]),
+                                           desc = "Projecting:",
+                                           unit = "EP dependent final responses") as processing:
+            for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
+                for analysis_input in analysis_object_info:
+                    pt_hard_analysis.merge_pt_hard_binned_analyses(
+                        analyses = analysis_config.iterate_with_selected_objects(
+                            self.analyses,
+                            reaction_plane_orientation = reaction_plane_orientation
+                        ),
+                        hist_attribute_name = analysis_input.hist_attribute_name,
+                        output_analysis_object = self.final_responses[
+                            self.final_responses_key_index(reaction_plane_orientation = reaction_plane_orientation)
+                        ],
+                    )
+
+                # Update progress
+                processing.update()
+
+        # TEMP
+        example_hists = [r.response_matrix for r in self.final_responses.values()]
+        logger.debug(f"final_responses: {self.final_responses}, response: {example_hists}")
+
+        # Now plot the histograms
+        with self.progress_manager.counter(total = len(self.pt_hard_bins),
+                                           desc = "Plotting:",
+                                           unit = "responses") as processing:
+            for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
+                # Pull out the dict because we need to know the length of the objects,
+                # which isn't provided from a generator.
+                analyses = dict(
+                    analysis_config.iterate_with_selected_objects(
+                        self.final_responses,
+                        reaction_plane_orientation = reaction_plane_orientation
+                    )
+                )
+                # Plot part, det level match and unmatched
+                plot_response_matrix.plot_response_spectra(
+                    # TEMP
+                    merged_analysis = self.final_responses[0],
+                    pt_hard_analyses= analyses,
+                    hist_attribute_name = "...",
+                )
 
         return True
 

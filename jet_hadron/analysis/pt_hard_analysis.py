@@ -222,9 +222,26 @@ def _get_hists_from_analysis_objects(analyses: Mapping[str, analysis_objects.Jet
 
 def merge_pt_hard_binned_analyses(analyses: Mapping[Any, analysis_objects.JetHBase],
                                   hist_attribute_name,
-                                  output_object) -> None:
+                                  output_analysis_object) -> None:
     """ Merge together all scaled histograms.
 
+    Args:
+        analyses: Pt hard dependent analyses which should be merged together.
+        hist_attribute_name: Name of the attribute where the hist is stored.
+        output_analysis_object: Object where the histogram will be stored under ``hist_attribute_name``.
+    Returns:
+        None
     """
-    ...
+    output_hist: Hist = None
+    for _, analysis in analyses:
+        input_hist = utils.recursive_getattr(analysis, hist_attribute_name)
+        if output_hist is None:
+            output_hist = input_hist.Clone(input_hist.GetName() + "_merged")
+            # Reset so we can just Add() all hists without worrying which hist is being processed
+            output_hist.Reset()
+            # NOTE: Sumw2 is kept even after resetting.
 
+        output_hist.Add(input_hist)
+
+    # Save the final result
+    utils.recursive_setattr(output_analysis_object, hist_attribute_name, output_hist)
