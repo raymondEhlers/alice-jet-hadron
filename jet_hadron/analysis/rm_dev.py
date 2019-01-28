@@ -409,6 +409,8 @@ class ResponseManager(generic_class.EqualityMixin):
         self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
         (self.pt_hard_bins_key_index, pt_hard_iterables, self.pt_hard_bins) = \
             self.construct_pt_hard_bins_from_configuration_file()
+        # Create the final pt hard spectra
+        self.pt_hard_spectra: Hist
 
         # Validate that we have the same pt hard iterables.
         if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
@@ -476,7 +478,7 @@ class ResponseManager(generic_class.EqualityMixin):
                         raise ValueError(f"Setup of {key_index} analysis object failed.")
                     analysis.run_projectors()
 
-                    # Esnure that all hists have sumw2 enabled
+                    # Ensure that all hists have sumw2 enabled
                     analysis.set_sumw2()
 
                     # Update progress
@@ -493,6 +495,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 setting_up.update()
 
     def run(self) -> bool:
+        """ Run the response matrix analyses. """
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
 
         # Setup the response matrix and pt hard analysis objects.
@@ -556,9 +559,21 @@ class ResponseManager(generic_class.EqualityMixin):
                 processing.update()
 
         # Now merge the scale histograms into the final response matrix results.
-        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]),
+        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Projecting:",
                                            unit = "EP dependent final responses") as processing:
+            # First merge the pt hard bin quantities.
+            pt_hard_analysis.merge_pt_hard_binned_analyses(
+                analyses = analysis_config.iterate_with_selected_objects(
+                    self.pt_hard_bins,
+                ),
+                hist_attribute_name = "pt_hard_spectra",
+                output_analysis_object = self,
+            )
+            # Update the progress
+            processing.update()
+
+            # Then the reaction plane dependent quantities
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
                 for analysis_input in analysis_object_info:
                     pt_hard_analysis.merge_pt_hard_binned_analyses(
@@ -577,7 +592,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # TEMP
         example_hists = [r.response_matrix for r in self.final_responses.values()]
-        logger.debug(f"final_responses: {self.final_responses}, response: {example_hists}")
+        logger.debug(f"pt_hard_spectra: {self.pt_hard_spectra}, final_responses: {self.final_responses}, response: {example_hists}")
 
         # Now plot the histograms
         with self.progress_manager.counter(total = len(self.pt_hard_bins),
