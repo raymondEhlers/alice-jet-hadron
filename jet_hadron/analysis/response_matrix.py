@@ -509,7 +509,7 @@ class JetHResponseMatrix(object):
             normalRightMargin = canvas.GetRightMargin()
             # Smaller on right since it is empty
             canvas.SetRightMargin(0.03)
-            # Samller title area
+            # Smaller title area
             canvas.SetTopMargin(0.08)
 
             # Log Y
@@ -1009,8 +1009,6 @@ class JetHResponseMatrix(object):
 
         # Argument validation
         args = validateArguments(args)
-
-        # TODO: Create a constructFromConfigurationFile() ?
 
         # Print out configuration
         logger.info("Arguments:")
