@@ -96,7 +96,7 @@ class Fit:
 
 @dataclass
 class PlottingOutputWrapper:
-    """ Simple wrapper to allow use of the save_canvas and save_plot wrappers.
+    """ Simple wrapper to allow use of the save_plot and save_plot wrappers.
 
     Attributes:
         output_prefix: File path to where files should be saved.

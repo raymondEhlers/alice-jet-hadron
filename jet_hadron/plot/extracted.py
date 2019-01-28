@@ -127,7 +127,7 @@ def plotExtractedValues(jetH, values, parameters):
     legend.Draw("same")
 
     # Save plot
-    plot_base.save_canvas(jetH, canvas, tag)
+    plot_base.save_plot(jetH, canvas, tag)
 
 def createExtractedValuesLegend(collisionSystem, tag):
     """ Create legends for extracted value plots. """

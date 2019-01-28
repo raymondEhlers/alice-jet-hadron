@@ -34,22 +34,26 @@ def setup_save_tests(request, mocker):
         expected_filenames.append(os.path.join(output_prefix, "{filename}." + ext))
     return (obj, figure, canvas, expected_filenames)
 
-def test_save_plot(logging_mixin, setup_save_tests):
+@pytest.mark.parametrize("use_canvas", [
+    False,
+    True,
+], ids = ["Matplotlib Figure", "ROOT Canvas"])
+def test_save_plot(logging_mixin, setup_save_tests, use_canvas):
     """ Test the wrapper for saving a matplotlib plot. """
     (obj, figure, canvas, expected_filenames) = setup_save_tests
     filename = "filename"
-    filenames = plot_base.save_plot(obj, figure, filename)
-    figure.savefig.assert_called()
+    args = {
+        "obj": obj,
+        "figure": canvas if use_canvas else figure,
+        "output_name": filename,
+    }
+    filenames = plot_base.save_plot(**args)
 
-    assert filenames == [name.format(filename = filename) for name in expected_filenames]
-
-def test_save_canvas(logging_mixin, setup_save_tests):
-    """ Test the wrapper for saving a ROOT canvas. """
-    (obj, figure, canvas, expected_filenames) = setup_save_tests
-    filename = "filename"
-    filenames = plot_base.save_canvas(obj, canvas, filename)
-    canvas.SaveAs.assert_called()
-
+    # Check the result
+    if use_canvas:
+        canvas.SaveAs.assert_called()
+    else:
+        figure.savefig.assert_called()
     assert filenames == [name.format(filename = filename) for name in expected_filenames]
 
 def test_save_plot_impl(logging_mixin, setup_save_tests):

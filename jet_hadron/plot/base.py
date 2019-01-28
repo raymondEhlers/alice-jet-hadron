@@ -8,7 +8,7 @@
 from dataclasses import dataclass
 import logging
 import os
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 # Import and configure plotting packages
 import matplotlib
@@ -65,32 +65,26 @@ class PlotLabels:
         if self.y_label is not None:
             ax.set_ylabel(self.y_label)
 
-def save_canvas(obj: analysis_objects.PlottingOutputWrapper, canvas: Canvas, output_path: str) -> List[str]:
-    """ Loop over all requested file extensions and save the canvas.
-
-    Args:
-        obj (PlottingOutputWrapper): Contains the output_prefix and printing_extensions
-        canvas: Canvas on which the plot was drawn.
-        output_path: Filename under which the plot should be saved, but without the file extension.
-    Returns:
-        Filenames under which the plot was saved.
-    """
-    return save_canvas_impl(canvas, obj.output_prefix, output_path, obj.printing_extensions)
-
-def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: matplotlib.figure.Figure, output_path: str) -> List[str]:
+def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: Union[matplotlib.figure.Figure, Canvas], output_name: str) -> List[str]:
     """ Loop over all requested file extensions and save the current plot in matplotlib.
 
+    Uses duck typing to properly save both matplotlib figures and ROOT canvases.
+
     Args:
-        obj (PlottingOutputWrapper or similar): Contains the output_prefix and printing_extensions
-        figure: Figure on which the plot was drawn.
-        output_path: Filename under which the plot should be saved, but without the file extension.
+        obj: Contains the output_prefix and printing_extensions
+        figure: Figure or ROOT canvas on which the plot was drawn.
+        output_name: Filename under which the plot should be saved, but without the file extension.
     Returns:
         Filenames under which the plot was saved.
     """
-    return save_plot_impl(figure, obj.output_prefix, output_path, obj.printing_extensions)
+    # Check for the proper attribute for a ROOT canvas
+    if hasattr(figure, "SaveAs"):
+        return save_canvas_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
+    # If not, we it is
+    return save_plot_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
 
 # Base functions
-def save_canvas_impl(canvas: Canvas, output_prefix: str, output_path: str, printing_extensions: Sequence[str]) -> List[str]:
+def save_canvas_impl(canvas: Canvas, output_prefix: str, output_name: str, printing_extensions: Sequence[str]) -> List[str]:
     """ Implementation of generic save canvas function.
 
     It loops over all requested file extensions and save the ROOT canvas.
@@ -98,7 +92,7 @@ def save_canvas_impl(canvas: Canvas, output_prefix: str, output_path: str, print
     Args:
         canvas: Canvas on which the plot was drawn.
         output_prefix: File path to where files should be saved.
-        output_path: Filename under which the plot should be saved, but without the file extension.
+        output_name: Filename under which the plot should be saved, but without the file extension.
         printing_extensions (list): List of file extensions under which plots should be saved. They should
             not contain the dot!
     Returns:
@@ -106,14 +100,14 @@ def save_canvas_impl(canvas: Canvas, output_prefix: str, output_path: str, print
     """
     filenames = []
     for extension in printing_extensions:
-        filename = os.path.join(output_prefix, output_path + "." + extension)
+        filename = os.path.join(output_prefix, output_name + "." + extension)
         # Probably don't want this log message since ROOT will also generate a message
         #logger.debug("Saving ROOT canvas to \"{}\"".format(filename))
         canvas.SaveAs(filename)
         filenames.append(filename)
     return filenames
 
-def save_plot_impl(fig: matplotlib.figure.Figure, output_prefix: str, output_path: str, printing_extensions: Sequence[str]) -> List[str]:
+def save_plot_impl(fig: matplotlib.figure.Figure, output_prefix: str, output_name: str, printing_extensions: Sequence[str]) -> List[str]:
     """ Implementation of generic save plot function.
 
     It loops over all requested file extensions and save the matplotlib fig.
@@ -121,7 +115,7 @@ def save_plot_impl(fig: matplotlib.figure.Figure, output_prefix: str, output_pat
     Args:
         fig: Figure on which the plot was drawn.
         output_prefix: File path to where files should be saved.
-        output_path: Filename under which the plot should be saved, but without the file extension.
+        output_name: Filename under which the plot should be saved, but without the file extension.
         printing_extensions: List of file extensions under which plots should be saved. They should
             not contain the dot!
     Returns:
@@ -129,7 +123,7 @@ def save_plot_impl(fig: matplotlib.figure.Figure, output_prefix: str, output_pat
     """
     filenames = []
     for extension in printing_extensions:
-        filename = os.path.join(output_prefix, output_path + "." + extension)
+        filename = os.path.join(output_prefix, output_name + "." + extension)
         logger.debug("Saving matplotlib figure to \"{}\"".format(filename))
         fig.savefig(filename)
         filenames.append(filename)

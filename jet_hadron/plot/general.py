@@ -38,7 +38,7 @@ def drawAndSaveGeneralHist(jetH, canvas, hists, drawOpt = ""):
                 resetLog = True
 
             hist.Draw(drawOpt)
-            plot_base.save_canvas(jetH, canvas, name)
+            plot_base.save_plot(jetH, canvas, name)
 
             if resetLog:
                 canvas.SetLogy(False)
@@ -57,5 +57,5 @@ def plotTriggerJetSpectra(jetH):
         canvas = ROOT.TCanvas("canvas", "canvas")
         canvas.SetLogy(True)
         jetH.triggerJetPt[jetH.histNameFormatTrigger].hist.Draw()
-        plot_base.save_canvas(jetH, canvas, jetH.histNameFormatTrigger)
+        plot_base.save_plot(jetH, canvas, jetH.histNameFormatTrigger)
 
