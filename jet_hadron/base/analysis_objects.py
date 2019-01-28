@@ -96,7 +96,7 @@ class Fit:
 
 @dataclass
 class PlottingOutputWrapper:
-    """ Simple wrapper to allow use of the save_plot and save_plot wrappers.
+    """ Simple wrapper to allow use of the ``jet_hadron.plot.base.save_plot`` convenience function.
 
     Attributes:
         output_prefix: File path to where files should be saved.
@@ -155,7 +155,7 @@ class JetHBase(generic_class.EqualityMixin):
         # otherwise, use the value from the value from the config
         self.input_filename = config["inputFilename"]
         self.input_list_name = config["inputListName"]
-        self.plotting_output_wrapper = PlottingOutputWrapper(
+        self.output_info = PlottingOutputWrapper(
             output_prefix = config["outputPrefix"],
             printing_extensions = config["printingExtensions"],
         )
@@ -172,19 +172,19 @@ class JetHBase(generic_class.EqualityMixin):
 
     @property
     def output_prefix(self) -> str:
-        return self.plotting_output_wrapper.output_prefix
+        return self.output_info.output_prefix
 
     @output_prefix.setter
     def output_prefix(self, val) -> None:
-        self.plotting_output_wrapper.output_prefix = val
+        self.output_info.output_prefix = val
 
     @property
     def printing_extensions(self) -> List[str]:
-        return self.plotting_output_wrapper.printing_extensions
+        return self.output_info.printing_extensions
 
     @printing_extensions.setter
     def printing_extensions(self, val) -> None:
-        self.plotting_output_wrapper.printing_extensions = val
+        self.output_info.printing_extensions = val
 
     @property
     def leading_hadron_bias(self) -> params.LeadingHadronBias:

@@ -91,7 +91,7 @@ def check_JetHBase_object():
         }
         for prop, val in obj.__dict__.items():
             # Skip "_" fields, as well as the output wrapper
-            if prop.startswith("_") or prop == "plotting_output_wrapper":
+            if prop.startswith("_") or prop == "output_info":
                 continue
             assert val == default_values[default_values_key_map.get(prop, prop)]
 
