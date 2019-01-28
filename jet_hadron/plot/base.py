@@ -5,9 +5,10 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+from dataclasses import dataclass
 import logging
 import os
-from typing import Any, Union, List, Sequence
+from typing import List, Optional, Sequence, Union
 
 # Import and configure plotting packages
 import matplotlib
@@ -15,6 +16,7 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base.typing_helpers import Canvas
 
 # Setup logger
@@ -38,19 +40,45 @@ matplotlib.rcParams["mathtext.rm"] = "Bitstream Vera Sans"
 matplotlib.rcParams["mathtext.it"] = "Bitstream Vera Sans:italic"
 matplotlib.rcParams["mathtext.bf"] = "Bitstream Vera Sans:bold"
 
-# Wrappers
+@dataclass
+class PlotLabels:
+    """ Simple wrapper for keeping plot labels together.
+
+    Note:
+        The attributes are initialized to and compared against ``None`` rather than the empty
+        string because empty string is a valid value.
+
+    Attributes:
+        title: Title of the plot.
+        x_label: x axis label of the plot.
+        y_label: y axis label of the plot.
+        output_name: Name under which the plot will be saved.
+    """
+    title: Optional[str] = None
+    x_label: Optional[str] = None
+    y_label: Optional[str] = None
+    output_name: Optional[str] = None
+
+    def apply_labels(self, ax: matplotlib.axes.Axes) -> None:
+        if self.title is not None:
+            ax.set_title(self.title)
+        if self.x_label is not None:
+            ax.set_xlabel(self.x_label)
+        if self.y_label is not None:
+            ax.set_ylabel(self.y_label)
+
+@dataclass
 class PlottingOutputWrapper:
     """ Simple wrapper to allow use of the save_canvas and save_plot wrappers.
 
-    Args:
+    Attributes:
         output_prefix: File path to where files should be saved.
         printing_extensions: List of file extensions under which plots should be saved.
     """
-    def __init__(self, output_prefix: str, printing_extensions: Sequence[str]):
-        self.output_prefix = output_prefix
-        self.printing_extensions = printing_extensions
+    output_prefix: str
+    printing_extensions: Sequence[str]
 
-def save_canvas(obj: Union[PlottingOutputWrapper, Any], canvas: Canvas, output_path: str) -> List[str]:
+def save_canvas(obj: Union[PlottingOutputWrapper, analysis_objects.JetHBase], canvas: Canvas, output_path: str) -> List[str]:
     """ Loop over all requested file extensions and save the canvas.
 
     Args:
@@ -62,7 +90,7 @@ def save_canvas(obj: Union[PlottingOutputWrapper, Any], canvas: Canvas, output_p
     """
     return save_canvas_impl(canvas, obj.output_prefix, output_path, obj.printing_extensions)
 
-def save_plot(obj: Union[PlottingOutputWrapper, Any], figure: matplotlib.figure.Figure, output_path: str) -> List[str]:
+def save_plot(obj: Union[PlottingOutputWrapper, analysis_objects.JetHBase], figure: matplotlib.figure.Figure, output_path: str) -> List[str]:
     """ Loop over all requested file extensions and save the current plot in matplotlib.
 
     Args:
