@@ -23,6 +23,7 @@ from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
+from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import response_matrix as plot_response_matrix
 
 from jet_hadron.analysis import pt_hard_analysis
@@ -517,20 +518,39 @@ class ResponseManager(generic_class.EqualityMixin):
                 hist_attribute_name: Name of the attribute under which the hist is stored in the analysis object.
                 outliers_removal_axis: Projection axis for the particle level used in outliers removal.
             """
+            name: str
             hist_attribute_name: str
             outliers_removal_axis: projectors.TH1AxisType
+
         analysis_object_info = [
             # Main response hists
-            InputInfo("response_matrix", projectors.TH1AxisType.y_axis),
+            InputInfo(
+                name = "Response matrix",
+                hist_attribute_name = "response_matrix",
+                outliers_removal_axis = projectors.TH1AxisType.y_axis
+            ),
             # We don't need to create the response matrix errors histogram at this point.
             # Instead, we perform the scaling and merging first, and then create it afterwards.
         ]
         # Part-, det-level spectra
         for name in ["part", "det"]:
             analysis_object_info.extend([
-                InputInfo(f"{name}_level_hists.jet_spectra", projectors.TH1AxisType.x_axis),
-                InputInfo(f"{name}_level_hists.unmatched_jet_spectra", projectors.TH1AxisType.x_axis),
-                #InputInfo(f"{name}_level_hists.sample_task_jet_spectra", projectors.TH1AxisType.x_axis),
+                InputInfo(
+                    name = f"{name.capitalize()}-level matched jet spectra",
+                    hist_attribute_name = f"{name}_level_hists.jet_spectra",
+                    outliers_removal_axis = projectors.TH1AxisType.x_axis,
+                ),
+                InputInfo(
+                    name = f"{name.capitalize()}-level unmatched jet spectra",
+                    hist_attribute_name = f"{name}_level_hists.unmatched_jet_spectra",
+                    outliers_removal_axis = projectors.TH1AxisType.x_axis,
+                ),
+                #InputInfo(
+                #    type = name,
+                #    name = f"{name.capitalize()}-level sample task spectra",
+                #    hist_attribute_name = f"{name}_level_hists.sample_task_jet_spectra",
+                #    outliers_removal_axis = projectors.TH1AxisType.x_axis
+                #),
             ])
 
         # Now, perform the actual outliers removal and scaling.
@@ -590,12 +610,15 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
+        # TODO: Project the final particle level spectra
+
         # TEMP
         example_hists = [r.response_matrix for r in self.final_responses.values()]
         logger.debug(f"pt_hard_spectra: {self.pt_hard_spectra}, final_responses: {self.final_responses}, response: {example_hists}")
+        # ENDTEMP
 
         # Now plot the histograms
-        with self.progress_manager.counter(total = len(self.pt_hard_bins),
+        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]),
                                            desc = "Plotting:",
                                            unit = "responses") as processing:
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
@@ -603,21 +626,45 @@ class ResponseManager(generic_class.EqualityMixin):
                 # which isn't provided from a generator.
                 analyses = dict(
                     analysis_config.iterate_with_selected_objects(
-                        self.final_responses,
+                        self.analyses,
                         reaction_plane_orientation = reaction_plane_orientation
                     )
                 )
                 # Plot part, det level match and unmatched
-                plot_response_matrix.plot_response_spectra(
-                    # TEMP
-                    merged_analysis = self.final_responses[0],
-                    pt_hard_analyses= analyses,
-                    hist_attribute_name = "...",
-                )
+                for analysis_input in analysis_object_info[1:]:
+                    base_label = analysis_input.name[:analysis_input.name.find("_")]
+                    plot_response_matrix.plot_response_spectra(
+                        plot_labels = plot_base.PlotLabels(
+                            title = analysis_input.name,
+                            x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{%(label)s}" % {
+                                "label": base_label,
+                            },
+                            y_label = r"\frac{dN}{d\mathit{p}_{\mathrm{T}}}",
+                            #output_name = f"{base_label}_level_spectra",
+                        ),
+                        merged_analysis = self.final_responses[
+                            self.final_responses_key_index(reaction_plane_orientation)
+                        ],
+                        pt_hard_analyses = analyses,
+                        hist_attribute_name = analysis_input.hist_attribute_name,
+                    )
+
+        # Plot pt hard spectra
+        plot_response_matrix.plot_response_spectra(
+            plot_labels = plot_base.PlotLabels(
+                title = r"\mathit{p}_{\mathrm{T}} hard spectra",
+                x_label = r"$\mathit{p}_{\mathrm{T}}^{hard}",
+                y_label = r"\frac{dN}{d\mathit{p}_{\mathrm{T}}}",
+                #output_name = "pt_hard_spectra"
+            ),
+            merged_analysis = self,
+            pt_hard_analyses = analysis_config.iterate_with_selected_objects(self.pt_hard_analyses),
+            hist_attribute_name = "pt_hard_spectra",
+        )
 
         return True
 
-        # Test
+        # TEMP
         #test_object = next(iter(self.analyses.values()))
         #logger.info(f"Attempting to dump obj of type: {type(test_object)}")
         #import ruamel.yaml
@@ -625,6 +672,7 @@ class ResponseManager(generic_class.EqualityMixin):
         #yaml = ruamel.yaml.YAML(typ = "rt")
         #yaml.register_class(ResponseMatrix)
         #yaml.dump([test_object], sys.stdout)
+        # ENDTEMP
 
 def run_from_terminal():
     # Basic setup

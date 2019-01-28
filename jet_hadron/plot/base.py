@@ -52,12 +52,10 @@ class PlotLabels:
         title: Title of the plot.
         x_label: x axis label of the plot.
         y_label: y axis label of the plot.
-        output_name: Name under which the plot will be saved.
     """
     title: Optional[str] = None
     x_label: Optional[str] = None
     y_label: Optional[str] = None
-    output_name: Optional[str] = None
 
     def apply_labels(self, ax: matplotlib.axes.Axes) -> None:
         if self.title is not None:
