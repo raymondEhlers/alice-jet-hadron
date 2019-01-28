@@ -8,7 +8,7 @@
 from dataclasses import dataclass
 import logging
 import os
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence
 
 # Import and configure plotting packages
 import matplotlib
@@ -65,22 +65,11 @@ class PlotLabels:
         if self.y_label is not None:
             ax.set_ylabel(self.y_label)
 
-@dataclass
-class PlottingOutputWrapper:
-    """ Simple wrapper to allow use of the save_canvas and save_plot wrappers.
-
-    Attributes:
-        output_prefix: File path to where files should be saved.
-        printing_extensions: List of file extensions under which plots should be saved.
-    """
-    output_prefix: str
-    printing_extensions: Sequence[str]
-
-def save_canvas(obj: Union[PlottingOutputWrapper, analysis_objects.JetHBase], canvas: Canvas, output_path: str) -> List[str]:
+def save_canvas(obj: analysis_objects.PlottingOutputWrapper, canvas: Canvas, output_path: str) -> List[str]:
     """ Loop over all requested file extensions and save the canvas.
 
     Args:
-        obj (PlottingOutputWrapper or similar): Contains the output_prefix and printing_extensions
+        obj (PlottingOutputWrapper): Contains the output_prefix and printing_extensions
         canvas: Canvas on which the plot was drawn.
         output_path: Filename under which the plot should be saved, but without the file extension.
     Returns:
@@ -88,7 +77,7 @@ def save_canvas(obj: Union[PlottingOutputWrapper, analysis_objects.JetHBase], ca
     """
     return save_canvas_impl(canvas, obj.output_prefix, output_path, obj.printing_extensions)
 
-def save_plot(obj: Union[PlottingOutputWrapper, analysis_objects.JetHBase], figure: matplotlib.figure.Figure, output_path: str) -> List[str]:
+def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: matplotlib.figure.Figure, output_path: str) -> List[str]:
     """ Loop over all requested file extensions and save the current plot in matplotlib.
 
     Args:

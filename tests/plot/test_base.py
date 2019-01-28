@@ -14,17 +14,6 @@ from jet_hadron.plot import base as plot_base
 # Setup logger
 logger = logging.getLogger(__name__)
 
-@pytest.mark.parametrize("output_prefix,printing_extensions", [
-    ("a/b", ["png"]),
-    ("a/b", ["png", "pdf"]),
-    ("a/b/c", ["pdf"])
-], ids = ["standard", "Multiple extensions", "Variation of output prefix"])
-def test_plotting_output_wrapper(logging_mixin, output_prefix, printing_extensions):
-    """ Test the plottingOutputWrapper object. """
-    obj = plot_base.PlottingOutputWrapper(output_prefix = output_prefix, printing_extensions = printing_extensions)
-    assert obj.output_prefix == output_prefix
-    assert obj.printing_extensions == printing_extensions
-
 @pytest.fixture(params = [
     ("a/b", ["png"]),
     ("a/b", ["png", "pdf"]),

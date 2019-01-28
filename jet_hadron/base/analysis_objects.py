@@ -94,6 +94,17 @@ class Fit:
     axis: JetHCorrelationAxis
     fit: FitResult
 
+@dataclass
+class PlottingOutputWrapper:
+    """ Simple wrapper to allow use of the save_canvas and save_plot wrappers.
+
+    Attributes:
+        output_prefix: File path to where files should be saved.
+        printing_extensions: List of file extensions under which plots should be saved.
+    """
+    output_prefix: str
+    printing_extensions: List[str]
+
 #######################
 # Main analysis classes
 #######################
@@ -144,17 +155,36 @@ class JetHBase(generic_class.EqualityMixin):
         # otherwise, use the value from the value from the config
         self.input_filename = config["inputFilename"]
         self.input_list_name = config["inputListName"]
+        self.plotting_output_wrapper = PlottingOutputWrapper(
+            output_prefix = config["outputPrefix"],
+            printing_extensions = config["printingExtensions"],
+        )
         self.output_prefix = config["outputPrefix"]
         self.output_filename = config["outputFilename"]
         # Setup output area
         if not os.path.exists(self.output_prefix):
             os.makedirs(self.output_prefix)
 
-        self.printing_extensions = config["printingExtensions"]
         # Convert the ALICE label if necessary
         alice_label = config["aliceLabel"]
         self.alice_label = params.AliceLabel[alice_label]
         self.train_number = config["trainNumber"]
+
+    @property
+    def output_prefix(self) -> str:
+        return self.plotting_output_wrapper.output_prefix
+
+    @output_prefix.setter
+    def output_prefix(self, val) -> None:
+        self.plotting_output_wrapper.output_prefix = val
+
+    @property
+    def printing_extensions(self) -> List[str]:
+        return self.plotting_output_wrapper.printing_extensions
+
+    @printing_extensions.setter
+    def printing_extensions(self, val) -> None:
+        self.plotting_output_wrapper.printing_extensions = val
 
     @property
     def leading_hadron_bias(self) -> params.LeadingHadronBias:
