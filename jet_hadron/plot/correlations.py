@@ -101,11 +101,11 @@ def plot_2d_correlations(jet_hadron):
         tex.DrawLatexNDC(.75, .86, leading_hadron)
 
         # Save plot
-        plot_base.save_plot(jet_hadron, canvas, initial_hist.GetName())
+        plot_base.save_plot(jet_hadron.output_info, canvas, initial_hist.GetName())
 
         # Draw as colz to view more precisely
         hist.Draw("colz")
-        plot_base.save_plot(jet_hadron, canvas, initial_hist.GetName() + "colz")
+        plot_base.save_plot(jet_hadron.output_info, canvas, initial_hist.GetName() + "colz")
 
         canvas.Clear()
 
@@ -126,7 +126,7 @@ def plot_basic_scaled_1d_correlations_root(jet_hadron, canvas: Canvas) -> None:
         for _, observable in correlations:
             # Draw the 1D histogram.
             observable.hist.Draw("")
-            plot_base.save_plot(jet_hadron, canvas, observable.hist.GetName())
+            plot_base.save_plot(jet_hadron.output_info, canvas, observable.hist.GetName())
 
 def plot_1d_signal_and_background_root(jet_hadron, canvas: Canvas) -> None:
     """ Plot 1D signal and background ROOT hists on a single plot. """
@@ -144,20 +144,20 @@ def plot_1d_signal_and_background_root(jet_hadron, canvas: Canvas) -> None:
         track_pt_bin = jet_hadron.track_pt.bin,
         tag = "signal_background_comparion",
     )
-    plot_base.save_plot(jet_hadron, canvas, output_name)
+    plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
-def plot1DCorrelationsWithFits(jetH):
+def plot1DCorrelationsWithFits(jet_hadron):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
 
-    histsWithFits = [[jetH.dPhi, jetH.dPhiFit], [jetH.dPhiSubtracted, jetH.dPhiSubtractedFit],
-                     [jetH.dEtaNS, jetH.dEtaNSFit], [jetH.dEtaNSSubtracted, jetH.dEtaNSSubtractedFit]]
+    histsWithFits = [[jet_hadron.dPhi, jet_hadron.dPhiFit], [jet_hadron.dPhiSubtracted, jet_hadron.dPhiSubtractedFit],
+                     [jet_hadron.dEtaNS, jet_hadron.dEtaNSFit], [jet_hadron.dEtaNSSubtracted, jet_hadron.dEtaNSSubtractedFit]]
 
     for histCollection, fitCollection in histsWithFits:
         for (name, observable), fit in zip(histCollection.items(), fitCollection.values()):
             # Create scaled hist and plot it
             observable.hist.Draw("")
             fit.Draw("same")
-            plot_base.save_plot(jetH, canvas, observable.hist.GetName())
+            plot_base.save_plot(jet_hadron.output_info, canvas, observable.hist.GetName())
 
 def comparison_1d(jet_hadron,
                   our_hist: histogram.Histogram1D,
@@ -180,7 +180,7 @@ def comparison_1d(jet_hadron,
     # Final adjustments
     fig.tight_layout()
 
-    plot_base.save_plot(jet_hadron, fig, output_name)
+    plot_base.save_plot(jet_hadron.output_info, fig, output_name)
 
     plt.close(fig)
 
@@ -261,7 +261,7 @@ def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    plot_base.save_plot(jet_hadron, fig, hist_name)
+    plot_base.save_plot(jet_hadron.output_info, fig, hist_name)
     # Close the figure
     plt.close(fig)
 

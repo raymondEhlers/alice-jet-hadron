@@ -295,7 +295,7 @@ class HistPlotter:
         logger.debug(f"final_output_name: {final_output_name}, self.output_name: {self.output_name}")
 
         # Save and close the figure
-        plot_base.save_plot(obj, fig, final_output_name)
+        plot_base.save_plot(obj.output_info, fig, final_output_name)
         plt.close(fig)
 
     def _plot_2D_hists(self, fig: matplotlib.figure.Figure, ax: matplotlib.axes.Axes) -> None:

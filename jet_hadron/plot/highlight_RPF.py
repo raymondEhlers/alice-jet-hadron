@@ -29,6 +29,7 @@ import seaborn as sns
 
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.plot import base as plot_base
 
 # Setup logger
@@ -436,8 +437,8 @@ def plotRPFRegions(inputFile, histName, outputPrefix = ".", printingExtensions =
 
         # Save and finish up
         # The figure will be saved at outputPrefix/outputPath.printingExtension
-        outputWrapeer = plot_base.PlottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
-        plot_base.save_plot(outputWrapeer, fig, output_path = "highlightRPFRegions")
+        output_wrapper = analysis_objects.PlottingOutputWrapper(outputPrefix = outputPrefix, printingExtensions = printingExtensions)
+        plot_base.save_plot(output_wrapper, fig, output_path = "highlightRPFRegions")
         plt.close(fig)
 
 def parseArguments():
