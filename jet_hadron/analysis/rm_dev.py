@@ -650,10 +650,12 @@ class ResponseManager(generic_class.EqualityMixin):
         # ENDTEMP
 
         # Now plot the histograms
+        # *2 for response matrix, response spectra
         # +1 for the final pt hard spectra.
-        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
+        with self.progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Plotting:",
                                            unit = "responses") as plotting:
+
             # Plot pt hard spectra
             # Pull out the dict because we need to know the length of the objects,
             # which isn't provided from a generator.
@@ -673,10 +675,17 @@ class ResponseManager(generic_class.EqualityMixin):
                 hist_attribute_name = "pt_hard_spectra",
             )
 
-            # Update progress
             plotting.update()
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
+                # Plot response matrix and errors
+                plot_response_matrix.plot_response_matrix_and_errors(
+                    obj = self.final_responses[
+                        self.final_responses_key_index(reaction_plane_orientation)
+                    ],
+                )
+                plotting.update()
+
                 # Pull out the dict because we need to know the length of the objects,
                 # which isn't provided from a generator.
                 analyses = dict(
@@ -733,6 +742,8 @@ def run_from_terminal():
     logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down pachyderm generic config
     logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
+    # Turn off stats box
+    ROOT.gStyle.SetOptStat(0)
 
     # Setup the analysis
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
