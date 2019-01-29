@@ -8,6 +8,7 @@
 import logging
 
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from typing import Any, Dict
 
@@ -51,9 +52,11 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # First, we plot the merged analysis. This is the sum of the various pt hard bin contributions.
     merged_hist = utils.recursive_getattr(merged_analysis, hist_attribute_name)
     merged_hist = histogram.Histogram1D.from_existing_hist(merged_hist)
-    ax.plot(
+    ax.errorbar(
         merged_hist.x, merged_hist.y,
+        yerr = merged_hist.errors,
         label = "Merged",
+        color = "black",
     )
 
     # Now, we plot the pt hard dependent hists
@@ -77,6 +80,11 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
         )
 
     # Final presentation settings
+    # Ensure that the max is never beyond 300 for better presentation.
+    max_limit = np.max(merged_hist.x)
+    if max_limit > 300:
+        max_limit = 300
+    ax.set_xlim(0, max_limit)
     ax.set_yscale("log")
     ax.legend(loc = "best")
     fig.tight_layout()
