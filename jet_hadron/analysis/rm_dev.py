@@ -84,6 +84,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         # Relevant histograms
         self.response_matrix: Hist = None
         self.response_matrix_errors: Hist = None
+        self.particle_level_spectra: Hist = None
 
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None)
@@ -94,16 +95,66 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         It is enabled automatically in some cases, but it's better to ensure that it is always done
         if it's not enabled.
         """
-        for hist in [self.response_matrix, self.response_matrix_errors]:
+        for hist in [self.response_matrix, self.response_matrix_errors, self.particle_level_spectra]:
             if hist and not hist.GetSumw2N() > 0:
                 logger.debug(f"hist: {hist.GetName()}")
-                hist.Sumw2()
+                hist.Sumw2(True)
 
         for hists in [self.part_level_hists, self.det_level_hists]:
             for _, hist in hists:
                 if hist and not hist.GetSumw2N() > 0:
                     logger.debug(f"hist: {hist.GetName()}")
-                    hist.Sumw2()
+                    hist.Sumw2(True)
+
+    def project_particle_level_spectra(self) -> None:
+        """ Project the selected particle level spectra from the response matrix.
+
+        We selected a measured detector level pt range, and just project out the particle
+        level jet spectra.
+        """
+        particle_level_spectra_bin = self.task_config["particle_level_spectra_bin"]
+        # Setup and run the projector
+        particle_level_spectra = ResponseMatrixProjector(
+            observable_to_project_from = self.response_matrix,
+            output_observable = self,
+            output_attribute_name = "particle_level_spectra",
+            projection_name_format = "particle_level_spectra",
+        )
+        # Specify the detector level pt limits
+        particle_level_spectra.additional_axis_cuts.append(
+            projectors.HistAxisRange(
+                axis_type = projectors.TH1AxisType.x_axis,
+                axis_range_name = "detector_level_limits",
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, particle_level_spectra_bin.range.min + epsilon,
+                ),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, particle_level_spectra_bin.range.max - epsilon,
+                ),
+            )
+        )
+        # No additional cuts for the projection dependent axes
+        particle_level_spectra.projection_dependent_cut_axes.append([])
+        particle_level_spectra.projection_axes.append(
+            projectors.HistAxisRange(
+                axis_type = projectors.TH1AxisType.y_axis,
+                axis_range_name = "particle_level_spectra",
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins),
+            )
+        )
+
+        # Perform the actual projection
+        particle_level_spectra.project()
+
+        # Post projection operations
+        # NOTE: Sumw2 is already set.
+        # Scale because we projected over 20 1 GeV bins
+        projection_range = particle_level_spectra_bin.range.max - particle_level_spectra_bin.range.min
+        self.particle_level_spectra.Scale(1.0 / projection_range)
+
+        # Provide as potentially useful information
+        logger.info("N jets in particle_level_spectra: {self.particle_level_spectra.Integral()}")
 
     def create_response_matrix_errors(self) -> Hist:
         """ Create response matrix errors hist from the response matrix hist.
@@ -236,11 +287,11 @@ class ResponseMatrix(ResponseMatrixBase):
                 axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value
+                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
                 ),
                 max_val = projectors.HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.GetNbins
-                )
+                ),
             )
         )
         response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
@@ -325,8 +376,12 @@ class ResponseMatrix(ResponseMatrixBase):
             projectors.HistAxisRange(
                 axis_type = leading_particle_axis,
                 axis_range_name = "unmatchedDetLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.leading_hadron_bias.value),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
+                ),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.GetNbins
+                ),
             )
         )
         unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
@@ -353,8 +408,12 @@ class ResponseMatrix(ResponseMatrixBase):
             projectors.HistAxisRange(
                 axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.leading_hadron_bias.value),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon
+                ),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.GetNbins
+                )
             )
         )
         det_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
@@ -638,16 +697,13 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
-        # TODO: Project the final particle level spectra
-
-        # Create the response matrix errors
+        # Final post processing steps
         for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+            # Create the response matrix errors
             analysis.response_matrix_errors = analysis.create_response_matrix_errors()
 
-        # TEMP
-        example_hists = [r.response_matrix for r in self.final_responses.values()]
-        logger.debug(f"pt_hard_spectra: {p.pt_hard_spectra for p in self.final_pt_hard.values()}, final_responses: {self.final_responses}, response: {example_hists}")
-        # ENDTEMP
+            # Project the final particle level spectra
+            analysis.project_particle_level_spectra()
 
         # Now plot the histograms
         # *2 for response matrix, response spectra

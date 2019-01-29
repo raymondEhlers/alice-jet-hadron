@@ -268,6 +268,26 @@ class SelectedRange:
         for k, v in vars(self).items():
             yield k, v
 
+    @classmethod
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> "SelectedRange":
+        """ Decode YAML representer.
+
+        Expected block is of the form:
+
+        .. code-block:: yaml
+
+            val: !SelectedRange [1, 5]
+
+        which will yield:
+
+        .. code-block:: python
+
+            >>> val == SelectedRange(min = 1, max = 5)
+        """
+        # We construct the objects to cnovert the scalar nodes into floats
+        values = [constructor.construct_object(v) for v in data.value]
+        return cls(*values)
+
 @dataclass(frozen = True)
 class ReactionPlaneBinInformation:
     """ Helper for storing reaction plane bin information.
@@ -304,9 +324,9 @@ class CollisionEnergy(enum.Enum):
     to_yaml = classmethod(yaml.enum_to_yaml)
 
     @classmethod
-    def from_yaml(cls, constructor, node):
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> "CollisionEnergy":
         """ Decode YAML representer. """
-        return cls(float(node.value))
+        return cls(float(data.value))
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 PbPbLatexLabel = r"Pb\mbox{-}Pb"

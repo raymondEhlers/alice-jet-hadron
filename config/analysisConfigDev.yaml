@@ -272,6 +272,12 @@ Response:
             pt_hard_bin: *PtHardBins10Bins
 # Final response histograms.
 ResponseFinal:
+    # We only want a single jet pt bin. So we create a fake bin value.
+    # NOTE: It is required to specify that the range is a SelectedRange due to
+    #       the way that yaml constructs the object!
+    particle_level_spectra_bin: !JetPtBin
+        bin: 0
+        range: !SelectedRange [20, 40]
     override:
         outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}/{task_name}"
         iterables:

@@ -381,9 +381,9 @@ class AnalysisBins(ABC):
 
     .. code-block:: python
 
-        >>> eta_bins = [
-        ...     EtaBin(range = (0., 0.4)),
-        ...     EtaBin(range = (0.4, 0.6)),
+        >>> eta_bins == [
+        ...     EtaBin(range = params.SelectedRange(0., 0.4)),
+        ...     EtaBin(range = params.SelectedRange(0.4, 0.6)),
         ... ]
 
     Note:
