@@ -12,7 +12,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -28,12 +28,15 @@ logger = logging.getLogger(__name__)
 
 Analyses = Dict[Any, analysis_objects.JetHBase]
 
-def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase, plot_with_ROOT: bool = False) -> None:
+def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase,
+                                    plot_with_ROOT: bool = False,
+                                    reaction_plane_orientation: Optional[params.ReactionPlaneOrientation] = None) -> None:
     """ Plot the 2D response matrix and response matrix errors hists using ROOT.
 
     Args:
         obj: The response matrix analysis object.
         plot_with_ROOT: True if the plot should be done via ROOT. Default: False
+        reaction_plane_orientation: Reaction plane orientation of the plot.
     """
     for hist, plot_errors_hist in [(obj.response_matrix, False),
                                    (obj.response_matrix_errors, True)]:
@@ -42,13 +45,15 @@ def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase, plot_with_RO
             hist = hist,
             plot_errors_hist = plot_errors_hist,
             output_info = obj.output_info,
-            plot_with_ROOT = plot_with_ROOT
+            plot_with_ROOT = plot_with_ROOT,
+            reaction_plane_orientation = reaction_plane_orientation,
         )
 
 def _plot_response_matrix(hist: Hist,
                           plot_errors_hist: bool,
                           output_info: analysis_objects.PlottingOutputWrapper,
-                          plot_with_ROOT: bool) -> None:
+                          plot_with_ROOT: bool,
+                          reaction_plane_orientation: Optional[params.ReactionPlaneOrientation] = None) -> None:
     """ Plot the given response matrix related 2D hist.
 
     Args:
@@ -56,11 +61,14 @@ def _plot_response_matrix(hist: Hist,
         errors_hist: True if the hist is the response matrix errors hist.
         output_info: Output information.
         plot_with_ROOT: True if the plot should be done via ROOT.
+        reaction_plane_orientation: Reaction plane orientation of the plot.
     Returns:
         None
     """
     # Determine parameters
     name = "Response Matrix"
+    if reaction_plane_orientation:
+        name += f", event plane orientation {reaction_plane_orientation.display_str()}"
     if plot_errors_hist:
         name += " Errors"
     output_name = "response_matrix"

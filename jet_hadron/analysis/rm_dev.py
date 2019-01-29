@@ -741,6 +741,7 @@ class ResponseManager(generic_class.EqualityMixin):
                             self.final_responses_key_index(reaction_plane_orientation)
                         ],
                         plot_with_ROOT = plot_with_ROOT,
+                        reaction_plane_orientation = reaction_plane_orientation,
                     )
                 plotting.update()
 
@@ -760,7 +761,7 @@ class ResponseManager(generic_class.EqualityMixin):
                     output_label = analysis_input.hist_attribute_name[analysis_input.hist_attribute_name.find("."):]
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
-                            title = analysis_input.name,
+                            title = analysis_input.name + f", reaction plane orientation {reaction_plane_orientation.display_str()}",
                             x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
                                 "label": base_label,
                             },
