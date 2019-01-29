@@ -571,7 +571,15 @@ class ResponseManager(generic_class.EqualityMixin):
                                            unit = "pt hard bins") as processing:
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
-                # We need to perform the outliers removal in EP groups.
+                # Scale the pt hard spectra
+                pt_hard_bin.run(
+                    average_number_of_events = average_number_of_events,
+                    outliers_removal_axis = projectors.TH1AxisType.x_axis,
+                    hists = {"pt_hard_spectra": pt_hard_bin.pt_hard_spectra},
+                )
+
+                # We need to perform the outliers removal in EP groups so all EPs get a consistent
+                # outlier removal index.
                 ep_analyses = {}
                 for analysis_key_index, analysis in \
                         analysis_config.iterate_with_selected_objects(
@@ -581,6 +589,8 @@ class ResponseManager(generic_class.EqualityMixin):
                     ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
 
                 for analysis_input in analysis_object_info:
+                    # We want to process each set analysis_input object separately because the group of hists
+                    # will share the same cut index.
                     hists = [utils.recursive_getattr(ep_analysis, analysis_input.hist_attribute_name)
                              for ep_analysis in ep_analyses.values()]
                     logger.debug(f"hist_attribute_name: {analysis_input.hist_attribute_name}, hists: {hists}")
