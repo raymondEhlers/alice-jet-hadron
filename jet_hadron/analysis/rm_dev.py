@@ -705,9 +705,12 @@ class ResponseManager(generic_class.EqualityMixin):
             # Project the final particle level spectra
             analysis.project_particle_level_spectra()
 
+        # TODO: Normalization?
+
         # Now plot the histograms
-        # *2 for response matrix, response spectra
         # +1 for the final pt hard spectra.
+        # +1 for particle level spectra
+        # *2 for response matrix, response spectra
         with self.progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Plotting:",
                                            unit = "responses") as plotting:
@@ -732,6 +735,8 @@ class ResponseManager(generic_class.EqualityMixin):
             )
 
             plotting.update()
+
+            # TODO: Plot the particle level spectra.
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
                 # Plot response matrix and errors
