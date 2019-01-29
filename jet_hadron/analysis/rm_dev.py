@@ -758,7 +758,8 @@ class ResponseManager(generic_class.EqualityMixin):
                     # This is just a proxy to get "part" or "det"
                     base_label = analysis_input.name[:analysis_input.hist_attribute_name.find("_")].lower()
                     # This will be something like "unmatched_jet_spectra"
-                    output_label = analysis_input.hist_attribute_name[analysis_input.hist_attribute_name.find("."):]
+                    # +1 is to skip the "." that we found.
+                    output_label = analysis_input.hist_attribute_name[analysis_input.hist_attribute_name.find(".") + 1:]
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
                             title = analysis_input.name + f", reaction plane orientation {reaction_plane_orientation.display_str()}",
