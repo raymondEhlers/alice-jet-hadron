@@ -27,13 +27,15 @@ def plot_response_matrix(hist: Hist):
     ...
 
 def plot_response_spectra(plot_labels: plot_base.PlotLabels,
+                          output_name: str,
                           merged_analysis: analysis_objects.JetHBase,
                           pt_hard_analyses: Analyses,
                           hist_attribute_name: str):
     """ Plot 1D response spectra.
 
     Args:
-        plot_labels:
+        plot_labels: Labels for the plot.
+        output_name: Name under which the plot should be stored.
         merged_analysis: Full merged together analysis object.
         pt_hard_analyses: Pt hard dependent analysis objects to be plotted.
         hist_attribute_name: Name of the attribute under which the histogram is stored.
@@ -74,6 +76,9 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
             color = color,
         )
 
+    # Final presentation settings
+    ax.set_yscale("log")
     ax.legend(loc = "best")
+    fig.tight_layout()
 
-    plot_base.save_plot(merged_analysis, fig, "TEMP")
+    plot_base.save_plot(merged_analysis.output_info, fig, output_name)

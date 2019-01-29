@@ -189,6 +189,7 @@ class ResponseMatrix(ResponseMatrixBase):
         if self.pt_hard_bin:
             self.train_number = self.pt_hard_bin.train_number
             self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
+            self.output_prefix = self.output_prefix.format(pt_hard_bin_train_number = self.train_number)
 
         # Basic information
         self.input_hists: Dict[str, Any] = {}
@@ -579,6 +580,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 processing.update()
 
         # Now merge the scale histograms into the final response matrix results.
+        # +1 for the final pt hard spectra.
         with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Projecting:",
                                            unit = "EP dependent final responses") as processing:
@@ -618,9 +620,29 @@ class ResponseManager(generic_class.EqualityMixin):
         # ENDTEMP
 
         # Now plot the histograms
-        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]),
+        # +1 for the final pt hard spectra.
+        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Plotting:",
-                                           unit = "responses") as processing:
+                                           unit = "responses") as plotting:
+            # Plot pt hard spectra
+            # Pull out the dict because we need to know the length of the objects,
+            # which isn't provided from a generator.
+            pt_hard_analyses = dict(
+                analysis_config.iterate_with_selected_objects(self.pt_hard_bins)
+            )
+            plot_response_matrix.plot_response_spectra(
+                plot_labels = plot_base.PlotLabels(
+                    title = r"$\mathit{p}_{\mathrm{T}}$ hard spectra",
+                    x_label = r"$\mathit{p}_{\mathrm{T}}^{hard}$",
+                    y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
+                ),
+                output_name = "pt_hard_spectra",
+                # TODO: This must be a JetHBase derived object.
+                merged_analysis = self,
+                pt_hard_analyses = pt_hard_analyses,
+                hist_attribute_name = "pt_hard_spectra",
+            )
+
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
                 # Pull out the dict because we need to know the length of the objects,
                 # which isn't provided from a generator.
@@ -632,16 +654,19 @@ class ResponseManager(generic_class.EqualityMixin):
                 )
                 # Plot part, det level match and unmatched
                 for analysis_input in analysis_object_info[1:]:
-                    base_label = analysis_input.name[:analysis_input.name.find("_")]
+                    # This is just a proxy to get "part" or "det"
+                    base_label = analysis_input.name[:analysis_input.hist_attribute_name.find("_")].lower()
+                    # This will be something like "unmatched_jet_spectra"
+                    output_label = analysis_input.hist_attribute_name[analysis_input.hist_attribute_name.find("."):]
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
                             title = analysis_input.name,
-                            x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{%(label)s}" % {
+                            x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{%(label)s}$" % {
                                 "label": base_label,
                             },
-                            y_label = r"\frac{dN}{d\mathit{p}_{\mathrm{T}}}",
-                            #output_name = f"{base_label}_level_spectra",
+                            y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
                         ),
+                        output_name = f"{base_label}_level_{output_label}",
                         merged_analysis = self.final_responses[
                             self.final_responses_key_index(reaction_plane_orientation)
                         ],
@@ -649,18 +674,8 @@ class ResponseManager(generic_class.EqualityMixin):
                         hist_attribute_name = analysis_input.hist_attribute_name,
                     )
 
-        # Plot pt hard spectra
-        plot_response_matrix.plot_response_spectra(
-            plot_labels = plot_base.PlotLabels(
-                title = r"\mathit{p}_{\mathrm{T}} hard spectra",
-                x_label = r"$\mathit{p}_{\mathrm{T}}^{hard}",
-                y_label = r"\frac{dN}{d\mathit{p}_{\mathrm{T}}}",
-                #output_name = "pt_hard_spectra"
-            ),
-            merged_analysis = self,
-            pt_hard_analyses = analysis_config.iterate_with_selected_objects(self.pt_hard_analyses),
-            hist_attribute_name = "pt_hard_spectra",
-        )
+                # Update progress
+                plotting.update()
 
         return True
 

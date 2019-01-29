@@ -85,7 +85,7 @@ Correlations:
             jet_pt_bin: *JetPtBins11h
 
 GeneralHists:
-    enabled: False
+    enabled: false
     componentsToPlot:
         EventCuts: &EventCutsPlots
             CutStats: !HistPlotter
@@ -256,6 +256,8 @@ Response:
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/dev/test/{leading_hadron_bias}/RP{reaction_plane_orientation}/{task_name}"
+        # yamllint disable-line rule:line-length
         inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent30_50_histos"
         iterables:
             reaction_plane_orientation: true
@@ -263,6 +265,7 @@ Response:
 # Final response histograms.
 ResponseFinal:
     override:
+        outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}"
         iterables:
             reaction_plane_orientation: true
 

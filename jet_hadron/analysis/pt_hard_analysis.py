@@ -43,6 +43,8 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.use_after_event_selection_information = self.task_config.get("use_after_event_selection_information", False)
         self.train_number = self.pt_hard_bin.train_number
         self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
+        # We don't update the output prefix because nothing is output by this task.
+        #self.output_prefix = self.output_prefix.format_map(pt_hard_bin_train_number = self.train_number)
 
         # Outliers removal
         self.moving_average_threshold = self.task_config.get("moving_average_threshold", 1.0)
