@@ -412,7 +412,9 @@ class ResponseManager(generic_class.EqualityMixin):
         (self.pt_hard_bins_key_index, pt_hard_iterables, self.pt_hard_bins) = \
             self.construct_pt_hard_bins_from_configuration_file()
         # Create the final pt hard spectra
-        self.pt_hard_spectra: Hist
+        self.final_pt_hard: Mapping[Any, analysis_objects.JetHBase]
+        (self.final_pt_hard_key_index, _, self.final_pt_hard) = \
+            self.construct_final_pt_hard_object_from_configuration_file()
 
         # Validate that we have the same pt hard iterables.
         if not self.selected_iterables["pt_hard_bin"] == pt_hard_iterables["pt_hard_bin"]:
@@ -453,6 +455,15 @@ class ResponseManager(generic_class.EqualityMixin):
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
             obj = pt_hard_analysis.PtHardAnalysis,
+        )
+
+    def construct_final_pt_hard_object_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        return analysis_config.construct_from_configuration_file(
+            task_name = "PtHardFinal",
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options,
+            additional_possible_iterables = {"pt_hard_bin": None},
+            obj = pt_hard_analysis.PtHardAnalysisBase,
         )
 
     def setup(self) -> None:
@@ -563,11 +574,15 @@ class ResponseManager(generic_class.EqualityMixin):
                 # We need to perform the outliers removal in EP groups.
                 ep_analyses = {}
                 for analysis_key_index, analysis in \
-                        analysis_config.iterate_with_selected_objects(self.analyses, pt_hard_bin = pt_hard_key_index.pt_hard_bin):
+                        analysis_config.iterate_with_selected_objects(
+                            self.analyses,
+                            pt_hard_bin = pt_hard_key_index.pt_hard_bin
+                        ):
                     ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
 
                 for analysis_input in analysis_object_info:
-                    hists = [utils.recursive_getattr(ep_analysis, analysis_input.hist_attribute_name) for ep_analysis in ep_analyses.values()]
+                    hists = [utils.recursive_getattr(ep_analysis, analysis_input.hist_attribute_name)
+                             for ep_analysis in ep_analyses.values()]
                     logger.debug(f"hist_attribute_name: {analysis_input.hist_attribute_name}, hists: {hists}")
                     pt_hard_bin.run(
                         average_number_of_events = average_number_of_events,
@@ -590,7 +605,8 @@ class ResponseManager(generic_class.EqualityMixin):
                     self.pt_hard_bins,
                 ),
                 hist_attribute_name = "pt_hard_spectra",
-                output_analysis_object = self,
+                # This only contains one object, so we just take the first value.
+                output_analysis_object = next(iter(self.final_pt_hard.values())),
             )
             # Update the progress
             processing.update()
@@ -616,7 +632,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # TEMP
         example_hists = [r.response_matrix for r in self.final_responses.values()]
-        logger.debug(f"pt_hard_spectra: {self.pt_hard_spectra}, final_responses: {self.final_responses}, response: {example_hists}")
+        logger.debug(f"pt_hard_spectra: {p.pt_hard_spectra for p in self.final_pt_hard.values()}, final_responses: {self.final_responses}, response: {example_hists}")
         # ENDTEMP
 
         # Now plot the histograms
@@ -637,11 +653,14 @@ class ResponseManager(generic_class.EqualityMixin):
                     y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
                 ),
                 output_name = "pt_hard_spectra",
-                # TODO: This must be a JetHBase derived object.
-                merged_analysis = self,
+                # This only contains one object, so we just take the first value.
+                merged_analysis = next(iter(self.final_pt_hard.values())),
                 pt_hard_analyses = pt_hard_analyses,
                 hist_attribute_name = "pt_hard_spectra",
             )
+
+            # Update progress
+            plotting.update()
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
                 # Pull out the dict because we need to know the length of the objects,

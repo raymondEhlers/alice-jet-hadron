@@ -29,8 +29,20 @@ def calculate_average_n_events(pt_hard_bins: Mapping[Any, Any]) -> float:
 
     return n_total_events / len(pt_hard_bins)
 
+class PtHardAnalysisBase(analysis_objects.JetHBase):
+    """ Basic pt hard spectra object.
+
+    Note:
+        This contains no inherent pt hard information. It will just store the final spectra.
+    """
+    def __init__(self, *args, **kwargs):
+        # Create the most basic pt hard hist - the spectra.
+        self.pt_hard_spectra: Hist
+        # Then, initialize the base class.
+        super().__init__(*args, **kwargs)
+
 class PtHardAnalysis(analysis_objects.JetHBase):
-    """ Create a pt hard bin analysis object.
+    """ A pt hard bin analysis object.
 
     These analysis objects will interact with standard analysis objects to scale them.
     """
@@ -51,7 +63,6 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.outliers_manager: remove_outliers.OutliersRemovalManager
 
         # Histograms
-        self.pt_hard_spectra: Hist
         self.cross_section: Hist
         self.n_trials: Hist
         self.n_events: Hist

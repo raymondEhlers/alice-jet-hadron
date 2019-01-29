@@ -252,6 +252,14 @@ PtHardBins:
         iterables:
             reaction_plane_orientation: false
             pt_hard_bin: *PtHardBins10Bins
+PtHardFinal:
+    override:
+        outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}/{task_name}"
+        iterables:
+            # Techincally this is true, although not very helpful. However, we must have at least
+            # one iterator, so this allows us to do so with minimal change.
+            reaction_plane_orientation:
+                - "all"
 Response:
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
@@ -265,7 +273,7 @@ Response:
 # Final response histograms.
 ResponseFinal:
     override:
-        outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}"
+        outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}/{task_name}"
         iterables:
             reaction_plane_orientation: true
 
