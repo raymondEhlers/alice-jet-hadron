@@ -640,6 +640,10 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # TODO: Project the final particle level spectra
 
+        # Create the response matrix errors
+        for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+            analysis.response_matrix_errors = analysis.create_response_matrix_errors()
+
         # TEMP
         example_hists = [r.response_matrix for r in self.final_responses.values()]
         logger.debug(f"pt_hard_spectra: {p.pt_hard_spectra for p in self.final_pt_hard.values()}, final_responses: {self.final_responses}, response: {example_hists}")
