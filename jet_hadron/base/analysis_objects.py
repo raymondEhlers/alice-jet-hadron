@@ -10,7 +10,6 @@ from dataclasses import dataclass
 import enum
 import logging
 import numpy as np
-import os
 import re
 from typing import Any, Dict, List, Mapping, Type, Union
 
@@ -161,9 +160,6 @@ class JetHBase(generic_class.EqualityMixin):
         )
         self.output_prefix = config["outputPrefix"]
         self.output_filename = config["outputFilename"]
-        # Setup output area
-        if not os.path.exists(self.output_prefix):
-            os.makedirs(self.output_prefix)
 
         # Convert the ALICE label if necessary
         alice_label = config["aliceLabel"]

@@ -77,6 +77,10 @@ def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: Union[matplot
     Returns:
         Filenames under which the plot was saved.
     """
+    # Setup output area
+    if not os.path.exists(obj.output_prefix):
+        os.makedirs(obj.output_prefix)
+
     # Check for the proper attribute for a ROOT canvas
     if hasattr(figure, "SaveAs"):
         return save_canvas_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
