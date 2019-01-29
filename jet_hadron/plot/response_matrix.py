@@ -8,6 +8,7 @@
 import logging
 
 import ctypes
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -27,11 +28,12 @@ logger = logging.getLogger(__name__)
 
 Analyses = Dict[Any, analysis_objects.JetHBase]
 
-def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase) -> None:
+def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase, plot_with_ROOT: bool = False) -> None:
     """ Plot the 2D response matrix and response matrix errors hists using ROOT.
 
     Args:
         obj: The response matrix analysis object.
+        plot_with_ROOT: True if the plot should be done via ROOT. Default: False
     """
     for hist, plot_errors_hist in [(obj.response_matrix, False),
                                    (obj.response_matrix_errors, True)]:
@@ -40,12 +42,123 @@ def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase) -> None:
             hist = hist,
             plot_errors_hist = plot_errors_hist,
             output_info = obj.output_info,
+            plot_with_ROOT = plot_with_ROOT
         )
 
-def _plot_response_matrix(hist: Hist, plot_errors_hist: bool, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def _plot_response_matrix(hist: Hist,
+                          plot_errors_hist: bool,
+                          output_info: analysis_objects.PlottingOutputWrapper,
+                          plot_with_ROOT: bool) -> None:
     """ Plot the given response matrix related 2D hist.
 
     Args:
+        hist: The response matrix related 2D hist.
+        errors_hist: True if the hist is the response matrix errors hist.
+        output_info: Output information.
+        plot_with_ROOT: True if the plot should be done via ROOT.
+    Returns:
+        None
+    """
+    # Determine parameters
+    name = "Response Matrix"
+    if plot_errors_hist:
+        name += " Errors"
+    output_name = "response_matrix"
+    if plot_errors_hist:
+        output_name += "_errors"
+    x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}} \mathrm{(GeV/\it{c})}$"
+    y_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{part}} \mathrm{(GeV/\it{c})}$"
+
+    # Determine args and call
+    args = {
+        "name": name, "x_label": x_label, "y_label": y_label, "output_name": output_name,
+        "hist": hist,
+        "plot_errors_hist": plot_errors_hist,
+        "output_info": output_info,
+    }
+
+    if plot_with_ROOT:
+        _plot_response_matrix_with_ROOT(**args)
+    else:
+        _plot_response_matrix_with_matplotlib(**args)
+
+def _plot_response_matrix_with_matplotlib(name: str, x_label: str, y_label: str, output_name: str,
+                                          hist: Hist,
+                                          plot_errors_hist: bool,
+                                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Underlying function to actually plot a response matrix with matplotlib.
+
+    Args:
+        name: Name of the histogram.
+        x_label: X axis label.
+        y_label: Y axis label.
+        output_name: Output name of the histogram.
+        hist: The response matrix related 2D hist.
+        errors_hist: True if the hist is the response matrix errors hist.
+        output_info: Output information.
+    Returns:
+        None
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Convert the histogram
+    X, Y, hist_array = histogram.get_array_from_hist2D(
+        hist = hist,
+        set_zero_to_NaN = True,
+        return_bin_edges = True,
+    )
+
+    # Determine and fill args
+    kwargs = {}
+    # Create a log z axis heat map.
+    kwargs["norm"] = matplotlib.colors.LogNorm(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array))
+    logger.debug(f"min: {np.nanmin(hist_array)}, max: {np.nanmax(hist_array)}")
+    # The colormap that we use is the default from sns.heatmap
+    kwargs["cmap"] = plot_base.prepare_colormap(sns.cm.rocket)
+    # Label is included so we could use a legend if we want
+    kwargs["label"] = name
+
+    logger.debug("kwargs: {}".format(kwargs))
+
+    # Determine the edges
+    extent = [
+        np.amin(X), np.amax(X),
+        np.amin(Y), np.amax(Y)
+    ]
+    # Finally, create the plot
+    ax_from_imshow = ax.imshow(
+        hist_array.T, extent = extent,
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        **kwargs
+    )
+
+    # Add colorbar
+    # It needs to be defined on the figure because it is stored in a separate axis.
+    fig.colorbar(ax_from_imshow, ax = ax)
+
+    # Final styling
+    ax.set_title(name)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    fig.tight_layout()
+
+    # Save and cleanup
+    output_name += "_mpl"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
+def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, output_name: str,
+                                    hist: Hist,
+                                    plot_errors_hist: bool,
+                                    output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Underlying function to actually plot a response matrix with ROOT.
+
+    Args:
+        name: Name of the histogram.
+        x_label: X axis label.
+        y_label: Y axis label.
+        output_name: Output name of the histogram.
         hist: The response matrix related 2D hist.
         errors_hist: True if the hist is the response matrix errors hist.
         output_info: Output information.
@@ -58,12 +171,9 @@ def _plot_response_matrix(hist: Hist, plot_errors_hist: bool, output_info: analy
 
     # Plot the histogram
     #logger.debug(f"Response matrix n jets: {response_matrix.Integral()}".format(response_matrix.Integral()))
-    name = "Response Matrix"
-    if plot_errors_hist:
-        name += " Errors"
     hist.SetTitle(name)
-    hist.GetXaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{det} (GeV/#it{c})")
-    hist.GetYaxis().SetTitle("#mathit{p}_{#mathrm{T,jet}}^{part} (GeV/#it{c})")
+    hist.GetXaxis().SetTitle(params.use_label_with_root(x_label))
+    hist.GetYaxis().SetTitle(params.use_label_with_root(y_label))
     hist.Draw("colz")
 
     # Set the final axis ranges.
@@ -76,9 +186,7 @@ def _plot_response_matrix(hist: Hist, plot_errors_hist: bool, output_info: analy
     hist.GetZaxis().SetRangeUser(10e-7, max_val.value * 1.1)
 
     # Save
-    output_name = "response_matrix"
-    if plot_errors_hist:
-        output_name += "_errors"
+    output_name += "_ROOT"
     plot_base.save_plot(output_info, canvas, output_name)
 
 def plot_response_spectra(plot_labels: plot_base.PlotLabels,
@@ -143,4 +251,6 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     ax.legend(loc = "best")
     fig.tight_layout()
 
+    # Save and cleanup
     plot_base.save_plot(merged_analysis.output_info, fig, output_name)
+    plt.close(fig)
