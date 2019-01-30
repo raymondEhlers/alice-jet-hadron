@@ -459,12 +459,12 @@ class ResponseManager(generic_class.EqualityMixin):
         # Validate that we have the same reaction plane iterables
         if not self.selected_iterables["reaction_plane_orientation"] == \
                 final_responses_selected_iterables["reaction_plane_orientation"]:
-                    raise ValueError(
-                        "Selected iterables for reaction plane orientations in the final response matrix objects differ"
-                        " from the reaction plane orientations for analysis response matrix objects."
-                        f" Selected iterables: {self.selected_iterables['reaction_plane_orientation']},"
-                        f" final responses iterables: {final_responses_selected_iterables}"
-                    )
+            raise ValueError(
+                "Selected iterables for reaction plane orientations in the final response matrix objects differ"
+                " from the reaction plane orientations for analysis response matrix objects."
+                f" Selected iterables: {self.selected_iterables['reaction_plane_orientation']},"
+                f" final responses iterables: {final_responses_selected_iterables}"
+            )
 
         # Create the pt hard bins
         self.pt_hard_bins: Mapping[Any, pt_hard_analysis.PtHardAnalysis]
