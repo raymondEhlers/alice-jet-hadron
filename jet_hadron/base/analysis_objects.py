@@ -394,7 +394,7 @@ class AnalysisBins(ABC):
 
     @classmethod
     def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[AnalysisBin]:
-        """ Convert input YAML list to set of ``AnalysisBin``(s). """
+        """ Convert input YAML list to set of ``AnalysisBin``. """
         #logger.debug(f"Using representer, {data}")
         values = [constructor.construct_object(v) for v in data.value]
         bins = []
@@ -418,7 +418,7 @@ class PhiBins:
 
     @classmethod
     def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PhiBin]:
-        """ Convert input YAML list to set of ``PtBin``(s). """
+        """ Convert input YAML list to set of ``PtBin``. """
         #logger.debug(f"Using representer, {data}")
         # Extract values
         values = [constructor.construct_object(v) for v in data.value]
@@ -455,7 +455,7 @@ class PtBins(ABC):
 
     @classmethod
     def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PtBin]:
-        """ Convert input YAML list to set of ``AnalysisBin``(s). """
+        """ Convert input YAML list to set of ``AnalysisBin``. """
         #logger.debug(f"Using representer, {data}")
         values = [constructor.construct_object(v) for v in data.value]
         bins = []
@@ -505,7 +505,7 @@ class PtHardBins:
     """
     @classmethod
     def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> List[PtHardBin]:
-        """ Convert input YAML list to set of ``PtHardBin``(s). """
+        """ Convert input YAML list to set of ``PtHardBin``. """
         # Construct the underlying list and dict to make parsing simpler.
         configuration = {constructor.construct_object(key_node): constructor.construct_object(value_node) for key_node, value_node in data.value}
         # Extract the relevant data
