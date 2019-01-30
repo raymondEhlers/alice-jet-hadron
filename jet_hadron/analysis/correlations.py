@@ -1906,6 +1906,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Convert 1D correlations to Histograms. """
         ...
 
+    def _write_1d_correlations(self):
+        """ Write 1D correlations to file. """
+        ...
+
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
         if self.processing_options["generate1DCorrelations"]:
@@ -1928,12 +1932,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.info("Plotting 1D correlations")
                 plot_correlations.plot_1d_correlations(self)
 
-            # TODO: Uncomment
             # Create hist arrays
-            #self._convert_1d_correlations()
+            self._convert_1d_correlations()
 
             # Write the properly scaled projections
-            #self.write1DCorrelations()
+            self._write_1d_correlations()
 
             # Ensure that the next step in the chain is run
             self.processing_options["fit1DCorrelations"] = True
