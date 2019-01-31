@@ -27,6 +27,7 @@ from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import response_matrix as plot_response_matrix
 
 from jet_hadron.analysis import pt_hard_analysis
+from jet_hadron.analysis import response_matrix_helpers
 
 import ROOT
 
@@ -57,7 +58,7 @@ class ResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse.
 
     Note:
-        Nothing more is needed at the moment, but we keep it to simpify customization in
+        Nothing more is needed at the moment, but we keep it to simplify customization in
         the future.
     """
     ...
@@ -81,6 +82,12 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Task settings
+        # Default: No additinoal normalization.
+        self.response_normalization = self.task_config.get(
+            "response_normalization", response_matrix_helpers.ResponseNormalization.none
+        )
+
         # Relevant histograms
         self.response_matrix: Hist = None
         self.response_matrix_errors: Hist = None
@@ -227,6 +234,13 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
                     )
 
         return response_matrix_errors
+
+    def normalize_response_matrix(self):
+        """ Normalize the response matrix. """
+        response_matrix_helpers.normalize_response_matrix(
+            hist = self.response_matrix,
+            response_normalization = self.response_normalization
+        )
 
 class ResponseMatrix(ResponseMatrixBase):
     """ Main response matrix class.
@@ -493,6 +507,7 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
+            additional_classes_to_register = [response_matrix_helpers.ResponseNormalization],
             obj = ResponseMatrix,
         )
 
@@ -503,6 +518,7 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
+            additional_classes_to_register = [response_matrix_helpers.ResponseNormalization],
             obj = ResponseMatrixBase,
         )
 
@@ -705,7 +721,8 @@ class ResponseManager(generic_class.EqualityMixin):
             # Project the final particle level spectra
             analysis.project_particle_level_spectra()
 
-        # TODO: Normalization?
+            # Normalize response (if selected)
+            analysis.normalize_response_matrix()
 
         # Now plot the histograms
         # +1 for the final pt hard spectra.
