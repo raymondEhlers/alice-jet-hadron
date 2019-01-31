@@ -254,7 +254,7 @@ class ResponseMatrix(ResponseMatrixBase):
             "max_val": projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
         }
         # Reaction plane selection
-        if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
+        if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
             logger.debug("Using full EP angle range")
         else:

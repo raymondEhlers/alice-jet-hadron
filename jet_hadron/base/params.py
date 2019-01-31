@@ -478,7 +478,7 @@ SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
 ##############################
 class ReactionPlaneOrientation(enum.Enum):
     """ Selects the event plane angle in the sparse. """
-    all = ReactionPlaneBinInformation(bin = 0, center = -1, width = -1)
+    inclusive = ReactionPlaneBinInformation(bin = 0, center = -1, width = -1)
     in_plane = ReactionPlaneBinInformation(bin = 1, center = 0, width = np.pi / 6)
     mid_plane = ReactionPlaneBinInformation(bin = 2, center = np.pi / 4, width = np.pi / 12)
     out_of_plane = ReactionPlaneBinInformation(bin = 3, center = np.pi / 2, width = np.pi / 6)
@@ -501,7 +501,7 @@ class ReactionPlaneOrientation(enum.Enum):
 
 class QVector(enum.Enum):
     """ Selection based on the Q vector. """
-    all = SelectedRange(min = 0, max = 100)
+    inclusive = SelectedRange(min = 0, max = 100)
     bottom10 = SelectedRange(min = 0, max = 10)
     top10 = SelectedRange(min = 90, max = 100)
 
@@ -516,15 +516,15 @@ class QVector(enum.Enum):
 
     def display_str(self) -> str:
         """ Turns "bottom10" into "Bottom 10%". """
-        # This also works for "all" -> "All"
+        # This also works for "inclusive" -> "Inclusive"
         match = re.match("([a-z]*)([0-9]*)", self.name)
         if not match:
             raise ValueError("Could not extract Q Vector value \"{self.name}\" for printing.")
         temp_list = match.groups()
         ret_val = uppercase_first_letter(" ".join(temp_list))
-        if self.name != "all":
+        if self.name != "inclusive":
             ret_val += "%"
-        # rstrip() is to remove entra space after "All". Doesn't matter for the other values.
+        # rstrip() is to remove entra space after "Inclusive". Doesn't matter for the other values.
         return ret_val.rstrip(" ")
 
     # Handle YAML serialization

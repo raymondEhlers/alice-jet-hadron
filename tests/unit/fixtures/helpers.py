@@ -215,7 +215,7 @@ taskName:
         iterables:
             reaction_plane_orientation: True
             qvector:
-                - "all"
+                - "inclusive"
 """
     yaml = ruamel.yaml.YAML()
     data = yaml.load(test_yaml)

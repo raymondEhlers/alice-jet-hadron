@@ -1226,7 +1226,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, 10 - epsilon),
         )
         # Event plane selection
-        if self.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
+        if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
             logger.info("Using full EP angle range")
         else:
@@ -1870,7 +1870,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Compare Joel's unsubtracted delta phi signal region correlations to mine. """
         # Define map by hand because it's out of our control.
         map_to_joels_hist_names = {
-            params.ReactionPlaneOrientation.all: "all",
+            params.ReactionPlaneOrientation.inclusive: "all",
             params.ReactionPlaneOrientation.in_plane: "in",
             params.ReactionPlaneOrientation.mid_plane: "mid",
             params.ReactionPlaneOrientation.out_of_plane: "out",
@@ -2032,7 +2032,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
             }
             for key_index, analysis in ep_analyses:
                 key = str(analysis.reaction_plane_orientation)
-                if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
+                if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                     key = "inclusive"
                 input_hists["background"][key] = None
                 ...

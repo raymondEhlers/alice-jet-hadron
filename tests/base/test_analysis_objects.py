@@ -68,7 +68,7 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
 
     config_filename = "configFilename.yaml"
     task_config = config[task_name]
-    reaction_plane_orientation = params.ReactionPlaneOrientation.all
+    reaction_plane_orientation = params.ReactionPlaneOrientation.inclusive
     config_base = analysis_objects.JetHBase(
         task_name = task_name,
         config_filename = config_filename,

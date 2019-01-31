@@ -322,13 +322,13 @@ def test_leading_hadron_bias(logging_mixin, type, value, expected):
     assert str(bias) == expected["str"]
 
 @pytest.mark.parametrize("ep_angle, expected", [
-    ("all",
-        {"str": "all",
-            "display_str": "All"}),
+    ("inclusive",
+        {"str": "inclusive",
+            "display_str": "Inclusive"}),
     ("out_of_plane",
         {"str": "out_of_plane",
             "display_str": "Out-of-plane"})
-], ids = ["epAngleAll", "epAngleOutOfPlane"])
+], ids = ["Inclusive", "Out of Plane"])
 def test_reaction_plane_orientation_strings(logging_mixin, ep_angle, expected):
     """ Test event plane angle strings. """
     ep_angle = params.ReactionPlaneOrientation[ep_angle]
@@ -336,15 +336,15 @@ def test_reaction_plane_orientation_strings(logging_mixin, ep_angle, expected):
     assert ep_angle.display_str() == expected["display_str"]
 
 @pytest.mark.parametrize("qvector, expected", [
-    ("all",
-        {"str": "all",
-            "display_str": "All",
+    ("inclusive",
+        {"str": "inclusive",
+            "display_str": "Inclusive",
             "range": params.SelectedRange(min = 0, max = 100)}),
     ("bottom10",
         {"str": "bottom10",
             "display_str": "Bottom 10%",
             "range": params.SelectedRange(min = 0, max = 10)})
-], ids = ["All", "Bottom 10"])
+], ids = ["Inclusive", "Bottom 10"])
 def test_qvector_strings(logging_mixin, qvector, expected):
     """ Test q vector strings. """
     qvector = params.QVector[qvector]
