@@ -1175,12 +1175,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(None, None)
         self.correlation_hists_delta_eta: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(None, None)
 
+        # Fit object
+        self.fit_obj: rpf.ReactionPlaneFit
+
         # Other relevant analysis information
         self.number_of_triggers: int = 0
 
         # Projectors
         self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
         self.correlation_projectors: List[JetHCorrelationProjector] = []
+
+        # Useful information
+        # These values are only half the range (ie only the positive values).
+        self.signal_dominated_eta_region = self.task_config["deltaEtaRanges"]["signalDominated"]
+        self.background_dominated_eta_region = self.task_config["deltaEtaRanges"]["backgroundDominated"]
 
     def _write_2d_correlations(self) -> None:
         """ Write 2D correlatinos to output file. """
@@ -1964,6 +1972,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
         self.analyses: Mapping[Any, Correlations]
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
+        # Store the fits.
+        self.reaction_plane_fits: Mapping[Any, Any]
+
         # General histograms
         self.general_histograms = GeneralHistogramsManager(
             config_filename = self.config_filename,
@@ -1983,10 +1994,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
             obj = Correlations,
         )
 
-    def setup(self):
+    def setup(self) -> None:
         """ Setup the correlations manager. """
         # Retrieve input histograms (with caching).
-        input_hists = {}
+        input_hists: Dict[str, Any] = {}
         with self._progress_manager.counter(total = len(self.analyses),
                                             desc = "Setting up:",
                                             unit = "analysis objects") as setting_up:
@@ -2000,6 +2011,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 analysis.setup(input_hists = input_hists)
                 # Keep track of progress
                 setting_up.update()
+
+    def fit(self) -> bool:
+        ...
 
     def run(self) -> bool:
         """ Run the analysis in the correlations manager. """
@@ -2019,25 +2033,56 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 projecting.update()
 
         # Fitting
-        # To successfully fit, we need all histograms from a given reaction plane orientation.
-        for ep_analyses in \
-                analysis_config.iterate_with_selected_objects_in_order(
-                    analysis_objects = self.analyses,
-                    analysis_iterables = self.selected_iterables,
-                    selection = "reaction_plane_orientation",
-                ):
-            input_hists: rpf.fit.Data = {
-                "signal": [],
-                "background": [],
-            }
-            for key_index, analysis in ep_analyses:
-                key = str(analysis.reaction_plane_orientation)
-                if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-                    key = "inclusive"
-                input_hists["background"][key] = None
+        with self._progress_manager.counter(total = len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]),
+                                            desc = "Reaction plane fitting:",
+                                            unit = "delta phi hists") as fitting:
+            resolution_parameters = self.task_config["fit"]["resolution_parameters"]
+            # To successfully fit, we need all histograms from a given reaction plane orientation.
+            for ep_analyses in \
+                    analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ):
+                # Setup the input data
+                input_hists: rpf.fit.Data = {
+                    "signal": [],
+                    "background": [],
+                }
+                for key_index, analysis in ep_analyses:
+                    key = str(analysis.reaction_plane_orientation)
+                    # Include the signal for inclusive orientations, but background for others.
+                    if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                        input_hists["signal"][key] = analysis.correlation_hists_delta_phi.signal_dominated
+                    else:
+                        input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
+
+                # Determine the user arguments.
+                user_arguments = self.task_config["fit"].get(analysis.jet_pt.bin, {}) \
+                    .get(analysis.track_pt.bin, {}).get("args", {})
+                use_log_likelihood = self.task_config["fit"].get(analysis.jet_pt.bin, {}) \
+                    .get(analysis.track_pt.bin, False).get("use_log_likelihood", False)
+
+                # Setup the fit
+                # TODO: Where should this be stored??
+                fit_obj = rpf.three_orientations.InclusiveSignalFit(
+                    resolution_parameters = resolution_parameters,
+                    use_log_likelihood = use_log_likelihood,
+                    signal_region = self.signal_dominated_eta_region,
+                    background_region = self.background_dominated_eta_region,
+                )
+
+                # Now perform the fit.
+                fit_obj.fit(
+                    data = input_hists,
+                    user_arguments = user_arguments,
+                )
+
+                # TODO: Store the fit result.
                 ...
 
-                logger.debug(f"key_index: {key_index}, key: {key}")
+                # Update progress
+                fitting.update()
 
         return True
 

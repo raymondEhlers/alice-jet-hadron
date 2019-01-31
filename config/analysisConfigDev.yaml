@@ -45,7 +45,8 @@ phiBins: !PhiBins [-0.5, 0.5, 1.5]
 
 Correlations:
     deltaEtaRanges:
-        signalDominated: [-0.6, 0.6]
+        # They are assumed to be symmetric
+        signalDominated: [0, 0.6]
         backgroundDominated: [0.8, 1.2]
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
