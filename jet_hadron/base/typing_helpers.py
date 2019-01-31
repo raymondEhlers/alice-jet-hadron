@@ -10,10 +10,12 @@ from typing import Any, Union
 # Typing helper
 try:
     import ROOT
+    Axis = ROOT.TAxis
     Hist = Union[ROOT.TH1, ROOT.THnBase]
     Canvas = ROOT.TCanvas
 except ImportError:
     # It doesn't like the possibility of redefining this, so we need to tell ``mypy`` to ignore it.
+    Axis = Any  # type: ignore
     Hist = Any  # type: ignore
     Canvas = Any  # type: ignore
 
