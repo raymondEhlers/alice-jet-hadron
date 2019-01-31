@@ -12,6 +12,7 @@ from typing import Any, Dict, Mapping, Sequence, Set, Tuple
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
 from pachyderm.generic_config import iterate_with_selected_objects  # noqa: F401
+from pachyderm.generic_config import iterate_with_selected_objects_in_order  # noqa: F401
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_objects

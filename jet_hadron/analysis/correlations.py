@@ -27,6 +27,8 @@ from pachyderm.projectors import HistAxisRange
 from pachyderm import utils
 from pachyderm.utils import epsilon
 
+import reaction_plane_fit as rpf
+
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
@@ -2018,13 +2020,24 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         # Fitting
         # To successfully fit, we need all histograms from a given reaction plane orientation.
-        # TODO: Investigate whether mypy is right here...
-        #for jet_pt in self.selected_analysis_options["jet_pt_bin"]:  # type: ignore
-        #    for track_pt in self.selected_analysis_options["track_pt_bin"]:  # type: ignore
-        #        logger.debug(f"Selection: jet_pt: {jet_pt}, track_pt: {track_pt}")
-        #        for key_index, analysis in \
-        #                analysis_config.iterate_with_selected_objects(self.analyses, jet_pt_bin = jet_pt, track_pt_bin = track_pt):
-        #            logger.debug(f"{key_index}")
+        for ep_analyses in \
+                analysis_config.iterate_with_selected_objects_in_order(
+                    analysis_objects = self.analyses,
+                    analysis_iterables = self.selected_iterables,
+                    selection = "reaction_plane_orientation",
+                ):
+            input_hists: rpf.fit.Data = {
+                "signal": [],
+                "background": [],
+            }
+            for key_index, analysis in ep_analyses:
+                key = str(analysis.reaction_plane_orientation)
+                if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.all:
+                    key = "inclusive"
+                input_hists["background"][key] = None
+                ...
+
+                logger.debug(f"key_index: {key_index}, key: {key}")
 
         return True
 
