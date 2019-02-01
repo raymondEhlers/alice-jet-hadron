@@ -7,11 +7,12 @@ Predominately related to RPF plots
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-import os
+from dataclasses import dataclass
 import logging
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
+import os
 import seaborn as sns
 
 from pachyderm import generic_config
@@ -23,6 +24,35 @@ from jet_hadron.plot import base as plot_base
 
 # Setup logger
 logger = logging.getLogger(__name__)
+
+def _plot_vn_parameter(fit_objects, parameter_name: str):
+    """ Implementation to plot the vn parameters determined from the fit.
+
+    """
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    for obj in fit_objects:
+        obj.fit_result.parameters["v2"]
+
+@dataclass
+class ParameterInfo:
+    name: str
+    description: str
+
+def vn_parameters():
+    """ Plot the extracted vn parameters.
+
+    """
+    vn_params = [
+        ParameterInfo(name = "v2_t", description = r"Jet $v_{2}$"),
+        ParameterInfo(name = "v2_a", description = r"Associated hadron $v_{2}$"),
+        ParameterInfo(name = "v3", description = r"$v_{3}$"),
+        ParameterInfo(name = "v4_t", description = r"Jet $v_{4}$"),
+        ParameterInfo(name = "v4_a", description = r"Associated hadron $v_{4}$"),
+    ]
+
+    for vn_param in vn_params:
+        pass
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
     """ Plot showing iminuit QA.
