@@ -12,7 +12,7 @@ import enum
 import logging
 import os
 import pprint
-from typing import Any, Dict, Iterator, List, Mapping, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -173,7 +173,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
                 h = f.get(hist_info.hist_name, None)
                 utils.recursive_getattr(self, hist_info.attribute_name, h)
 
-    def save_hists_to_root_file(self):
+    def save_hists_to_root_file(self) -> None:
         """ Save processed histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename + ".root")
         with histogram.RootOpen(filename = filename, mode = "RECREATE"):
@@ -753,6 +753,38 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
+    def _histogram_io(self, label: str, func: Callable[..., None])-> None:
+        """ Helper to handle histogram reading or writing (i/o).
+
+        Args:
+            label: Label whether we are reading or writing.
+            func: Function to call to perform the reading or writing.
+        """
+        logger.info(f"{label} pt hard dependent response matrix histograms.")
+        for _, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+            func(analysis)
+        logger.info(f"{label} final response matrix histograms.")
+        for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+            func(analysis)
+
+    def write_response_matrix_histograms(self) -> None:
+        """ Write response matrix histograms.
+
+        Note:
+            We don't write the pt hard histograms because we generally don't care about them.
+            We would write the merged spectra, but it isn't a high priority.
+        """
+        self._histogram_io(label = "Writing", func = ResponseMatrix.save_hists_to_root_file)
+
+    def read_response_matrix_histograms(self) -> None:
+        """ Read processed response matrix histograms from file.
+
+        Note:
+            We don't read the pt hard histograms because we generally don't care about them
+            after scaling. We would read the merged spectra, but it isn't a high priority.
+        """
+        self._histogram_io(label = "Reading", func = ResponseMatrix.init_hists_from_root_file)
+
     def run_final_processing(self) -> None:
         """ Run final post processing steps. """
         # Final post processing steps
@@ -860,24 +892,39 @@ class ResponseManager(generic_class.EqualityMixin):
             if name not in ["response_matrix_errors", "particle_level_spectra"]:
                 histogram_info_for_processing[name] = info
 
+        # TODO: Grab from config
+        read_hists_from_file = False
+
         # Analysis steps:
         # 1. Setup response matrix and pt hard objects.
         # 2. Pt hard bin outliers removal, scaling, and merging into final response objects.
-        # 3. Final processing, including projecting particle level spectra
-        # 4. Plotting
-        steps = 4
+        # 3. Write histograms (and read histograms if requested).
+        # 4. Final processing, including projecting particle level spectra
+        # 5. Plotting
+        #
+        # If we are starting from reading histograms, we start from step 3.
+        steps = 3 if read_hists_from_file else 5
         with self.progress_manager.counter(total = steps,
                                            desc = "Overall processing progress:",
                                            unit = "") as overall_progress:
-            # Setup the response matrix and pt hard analysis objects.
-            self.setup()
-            overall_progress.update()
+            # We only need to perform the projecting and pt hard dependent part of the analysis
+            # if we don't already have the histograms saved.
+            if read_hists_from_file:
+                self.read_response_matrix_histograms()
+                overall_progress.update()
+            else:
+                # Setup the response matrix and pt hard analysis objects.
+                self.setup()
+                overall_progress.update()
 
-            # Run all pt hard related processing, including outliers removal, scaling, and merging hists.
-            self.run_pt_hard_bin_processing(
-                histogram_info_for_processing = histogram_info_for_processing,
-            )
-            overall_progress.update()
+                # Run all pt hard related processing, including outliers removal, scaling, and merging hists.
+                self.run_pt_hard_bin_processing(
+                    histogram_info_for_processing = histogram_info_for_processing,
+                )
+                overall_progress.update()
+
+                self.write_response_matrix_histograms()
+                overall_progress.update()
 
             # Final post processing steps.
             self.run_final_processing()
