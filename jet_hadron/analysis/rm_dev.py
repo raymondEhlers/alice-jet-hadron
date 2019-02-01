@@ -668,22 +668,17 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 setting_up.update()
 
-    def run(self) -> bool:
-        """ Run the response matrix analyses. """
-        logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
+    def run_pt_hard_bin_processing(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+        """ Run all pt hard bin related processing.
 
-        # Setup the response matrix and pt hard analysis objects.
-        self.setup()
-
+        Args:
+            histogram_info_for_processing: Specifies which histograms to process, and how to do so.
+        Returns:
+            None.
+        """
         # We have to determine the relative scale factors after the setup because they depend on the number of
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
-
-        # We need to determine the input information
-        histogram_info_for_processing = {}
-        for name, info in _response_matrix_histogram_info.items():
-            if name not in ["response_matrix_errors", "particle_level_spectra"]:
-                histogram_info_for_processing[name] = info
 
         # Remove outliers and scale the projected histograms according to their pt hard bins.
         with self.progress_manager.counter(total = len(self.pt_hard_bins),
@@ -724,7 +719,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
-        # Now merge the scale histograms into the final response matrix results.
+        # Now merge the scaled histograms into the final response matrix results.
         # +1 for the final pt hard spectra.
         with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
                                            desc = "Projecting:",
@@ -758,6 +753,8 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
+    def run_final_processing(self) -> None:
+        """ Run final post processing steps. """
         # Final post processing steps
         for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
             # Create the response matrix errors
@@ -769,7 +766,15 @@ class ResponseManager(generic_class.EqualityMixin):
             # Normalize response (if selected)
             analysis.normalize_response_matrix()
 
-        # Now plot the histograms
+    def plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+        """ Plot the results of the response matrix processing.
+
+        Args:
+            histogram_info_for_processing: Specifies which histograms to process, and how to do so.
+        Returns:
+            None.
+        """
+        # Counting of plots:
         # +1 for the final pt hard spectra.
         # +1 for particle level spectra
         # *2 for response matrix, response spectra
@@ -844,6 +849,45 @@ class ResponseManager(generic_class.EqualityMixin):
 
                 # Update progress
                 plotting.update()
+
+    def run(self) -> bool:
+        """ Run the response matrix analyses. """
+        logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
+
+        # We need to determine the input information
+        histogram_info_for_processing = {}
+        for name, info in _response_matrix_histogram_info.items():
+            if name not in ["response_matrix_errors", "particle_level_spectra"]:
+                histogram_info_for_processing[name] = info
+
+        # Analysis steps:
+        # 1. Setup response matrix and pt hard objects.
+        # 2. Pt hard bin outliers removal, scaling, and merging into final response objects.
+        # 3. Final processing, including projecting particle level spectra
+        # 4. Plotting
+        steps = 4
+        with self.progress_manager.counter(total = steps,
+                                           desc = "Overall processing progress:",
+                                           unit = "") as overall_progress:
+            # Setup the response matrix and pt hard analysis objects.
+            self.setup()
+            overall_progress.update()
+
+            # Run all pt hard related processing, including outliers removal, scaling, and merging hists.
+            self.run_pt_hard_bin_processing(
+                histogram_info_for_processing = histogram_info_for_processing,
+            )
+            overall_progress.update()
+
+            # Final post processing steps.
+            self.run_final_processing()
+            overall_progress.update()
+
+            # Plot the results
+            self.plot_results(
+                histogram_info_for_processing = histogram_info_for_processing,
+            )
+            overall_progress.update()
 
         return True
 
