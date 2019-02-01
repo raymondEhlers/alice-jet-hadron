@@ -10,8 +10,9 @@ from dataclasses import dataclass
 import enlighten
 import enum
 import logging
+import os
 import pprint
-from typing import Any, Dict, Iterator, List, Mapping, Tuple
+from typing import Any, Dict, Iterator, List, Mapping, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -64,6 +65,61 @@ class ResponseMatrixProjector(projectors.HistProjector):
     ...
 
 @dataclass
+class HistogramInformation:
+    """ Helper class to store information about processing an hist in an analysis object.
+
+    This basically just stores information in a nicely formatted and clear manner.
+
+    Attributes:
+        description: Description of the histogram.
+        attribute_name: Name of the attribute under which the hist is stored in the analysis object.
+        outliers_removal_axis: Projection axis for the particle level used in outliers removal.
+    """
+    description: str
+    attribute_name: str
+    outliers_removal_axis: projectors.TH1AxisType
+
+    def hist_name(self) -> str:
+        return self.attribute_name.replace(".", "_")
+
+_response_matrix_histogram_info = {
+    "response_matrix": HistogramInformation(
+        description = "Response matrix",
+        attribute_name = "response_matrix",
+        outliers_removal_axis = projectors.TH1AxisType.y_axis
+    ),
+    "response_matrix_errors": HistogramInformation(
+        description = "Response matrix errors",
+        attribute_name = "response_matrix_errors",
+        # Outliers should already be removed by the time this histogram is created,
+        # so this isn't a valid field.
+        outliers_removal_axis = None,
+    ),
+    "particle_level_spectra": HistogramInformation(
+        description = "Particle level spectra",
+        attribute_name = "particle_level_spectra",
+        # Outliers should already be removed by the time this histogram is created,
+        # so this isn't a valid field.
+        outliers_removal_axis = None,
+    ),
+}
+
+# Part-, det-level spectra
+for name in ["part", "det"]:
+    _response_matrix_histogram_info.update({
+        f"{name}_level_hists_jet_spectra": HistogramInformation(
+            description = f"{name.capitalize()}-level matched jet spectra",
+            attribute_name = f"{name}_level_hists.jet_spectra",
+            outliers_removal_axis = projectors.TH1AxisType.x_axis,
+        ),
+        f"{name}_level_hists_unmatched_jet_spectra": HistogramInformation(
+            description = f"{name.capitalize()}-level unmatched jet spectra",
+            attribute_name = f"{name}_level_hists.unmatched_jet_spectra",
+            outliers_removal_axis = projectors.TH1AxisType.x_axis,
+        ),
+    })
+
+@dataclass
 class ResponseHistograms:
     """ The main histograms for a response matrix. """
     jet_spectra: Hist
@@ -83,10 +139,12 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Task settings
-        # Default: No additinoal normalization.
+        # Default: No additional normalization.
         self.response_normalization = self.task_config.get(
             "response_normalization", response_matrix_helpers.ResponseNormalization.none
         )
+        # This will likely be overridden by the deriving class. It should not contain the file ex
+        self.output_filename = "ResponseMatrixHists"
 
         # Relevant histograms
         self.response_matrix: Hist = None
@@ -95,6 +153,34 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
 
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None)
+
+    def __iter__(self) -> Iterator[Tuple[str, HistogramInformation, Union[Hist, None]]]:
+        """ Iterate over the histograms in the response matrix analysis object.
+
+        Returns:
+            Name under which the HistogramInformation object is stored, the HistogramInformation object,
+            and the histogram itself.
+        """
+        for name, histogram_info in _response_matrix_histogram_info.items():
+            yield name, histogram_info, utils.recursive_getattr(self, histogram_info.attribute_name)
+
+    def init_hists_from_root_file(self) -> None:
+        """ Initialize processed histograms from a ROOT file. """
+        # We want to initialize from our saved hists - they will be at the output_prefix.
+        filename = os.path.join(self.output_prefix, self.output_filename + ".root")
+        with histogram.RootOpen(filename = filename, mode = "READ") as f:
+            for _, hist_info, _ in self:
+                h = f.get(hist_info.hist_name, None)
+                utils.recursive_getattr(self, hist_info.attribute_name, h)
+
+    def save_hists_to_root_file(self):
+        """ Save processed histograms to a ROOT file. """
+        filename = os.path.join(self.output_prefix, self.output_filename + ".root")
+        with histogram.RootOpen(filename = filename, mode = "RECREATE"):
+            for _, hist_info, hist in self:
+                # Only write the histogram if it's valid. It's possible that it's still ``None``.
+                if hist:
+                    hist.Write(hist_info.hist_name)
 
     def set_sumw2(self) -> None:
         """ Enable sumw2 on all hists.
