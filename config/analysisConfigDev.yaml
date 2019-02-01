@@ -222,9 +222,9 @@ GeneralHists:
             # Selected values explicitly so there are some iterables to create the object
             # (even though we don't need them).
             reaction_plane_orientation:
-                - "all"
+                - "inclusive"
             qvector:
-                - "all"
+                - "inclusive"
             task_label:
                 - ""
 
@@ -260,7 +260,7 @@ PtHardFinal:
             # Techincally this is true, although not very helpful. However, we must have at least
             # one iterator, so this allows us to do so with minimal change.
             reaction_plane_orientation:
-                - "all"
+                - "inclusive"
 Response:
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
@@ -607,9 +607,9 @@ EMCalCorrections:
         inputListName: "AliEmcalCorrectionTask{corrections_label}_histos"
         iterables:
             reaction_plane_orientation:
-                - "all"
+                - "inclusive"
             qvector:
-                - "all"
+                - "inclusive"
             task_label:
                 - "standard"
                 #- "embed"
