@@ -679,54 +679,13 @@ class ResponseManager(generic_class.EqualityMixin):
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
-        # Finally, remove outliers and scale the projected histograms according to their pt hard bins.
-        # First, we determine the input information
-        @dataclass
-        class InputInfo:
-            """ Helper class to store information about processing an analysis object.
+        # We need to determine the input information
+        histogram_info_for_processing = {}
+        for name, info in _response_matrix_histogram_info.items():
+            if name not in ["response_matrix_errors", "particle_level_spectra"]:
+                histogram_info_for_processing[name] = info
 
-            This basically just stores information in a nicely formatted and clear manner.
-
-            Attributes:
-                hist_attribute_name: Name of the attribute under which the hist is stored in the analysis object.
-                outliers_removal_axis: Projection axis for the particle level used in outliers removal.
-            """
-            name: str
-            hist_attribute_name: str
-            outliers_removal_axis: projectors.TH1AxisType
-
-        analysis_object_info = [
-            # Main response hists
-            InputInfo(
-                name = "Response matrix",
-                hist_attribute_name = "response_matrix",
-                outliers_removal_axis = projectors.TH1AxisType.y_axis
-            ),
-            # We don't need to create the response matrix errors histogram at this point.
-            # Instead, we perform the scaling and merging first, and then create it afterwards.
-        ]
-        # Part-, det-level spectra
-        for name in ["part", "det"]:
-            analysis_object_info.extend([
-                InputInfo(
-                    name = f"{name.capitalize()}-level matched jet spectra",
-                    hist_attribute_name = f"{name}_level_hists.jet_spectra",
-                    outliers_removal_axis = projectors.TH1AxisType.x_axis,
-                ),
-                InputInfo(
-                    name = f"{name.capitalize()}-level unmatched jet spectra",
-                    hist_attribute_name = f"{name}_level_hists.unmatched_jet_spectra",
-                    outliers_removal_axis = projectors.TH1AxisType.x_axis,
-                ),
-                #InputInfo(
-                #    type = name,
-                #    name = f"{name.capitalize()}-level sample task spectra",
-                #    hist_attribute_name = f"{name}_level_hists.sample_task_jet_spectra",
-                #    outliers_removal_axis = projectors.TH1AxisType.x_axis
-                #),
-            ])
-
-        # Now, perform the actual outliers removal and scaling.
+        # Remove outliers and scale the projected histograms according to their pt hard bins.
         with self.progress_manager.counter(total = len(self.pt_hard_bins),
                                            desc = "Processing:",
                                            unit = "pt hard bins") as processing:
@@ -749,17 +708,17 @@ class ResponseManager(generic_class.EqualityMixin):
                         ):
                     ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
 
-                for analysis_input in analysis_object_info:
-                    # We want to process each set analysis_input object separately because the group of hists
+                for hist_info in histogram_info_for_processing.values():
+                    # We want to process each set hist_info object separately because the group of hists
                     # will share the same cut index.
-                    hists = [utils.recursive_getattr(ep_analysis, analysis_input.hist_attribute_name)
+                    hists = [utils.recursive_getattr(ep_analysis, hist_info.attribute_name)
                              for ep_analysis in ep_analyses.values()]
-                    logger.debug(f"hist_attribute_name: {analysis_input.hist_attribute_name}, hists: {hists}")
+                    logger.debug(f"attribute_name: {hist_info.attribute_name}, hists: {hists}")
                     pt_hard_bin.run(
                         average_number_of_events = average_number_of_events,
-                        outliers_removal_axis = analysis_input.outliers_removal_axis,
+                        outliers_removal_axis = hist_info.outliers_removal_axis,
                         analyses = ep_analyses,
-                        hist_attribute_name = analysis_input.hist_attribute_name,
+                        hist_attribute_name = hist_info.attribute_name,
                     )
 
                 # Update progress
@@ -784,13 +743,13 @@ class ResponseManager(generic_class.EqualityMixin):
 
             # Then the reaction plane dependent quantities
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
-                for analysis_input in analysis_object_info:
+                for hist_info in histogram_info_for_processing.values():
                     pt_hard_analysis.merge_pt_hard_binned_analyses(
                         analyses = analysis_config.iterate_with_selected_objects(
                             self.analyses,
                             reaction_plane_orientation = reaction_plane_orientation
                         ),
-                        hist_attribute_name = analysis_input.hist_attribute_name,
+                        hist_attribute_name = hist_info.attribute_name,
                         output_analysis_object = self.final_responses[
                             self.final_responses_key_index(reaction_plane_orientation = reaction_plane_orientation)
                         ],
@@ -860,16 +819,16 @@ class ResponseManager(generic_class.EqualityMixin):
                         reaction_plane_orientation = reaction_plane_orientation
                     )
                 )
-                # Plot part, det level match and unmatched
-                for analysis_input in analysis_object_info[1:]:
+                # Plot part, det level match and unmatched (so skip the response matrix)
+                for hist_info in list(histogram_info_for_processing.values())[1:]:
                     # This is just a proxy to get "part" or "det"
-                    base_label = analysis_input.name[:analysis_input.hist_attribute_name.find("_")].lower()
+                    base_label = hist_info.description[:hist_info.attribute_name.find("_")].lower()
                     # This will be something like "unmatched_jet_spectra"
                     # +1 is to skip the "." that we found.
-                    output_label = analysis_input.hist_attribute_name[analysis_input.hist_attribute_name.find(".") + 1:]
+                    output_label = hist_info.attribute_name[hist_info.attribute_name.find(".") + 1:]
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
-                            title = analysis_input.name,
+                            title = hist_info.description,
                             x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
                                 "label": base_label,
                             },
@@ -880,7 +839,7 @@ class ResponseManager(generic_class.EqualityMixin):
                             self.final_responses_key_index(reaction_plane_orientation)
                         ],
                         pt_hard_analyses = analyses,
-                        hist_attribute_name = analysis_input.hist_attribute_name,
+                        hist_attribute_name = hist_info.attribute_name,
                     )
 
                 # Update progress
