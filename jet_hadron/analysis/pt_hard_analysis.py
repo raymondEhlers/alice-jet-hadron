@@ -249,7 +249,8 @@ def merge_pt_hard_binned_analyses(analyses: Mapping[Any, analysis_objects.JetHBa
     for _, analysis in analyses:
         input_hist = utils.recursive_getattr(analysis, hist_attribute_name)
         if output_hist is None:
-            output_hist = input_hist.Clone(input_hist.GetName() + "_merged")
+            # NOTE: We don't need to set a new name - it will be fine with the same name.
+            output_hist = input_hist.Clone()
             # Reset so we can just Add() all hists without worrying which hist is being processed
             output_hist.Reset()
             # NOTE: Sumw2 is kept even after resetting.
