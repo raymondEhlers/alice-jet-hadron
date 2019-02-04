@@ -837,18 +837,24 @@ class ResponseManager(generic_class.EqualityMixin):
             pt_hard_analyses = dict(
                 analysis_config.iterate_with_selected_objects(self.pt_hard_bins)
             )
-            plot_response_matrix.plot_response_spectra(
-                plot_labels = plot_base.PlotLabels(
-                    title = r"$\mathit{p}_{\mathrm{T}}$ hard spectra",
-                    x_label = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{hard}}$",
-                    y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
-                ),
-                output_name = "pt_hard_spectra",
-                # This only contains one object, so we just take the first value.
-                merged_analysis = next(iter(self.final_pt_hard.values())),
-                pt_hard_analyses = pt_hard_analyses,
-                hist_attribute_name = "pt_hard_spectra",
-            )
+            # This only contains one object, so we just take the first value.
+            merged_pt_hard_analysis = next(iter(self.final_pt_hard.values()))
+            # If we initialize the histograms from file then we won't have the pt hard spectra.
+            # In that case, we just skip trying to plot them.
+            if hasattr(merged_pt_hard_analysis, "pt_hard_spectra"):
+                plot_response_matrix.plot_response_spectra(
+                    plot_labels = plot_base.PlotLabels(
+                        title = r"$\mathit{p}_{\mathrm{T}}$ hard spectra",
+                        x_label = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{hard}}$",
+                        y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
+                    ),
+                    output_name = "pt_hard_spectra",
+                    merged_analysis = merged_pt_hard_analysis,
+                    pt_hard_analyses = pt_hard_analyses,
+                    hist_attribute_name = "pt_hard_spectra",
+                )
+            else:
+                logger.info("Skip plotting of pt hard spectra because the hists aren't initialized.")
 
             plotting.update()
 
