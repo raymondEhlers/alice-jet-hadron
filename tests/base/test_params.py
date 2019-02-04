@@ -274,6 +274,9 @@ def test_collision_energy(logging_mixin, energy, expected):
     assert energy.display_str() == expected["display_str"]
     assert energy.value == expected["value"]
 
+# NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
+_PbPbLatexLabel = r"Pb\mbox{-}Pb"
+
 @pytest.mark.parametrize("system, expected", [
     (params.CollisionSystem["pp"],
         {"str": "pp",
@@ -283,10 +286,10 @@ def test_collision_energy(logging_mixin, energy, expected):
             "display_str": "PYTHIA"}),
     (params.CollisionSystem["PbPb"],
         {"str": "PbPb",
-            "display_str": params.PbPbLatexLabel}),
+            "display_str": _PbPbLatexLabel}),
     (params.CollisionSystem["embedPP"],
         {"str": "embedPP",
-            "display_str": fr"pp \bigotimes {params.PbPbLatexLabel}"})
+            "display_str": fr"pp \bigotimes {_PbPbLatexLabel}"})
 ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
 def test_collision_system(logging_mixin, system, expected):
     """ Test collision system values. """

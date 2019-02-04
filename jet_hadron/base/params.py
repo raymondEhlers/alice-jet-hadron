@@ -98,10 +98,11 @@ def use_label_with_root(label: str) -> str:
     # Remove "$" and map "\" -> "#""
     return label.replace("$", "").replace("\\", "#")
 
-def uppercase_first_letter(s: str) -> str:
-    """ Convert the first letter to uppercase.
+def _uppercase_first_letter(s: str) -> str:
+    """ Convert the first letter to uppercase without affecting the rest of the string.
 
-    NOTE: Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
+    Note:
+        Cannot use `str.capitalize()` or `str.title()` because they lowercase the rest of the string.
 
     Args:
         s: String to be convert
@@ -369,17 +370,17 @@ class CollisionEnergy(enum.Enum):
         return cls(float(data.value))
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
-PbPbLatexLabel = r"Pb\mbox{-}Pb"
+_PbPbLatexLabel = r"Pb\mbox{-}Pb"
 
 class CollisionSystem(enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
     pythia = "PYTHIA"
-    embedPP = fr"pp \bigotimes {PbPbLatexLabel}"
-    embedPythia = fr"PYTHIA \bigotimes {PbPbLatexLabel}"
+    embedPP = fr"pp \bigotimes {_PbPbLatexLabel}"
+    embedPythia = fr"PYTHIA \bigotimes {_PbPbLatexLabel}"
     pPb = r"pPb"
-    PbPb = f"{PbPbLatexLabel}"
+    PbPb = f"{_PbPbLatexLabel}"
 
     def __str__(self) -> str:
         """ Return a string of the name of the system. """
@@ -561,7 +562,7 @@ class QVector(enum.Enum):
         if not match:
             raise ValueError("Could not extract Q Vector value \"{self.name}\" for printing.")
         temp_list = match.groups()
-        ret_val = uppercase_first_letter(" ".join(temp_list))
+        ret_val = _uppercase_first_letter(" ".join(temp_list))
         if self.name != "inclusive":
             ret_val += "%"
         # rstrip() is to remove entra space after "Inclusive". Doesn't matter for the other values.
