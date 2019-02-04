@@ -92,8 +92,14 @@ def _plot_response_matrix(hist: Hist,
     output_name = "response_matrix"
     if plot_errors_hist:
         output_name += "_errors"
-    x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}} \mathrm{(GeV/\it{c})}$"
-    y_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{part}} \mathrm{(GeV/\it{c})}$"
+    x_label = "$%(pt_label)s %(units_label)s$" % {
+        "pt_label": params.generate_jet_pt_display_label(upper_label = r"\mathrm{det}"),
+        "units_label": params.generate_gev_momentum_units_label(),
+    }
+    y_label = "$%(pt_label)s %(units_label)s$" % {
+        "pt_label": params.generate_jet_pt_display_label(upper_label = r"\mathrm{part}"),
+        "units_label": params.generate_gev_momentum_units_label(),
+    }
 
     # Determine args and call
     args = {
