@@ -28,6 +28,8 @@ def setup_save_tests(request, mocker):
     # Only the functions in the spec are allowed, which is why the objects are separate.
     figure = mocker.MagicMock(spec = ["savefig"])
     canvas = mocker.MagicMock(spec = ["SaveAs"])
+    # Ensure that we don't make random directories
+    mocker.patch("jet_hadron.plot.base.os.makedirs")
 
     expected_filenames = []
     for ext in printing_extensions:
