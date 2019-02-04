@@ -88,7 +88,7 @@ def _plot_response_matrix(hist: Hist,
     name = "Response Matrix"
     if plot_errors_hist:
         name += " Errors"
-    name += f", event plane orientation {reaction_plane_orientation.display_str()}"
+    name += f", {reaction_plane_orientation.display_str()} event plane orientation"
     output_name = "response_matrix"
     if plot_errors_hist:
         output_name += "_errors"
@@ -258,7 +258,6 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # Now, we plot the pt hard dependent hists
     for (key_index, analysis), color in zip(pt_hard_analyses.items(), colors):
         # Determine the proper label.
-        logger.debug(f"key_index: {key_index}")
         label = params.generate_pt_range_string(
             pt_bin = key_index.pt_hard_bin,
             lower_label = "",
