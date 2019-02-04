@@ -15,7 +15,7 @@ from typing import Sequence
 from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base import params
+from jet_hadron.base import labels
 from jet_hadron.base.typing_helpers import Canvas
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
@@ -78,13 +78,13 @@ def plot_2d_correlations(jet_hadron):
         # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
         # Instead, print to EPS and then convert to PDF
         alice_label = str(jet_hadron.alice_label)
-        system_label = params.system_label(
+        system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
             activity = jet_hadron.event_activity
         )
-        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = params.jet_properties_label(jet_hadron.jet_pt)
-        assoc_pt = params.generate_track_pt_range_string(jet_hadron.track_pt)
+        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_hadron.jet_pt)
+        assoc_pt = labels.track_pt_range_string(jet_hadron.track_pt)
         logger.debug(f"label: {alice_label}, system_label: {system_label}, constituent_cuts: {constituent_cuts}, leading_hadron: {leading_hadron}, jet_pt: {jet_pt}, assoc_pt: {assoc_pt}")
 
         tex = ROOT.TLatex()
@@ -338,13 +338,13 @@ def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -
         ax.zaxis.labelpad = 12
         # Overall
         alice_label = str(jet_hadron.alice_label)
-        system_label = params.system_label(
+        system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
             activity = jet_hadron.event_activity
         )
-        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = params.jet_properties_label(jet_hadron.jet_pt)
-        assoc_pt = params.generate_track_pt_range_string(jet_hadron.track_pt)
+        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_hadron.jet_pt)
+        assoc_pt = labels.track_pt_range_string(jet_hadron.track_pt)
 
         # Upper left side
         upper_left_text = ""

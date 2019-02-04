@@ -17,7 +17,7 @@ from pachyderm import utils
 from pachyderm.utils import epsilon
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base import params
+from jet_hadron.base import labels
 from jet_hadron.base.typing_helpers import Hist
 
 from jet_hadron.analysis import fit as fitting
@@ -86,8 +86,8 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     hist.Scale(1.0 / normalization_factor)
 
     # Set title, axis labels
-    jet_pt_bins_title = params.generate_jet_pt_range_string(jet_pt)
-    track_pt_bins_title = params.generate_track_pt_range_string(track_pt)
+    jet_pt_bins_title = labels.jet_pt_range_string(jet_pt)
+    track_pt_bins_title = labels.track_pt_range_string(track_pt)
     hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
     hist.GetXaxis().SetTitle("#Delta#varphi")
     hist.GetYaxis().SetTitle("#Delta#eta")
@@ -326,8 +326,8 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     hist.Scale(1.0 / normalization_factor)
 
     # Set title, labels
-    jet_pt_bins_title = params.generate_jet_pt_range_string(jet_pt)
-    track_pt_bins_title = params.generate_track_pt_range_string(track_pt)
+    jet_pt_bins_title = labels.jet_pt_range_string(jet_pt)
+    track_pt_bins_title = labels.track_pt_range_string(track_pt)
     hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
     hist.GetXaxis().SetTitle(axis_label)
     hist.GetYaxis().SetTitle(f"dN/d{axis_label}")

@@ -12,7 +12,7 @@ import os
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_config
-from jet_hadron.base import params
+from jet_hadron.base import labels
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.analysis import generic_tasks
@@ -140,12 +140,15 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
                     for eta_dict in eta_directions:
                         eta_direction, eta_direction_label = next(iter(eta_dict.items()))
                         # Determine hist name
-                        # NOTE: Convert the pt bin to 0 indexed to retrieve the correct hist.
-                        name = hist_name.format(angle = angle, cent = cent_bin, pt_bin = track_pt.bin - 1, eta_direction = eta_direction)
+                        # NOTE: We must convert the pt bin to 0 indexed to retrieve the correct hist.
+                        name = hist_name.format(
+                            angle = angle, cent = cent_bin,
+                            pt_bin = track_pt.bin - 1, eta_direction = eta_direction
+                        )
                         # Determine label
-                        # NOTE: Can't use generate_track_pt_range_string because it includes "assoc" in
-                        # the pt label. Instead, we generate the string directly.
-                        pt_bin_label = params.generate_pt_range_string(
+                        # NOTE: Can't use track_pt_range_string because it includes "assoc" in
+                        #       the pt label. Instead, we create the string directly.
+                        pt_bin_label = labels.pt_range_string(
                             pt_bin = track_pt,
                             lower_label = r"\mathrm{T}",
                             upper_label = r"",

@@ -22,7 +22,7 @@ from pachyderm import histogram
 from pachyderm import yaml
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base import params
+from jet_hadron.base import labels
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import base as plot_base
 
@@ -230,7 +230,7 @@ class HistPlotter:
                 # We don't want a new line here - we just want to continue it
                 text += " " + str(obj.task_label)
 
-            text += "\n" + params.system_label(energy = obj.collision_energy,
+            text += "\n" + labels.system_label(energy = obj.collision_energy,
                                                system = obj.collision_system,
                                                activity = obj.event_activity)
             property_labels = []

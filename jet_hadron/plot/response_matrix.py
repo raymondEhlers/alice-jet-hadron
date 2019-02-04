@@ -18,6 +18,7 @@ from pachyderm import histogram
 from pachyderm import utils
 
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import base as plot_base
@@ -93,12 +94,12 @@ def _plot_response_matrix(hist: Hist,
     if plot_errors_hist:
         output_name += "_errors"
     x_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": params.generate_jet_pt_display_label(upper_label = r"\mathrm{det}"),
-        "units_label": params.generate_gev_momentum_units_label(),
+        "pt_label": labels.jet_pt_display_label(upper_label = r"\mathrm{det}"),
+        "units_label": labels.momentum_units_label_gev(),
     }
     y_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": params.generate_jet_pt_display_label(upper_label = r"\mathrm{part}"),
-        "units_label": params.generate_gev_momentum_units_label(),
+        "pt_label": labels.jet_pt_display_label(upper_label = r"\mathrm{part}"),
+        "units_label": labels.momentum_units_label_gev(),
     }
 
     # Determine args and call
@@ -204,8 +205,8 @@ def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, outpu
     # Plot the histogram
     #logger.debug(f"Response matrix n jets: {response_matrix.Integral()}".format(response_matrix.Integral()))
     hist.SetTitle(name)
-    hist.GetXaxis().SetTitle(params.use_label_with_root(x_label))
-    hist.GetYaxis().SetTitle(params.use_label_with_root(y_label))
+    hist.GetXaxis().SetTitle(labels.use_label_with_root(x_label))
+    hist.GetYaxis().SetTitle(labels.use_label_with_root(y_label))
     hist.Draw("colz")
 
     # Set the final axis ranges.
@@ -264,7 +265,7 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # Now, we plot the pt hard dependent hists
     for (key_index, analysis), color in zip(pt_hard_analyses.items(), colors):
         # Determine the proper label.
-        label = params.generate_pt_range_string(
+        label = labels.pt_range_string(
             pt_bin = key_index.pt_hard_bin,
             lower_label = "",
             upper_label = "hard",

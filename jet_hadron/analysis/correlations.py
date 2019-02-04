@@ -31,6 +31,7 @@ import reaction_plane_fit as rpf
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import general as plot_general
@@ -1442,8 +1443,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # For labeling purposes
             hist_name = peak_finding_hist.GetName(),
             eta_limits = eta_limits,
-            jet_pt_title = params.generate_jet_pt_range_string(self.jet_pt),
-            track_pt_title = params.generate_track_pt_range_string(self.track_pt),
+            jet_pt_title = labels.jet_pt_range_string(self.jet_pt),
+            track_pt_title = labels.track_pt_range_string(self.track_pt),
             # Basic data
             lin_space = lin_space,
             peak_finding_hist_array = peak_finding_hist_array,
@@ -1825,7 +1826,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     normalization_factor = normalization_factor,
                     rebin_factor = rebin_factor,
                     title_label = title_label,
-                    axis_label = params.use_label_with_root(observable.axis.display_str()),
+                    axis_label = labels.use_label_with_root(observable.axis.display_str()),
                 )
 
     def _post_creation_processing_for_1d_correlation(self, hist: Hist,
@@ -1891,7 +1892,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._compare_to_other_hist(
             our_hist = self.correlation_hists_delta_phi.signal_dominated.hist,
             their_hist = comparison_hists[joel_hist_name],
-            title = f"Unsubtracted 1D: {self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}, {params.generate_jet_pt_range_string(self.jet_pt)}, {params.generate_track_pt_range_string(self.track_pt)}",
+            title = f"Unsubtracted 1D: {self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}, {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
             x_label = r"$\Delta\varphi$",
             y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
             output_name = self.hist_name_format_delta_phi.format(
