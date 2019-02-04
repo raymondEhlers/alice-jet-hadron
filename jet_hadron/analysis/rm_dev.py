@@ -171,8 +171,15 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         filename = os.path.join(self.output_prefix, self.output_filename + ".root")
         with histogram.RootOpen(filename = filename, mode = "READ") as f:
             for _, hist_info, _ in self:
-                h = f.get(hist_info.hist_name, None)
-                utils.recursive_getattr(self, hist_info.attribute_name, h)
+                h = f.Get(hist_info.hist_name)
+                if not h:
+                    h = None
+                else:
+                    # Detach it from the file so we can store it for later use.
+                    h.SetDirectory(0)
+                logger.debug(f"Initializing hist {h} to be stored in {hist_info.attribute_name}")
+                # Finally, store the histogram
+                utils.recursive_setattr(self, hist_info.attribute_name, h)
 
     def write_hists_to_root_file(self) -> None:
         """ Save processed histograms to a ROOT file. """
@@ -263,6 +270,9 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             None.
         Returns:
             The newly created response matrix errors histogram.
+        Raises:
+            ValueError: If the response matrix errors have already been created.
+            ValueError: If the response matrix has not yet been created.
         """
         # Validation
         if self.response_matrix_errors:
