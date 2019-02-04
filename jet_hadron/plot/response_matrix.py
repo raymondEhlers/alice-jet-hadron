@@ -32,6 +32,8 @@ Analyses = Dict[Any, analysis_objects.JetHBase]
 def plot_particle_level_spectra(analyses: Analyses, plot_with_ROOT: bool = False):
     """ Plot the particle level spectra associated with the response.
 
+    Args:
+
     """
     args: Dict[str, Any] = {}
     if plot_with_ROOT:
@@ -39,10 +41,15 @@ def plot_particle_level_spectra(analyses: Analyses, plot_with_ROOT: bool = False
     else:
         _plot_particle_level_spectra_with_matplotlib(**args)
 
-def _plot_particle_level_spectra_with_matplotlib(temp):
+def _plot_particle_level_spectra_with_matplotlib(ep_analyses):
+    """ Plot the particle level spectra with matplotlib.
+
+    Args:
+
+    """
     ...
 
-def _plot_particle_level_spectra_with_ROOT(temp):
+def _plot_particle_level_spectra_with_ROOT(ep_analyses):
     """ Plot the particle level spectra with ROOT.
 
     Args:
@@ -294,3 +301,4 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # Save and cleanup
     plot_base.save_plot(merged_analysis.output_info, fig, output_name)
     plt.close(fig)
+
