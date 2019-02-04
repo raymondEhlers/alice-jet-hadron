@@ -234,6 +234,20 @@ def test_jet_properties_labels(logging_mixin):
     assert leading_hadron == leading_hadron_expected
     assert jet_pt == jet_pt_expected
 
+@pytest.mark.parametrize("upper_label, expected", [
+    ("", r"$\mathit{p}_{\mathrm{T,jet}}^{}$"),
+    (r"\mathrm{det}", r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}$")
+], ids = ["Base test", "Superscript"])
+def test_generate_jet_pt_range_string(logging_mixin, upper_label, expected):
+    """ Test for generating jet pt labels. """
+    # Determine args. Only call with an argument if we've specified one so we can test the default args.
+    kwargs = {}
+    if upper_label != "":
+        kwargs["upper_label"] = upper_label
+
+    output = params.generate_jet_pt_display_label(**kwargs)
+    assert output == expected
+
 @pytest.mark.parametrize("energy, expected", [
     (params.CollisionEnergy(2.76),
         {"str": "2.76",
