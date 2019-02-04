@@ -241,7 +241,7 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # The pt hard spectra doesn't have a reaction plane orientation, so add it to the title if the
     # attribute is available
     if hasattr(merged_analysis, "reaction_plane_orientation"):
-        plot_labels.title = plot_labels.title + f", reaction plane orientation {merged_analysis.reaction_plane_orientation.display_str()}"
+        plot_labels.title = plot_labels.title + f", {merged_analysis.reaction_plane_orientation.display_str()} reaction plane orientation"
     # Now we can apply the plot labels
     plot_labels.apply_labels(ax)
 
