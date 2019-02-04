@@ -770,7 +770,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 processing.update()
 
-    def _histogram_io(self, label: str, func: Callable[..., None])-> None:
+    def _histogram_io(self, label: str, func: Callable[..., None]) -> None:
         """ Helper to handle histogram reading or writing (i/o).
 
         Args:
