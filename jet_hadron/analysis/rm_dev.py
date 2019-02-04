@@ -562,8 +562,17 @@ class ResponseManager(generic_class.EqualityMixin):
         pt_hard_bins: Pt hard analysis objects for pt hard binned analyses (optional).
     """
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
+        # Base configuration
         self.config_filename = config_filename
         self.selected_analysis_options = selected_analysis_options
+        self.task_name = "ResponseManager"
+        # Retrieve YAML config for manager configuration
+        self.config, _ = analysis_config.read_config_using_selected_options(
+            task_name = self.task_name,
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options
+        )
+        self.task_config = self.config[self.task_name]
 
         # Create the actual response matrix objects.
         self.analyses: Mapping[Any, ResponseMatrix]
@@ -915,9 +924,6 @@ class ResponseManager(generic_class.EqualityMixin):
             if name not in ["response_matrix_errors", "particle_level_spectra"]:
                 histogram_info_for_processing[name] = info
 
-        # TODO: Grab from config
-        read_hists_from_file = False
-
         # Analysis steps:
         # 1. Setup response matrix and pt hard objects.
         # 2. Pt hard bin outliers removal, scaling, and merging into final response objects.
@@ -926,13 +932,13 @@ class ResponseManager(generic_class.EqualityMixin):
         # 5. Plotting
         #
         # If we are starting from reading histograms, we start from step 3.
-        steps = 3 if read_hists_from_file else 5
+        steps = 3 if self.task_config["read_hists_from_root_file"] else 5
         with self.progress_manager.counter(total = steps,
                                            desc = "Overall processing progress:",
                                            unit = "") as overall_progress:
             # We only need to perform the projecting and pt hard dependent part of the analysis
             # if we don't already have the histograms saved.
-            if read_hists_from_file:
+            if self.task_config["read_hists_from_root_file"]:
                 self.read_response_matrix_histograms()
                 overall_progress.update()
             else:
