@@ -7,7 +7,7 @@
 
 import argparse
 import logging
-from typing import Any, Dict, Mapping, Sequence, Set, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
 
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
@@ -182,16 +182,71 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
     )
     return (selected_analysis_options, additional_validated_args)
 
+def read_config_using_selected_options(task_name: str, config_filename: str,
+                                       selected_analysis_options: params.SelectedAnalysisOptions,
+                                       additional_classes_to_register: Sequence[Any] = None) -> Tuple[generic_config.DictLike, params.SelectedAnalysisOptions]:
+    """ Read the YAML config and override the values using the task config.
+
+    This function provides separate functionality for a class to determine its
+    associated configuration without creating itself via iterators. This is particularly
+    useful for manager classes.
+
+    We combine these steps together because we never want to use a configuration
+    without overriding the values based on the selected analysis options.
+
+    Args:
+        task_name: Name of the analysis task.
+        config_filename: Filename of the YAML config.
+        selected_analysis_options: Selected analysis options.
+        additional_classes_to_register: Additional classes to register from YAML object
+            construction. Default: None.
+    Returns:
+        (The YAML configuration, the overridden selected analysis options).
+    """
+    # Validation
+    if additional_classes_to_register is None:
+        additional_classes_to_register = []
+
+    # Classes to register for reconstruction within YAML
+    classes_to_register: Set[Any] = set([
+        # We can add any additional classes that are needed here.
+        # These should be additional classes which aren't defined in params or analysis_objects.
+    ])
+    # Add requested iterables
+    classes_to_register.update(additional_classes_to_register)
+    logger.debug(f"classes_to_register: {classes_to_register}")
+    # Add in all classes defined in the params and analysis_objects module
+    yml = yaml.yaml(modules_to_register = [params, analysis_objects], classes_to_register = classes_to_register)
+
+    # Load and override the configuration
+    config = generic_config.load_configuration(
+        yaml = yml,
+        filename = config_filename,
+    )
+    config = override_options(
+        config = config,
+        selected_options = selected_analysis_options,
+        config_containing_override = config[task_name]
+    )
+
+    # Now that the values have been overridden, we can determine the full leading hadron bias
+    selected_analysis_options = determine_leading_hadron_bias(
+        config = config,
+        selected_analysis_options = selected_analysis_options
+    )
+
+    return config, selected_analysis_options
+
 def construct_from_configuration_file(task_name: str, config_filename: str,
                                       selected_analysis_options: params.SelectedAnalysisOptions,
                                       obj: Any,
                                       additional_possible_iterables: Dict[str, Any] = None,
-                                      additional_classes_to_register: Sequence[Any] = None) -> ConstructedObjects:
+                                      additional_classes_to_register: List[Any] = None) -> ConstructedObjects:
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
         task_name: Name of the analysis task.
-        config_filename: Filename of the yaml config.
+        config_filename: Filename of the YAML config.
         selected_analysis_options: Selected analysis options.
         obj (object): The object to be constructed.
         additional_possible_iterables: Additional iterators to use when creating the objects,
@@ -217,43 +272,25 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
     # the output prefix for consistency (event if a task doesn't select in one or
     # both of them)
     possible_iterables = {}
-    # These names map the config/attibute names to the iterable.
+    # These names map the config/attribute names to the iterable.
     possible_iterables["reaction_plane_orientation"] = params.ReactionPlaneOrientation
     possible_iterables["qvector"] = params.QVector  # type: ignore
     possible_iterables.update({k: v for k, v in additional_possible_iterables.items() if k not in possible_iterables})
 
-    # Classes to register for reconstruction within YAML
-    classes_to_register: Set[Any] = set([
-        # Add any additional classses that are needed and aren't defined in params or analysis_objects.
-    ])
-    # Add requested iterables
-    classes_to_register.update(additional_classes_to_register)
-    # We also want all possible iterables, but we have to skip None iterables (which are defined in the YAML),
-    # and thus must already be listed above.
-    classes_to_register.update([v for v in possible_iterables.values() if v])
-    logger.debug(f"classes_to_register: {classes_to_register}")
-    # Add in all classes defined in the params and analysis_objects module
-    yml = yaml.yaml(modules_to_register = [params, analysis_objects], classes_to_register = classes_to_register)
+    # We also want all possible iterables, but we have to skip None iterables (whose values are
+    # defined in the YAML), and thus must already included in the additional_classes_to_register list.
+    additional_classes_to_register.extend([v for v in possible_iterables.values() if v])
 
-    # Load and override the configuration
-    config = generic_config.load_configuration(
-        yaml = yml,
-        filename = config_filename,
-    )
-    config = override_options(
-        config = config,
-        selected_options = selected_analysis_options,
-        config_containing_override = config[task_name]
-    )
-    # We (re)define the task config here after we have overridden the relevant values.
-    task_config = config[task_name]
-
-    # Now that the values have been overrideen, we can determine the full leading hadron bias
-    selected_analysis_options = determine_leading_hadron_bias(
-        config = config,
-        selected_analysis_options = selected_analysis_options
+    # Now we actually read the config, overriding the config values as appropriate based
+    # on the selected analysis options.
+    config, selected_analysis_options = read_config_using_selected_options(
+        task_name = task_name, config_filename = config_filename,
+        selected_analysis_options = selected_analysis_options,
+        additional_classes_to_register = additional_classes_to_register,
     )
     logger.debug(f"Selected analysis options: {selected_analysis_options}")
+    # We (re)define the task config here after we have overridden the relevant values.
+    task_config = config[task_name]
 
     # Iteration options
     # NOTE: These requested iterators should be passed by the task,
@@ -281,7 +318,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
     #       because otherwise we will have strings for the selected analysis options instead
     #       of the actual enumeration values.
     args.update(selected_analysis_options.asdict())
-    # We want to convert the enum values into strs for formatting. Performed with a dict comprehension.
+    # We want to convert the enum values into strings for formatting. Performed with a dict comprehension.
     formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
 
     # Iterate over the iterables defined above to create the objects.
