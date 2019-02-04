@@ -79,6 +79,7 @@ class HistogramInformation:
     attribute_name: str
     outliers_removal_axis: projectors.TH1AxisType
 
+    @property
     def hist_name(self) -> str:
         return self.attribute_name.replace(".", "_")
 
@@ -173,13 +174,19 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
                 h = f.get(hist_info.hist_name, None)
                 utils.recursive_getattr(self, hist_info.attribute_name, h)
 
-    def save_hists_to_root_file(self) -> None:
+    def write_hists_to_root_file(self) -> None:
         """ Save processed histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename + ".root")
+        # Create the output directory if necessary
+        directory_name = os.path.dirname(filename)
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
+        # Then actually iterate through and save the hists.
         with histogram.RootOpen(filename = filename, mode = "RECREATE"):
             for _, hist_info, hist in self:
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
+                    logger.debug(f"Writing hist {hist} with name {hist_info.hist_name}")
                     hist.Write(hist_info.hist_name)
 
     def set_sumw2(self) -> None:
@@ -247,7 +254,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         self.particle_level_spectra.Scale(1.0 / projection_range)
 
         # Provide as potentially useful information
-        logger.info("N jets in particle_level_spectra: {self.particle_level_spectra.Integral()}")
+        logger.info(f"N jets in particle_level_spectra: {self.particle_level_spectra.Integral()}")
 
     def create_response_matrix_errors(self) -> Hist:
         """ Create response matrix errors hist from the response matrix hist.
@@ -774,7 +781,7 @@ class ResponseManager(generic_class.EqualityMixin):
             We don't write the pt hard histograms because we generally don't care about them.
             We would write the merged spectra, but it isn't a high priority.
         """
-        self._histogram_io(label = "Writing", func = ResponseMatrix.save_hists_to_root_file)
+        self._histogram_io(label = "Writing", func = ResponseMatrix.write_hists_to_root_file)
 
     def read_response_matrix_histograms(self) -> None:
         """ Read processed response matrix histograms from file.
