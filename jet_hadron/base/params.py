@@ -287,6 +287,16 @@ def generate_jet_pt_display_label(upper_label: str = "") -> str:
         upper_label = upper_label,
     )
 
+def generate_gev_momentum_units_label() -> str:
+    """ Generate a GeV/c label.
+
+    Args:
+        None.
+    Returns:
+        A properly latex formatted GeV/c label.
+    """
+    return r"\mathrm{GeV/\mathit{c}}"
+
 ##################
 # Analysis Options
 ##################

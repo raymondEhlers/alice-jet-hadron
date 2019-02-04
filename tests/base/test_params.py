@@ -248,6 +248,12 @@ def test_generate_jet_pt_range_string(logging_mixin, upper_label, expected):
     output = params.generate_jet_pt_display_label(**kwargs)
     assert output == expected
 
+def test_generate_gev_momentum_units_label(logging_mixin):
+    """ Test generating GeV/c label in latex. """
+    output = params.generate_gev_momentum_units_label()
+    expected = r"\mathrm{GeV/\mathit{c}}"
+    assert output == expected
+
 @pytest.mark.parametrize("energy, expected", [
     (params.CollisionEnergy(2.76),
         {"str": "2.76",
