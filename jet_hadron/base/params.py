@@ -196,7 +196,7 @@ def generate_pt_range_string(pt_bin: T_PtBin, lower_label: str, upper_label: str
     upper = f" < {pt_bin.range.max}"
     if only_show_lower_value_for_last_bin and pt_bin.range.max == -1:
         upper = ""
-    pt_label = generate_partial_pt_display_label(lower_label = lower_label, upper_label = upper_label)
+    pt_label = generate_pt_display_label(lower_label = lower_label, upper_label = upper_label)
     pt_range = r"$%(lower)s%(pt_label)s%(upper)s\:\mathrm{GeV/\mathit{c}}$" % {
         "lower": lower,
         "upper": upper,
@@ -243,12 +243,12 @@ def jet_properties_label(jet_pt_bin: int) -> Tuple[str, str, str, str]:
         tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
     """
     jet_finding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
-    constituent_cuts = "$" + generate_partial_pt_display_label(upper_label = r"\mathrm{ch}") + r"\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
-    leading_hadron = "$" + generate_partial_pt_display_label(upper_label = r"\mathrm{lead,ch}") + r" > 5\:\mathrm{GeV/\mathit{c}}$"
+    constituent_cuts = "$" + generate_pt_display_label(upper_label = r"\mathrm{ch}") + r"\:\mathrm{\mathit{c},}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$"
+    leading_hadron = "$" + generate_pt_display_label(upper_label = r"\mathrm{lead,ch}") + r" > 5\:\mathrm{GeV/\mathit{c}}$"
     jet_pt = generate_jet_pt_range_string(jet_pt_bin)
     return (jet_finding, constituent_cuts, leading_hadron, jet_pt)
 
-def generate_partial_pt_display_label(lower_label: str = r"\mathrm{T}", upper_label: str = "") -> str:
+def generate_pt_display_label(lower_label: str = r"\mathrm{T}", upper_label: str = "") -> str:
     """ Generate a pt display label without the "$".
 
     Args:
@@ -261,18 +261,6 @@ def generate_partial_pt_display_label(lower_label: str = r"\mathrm{T}", upper_la
         "lower_label": lower_label,
         "upper_label": upper_label,
     }
-
-def generate_pt_display_label(lower_label: str = r"\mathrm{T}", upper_label: str = "") -> str:
-    """ Generate a display pt label.
-
-    Args:
-        lower_label: Subscript label for pT. Default: "\\mathrm{T}"
-        upper_label: Superscript labe for pT. Default: ""
-    Returns:
-        Properly formatted pt string.
-    """
-    pt_label = generate_partial_pt_display_label(lower_label = lower_label, upper_label = upper_label)
-    return f"${pt_label}$"
 
 def generate_jet_pt_display_label(upper_label: str = "") -> str:
     """ Generate a display jet pt label.

@@ -235,8 +235,8 @@ def test_jet_properties_labels(logging_mixin):
     assert jet_pt == jet_pt_expected
 
 @pytest.mark.parametrize("upper_label, expected", [
-    ("", r"$\mathit{p}_{\mathrm{T,jet}}^{}$"),
-    (r"\mathrm{det}", r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}$")
+    ("", r"\mathit{p}_{\mathrm{T,jet}}^{}"),
+    (r"\mathrm{det}", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}")
 ], ids = ["Base test", "Superscript"])
 def test_generate_jet_pt_range_string(logging_mixin, upper_label, expected):
     """ Test for generating jet pt labels. """
