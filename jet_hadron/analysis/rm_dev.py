@@ -303,7 +303,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             # Normalize the histogram
             hist.Scale(1.0 / entries)
             # Update the y axis title to represent the change
-            # TODO: Check that this label displayed correctly. Can we use params at all?
+            # TODO: Check that this label displayed correctly. Can we use labels at all?
             hist.GetYaxis().SetTitle("(1/N_{jets})dN/d#mathit{p}_{T}")
 
         logger.debug(
@@ -617,7 +617,13 @@ class ResponseManager(generic_class.EqualityMixin):
         self.selected_analysis_options = selected_analysis_options
         self.task_name = "ResponseManager"
         # Retrieve YAML config for manager configuration
-        self.config, _ = analysis_config.read_config_using_selected_options(
+        # NOTE: We don't store the overridden selected_analysis_options because in principle they depend
+        #       on the selected task. In practice, such options are unlikely to vary between the manager
+        #       and the analysis tasks. However, the validation cannot handle the overridden options
+        #       (because the leading hadron bias enum is converting into the object). So we just use
+        #       the overridden option in formatting the output prefix (where it is required to determine
+        #       the right path), and then passed the non-overridden values to the analysis objects.
+        self.config, overridden_selected_analysis_options = analysis_config.read_config_using_selected_options(
             task_name = self.task_name,
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options
@@ -625,7 +631,8 @@ class ResponseManager(generic_class.EqualityMixin):
         # Additional helper variables
         self.task_config = self.config[self.task_name]
         self.output_info = analysis_objects.PlottingOutputWrapper(
-            output_prefix = self.config["outputPrefix"],
+            # Format to ensure that the selected analysis options are filled in.
+            output_prefix = self.config["outputPrefix"].format(**overridden_selected_analysis_options.asdict()),
             printing_extensions = self.config["printingExtensions"],
         )
 
