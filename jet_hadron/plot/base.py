@@ -65,7 +65,9 @@ class PlotLabels:
         if self.y_label is not None:
             ax.set_ylabel(self.y_label)
 
-def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: Union[matplotlib.figure.Figure, Canvas], output_name: str) -> List[str]:
+def save_plot(obj: analysis_objects.PlottingOutputWrapper,
+              figure: Union[matplotlib.figure.Figure, Canvas],
+              output_name: str) -> List[str]:
     """ Loop over all requested file extensions and save the current plot in matplotlib.
 
     Uses duck typing to properly save both matplotlib figures and ROOT canvases.
@@ -88,7 +90,9 @@ def save_plot(obj: analysis_objects.PlottingOutputWrapper, figure: Union[matplot
     return save_plot_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
 
 # Base functions
-def save_canvas_impl(canvas: Canvas, output_prefix: str, output_name: str, printing_extensions: Sequence[str]) -> List[str]:
+def save_canvas_impl(canvas: Canvas,
+                     output_prefix: str, output_name: str,
+                     printing_extensions: Sequence[str]) -> List[str]:
     """ Implementation of generic save canvas function.
 
     It loops over all requested file extensions and save the ROOT canvas.
@@ -111,7 +115,9 @@ def save_canvas_impl(canvas: Canvas, output_prefix: str, output_name: str, print
         filenames.append(filename)
     return filenames
 
-def save_plot_impl(fig: matplotlib.figure.Figure, output_prefix: str, output_name: str, printing_extensions: Sequence[str]) -> List[str]:
+def save_plot_impl(fig: matplotlib.figure.Figure,
+                   output_prefix: str, output_name: str,
+                   printing_extensions: Sequence[str]) -> List[str]:
     """ Implementation of generic save plot function.
 
     It loops over all requested file extensions and save the matplotlib fig.
