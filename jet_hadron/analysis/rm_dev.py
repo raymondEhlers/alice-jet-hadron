@@ -858,15 +858,22 @@ class ResponseManager(generic_class.EqualityMixin):
     def run_final_processing(self) -> None:
         """ Run final post processing steps. """
         # Final post processing steps
-        for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
-            # Create the response matrix errors
-            analysis.response_matrix_errors = analysis.create_response_matrix_errors()
+        with self.progress_manager.counter(total = len(self.final_responses),
+                                           desc = "Final processing:",
+                                           unit = "responses") as processing:
+            for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+                # Create the response matrix errors
+                analysis.response_matrix_errors = analysis.create_response_matrix_errors()
 
-            # Project the final particle level spectra
-            analysis.project_particle_level_spectra()
+                # Project the final particle level spectra
+                analysis.project_particle_level_spectra()
+                # And perform some post processing.
+                analysis.particle_level_spectra_processing()
 
-            # Normalize response (if selected)
-            analysis.normalize_response_matrix()
+                # Normalize response (if selected)
+                analysis.normalize_response_matrix()
+
+                processing.update()
 
     def plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
         """ Plot the results of the response matrix processing.
