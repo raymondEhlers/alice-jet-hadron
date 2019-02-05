@@ -127,15 +127,24 @@ class TestIteratePtBins:
         assert exception_info.value.args[0] == skip_bins[1]
 
 @pytest.mark.parametrize("label, expected", [
-    ("work_in_progress", {"str": "ALICE Work in Progress"}),
-    ("preliminary", {"str": "ALICE Preliminary"}),
-    ("final", {"str": "ALICE"}),
-    ("thesis", {"str": "This thesis"})
+    ("work_in_progress",
+        {"str": "ALICE Work in Progress",
+            "display_str": r"\mathrm{ALICE\;Work\;in\;Progress}"}),
+    ("preliminary",
+        {"str": "ALICE Preliminary",
+            "display_str": r"\mathrm{ALICE\;Preliminary}"}),
+    ("final",
+        {"str": "ALICE",
+            "display_str": r"\mathrm{ALICE}"}),
+    ("thesis",
+        {"str": "This thesis",
+            "display_str": r"\mathrm{This\;thesis}"})
 ], ids = ["work in progress", "preliminary", "final", "thesis"])
 def test_alice_label(logging_mixin, label, expected):
     """ Tests ALICE labeling. """
     alice_label = params.AliceLabel[label]
     assert str(alice_label) == expected["str"]
+    assert alice_label.display_str() == expected["display_str"]
 
 @pytest.mark.parametrize("energy, expected", [
     (params.CollisionEnergy(2.76),
@@ -158,21 +167,21 @@ def test_collision_energy(logging_mixin, energy, expected):
     assert energy.value == expected["value"]
 
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
-_PbPbLatexLabel = r"Pb\mbox{-}Pb"
+_PbPbLatexLabel = r"Pb \textendash Pb"
 
 @pytest.mark.parametrize("system, expected", [
     (params.CollisionSystem["pp"],
         {"str": "pp",
-            "display_str": "pp"}),
+            "display_str": r"\mathrm{pp}"}),
     (params.CollisionSystem["pythia"],
         {"str": "pythia",
-            "display_str": "PYTHIA"}),
+            "display_str": r"\mathrm{PYTHIA}"}),
     (params.CollisionSystem["PbPb"],
         {"str": "PbPb",
-            "display_str": _PbPbLatexLabel}),
+            "display_str": fr"\mathrm{{{_PbPbLatexLabel}}}"}),
     (params.CollisionSystem["embedPP"],
         {"str": "embedPP",
-            "display_str": fr"pp \bigotimes {_PbPbLatexLabel}"})
+            "display_str": r"\mathrm{pp \bigotimes " + f"{_PbPbLatexLabel}" + "}"})
 ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
 def test_collision_system(logging_mixin, system, expected):
     """ Test collision system values. """
@@ -186,11 +195,11 @@ def test_collision_system(logging_mixin, system, expected):
             "range": params.SelectedRange(min = -1, max = -1)}),
     (params.EventActivity["central"],
         {"str": "central",
-            "display_str": r"0\mbox{-}10\mbox{\%}",
+            "display_str": r"0 \textendash 10 \%",
             "range": params.SelectedRange(min = 0, max = 10)}),
     (params.EventActivity["semi_central"],
         {"str": "semi_central",
-            "display_str": r"30\mbox{-}50\mbox{\%}",
+            "display_str": r"30 \textendash 50 \%",
             "range": params.SelectedRange(min = 30, max = 50)})
 ], ids = ["inclusive", "central", "semi_central"])
 def test_event_activity(logging_mixin, activity, expected):

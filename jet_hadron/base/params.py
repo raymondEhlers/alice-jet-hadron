@@ -118,6 +118,12 @@ class AliceLabel(enum.Enum):
         """
         return str(self.value)
 
+    def display_str(self) -> str:
+        """ Return a formatted string for display in plots, etc. Includes latex formatting. """
+        # Ensure that the spacing in the words is carried over in the LaTeX
+        val = self.value.replace(" ", r"\;")
+        return rf"\mathrm{{{val}}}"
+
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)
 
@@ -206,18 +212,15 @@ class CollisionEnergy(enum.Enum):
         """ Decode YAML representer. """
         return cls(float(data.value))
 
-# NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
-_PbPbLatexLabel = r"Pb\mbox{-}Pb"
-
 class CollisionSystem(enum.Enum):
     """ Define the collision system """
     NA = "Invalid collision system"
     pp = "pp"
     pythia = "PYTHIA"
-    embedPP = fr"pp \bigotimes {_PbPbLatexLabel}"
-    embedPythia = fr"PYTHIA \bigotimes {_PbPbLatexLabel}"
+    embedPP = r"pp \bigotimes Pb \textendash Pb"
+    embedPythia = r"PYTHIA \bigotimes Pb \textendash Pb"
     pPb = r"pPb"
-    PbPb = f"{_PbPbLatexLabel}"
+    PbPb = r"Pb \textendash Pb"
 
     def __str__(self) -> str:
         """ Return a string of the name of the system. """
@@ -225,7 +228,7 @@ class CollisionSystem(enum.Enum):
 
     def display_str(self) -> str:
         """ Return a formatted string for display in plots, etc. Includes latex formatting. """
-        return self.value
+        return rf"\mathrm{{{self.value}}}"
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)
@@ -261,7 +264,7 @@ class EventActivity(enum.Enum):
         # For inclusive, we want to return an empty string.
         if self != EventActivity.inclusive:
             logger.debug(f"dict: {dict(self.value_range)}")
-            ret_val = r"%(min)s\mbox{-}%(max)s\mbox{\%%}" % dict(self.value_range)
+            ret_val = r"%(min)s \textendash %(max)s \%%" % dict(self.value_range)
         return ret_val
 
     # Handle YAML serialization

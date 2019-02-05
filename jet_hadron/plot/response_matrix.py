@@ -110,21 +110,25 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels = []
     latex_labels.append(ROOT.TLatex(
         0.605, 0.90,
-        labels.use_label_with_root(f"{str(inclusive.alice_label)} {inclusive.collision_energy.display_str()}")
+        labels.use_label_with_root(
+            rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}"
+        )
     ))
     #latex_labels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
     latex_labels.append(ROOT.TLatex(
         0.475, 0.84,
-        labels.use_label_with_root(f"{inclusive.event_activity.display_str()} {inclusive.collision_system.display_str()}")
+        labels.use_label_with_root(
+            rf"{inclusive.event_activity.display_str()}\:{inclusive.collision_system.display_str()}"
+        ),
     ))
     #latex_labels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
     particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
     latex_labels.append(ROOT.TLatex(
         0.525, 0.78,
-        labels.use_label_with_root(labels.pt_range_string(
+        labels.pt_range_string(
             particle_level_spectra_bin,
-            lower_label = r"\mathrm{T,jet}",
-            upper_label = r"det")
+            lower_label = r"T,jet",
+            upper_label = r"det",
         ),
     ))
     #latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
@@ -134,7 +138,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
 
     #x_label = labels.use_label_with_root(labels.pt_display_label(upper_label = "part"))
-    x_label = labels.pt_display_label(upper_label = "part")
+    x_label = labels.jet_pt_display_label(upper_label = "part")
     y_label = "dN/d#it{p}_{T}"
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
