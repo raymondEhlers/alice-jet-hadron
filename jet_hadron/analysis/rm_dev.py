@@ -302,9 +302,6 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
 
             # Normalize the histogram
             hist.Scale(1.0 / entries)
-            # Update the y axis title to represent the change
-            # TODO: Check that this label displayed correctly. Can we use labels at all?
-            hist.GetYaxis().SetTitle("(1/N_{jets})dN/d#mathit{p}_{T}")
 
         logger.debug(
             f"Post particle level spectra processing information: ep_orientation: {self.reaction_plane_orientation},"

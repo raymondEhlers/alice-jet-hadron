@@ -42,6 +42,9 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
     Returns:
         None. The spectra are plotted and saved.
     """
+    # Pull out the dict because we need to grab individual analyses for some labeling information, which doesn't
+    # play well with generators (the generator will be exhausted).
+    ep_analyses = dict(ep_analyses)
     kwargs: Dict[str, Any] = {
         "ep_analyses": ep_analyses,
         "output_name": "particle_level_spectra",
@@ -90,17 +93,6 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # These are spectra, so it makes sense to draw it in a log scale.
     canvas.SetLogy(True)
 
-    # Main labeling
-    latex_labels = []
-    latex_labels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
-    # TODO: Grab the centrality from the config.
-    # TODO: Use labels module where possible.
-    latex_labels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
-    latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
-    latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
-    latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
-    latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
-
     # Legend
     legend = ROOT.TLegend(0.14, 0.17, 0.42, 0.47)
     # Remove border
@@ -110,10 +102,53 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Make the legend transparent
     legend.SetFillStyle(0)
 
+    # Retrieve the inclusive analysis to complete the labeling.
+    # All of the parameters retrieved here are shared by all analyses.
+    inclusive = next(iter(ep_analyses.values()))
+
+    # Main labeling
+    latex_labels = []
+    latex_labels.append(ROOT.TLatex(
+        0.605, 0.90,
+        labels.use_label_with_root(f"{str(inclusive.alice_label)} {inclusive.collision_energy.display_str()}")
+    ))
+    #latex_labels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
+    latex_labels.append(ROOT.TLatex(
+        0.475, 0.84,
+        labels.use_label_with_root(f"{inclusive.event_activity.display_str()} {inclusive.collision_system.display_str()}")
+    ))
+    #latex_labels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
+    particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
+    latex_labels.append(ROOT.TLatex(
+        0.525, 0.78,
+        labels.use_label_with_root(labels.pt_range_string(
+            particle_level_spectra_bin,
+            lower_label = r"\mathrm{T,jet}",
+            upper_label = r"det")
+        ),
+    ))
+    #latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
+    # TODO: Italics E
+    latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
+    latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
+    latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
+
+    #x_label = labels.use_label_with_root(labels.pt_display_label(upper_label = "part"))
+    x_label = labels.pt_display_label(upper_label = "part")
+    y_label = "dN/d#it{p}_{T}"
+
     # Plot the actual hists. The inclusive orientation will be plotted first.
     for i, (analysis, color, marker) in enumerate(zip(ep_analyses.values(), colors, markers)):
         # The hist to be plotted. We explicitly retrieve it for convenience.
         hist = analysis.particle_level_spectra
+
+        # Set the titles
+        hist.SetTitle("")
+        hist.GetXaxis().SetTitle(x_label)
+        full_y_label = y_label
+        if analysis.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
+            full_y_label = "(1/N_{jets})" + y_label
+        hist.GetYaxis().SetTitle(full_y_label)
 
         # Style each individual hist. In principle, we could do this for only one # hist and then set the
         # axis labels to empty for the rest, but then we would have to empty out the labels. This is just,
