@@ -616,7 +616,12 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options
         )
+        # Additional helper variables
         self.task_config = self.config[self.task_name]
+        self.output_info = analysis_objects.PlottingOutputWrapper(
+            output_prefix = self.config["outputPrefix"],
+            printing_extensions = self.config["printingExtensions"],
+        )
 
         # Create the actual response matrix objects.
         self.analyses: Mapping[Any, ResponseMatrix]
@@ -887,7 +892,7 @@ class ResponseManager(generic_class.EqualityMixin):
         # +1 for the final pt hard spectra.
         # +1 for particle level spectra
         # *2 for response matrix, response spectra
-        with self.progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1,
+        with self.progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1 + 1,
                                            desc = "Plotting:",
                                            unit = "responses") as plotting:
 
@@ -918,7 +923,14 @@ class ResponseManager(generic_class.EqualityMixin):
 
             plotting.update()
 
-            # TODO: Plot the particle level spectra.
+            # Plot the particle level spectra.
+            for plot_with_ROOT in [False, True]:
+                plot_response_matrix.plot_particle_level_spectra(
+                    ep_analyses = analysis_config.iterate_with_selected_objects(self.final_responses),
+                    output_info = self.output_info,
+                    plot_with_ROOT = plot_with_ROOT,
+                )
+            plotting.update()
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
                 # Plot response matrix and errors
@@ -1017,16 +1029,6 @@ class ResponseManager(generic_class.EqualityMixin):
             overall_progress.update()
 
         return True
-
-        # TEMP
-        #test_object = next(iter(self.analyses.values()))
-        #logger.info(f"Attempting to dump obj of type: {type(test_object)}")
-        #import ruamel.yaml
-        #import sys
-        #yaml = ruamel.yaml.YAML(typ = "rt")
-        #yaml.register_class(ResponseMatrix)
-        #yaml.dump([test_object], sys.stdout)
-        # ENDTEMP
 
 def run_from_terminal():
     # Basic setup

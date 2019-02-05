@@ -11,6 +11,7 @@ import ctypes
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import seaborn as sns
 from typing import Any, Dict
 
@@ -29,19 +30,32 @@ logger = logging.getLogger(__name__)
 
 Analyses = Dict[Any, analysis_objects.JetHBase]
 
-def plot_particle_level_spectra(analyses: Analyses, plot_with_ROOT: bool = False):
+def plot_particle_level_spectra(ep_analyses: Analyses,
+                                output_info: analysis_objects.PlottingOutputWrapper,
+                                plot_with_ROOT: bool = False) -> None:
     """ Plot the particle level spectra associated with the response.
 
     Args:
-
+        ep_analyses: The event plane dependent final response matrices.
+        output_info: Output information.
+        plot_with_ROOT: True if the plot should be done via ROOT. Default: False
+    Returns:
+        None. The spectra are plotted and saved.
     """
-    args: Dict[str, Any] = {}
-    if plot_with_ROOT:
-        _plot_particle_level_spectra_with_ROOT(**args)
-    else:
-        _plot_particle_level_spectra_with_matplotlib(**args)
+    kwargs: Dict[str, Any] = {
+        "ep_analyses": ep_analyses,
+        "output_name": "particle_level_spectra",
+        "output_info": output_info,
+    }
 
-def _plot_particle_level_spectra_with_matplotlib(ep_analyses):
+    if plot_with_ROOT:
+        _plot_particle_level_spectra_with_ROOT(**kwargs)
+    else:
+        _plot_particle_level_spectra_with_matplotlib(**kwargs)
+
+def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
+                                                 output_name: str,
+                                                 output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the particle level spectra with matplotlib.
 
     Args:
@@ -49,13 +63,112 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses):
     """
     ...
 
-def _plot_particle_level_spectra_with_ROOT(ep_analyses):
+def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
+                                           output_name: str,
+                                           output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the particle level spectra with ROOT.
 
     Args:
-
+        ep_analyses: The final event plane dependent response matrix analysis objects.
+        output_name: Name of the output plot.
+        output_info: Output information.
+    Returns:
+        None. The created canvas is plotted and saved.
     """
-    ...
+    # Setup
+    # Aesthetics
+    # Colors and markers are from Joel's plots.
+    colors = [ROOT.kBlack, ROOT.kBlue - 7, 8, ROOT.kRed - 4]
+    markers = [ROOT.kFullDiamond, ROOT.kFullSquare, ROOT.kFullTriangleUp, ROOT.kFullCircle]
+
+    # Canvas
+    canvas = ROOT.TCanvas("canvas", "canvas")
+    canvas.SetTopMargin(0.04)
+    canvas.SetLeftMargin(0.12)
+    canvas.SetRightMargin(0.04)
+    canvas.SetBottomMargin(0.15)
+    # These are spectra, so it makes sense to draw it in a log scale.
+    canvas.SetLogy(True)
+
+    # Main labeling
+    latex_labels = []
+    latex_labels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
+    # TODO: Grab the centrality from the config.
+    # TODO: Use labels module where possible.
+    latex_labels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
+    latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
+    latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
+    latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
+    latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
+
+    # Legend
+    legend = ROOT.TLegend(0.14, 0.17, 0.42, 0.47)
+    # Remove border
+    legend.SetBorderSize(0)
+    # Increase text size
+    legend.SetTextSize(0.06)
+    # Make the legend transparent
+    legend.SetFillStyle(0)
+
+    # Plot the actual hists. The inclusive orientation will be plotted first.
+    for i, (analysis, color, marker) in enumerate(zip(ep_analyses.values(), colors, markers)):
+        # The hist to be plotted. We explicitly retrieve it for convenience.
+        hist = analysis.particle_level_spectra
+
+        # Style each individual hist. In principle, we could do this for only one # hist and then set the
+        # axis labels to empty for the rest, but then we would have to empty out the labels. This is just,
+        # as easy, and then we don't have to deal with changing the labels.
+        # Enlarge axis title size
+        hist.GetXaxis().SetTitleSize(0.055)
+        hist.GetYaxis().SetTitleSize(0.055)
+        # Ensure there is enough space
+        hist.GetXaxis().SetTitleOffset(1.15)
+        hist.GetYaxis().SetTitleOffset(1.05)
+        # Enlarge axis label size
+        hist.GetXaxis().SetLabelSize(0.06)
+        hist.GetYaxis().SetLabelSize(0.06)
+        # Center axis title
+        hist.GetXaxis().CenterTitle(True)
+        hist.GetYaxis().CenterTitle(True)
+
+        # View the interesting range
+        # Note that this must be set after removing any bins that we might want to remove,
+        # so we set it when plotting.
+        hist.GetXaxis().SetRangeUser(0, analysis.task_config["particle_level_spectra"]["particle_level_max_pt"])
+
+        # Set histogram aesthetics
+        #logger.debug(f"color: {color}")
+        hist.SetLineColor(color)
+        hist.SetMarkerColor(color)
+        hist.SetMarkerStyle(marker)
+        # Increase marker size slightly
+        hist.SetMarkerSize(1.1)
+
+        # Offset points
+        # See: https://root.cern.ch/root/roottalk/roottalk03/2765.html
+        if analysis.task_config["particle_level_spectra"]["plot_points_with_offset"]:
+            shift = i * 0.1 * hist.GetBinWidth(1)
+            xAxis = hist.GetXaxis()
+            xAxis.SetLimits(xAxis.GetXmin() + shift, xAxis.GetXmax() + shift)
+
+        # Store hist in legend
+        # TODO: Remap "inclusive" -> "all" for prior consistency.
+        legend.AddEntry(hist, analysis.reaction_plane_orientation.display_str())
+
+        # Last, we draw the actual hist.
+        hist.Draw("same")
+
+    # Draw all of the labels and the legend.
+    for tex in latex_labels:
+        tex.SetNDC(True)
+        tex.Draw()
+    legend.Draw()
+
+    # Finally, save the plot
+    output_name += "_ROOT"
+    plot_base.save_plot(output_info, canvas, output_name)
+    # Also save the plot as a c macro
+    canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
 def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase,
                                     plot_with_ROOT: bool = False) -> None:
