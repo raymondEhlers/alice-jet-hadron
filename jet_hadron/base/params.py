@@ -284,7 +284,7 @@ class LeadingHadronBiasType(enum.Enum):
     from_yaml = classmethod(yaml.enum_from_yaml)
 
 ########################
-# Final anaylsis options
+# Final analysis options
 ########################
 # These classes are used for final analysis specification, building
 # on the analysis specification objects specified above.
@@ -294,7 +294,7 @@ class LeadingHadronBias(generic_class.EqualityMixin):
 
     The class exists to be specified when creating an analysis object, and then the value is
     determined by the selected analysis options (including that enum). This object then
-    supercedes the leadingHadronBiasType enum, storing both the type and value.
+    supersedes the ``leadingHadronBiasType`` enum, storing both the type and value.
 
     For determining the actual value, see anaylsisConfig.determineLeadingHadronBias(...)
 
