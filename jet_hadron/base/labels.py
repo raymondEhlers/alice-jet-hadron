@@ -177,7 +177,7 @@ def system_label(energy: Union[float, params.CollisionEnergy], system: Union[str
     if event_activity_str:
         event_activity_str = r",\:" + event_activity_str
 
-    system_label = r"$\mathrm{%(system)s}\:%(energy)s%(event_activity)s$" % {
+    system_label = r"$%(system)s\:%(energy)s%(event_activity)s$" % {
         "system": system.display_str(),
         "energy": energy.display_str(),
         "event_activity": event_activity_str,

@@ -16,10 +16,10 @@ from jet_hadron.base import params
 logger = logging.getLogger(__name__)
 
 @pytest.mark.parametrize("value, expected", [
-    (r"\textbf{test}", r"#textbf{test}"),
-    (r"$\mathrm{test}$", r"#rm{test}"),
-    (r"$0-10\% \mathrm{test}$", r"0-10% #rm{test}"),
-], ids = ["just latex", "latex in math mode", "Percentage sign in math mode"])
+    (r"\textbf{test}", r"\textbf{test}"),
+    (r"Pb \textendash Pb", r"Pb \mbox{-} Pb"),
+    (r"$0-10\% \mathrm{test}$", r"$0-10\mbox{%} \mathrm{test}$"),
+], ids = ["Nothing changes", "Replace endash", "Replace percentage sign"])
 def test_root_latex_conversion(logging_mixin, value, expected):
     """ Test converting latex to ROOT compatiable latex. """
     assert labels.use_label_with_root(value) == expected
@@ -82,12 +82,12 @@ class TestJetPtString:
 
 @pytest.mark.parametrize("energy, system, activity, expected", [
     (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
-    (2.76, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    (2.76, "PbPb", "semi_central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30\mbox{-}50\mbox{\%}$"),
-    (5.02, "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    ("five_zero_two", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    ("5.02", "PbPb", "central", r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$"),
-    (params.CollisionEnergy.five_zero_two, params.CollisionSystem.PbPb, params.EventActivity.central, r"$\mathrm{Pb\mbox{-}Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0\mbox{-}10\mbox{\%}$")
+    (2.76, "PbPb", "central", r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:0 \textendash 10 \%$"),
+    (2.76, "PbPb", "semi_central", r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV},\:30 \textendash 50 \%$"),
+    (5.02, "PbPb", "central", r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0 \textendash 10 \%$"),
+    ("five_zero_two", "PbPb", "central", r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0 \textendash 10 \%$"),
+    ("5.02", "PbPb", "central", r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0 \textendash 10 \%$"),
+    (params.CollisionEnergy.five_zero_two, params.CollisionSystem.PbPb, params.EventActivity.central, r"$\mathrm{Pb \textendash Pb}\:\sqrt{s_{\mathrm{NN}}} = 5.02\:\mathrm{TeV},\:0 \textendash 10 \%$")
 ], ids = ["Inclusive pp", "Central PbPb", "Semi-central PbPb", "Central PbPb at 5.02", "Energy as string five_zero_two", "Energy as string \"5.02\"", "Using enums directly"])
 def test_system_label(logging_mixin, energy, system, activity, expected):
     """ Test system labels. """
@@ -111,8 +111,8 @@ def test_jet_properties_labels(logging_mixin):
     assert jet_pt == jet_pt_expected
 
 @pytest.mark.parametrize("upper_label, expected", [
-    ("", r"\mathit{p}_{\mathrm{T,jet}}^{}"),
-    (r"\mathrm{det}", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}")
+    ("", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{}}"),
+    (r"det", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}")
 ], ids = ["Base test", "Superscript"])
 def test_jet_pt_range_string(logging_mixin, upper_label, expected):
     """ Test for generating jet pt labels. """
