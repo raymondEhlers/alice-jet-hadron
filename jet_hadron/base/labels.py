@@ -31,16 +31,16 @@ def use_label_with_root(label: str) -> str:
     """
     return label.replace(r"\textendash", r"\mbox{-}").replace(r"\%", r"\mbox{%}")
 
-def pt_display_label(lower_label: str = r"\mathrm{T}", upper_label: str = "") -> str:
+def pt_display_label(lower_label: str = r"T", upper_label: str = "") -> str:
     """ Generate a pt display label without the "$".
 
     Args:
-        lower_label: Subscript label for pT. Default: "\\mathrm{T}"
-        upper_label: Superscript labe for pT. Default: ""
+        lower_label: Subscript label for pT. Default: "T"
+        upper_label: Superscript label for pT. Default: ""
     Returns:
         Properly formatted pt string.
     """
-    return r"\mathit{p}_{%(lower_label)s}^{%(upper_label)s}" % {
+    return r"\mathit{p}_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
         "lower_label": lower_label,
         "upper_label": upper_label,
     }
@@ -54,7 +54,7 @@ def jet_pt_display_label(upper_label: str = "") -> str:
         Properly formatted pt string.
     """
     return pt_display_label(
-        lower_label = r"\mathrm{T,jet}",
+        lower_label = r"T,jet",
         upper_label = upper_label,
     )
 
@@ -105,8 +105,8 @@ def jet_pt_range_string(jet_pt_bin: analysis_objects.PtBin) -> str:
     """
     return pt_range_string(
         pt_bin = jet_pt_bin,
-        lower_label = r"\mathrm{T \,unc,jet}",
-        upper_label = r"\mathrm{ch+ne}",
+        lower_label = r"T \,unc,jet",
+        upper_label = "ch+ne",
         only_show_lower_value_for_last_bin = True,
     )
 
@@ -120,8 +120,8 @@ def track_pt_range_string(track_pt_bin: analysis_objects.PtBin) -> str:
     """
     return pt_range_string(
         pt_bin = track_pt_bin,
-        lower_label = r"\mathrm{T}",
-        upper_label = r"\mathrm{assoc}",
+        lower_label = "T",
+        upper_label = "assoc",
     )
 
 def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, str, str, str]:
@@ -135,10 +135,10 @@ def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, st
     jet_finding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
     constituent_cuts = r"$%(pt_label)s\:\mathrm{\mathit{c},}" \
                        r"\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$" % {
-                           "pt_label": pt_display_label(upper_label = r"\mathrm{ch}")
+                           "pt_label": pt_display_label(upper_label = "ch")
                        }
     leading_hadron = r"$%(pt_label)s > 5\:%(units_label)s$" % {
-        "pt_label": pt_display_label(upper_label = r"\mathrm{lead,ch}"),
+        "pt_label": pt_display_label(upper_label = "lead,ch"),
         "units_label": momentum_units_label_gev(),
     }
     jet_pt = jet_pt_range_string(jet_pt_bin)
@@ -152,7 +152,7 @@ def system_label(energy: Union[float, params.CollisionEnergy], system: Union[str
         system: The collision system.
         activity: The event activity selection.
     Returns:
-        Label for the entire system, combining the avaialble information.
+        Label for the entire system, combining the available information.
     """
     # Handle energy
     if isinstance(energy, numbers.Number):
