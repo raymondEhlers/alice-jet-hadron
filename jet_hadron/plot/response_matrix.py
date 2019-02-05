@@ -152,8 +152,11 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
             xAxis.SetLimits(xAxis.GetXmin() + shift, xAxis.GetXmax() + shift)
 
         # Store hist in legend
-        # TODO: Remap "inclusive" -> "all" for prior consistency.
-        legend.AddEntry(hist, analysis.reaction_plane_orientation.display_str())
+        # Remap "inclusive" -> "all" for prior consistency.
+        label = analysis.reaction_plane_orientation.display_str()
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            label = "All"
+        legend.AddEntry(hist, label)
 
         # Last, we draw the actual hist.
         hist.Draw("same")
