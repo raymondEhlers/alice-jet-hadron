@@ -17,13 +17,21 @@ logger = logging.getLogger(__name__)
 def use_label_with_root(label: str) -> str:
     """ Automatically convert LaTeX to something that is mostly ROOT compatiable.
 
+    Conversion consists of:
+
+    - Remove "$"
+    - Replace "\\%" -> "%"
+    - Replace "\\" -> "#"
+    - Remove "math" (ie in the case of "mathit" -> "it"). "math" should rarely be in
+      the label string, so I don't expect that this will be a problem.
+
     Args:
         label: Label to be converted.
     Returns:
         Converted label.
     """
-    # Remove "$" and map "\" -> "#""
-    return label.replace("$", "").replace("\\", "#")
+    # Remove "$", map "\" -> "#", and remove "math" (such as the case "mathit" -> "it)
+    return label.replace("$", "").replace(r"\%", "%").replace("\\", "#").replace("math", "")
 
 def pt_display_label(lower_label: str = r"\mathrm{T}", upper_label: str = "") -> str:
     """ Generate a pt display label without the "$".

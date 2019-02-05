@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 @pytest.mark.parametrize("value, expected", [
     (r"\textbf{test}", r"#textbf{test}"),
-    (r"$\mathrm{test}$", r"#mathrm{test}")
-], ids = ["just latex", "latex in math mode"])
+    (r"$\mathrm{test}$", r"#rm{test}"),
+    (r"$0-10\% \mathrm{test}$", r"0-10% #rm{test}"),
+], ids = ["just latex", "latex in math mode", "Percentage sign in math mode"])
 def test_root_latex_conversion(logging_mixin, value, expected):
     """ Test converting latex to ROOT compatiable latex. """
     assert labels.use_label_with_root(value) == expected
