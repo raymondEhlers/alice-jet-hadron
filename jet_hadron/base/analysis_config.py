@@ -336,6 +336,10 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
 def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: dict = None) -> ConstructedObjects:
     """ Main function to create an object from the terminal.
 
+    Note:
+        This frequently isn't used directly because we want to use an analysis manager approach.
+        However, it is kept to illustrate how directly creating an object might look.
+
     Args:
         obj: Object to be created.
         task_name: Name of the task to be created.
