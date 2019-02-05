@@ -144,7 +144,9 @@ def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, st
     jet_pt = jet_pt_range_string(jet_pt_bin)
     return (jet_finding, constituent_cuts, leading_hadron, jet_pt)
 
-def system_label(energy: Union[float, params.CollisionEnergy], system: Union[str, params.CollisionSystem], activity: Union[str, params.EventActivity]) -> str:
+def system_label(energy: Union[float, params.CollisionEnergy],
+                 system: Union[str, params.CollisionSystem],
+                 activity: Union[str, params.EventActivity]) -> str:
     """ Generates the collision system, event activity, and energy label as a latex label.
 
     Args:
