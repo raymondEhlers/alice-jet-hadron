@@ -417,7 +417,7 @@ class ResponseMatrix(ResponseMatrixBase):
         # Reaction plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
-            logger.debug("Using full EP angle range")
+            logger.debug("Using full EP orientation range")
         else:
             reaction_plane_axis_range = {
                 "min_val": projectors.HistAxisRange.apply_func_to_find_bin(
@@ -427,7 +427,7 @@ class ResponseMatrix(ResponseMatrixBase):
                     None, self.reaction_plane_orientation.value.bin
                 )
             }
-            logger.debug(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
+            logger.debug(f"Using selected EP orientation range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
             axis_type = ResponseMakerMatchingSparse.det_level_reaction_plane_orientation,
             axis_range_name = "detLevelReactionPlaneOrientation",
@@ -1037,8 +1037,9 @@ def run_from_terminal():
     )
     # Quiet down the matplotlib logging
     logging.getLogger("matplotlib").setLevel(logging.INFO)
-    # Quiet down pachyderm generic config
+    # Quiet down some pachyderm modules
     logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
+    logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
     # Turn off stats box
     ROOT.gStyle.SetOptStat(0)
 
