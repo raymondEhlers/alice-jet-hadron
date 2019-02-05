@@ -7,7 +7,6 @@
 
 from abc import ABC
 import coloredlogs
-import dataclasses
 import enlighten
 import enum
 import logging
@@ -352,7 +351,7 @@ class TaskManager(ABC, generic_class.EqualityMixin):
         logger.info("About to process")
         for keys, task in analysis_config.iterate_with_selected_objects(self.tasks):
             # Print the task selected analysis options
-            opts = [f"{name}: \"{str(value)}\""for name, value in dataclasses.asdict(keys).items()]
+            opts = [f"{name}: \"{str(value)}\""for name, value in keys]
             options = "\n\t".join(opts)
             logger.info(f"Processing plotting task {task.task_name} with options:\n\t{options}")
 
