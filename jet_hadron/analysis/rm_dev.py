@@ -219,7 +219,8 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         We selected a measured detector level pt range, and just project out the particle
         level jet spectra.
         """
-        particle_level_spectra_bin = self.task_config["particle_level_spectra_bin"]
+        particle_level_spectra_bin = self.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
+
         # Setup and run the projector
         particle_level_spectra = ResponseMatrixProjector(
             observable_to_project_from = self.response_matrix,
@@ -261,7 +262,50 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         self.particle_level_spectra.Scale(1.0 / projection_range)
 
         # Provide as potentially useful information
-        logger.info(f"N jets in particle_level_spectra: {self.particle_level_spectra.Integral()}")
+        logger.debug(f"N jets in particle_level_spectra: {self.particle_level_spectra.Integral()}")
+
+    def particle_level_spectra_processing(self) -> None:
+        """ Perform additional (final) processing on the particle level spectra. """
+        # For convenience
+        particle_level_spectra_config = self.task_config["particle_level_spectra"]
+        hist = self.particle_level_spectra
+        initial_entries = hist.GetEntries()
+        initial_integral = hist.Integral()
+
+        # Rebin to 5 GeV bin width
+        rebin_width = particle_level_spectra_config["rebin_width"]
+        if rebin_width > 0:
+            hist.Rebin(rebin_width)
+            hist.Scale(1.0 / rebin_width)
+
+        if particle_level_spectra_config["remove_first_bin"]:
+            # Cut below 5 GeV
+            # Note that this will modify the overall number of entries
+            hist.SetBinContent(1, 0)
+            hist.SetBinError(1, 0)
+
+        # Scale by N_{jets}
+        # The number of entries should be equal to the number of jets. However, it's not a straightforward
+        # number to extract because of all of the scaling related to pt hard bins
+        if particle_level_spectra_config["normalize_by_n_jets"]:
+            # Integrate over the hist to determine the number of jets displayed.
+            # 1e-5 is to ensure we do the integral from [0, 100) (ie not inclusive of the bin beyond 100)
+            max_value = particle_level_spectra_config["particle_level_max_pt"] - utils.epsilon
+            entries = hist.Integral(hist.FindBin(0), hist.FindBin(max_value))
+            logger.debug(f"entries from hist: {hist.GetEntries()}, from integral: {entries}")
+
+            # Normalize the histogram
+            hist.Scale(1.0 / entries)
+            # Update the y axis title to represent the change
+            # TODO: Check that this label displayed correctly. Can we use params at all?
+            hist.GetYaxis().SetTitle("(1/N_{jets})dN/d#mathit{p}_{T}")
+
+        logger.debug(
+            f"Post particle level spectra processing information: ep_orientation: {self.reaction_plane_orientation},"
+            f" initial hist entries: {initial_entries}, integral: {initial_integral}"
+            f" final hist entries: {hist.GetEntries()}, integral: {hist.Integral()}"
+            f" (decrease due to cutting out the 0-5 bin)"
+        )
 
     def create_response_matrix_errors(self) -> Hist:
         """ Create response matrix errors hist from the response matrix hist.

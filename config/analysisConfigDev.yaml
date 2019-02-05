@@ -273,12 +273,23 @@ Response:
             pt_hard_bin: *PtHardBins10Bins
 # Final response histograms.
 ResponseFinal:
-    # We only want a single jet pt bin. So we create a fake bin value.
-    # NOTE: It is required to specify that the range is a SelectedRange due to
-    #       the way that YAML constructs the object!
-    particle_level_spectra_bin: !JetPtBin
-        bin: 0
-        range: !SelectedRange [20, 40]
+    particle_level_spectra:
+        # We only want a single jet pt bin. So we create a fake bin value.
+        # NOTE: It is required to specify that the range is a SelectedRange due to
+        #       the way that YAML constructs the object!
+        particle_level_spectra_bin: !JetPtBin
+            bin: 0
+            range: !SelectedRange [20, 40]
+        # Rebin to 5 GeV wide bins.
+        rebin_width: 5
+        # Remove the first bin of the histogram (corresponding to 0 - 5 GeV bin if the rebin was performed).
+        remove_first_bin: true
+        # Normalize each spectra the number of jets displayed.
+        normalize_by_n_jets: true
+        # Maximum particle leve pt to display.
+        particle_level_max_pt: 100
+        # Plot the points for each angle with a small offset.
+        plot_points_with_offset: false
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/dev/test/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
