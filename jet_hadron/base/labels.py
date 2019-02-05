@@ -132,9 +132,9 @@ def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, st
     Returns:
         tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
     """
-    jet_finding = r"$\mathrm{anti\mbox{-}k}_{\mathrm{T}}\;R=0.2$"
+    jet_finding = r"$\mathrm{anti \textendash k}_{\mathrm{T}}\;R=0.2$"
     constituent_cuts = r"$%(pt_label)s\:\mathrm{\mathit{c},}" \
-                       r"\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$" % {
+                       r"\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$" % {
                            "pt_label": pt_display_label(upper_label = "ch")
                        }
     leading_hadron = r"$%(pt_label)s > 5\:%(units_label)s$" % {
