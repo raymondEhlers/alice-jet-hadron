@@ -132,14 +132,30 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         ),
     ))
     #latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
-    # TODO: Italics E
-    latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
-    latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus, det} > 6.0 GeV"))
-    latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
+    # NOTE: We cannot use most of these labels because we need to add additional detector level labels
+    #       to most of the quantities. However, we can use some, so we take advntage as we can.
+    # TODO: Can we add an addiitonal label?
+    jet_finding, constituent_cuts, leading_hadron, jet_pt = labels.jet_properties_label(particle_level_spectra_bin)
+    latex_labels.append(ROOT.TLatex(
+        0.565, 0.69,
+        labels.use_label_with_root(
+            r"%(pt_label)s \mathit{c}\mathrm{,}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus,det}} > 3.0\:\mathrm{GeV}" % {
+                "pt_label": labels.pt_display_label(upper_label = "ch,det"),
+            }
+        )
+    ))
+    #latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
+    latex_labels.append(ROOT.TLatex(
+        0.635, 0.61,
+        r"\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus,det}} > 6.0\:\mathrm{GeV}"
+    ))
+    #latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus,det} > 6.0 GeV"))
+    latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(jet_finding)))
+    #latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
 
     #x_label = labels.use_label_with_root(labels.pt_display_label(upper_label = "part"))
     x_label = labels.jet_pt_display_label(upper_label = "part")
-    y_label = "dN/d#it{p}_{T}"
+    y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
     for i, (analysis, color, marker) in enumerate(zip(ep_analyses.values(), colors, markers)):

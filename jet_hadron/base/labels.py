@@ -31,7 +31,7 @@ def use_label_with_root(label: str) -> str:
     """
     return label.replace(r"\textendash", r"\mbox{-}").replace(r"\%", r"\mbox{%}")
 
-def pt_display_label(lower_label: str = r"T", upper_label: str = "") -> str:
+def pt_display_label(lower_label: str = "T", upper_label: str = "") -> str:
     """ Generate a pt display label without the "$".
 
     Args:
