@@ -148,7 +148,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(labels.jet_finding())))
 
     x_label = labels.use_label_with_root(
-        labels.jet_pt_display_label(upper_label = "part") + r"\:" + labels.momentum_units_label_gev()
+        fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
     )
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
 
@@ -582,3 +582,43 @@ def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
     output_name += "_ROOT"
     plot_base.save_plot(merged_analysis.output_info, canvas, output_name)
 
+def plot_particle_level_spectra_agreement(difference: Hist, absolute_value_of_difference: Hist,
+                                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the agreement of the particle level spectra between the inclusive and sum of all EP orientations.
+
+    Args:
+        difference: Hist of the sum of the EP orientations spectra minus the inclusive spectra.
+        absolute_value_of_difference: Same as the difference hist, but having taken the absolute value.
+            This allows us to plot the difference on a log scale (which is useful if the differences
+            are small).
+        output_info: Output information.
+    Returns:
+        None.
+    """
+    # Setup
+    output_name = "difference_of_sum_EP_orientations_vs_inclusive"
+    canvas = ROOT.TCanvas("canvas", "canvas")
+    # Labeling
+    x_label = labels.use_label_with_root(
+        fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
+    )
+    y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+
+    # Apply settings to hists
+    for h in [difference, absolute_value_of_difference]:
+        # Labeling
+        h.GetXaxis().SetTitle(x_label)
+        h.GetYaxis().SetTitle(y_label)
+        # Center axis title
+        h.GetXaxis().CenterTitle(True)
+        h.GetYaxis().CenterTitle(True)
+
+    # Draw and save the difference histogram.
+    difference.Draw()
+    plot_base.save_plot(output_info, canvas, output_name)
+
+    # Draw and save the absolute value of the difference histogram.
+    absolute_value_of_difference.Draw()
+    canvas.SetLogy(True)
+    output_name += "_abs"
+    plot_base.save_plot(output_info, canvas, output_name)

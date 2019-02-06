@@ -882,6 +882,21 @@ class ResponseManager(generic_class.EqualityMixin):
 
                 # Project the final particle level spectra
                 analysis.project_particle_level_spectra()
+
+            # Check and plot the agreement between the sum of the EP selected spectra and the inclusive spectra.
+            # NOTE: It's important that this check is performed _before_ normalizing the particle level spectra.
+            #       Otherwise, the histograms will trivially disagree because their normalizations are different.
+            # NOTE: Technically, we do plotting here, but it's quite minimal, and it's all in the service of a simple
+            #       crosscheck of the result, so it's not worth it to store the result in the manager.
+            difference, absolute_value_of_difference = \
+                self.check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations()
+            plot_response_matrix.plot_particle_level_spectra_agreement(
+                difference = difference,
+                absolute_value_of_difference = absolute_value_of_difference,
+                output_info = self.output_info,
+            )
+
+            for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
                 # And perform some post processing.
                 analysis.particle_level_spectra_processing()
 
@@ -889,6 +904,57 @@ class ResponseManager(generic_class.EqualityMixin):
                 analysis.normalize_response_matrix()
 
                 processing.update()
+
+    def check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations(self) -> Tuple[Hist, Hist]:
+        """ Check the agreement of the particle level spectra between the inclusive and sum of all EP orientations.
+
+        This is basically a final crosscheck that this has been brought over from the older RM code base.
+
+        Args:
+            None.
+        Returns:
+            difference histogram, absolute value of difference histogram.
+        """
+        logger.debug("Comparing sum of EP orientations with sum of EP orientations.")
+        # Take all orientations except for the inclusive.
+        ep_analyses = {k: v for k, v in self.final_responses.items() if k.reaction_plane_orientation != params.ReactionPlaneOrientation.inclusive}
+        inclusive = next(iter(self.final_responses.values()))
+
+        # Sum the particle level spectra from the selected EP orientations.
+        # We clone the inclusive hist for convenience. All of the particle level spectra have the same binning.
+        sum_particle_level_spectra = inclusive.particle_level_spectra.Clone("sum_particle_level_spectra")
+        sum_particle_level_spectra.Reset()
+        for _, analysis in ep_analyses.items():
+            # Useful debug information so we can keep track of how the summed hist evolves.
+            logger.debug(
+                f"{analysis.reaction_plane_orientation} hist:"
+                f"{analysis.particle_level_spectra.GetEntries()},"
+                f" integral: {analysis.particle_level_spectra.Integral()}"
+            )
+            ROOT.TH1.Add(sum_particle_level_spectra, analysis.particle_level_spectra)
+            logger.debug(
+                f"Post sum: {sum_particle_level_spectra.GetEntries()},"
+                f" integral: {sum_particle_level_spectra.Integral()}"
+            )
+
+        # Some useful debug information
+        logger.debug(
+            f"Inclusive hist:"
+            f"{inclusive.particle_level_spectra.GetEntries()},"
+            f" integral: {inclusive.particle_level_spectra.Integral()}"
+        )
+
+        # Find the difference between the inclusive and selected EP orientations hists.
+        difference = sum_particle_level_spectra.Clone("ep_orientations_minus_inclusive")
+        difference.SetTitle("(Sum of EP selected orientations) - inclusive")
+        ROOT.TH1.Add(difference, inclusive.particle_level_spectra, -1)
+        # Take absolute value so we can look at the log
+        absolute_value_of_difference = difference.Clone(f"{difference.GetName()}_abs")
+        absolute_value_of_difference.SetTitle(f"{difference.GetTitle()} (absolute value)")
+        for i in range(0, absolute_value_of_difference.GetNcells()):
+            absolute_value_of_difference.SetBinContent(i, abs(absolute_value_of_difference.GetBinContent(i)))
+
+        return difference, absolute_value_of_difference
 
     def plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
         """ Plot the results of the response matrix processing.
