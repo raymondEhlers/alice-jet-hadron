@@ -219,15 +219,38 @@ def test_leading_hadron_bias_type(logging_mixin, bias, expected):
     bias = params.LeadingHadronBiasType[bias]
     assert str(bias) == expected["str"]
 
+@pytest.mark.parametrize("additional_label", [
+    "",
+    "hello",
+], ids = ["No additional label", "Additional label"])
 @pytest.mark.parametrize("type, value, expected", [
-    ("NA", 0, {"str": "NA"}),
-    ("NA", 5, {"value": 0, "str": "NA"}),
-    ("track", 5, {"str": "trackBias5"}),
-    ("cluster", 6, {"str": "clusterBias6"}),
-    ("both", 10, {"str": "bothBias10"})
+    ("NA", 0,
+        {"str": "NA",
+            "display_str": ""}),
+    ("NA", 5,
+        {"value": 0,
+            "str": "NA",
+            "display_str": ""}),
+    ("track", 5,
+        {"str": "trackBias5",
+            "display_str": r"\mathit{p}_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}} > 5\:\mathrm{GeV}/\mathit{c}"}),
+    ("cluster", 6,
+        {"str": "clusterBias6",
+            "display_str": r"\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}} > 6\:\mathrm{GeV}"}),
+    ("both", 10,
+        {"str": "bothBias10",
+            "display_str": r"\mathit{p}_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}}\mathit{c}\mathrm{,}\:\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}} > 10\:\mathrm{GeV}"})
 ], ids = ["NA", "NAPassedWrongValue", "track", "cluster", "both"])
-def test_leading_hadron_bias(logging_mixin, type, value, expected):
+def test_leading_hadron_bias(logging_mixin, type, value, additional_label, expected):
     """ Test the leading hadron bias class. """
+    # Setup
+    if additional_label:
+        additional_label = r"\mathrm{,}" + additional_label
+    # We need a separate variable because the dictionary used in the parametrization is mutable,
+    # so if we format and store the string in the same dictionary entry, it won't be available
+    # for formatting in later paramterizations.
+    expected_display_str = expected["display_str"] % {"additional_label": additional_label}
+
     type = params.LeadingHadronBiasType[type]
     bias = params.LeadingHadronBias(type = type, value = value)
     # Handle value with a bit of care in the case of "NAPassedWrongValue"
@@ -235,6 +258,7 @@ def test_leading_hadron_bias(logging_mixin, type, value, expected):
     assert bias.type == type
     assert bias.value == value
     assert str(bias) == expected["str"]
+    assert bias.display_str(additional_label = additional_label) == expected_display_str
 
 @pytest.mark.parametrize("ep_angle, expected", [
     ("inclusive",

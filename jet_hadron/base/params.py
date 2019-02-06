@@ -323,6 +323,43 @@ class LeadingHadronBias(generic_class.EqualityMixin):
         else:
             return f"{self.type}"
 
+    def display_str(self, additional_label: str = "") -> str:
+        """ A formatted string for display in plots, etc. Includes latex formatting.
+
+        Args:
+            additional_label: Optional additional superscript label.
+        """
+        # Validation
+        # Add a comma in between the labels if the additional label is not empty.
+        if additional_label and not (additional_label.startswith(",") or additional_label.startswith(r"\mathrm{,}")):
+            additional_label = r"\mathrm{,}" + additional_label
+
+        track_label = r"\mathit{p}_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}}"
+        cluster_label = r"\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}}"
+        gev_value_label = r"> %(value)s\:\mathrm{GeV}"
+
+        if self.type == LeadingHadronBiasType.NA:
+            return ""
+        elif self.type == LeadingHadronBiasType.track:
+            # Need to return GeV/c
+            return f"{track_label} {gev_value_label}" % {
+                "additional_label": additional_label,
+                "value": self.value,
+            } + r"/\mathit{c}"
+        elif self.type == LeadingHadronBiasType.cluster:
+            return f"{cluster_label} {gev_value_label}" % {
+                "additional_label": additional_label,
+                "value": self.value
+            }
+        elif self.type == LeadingHadronBiasType.both:
+            # Need to have the same units, so we multiply the track pt term by c
+            return fr"{track_label}\mathit{{c}}\mathrm{{,}}\:{cluster_label} {gev_value_label}" % {
+                "additional_label": additional_label,
+                "value": self.value
+            }
+
+        raise NotImplementedError("Display string for leading hadron bias {self} is not implemented.")
+
 @dataclass
 class SelectedAnalysisOptions:
     collision_energy: CollisionEnergy
