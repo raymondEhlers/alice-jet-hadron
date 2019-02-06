@@ -473,7 +473,7 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         # Determine the proper label.
         label = labels.pt_range_string(
             pt_bin = key_index.pt_hard_bin,
-            lower_label = "",
+            lower_label = "T",
             upper_label = "hard",
             only_show_lower_value_for_last_bin = True,
         )
@@ -494,7 +494,7 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         max_limit = 300
     ax.set_xlim(0, max_limit)
     ax.set_yscale("log")
-    ax.legend(loc = "best")
+    ax.legend(loc = "best", frameon = False)
     fig.tight_layout()
 
     # Save and cleanup
@@ -520,11 +520,18 @@ def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
     """
     # Setup
     canvas = ROOT.TCanvas("canvas", "canvas")
+    canvas.SetLogy(True)
     # Legend
-    legend = ROOT.TLegend(0.55, 0.55, 0.95, 0.9)
+    legend = ROOT.TLegend(0.37, 0.55, 0.9, 0.9)
     legend.SetHeader(r"\mathit{p}_{\mathrm{T}}\:\mathrm{bins}", "C")
+    # Increase text size
+    legend.SetTextSize(0.025)
+    # Use two columns because we have a lot of entries.
     legend.SetNColumns(2)
+    # Remove the legend border
     legend.SetBorderSize(0)
+    # Make the legend transparent
+    legend.SetFillStyle(0)
 
     # First, we plot the merged analysis. This is the sum of the various pt hard bin contributions.
     merged_hist = utils.recursive_getattr(merged_analysis, hist_attribute_name)
@@ -552,7 +559,7 @@ def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
         # Determine the proper label.
         label = labels.pt_range_string(
             pt_bin = key_index.pt_hard_bin,
-            lower_label = "",
+            lower_label = "T",
             upper_label = "hard",
             only_show_lower_value_for_last_bin = True,
         )

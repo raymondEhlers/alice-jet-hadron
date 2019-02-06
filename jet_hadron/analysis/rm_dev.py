@@ -962,27 +962,29 @@ class ResponseManager(generic_class.EqualityMixin):
                     )
                 )
                 # Plot part, det level match and unmatched (so skip the response matrix)
-                for hist_info in list(histogram_info_for_processing.values())[1:]:
-                    # This is just a proxy to get "part" or "det"
-                    base_label = hist_info.description[:hist_info.attribute_name.find("_")].lower()
-                    # This will be something like "unmatched_jet_spectra"
-                    # +1 is to skip the "." that we found.
-                    output_label = hist_info.attribute_name[hist_info.attribute_name.find(".") + 1:]
-                    plot_response_matrix.plot_response_spectra(
-                        plot_labels = plot_base.PlotLabels(
-                            title = hist_info.description,
-                            x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
-                                "label": base_label,
-                            },
-                            y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
-                        ),
-                        output_name = f"{base_label}_level_{output_label}",
-                        merged_analysis = self.final_responses[
-                            self.final_responses_key_index(reaction_plane_orientation)
-                        ],
-                        pt_hard_analyses = analyses,
-                        hist_attribute_name = hist_info.attribute_name,
-                    )
+                for plot_with_ROOT in [False, True]:
+                    for hist_info in list(histogram_info_for_processing.values())[1:]:
+                        # This is just a proxy to get "part" or "det"
+                        base_label = hist_info.description[:hist_info.attribute_name.find("_")].lower()
+                        # This will be something like "unmatched_jet_spectra"
+                        # +1 is to skip the "." that we found.
+                        output_label = hist_info.attribute_name[hist_info.attribute_name.find(".") + 1:]
+                        plot_response_matrix.plot_response_spectra(
+                            plot_labels = plot_base.PlotLabels(
+                                title = hist_info.description,
+                                x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
+                                    "label": base_label,
+                                },
+                                y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
+                            ),
+                            output_name = f"{base_label}_level_{output_label}",
+                            merged_analysis = self.final_responses[
+                                self.final_responses_key_index(reaction_plane_orientation)
+                            ],
+                            pt_hard_analyses = analyses,
+                            hist_attribute_name = hist_info.attribute_name,
+                            plot_with_ROOT = plot_with_ROOT,
+                        )
 
                 # Update progress
                 plotting.update()
