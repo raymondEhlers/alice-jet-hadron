@@ -18,6 +18,8 @@ from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Tuple, TYP
 from pachyderm import generic_class
 from pachyderm import yaml
 
+from jet_hadron.base import labels
+
 if TYPE_CHECKING:
     from jet_hadron.base import analysis_objects  # noqa: F401
 
@@ -340,8 +342,8 @@ class LeadingHadronBias(generic_class.EqualityMixin):
         if additional_label and not (additional_label.startswith(",") or additional_label.startswith(r"\mathrm{,}")):
             additional_label = r"\mathrm{,}" + additional_label
 
-        track_label = r"\mathit{p}_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}}"
-        cluster_label = r"\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}}"
+        track_label = labels.pt_display_label(upper_label = r"lead\:track" + additional_label)
+        cluster_label = labels.et_display_label(upper_label = r"lead\:clus" + additional_label)
         gev_value_label = r"> %(value)s\:\mathrm{GeV}"
 
         if self.type == LeadingHadronBiasType.NA:
@@ -349,18 +351,15 @@ class LeadingHadronBias(generic_class.EqualityMixin):
         elif self.type == LeadingHadronBiasType.track:
             # Need to return GeV/c
             return f"{track_label} {gev_value_label}" % {
-                "additional_label": additional_label,
                 "value": self.value,
             } + r"/\mathit{c}"
         elif self.type == LeadingHadronBiasType.cluster:
             return f"{cluster_label} {gev_value_label}" % {
-                "additional_label": additional_label,
                 "value": self.value
             }
         elif self.type == LeadingHadronBiasType.both:
             # Need to have the same units, so we multiply the track pt term by c
             return fr"{track_label}\mathit{{c}}\mathrm{{,}}\:{cluster_label} {gev_value_label}" % {
-                "additional_label": additional_label,
                 "value": self.value
             }
 
