@@ -373,7 +373,7 @@ def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, outpu
     """
     # Setup
     canvas = ROOT.TCanvas("canvas", "canvas")
-    canvas.SetLogz(1)
+    canvas.SetLogz(True)
 
     # Plot the histogram
     #logger.debug(f"Response matrix n jets: {response_matrix.Integral()}".format(response_matrix.Integral()))
