@@ -97,8 +97,8 @@ def test_jet_properties_labels(logging_mixin):
     """ Test the jet properties labels. """
     jet_pt_bin = analysis_objects.JetPtBin(bin = 1, range = params.SelectedRange(20.0, 40.0))
     (jet_finding_expected, constituent_cuts_expected, leading_hadron_expected, jet_pt_expected) = (
-        r"$\mathrm{anti \textendash k}_{\mathrm{T}}\;R=0.2$",
-        r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\:\mathrm{\mathit{c},}\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
+        r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=0.2$",
+        r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\mathit{c}\mathrm{,}\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
         r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$",
         r"$20.0 < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$"
     )

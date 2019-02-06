@@ -31,6 +31,20 @@ def use_label_with_root(label: str) -> str:
     """
     return label.replace(r"\textendash", r"\mbox{-}").replace(r"\%", r"\mbox{%}")
 
+def et_display_label(lower_label: str = "T", upper_label: str = "") -> str:
+    """ Generate a E_T display label without the "$".
+
+    Args:
+        lower_label: Subscript label for E_T. Default: "T"
+        upper_label: Superscript label for E_T. Default: ""
+    Returns:
+        Properly formatted E_T string.
+    """
+    return r"\mathit{E}_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
+        "lower_label": lower_label,
+        "upper_label": upper_label,
+    }
+
 def pt_display_label(lower_label: str = "T", upper_label: str = "") -> str:
     """ Generate a pt display label without the "$".
 
@@ -124,6 +138,45 @@ def track_pt_range_string(track_pt_bin: analysis_objects.PtBin) -> str:
         upper_label = "assoc",
     )
 
+def jet_finding_label(R: float = 0.2) -> str:
+    """ The jet finding label.
+
+    Args:
+        R: The jet finding radius. Default: 0.2
+    Returns:
+        A properly latex formatted jet finding label.
+    """
+    return r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=%(R)s$" % {"R": R}
+
+def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, additional_label: str = "") -> str:
+    """ The jet constituent cut label.
+
+    Args:
+        min_track_pt: Minimum track pt. Default: 3.0
+        min_cluster_pt: Minimum cluster pt. Default: 3.0
+        additional_label: Additional label for the constituents (such as denoting particle or
+            detector level). Default: "".
+    Returns:
+        A properly latex formatted constituent cuts label.
+    """
+    # Validation
+    # Add a comma in between the labels if the additional label is not empty.
+    if additional_label and not (additional_label.startswith(",") or additional_label.startswith(r"\mathrm{,}")):
+        additional_label = r"\mathrm{,}" + additional_label
+
+    track_label = pt_display_label(upper_label = "ch" + additional_label)
+    cluster_label = et_display_label(upper_label = "clus" + additional_label)
+
+    if min_track_pt == min_cluster_pt:
+        constituent_cuts = fr"${track_label}\mathit{{c}}\mathrm{{,}}\:{cluster_label} > {min_track_pt:g}\:\mathrm{{GeV}}$"
+    else:
+        constituent_cuts = (
+            fr"${track_label} > {min_track_pt:g}\:{momentum_units_label_gev}"
+            fr"\mathrm{{,}}\:{cluster_label} > {min_cluster_pt:g}\:\mathrm{{GeV}}$"
+        )
+
+    return constituent_cuts
+
 def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, str, str, str]:
     """ Return the jet finding properties based on the jet pt bin.
 
@@ -132,17 +185,14 @@ def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, st
     Returns:
         tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
     """
-    jet_finding = r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=0.2$"
-    constituent_cuts = r"$%(pt_label)s\:\mathrm{\mathit{c},}" \
-                       r"\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$" % {
-                           "pt_label": pt_display_label(upper_label = "ch")
-                       }
+    jet_finding = jet_finding_label()
+    const_cuts = constituent_cuts()
     leading_hadron = r"$%(pt_label)s > 5\:%(units_label)s$" % {
         "pt_label": pt_display_label(upper_label = "lead,ch"),
         "units_label": momentum_units_label_gev(),
     }
     jet_pt = jet_pt_range_string(jet_pt_bin)
-    return (jet_finding, constituent_cuts, leading_hadron, jet_pt)
+    return (jet_finding, const_cuts, leading_hadron, jet_pt)
 
 def system_label(energy: Union[float, params.CollisionEnergy],
                  system: Union[str, params.CollisionSystem],
