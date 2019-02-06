@@ -63,7 +63,7 @@ class TestJetPtString:
 
         for pt_bin, expected_min, expected_max in zip(pt_bins, self.jet_pt_bins[:-2], self.jet_pt_bins[1:-1]):
             logger.debug(f"Checking bin {pt_bin}, {pt_bin.range}, {type(pt_bin)}")
-            assert labels.jet_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
+            assert labels.jet_pt_range_string(pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
 
     def test_jet_pt_string_for_last_pt_bin(self, logging_mixin):
         """ Test the jet pt string generation function for the last jet pt bin.
@@ -78,7 +78,7 @@ class TestJetPtString:
                 self.jet_pt_bins[pt_bin + 1]
             )
         )
-        assert labels.jet_pt_range_string(jet_pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": self.jet_pt_bins[-2]}
+        assert labels.jet_pt_range_string(jet_pt_bin) == r"$%(lower)s < \mathit{p}_{\mathrm{T,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": self.jet_pt_bins[-2]}
 
 @pytest.mark.parametrize("energy, system, activity, expected", [
     (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
@@ -100,7 +100,7 @@ def test_jet_properties_labels(logging_mixin):
         r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=0.2$",
         r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\mathit{c}\mathrm{,}\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
         r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$",
-        r"$20.0 < \mathit{p}_{\mathrm{T \,unc,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$"
+        r"$20.0 < \mathit{p}_{\mathrm{T,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$"
     )
 
     (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_pt_bin)

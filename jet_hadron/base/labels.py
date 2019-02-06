@@ -111,17 +111,18 @@ def pt_range_string(pt_bin: "analysis_objects.PtBin",
 
     return pt_range
 
-def jet_pt_range_string(jet_pt_bin: "analysis_objects.PtBin") -> str:
+def jet_pt_range_string(jet_pt_bin: "analysis_objects.PtBin", additional_label: str = "") -> str:
     """ Generate a label for the jet pt range based on the jet pt bin.
 
     Args:
         jet_pt_bin: Jet pt bin object.
+        additional_label: Additional label for the subscript.
     Returns:
         Jet pt range label.
     """
     return pt_range_string(
         pt_bin = jet_pt_bin,
-        lower_label = r"T \,unc,jet",
+        lower_label = "T,jet" + additional_label,
         upper_label = "ch+ne",
         only_show_lower_value_for_last_bin = True,
     )
