@@ -13,19 +13,18 @@ import enum
 import logging
 import numpy as np
 import re
-from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import generic_class
 from pachyderm import yaml
+
+if TYPE_CHECKING:
+    from jet_hadron.base import analysis_objects  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
 # Typing helpers
 PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
-# We don't include this type because it will cause an import loop.
-T_PtBin = Any
-T_JetPtBin = Any
-T_TrackPtBin = Any
 
 # Bins
 # eta is absolute value!
@@ -35,7 +34,9 @@ phi_bins = [-1. * np.pi / 2., np.pi / 2., 3. * np.pi / 2]
 ########
 # Utility functions
 ########
-def iterate_over_pt_bins(name: str, bins: Sequence[T_PtBin], config: PtBinIteratorConfig = None) -> Iterable[T_PtBin]:
+def iterate_over_pt_bins(name: str,
+                         bins: Sequence["analysis_objects.PtBin"],
+                         config: PtBinIteratorConfig = None) -> Iterable["analysis_objects.PtBin"]:
     """ Create a generator of the bins in a requested list.
 
     Bin skipping should be specified as:
@@ -72,15 +73,20 @@ def iterate_over_pt_bins(name: str, bins: Sequence[T_PtBin], config: PtBinIterat
 
         yield pt_bin
 
-def iterate_over_jet_pt_bins(bins: Sequence[T_JetPtBin], config: PtBinIteratorConfig = None) -> Iterable[T_JetPtBin]:
+def iterate_over_jet_pt_bins(bins: Sequence["analysis_objects.JetPtBin"],
+                             config: PtBinIteratorConfig = None) -> Iterable["analysis_objects.PtBin"]:
     """ Iterate over the available jet pt bins. """
     return iterate_over_pt_bins(config = config, name = "jet", bins = bins)
 
-def iterate_over_track_pt_bins(bins: Sequence[T_TrackPtBin], config: PtBinIteratorConfig = None) -> Iterable[T_TrackPtBin]:
+def iterate_over_track_pt_bins(bins: Sequence["analysis_objects.TrackPtBin"],
+                               config: PtBinIteratorConfig = None) -> Iterable["analysis_objects.PtBin"]:
     """ Iterate over the available track pt bins. """
     return iterate_over_pt_bins(config = config, name = "track", bins = bins)
 
-def iterate_over_jet_and_track_pt_bins(jet_pt_bins: Sequence[T_JetPtBin], track_pt_bins: Sequence[T_TrackPtBin], config: PtBinIteratorConfig = None) -> Iterable[Tuple[float, float]]:
+def iterate_over_jet_and_track_pt_bins(
+        jet_pt_bins: Sequence["analysis_objects.JetPtBin"],
+        track_pt_bins: Sequence["analysis_objects.TrackPtBin"],
+        config: PtBinIteratorConfig = None) -> Iterable[Tuple["analysis_objects.PtBin", "analysis_objects.PtBin"]]:
     """ Iterate over all possible combinations of jet and track pt bins. """
     for jet_pt_bin in iterate_over_jet_pt_bins(bins = jet_pt_bins, config = config):
         for track_pt_bin in iterate_over_track_pt_bins(bins = track_pt_bins, config = config):
