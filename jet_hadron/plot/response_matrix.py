@@ -127,33 +127,24 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         0.525, 0.78,
         labels.pt_range_string(
             particle_level_spectra_bin,
-            lower_label = r"T,jet",
-            upper_label = r"det",
+            lower_label = "T,jet",
+            upper_label = "det",
         ),
     ))
     #latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
-    # NOTE: We cannot use most of these labels because we need to add additional detector level labels
-    #       to most of the quantities. However, we can use some, so we take advntage as we can.
-    # TODO: Can we add an addiitonal label?
-    jet_finding, constituent_cuts, _, _ = labels.jet_properties_label(particle_level_spectra_bin)
     latex_labels.append(ROOT.TLatex(
         0.565, 0.69,
-        labels.use_label_with_root(
-            r"%(pt_label)s \mathit{c}\mathrm{,}\:\mathrm{E}_{\mathrm{T}}^{\mathrm{clus,det}} > 3.0\:\mathrm{GeV}" % {
-                "pt_label": labels.pt_display_label(upper_label = "ch,det"),
-            }
-        )
+        labels.use_label_with_root(labels.constituent_cuts(additional_label = "det")),
     ))
     #latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
     latex_labels.append(ROOT.TLatex(
         0.635, 0.61,
-        inclusive.leading_hadron_bias.display_str(additional_label = "det"),
+        labels.use_label_with_root(inclusive.leading_hadron_bias.display_str(additional_label = "det")),
     ))
-    latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(jet_finding)))
+    latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(labels.jet_finding())))
     #latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
 
-    #x_label = labels.use_label_with_root(labels.pt_display_label(upper_label = "part"))
-    x_label = labels.jet_pt_display_label(upper_label = "part")
+    x_label = labels.use_label_with_root(labels.jet_pt_display_label(upper_label = "part"))
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
