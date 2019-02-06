@@ -245,7 +245,7 @@ def test_leading_hadron_bias(logging_mixin, type, value, additional_label, expec
     """ Test the leading hadron bias class. """
     # Setup
     if additional_label:
-        additional_label = r"\mathrm{,}" + additional_label
+        additional_label = "," + additional_label
     # We need a separate variable because the dictionary used in the parametrization is mutable,
     # so if we format and store the string in the same dictionary entry, it won't be available
     # for formatting in later paramterizations.

@@ -140,7 +140,7 @@ def track_pt_range_string(track_pt_bin: "analysis_objects.PtBin") -> str:
         upper_label = "assoc",
     )
 
-def jet_finding_label(R: float = 0.2) -> str:
+def jet_finding(R: float = 0.2) -> str:
     """ The jet finding label.
 
     Args:
@@ -163,8 +163,8 @@ def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, add
     """
     # Validation
     # Add a comma in between the labels if the additional label is not empty.
-    if additional_label and not (additional_label.startswith(",") or additional_label.startswith(r"\mathrm{,}")):
-        additional_label = r"\mathrm{,}" + additional_label
+    if additional_label and not additional_label.startswith(","):
+        additional_label = "," + additional_label
 
     track_label = pt_display_label(upper_label = "ch" + additional_label)
     cluster_label = et_display_label(upper_label = "clus" + additional_label)
@@ -187,14 +187,14 @@ def jet_properties_label(jet_pt_bin: "analysis_objects.JetPtBin") -> Tuple[str, 
     Returns:
         tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
     """
-    jet_finding = jet_finding_label()
+    jet_finding_label = jet_finding()
     const_cuts = constituent_cuts()
     leading_hadron = r"$%(pt_label)s > 5\:%(units_label)s$" % {
         "pt_label": pt_display_label(upper_label = "lead,ch"),
         "units_label": momentum_units_label_gev(),
     }
     jet_pt = jet_pt_range_string(jet_pt_bin)
-    return (jet_finding, const_cuts, leading_hadron, jet_pt)
+    return (jet_finding_label, const_cuts, leading_hadron, jet_pt)
 
 def system_label(energy: Union[float, "params.CollisionEnergy"],
                  system: Union[str, "params.CollisionSystem"],

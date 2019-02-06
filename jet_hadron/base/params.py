@@ -339,8 +339,8 @@ class LeadingHadronBias(generic_class.EqualityMixin):
         """
         # Validation
         # Add a comma in between the labels if the additional label is not empty.
-        if additional_label and not (additional_label.startswith(",") or additional_label.startswith(r"\mathrm{,}")):
-            additional_label = r"\mathrm{,}" + additional_label
+        if additional_label and not additional_label.startswith(","):
+            additional_label = "," + additional_label
 
         track_label = labels.pt_display_label(upper_label = r"lead\:track" + additional_label)
         cluster_label = labels.et_display_label(upper_label = r"lead\:clus" + additional_label)
