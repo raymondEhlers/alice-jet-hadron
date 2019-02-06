@@ -225,8 +225,8 @@ class CollisionSystem(enum.Enum):
     NA = "Invalid collision system"
     pp = "pp"
     pythia = "PYTHIA"
-    embedPP = r"pp \bigotimes Pb \textendash Pb"
-    embedPythia = r"PYTHIA \bigotimes Pb \textendash Pb"
+    embedPP = r"pp \bigotimes %(embedded_additional_label)s Pb \textendash Pb"
+    embedPythia = r"PYTHIA \bigotimes %(embedded_additional_label)s Pb \textendash Pb"
     pPb = r"pPb"
     PbPb = r"Pb \textendash Pb"
 
@@ -234,9 +234,19 @@ class CollisionSystem(enum.Enum):
         """ Return a string of the name of the system. """
         return self.name
 
-    def display_str(self) -> str:
-        """ Return a formatted string for display in plots, etc. Includes latex formatting. """
-        return rf"\mathrm{{{self.value}}}"
+    def display_str(self, embedded_additional_label: str = "") -> str:
+        """ Return a formatted string for display in plots, etc. Includes latex formatting.
+
+        Args:
+            embedded_additional_label: Additional label for the embedded systems. The label
+                is placed between the cross symbol and the Pb--Pb label. Default: "".
+        Returns:
+            Properly formatted string.
+        """
+        # Add some additional spacing after the label if it's been specified.
+        if embedded_additional_label and not embedded_additional_label.endswith(r"\:"):
+            embedded_additional_label = embedded_additional_label + r"\:"
+        return rf"\mathrm{{{self.value}}}" % {"embedded_additional_label": embedded_additional_label}
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)

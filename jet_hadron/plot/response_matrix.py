@@ -116,10 +116,12 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         )
     ))
     # Collision system + event activity
+    # We want the centrality to appear between the cross symbol and Pb--Pb
+    embedded_additional_label = inclusive.event_activity.display_str()
     latex_labels.append(ROOT.TLatex(
         0.5625, 0.84,
         labels.use_label_with_root(
-            rf"{inclusive.collision_system.display_str()}\:{inclusive.event_activity.display_str()}"
+            rf"{inclusive.collision_system.display_str(embedded_additional_label = embedded_additional_label)}"
         ),
     ))
     # Particle level spectra range in detector pt.

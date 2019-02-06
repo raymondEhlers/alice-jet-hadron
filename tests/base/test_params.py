@@ -169,6 +169,10 @@ def test_collision_energy(logging_mixin, energy, expected):
 # NOTE: Usually, "Pb--Pb" is used in latex, but ROOT won't render it properly...
 _PbPbLatexLabel = r"Pb \textendash Pb"
 
+@pytest.mark.parametrize("embedded_additional_label", [
+    "",
+    "hello",
+], ids = ["No additional embedded label", "Additional embedded label"])
 @pytest.mark.parametrize("system, expected", [
     (params.CollisionSystem["pp"],
         {"str": "pp",
@@ -181,12 +185,20 @@ _PbPbLatexLabel = r"Pb \textendash Pb"
             "display_str": fr"\mathrm{{{_PbPbLatexLabel}}}"}),
     (params.CollisionSystem["embedPP"],
         {"str": "embedPP",
-            "display_str": r"\mathrm{pp \bigotimes " + f"{_PbPbLatexLabel}" + "}"})
+            "display_str": r"\mathrm{pp \bigotimes %(embedded_additional_label)s " + f"{_PbPbLatexLabel}" + "}"})
 ], ids = ["pp", "pythia", "PbPb", "embedded pp"])
-def test_collision_system(logging_mixin, system, expected):
+def test_collision_system(logging_mixin, system, embedded_additional_label, expected):
     """ Test collision system values. """
+    # Setup
+    if embedded_additional_label:
+        embedded_additional_label = embedded_additional_label + r"\:"
+    # We need a separate variable because the dictionary used in the parametrization is mutable,
+    # so if we format and store the string in the same dictionary entry, it won't be available
+    # for formatting in later paramterizations.
+    expected_display_str = expected["display_str"] % {"embedded_additional_label": embedded_additional_label}
+
     assert str(system) == expected["str"]
-    assert system.display_str() == expected["display_str"]
+    assert system.display_str(embedded_additional_label = embedded_additional_label) == expected_display_str
 
 @pytest.mark.parametrize("activity, expected", [
     (params.EventActivity["inclusive"],
