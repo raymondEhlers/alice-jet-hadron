@@ -7,10 +7,12 @@
 
 import logging
 import numbers
-from typing import Tuple, Union
+from typing import Tuple, Union, TYPE_CHECKING
 
-from jet_hadron.base import analysis_objects
-from jet_hadron.base import params
+if TYPE_CHECKING:
+    from jet_hadron.base import analysis_objects
+    # mypy complains about this import whatever reason (but not the above), so we ignore it.
+    from jet_hadron.base import params  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ def momentum_units_label_gev() -> str:
     """
     return r"\mathrm{GeV/\mathit{c}}"
 
-def pt_range_string(pt_bin: analysis_objects.PtBin,
+def pt_range_string(pt_bin: "analysis_objects.PtBin",
                     lower_label: str, upper_label: str,
                     only_show_lower_value_for_last_bin: bool = False) -> str:
     """ Generate string to describe pt ranges for a given list.
@@ -109,7 +111,7 @@ def pt_range_string(pt_bin: analysis_objects.PtBin,
 
     return pt_range
 
-def jet_pt_range_string(jet_pt_bin: analysis_objects.PtBin) -> str:
+def jet_pt_range_string(jet_pt_bin: "analysis_objects.PtBin") -> str:
     """ Generate a label for the jet pt range based on the jet pt bin.
 
     Args:
@@ -124,7 +126,7 @@ def jet_pt_range_string(jet_pt_bin: analysis_objects.PtBin) -> str:
         only_show_lower_value_for_last_bin = True,
     )
 
-def track_pt_range_string(track_pt_bin: analysis_objects.PtBin) -> str:
+def track_pt_range_string(track_pt_bin: "analysis_objects.PtBin") -> str:
     """ Generate a label for the track pt range based on the track pt bin.
 
     Args:
@@ -177,7 +179,7 @@ def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, add
 
     return constituent_cuts
 
-def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, str, str, str]:
+def jet_properties_label(jet_pt_bin: "analysis_objects.JetPtBin") -> Tuple[str, str, str, str]:
     """ Return the jet finding properties based on the jet pt bin.
 
     Args:
@@ -194,9 +196,9 @@ def jet_properties_label(jet_pt_bin: analysis_objects.JetPtBin) -> Tuple[str, st
     jet_pt = jet_pt_range_string(jet_pt_bin)
     return (jet_finding, const_cuts, leading_hadron, jet_pt)
 
-def system_label(energy: Union[float, params.CollisionEnergy],
-                 system: Union[str, params.CollisionSystem],
-                 activity: Union[str, params.EventActivity]) -> str:
+def system_label(energy: Union[float, "params.CollisionEnergy"],
+                 system: Union[str, "params.CollisionSystem"],
+                 activity: Union[str, "params.EventActivity"]) -> str:
     """ Generates the collision system, event activity, and energy label as a latex label.
 
     Args:
@@ -206,6 +208,10 @@ def system_label(energy: Union[float, params.CollisionEnergy],
     Returns:
         Label for the entire system, combining the available information.
     """
+    # We defer the import until here because we need the objects, but we don't want to explicitly
+    # depend on the params module (so that we can import the labels into the params module).
+    from jet_hadron.base import params  # noqa: F811
+
     # Handle energy
     if isinstance(energy, numbers.Number):
         energy = params.CollisionEnergy(energy)
