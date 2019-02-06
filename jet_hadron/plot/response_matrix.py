@@ -108,20 +108,21 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
 
     # Main labeling
     latex_labels = []
+    # ALICE + collision energy
     latex_labels.append(ROOT.TLatex(
         0.605, 0.90,
         labels.use_label_with_root(
             rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}"
         )
     ))
-    #latex_labels.append(ROOT.TLatex(0.605, 0.90, "ALICE #sqrt{s_{NN}} = 2.76 TeV"))
+    # Event activity + collision system
     latex_labels.append(ROOT.TLatex(
         0.475, 0.84,
         labels.use_label_with_root(
             rf"{inclusive.event_activity.display_str()}\:{inclusive.collision_system.display_str()}"
         ),
     ))
-    #latex_labels.append(ROOT.TLatex(0.475, 0.84, "30-50% Pb-Pb Embedded PYTHIA"))
+    # Particle level spectra range in detector pt.
     particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
     latex_labels.append(ROOT.TLatex(
         0.525, 0.78,
@@ -131,18 +132,18 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
             upper_label = "det",
         ),
     ))
-    #latex_labels.append(ROOT.TLatex(0.525, 0.78, "20 GeV/#it{c} < #it{p}_{T,jet}^{det} < 40 GeV/#it{c}"))
+    # Constituent cuts
     latex_labels.append(ROOT.TLatex(
         0.565, 0.69,
         labels.use_label_with_root(labels.constituent_cuts(additional_label = "det")),
     ))
-    #latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
+    # Leading hadron bias
     latex_labels.append(ROOT.TLatex(
         0.635, 0.61,
         labels.use_label_with_root(inclusive.leading_hadron_bias.display_str(additional_label = "det")),
     ))
+    # Jet finding
     latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(labels.jet_finding())))
-    #latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
 
     x_label = labels.use_label_with_root(labels.jet_pt_display_label(upper_label = "part"))
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
