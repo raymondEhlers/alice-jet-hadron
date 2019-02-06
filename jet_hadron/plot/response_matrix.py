@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, Dict
+from typing import Any, Dict, Sequence, Tuple
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -399,7 +399,8 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
                           output_name: str,
                           merged_analysis: analysis_objects.JetHBase,
                           pt_hard_analyses: Analyses,
-                          hist_attribute_name: str):
+                          hist_attribute_name: str,
+                          plot_with_ROOT: bool = False) -> None:
     """ Plot 1D response spectra.
 
     Args:
@@ -408,13 +409,13 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
         merged_analysis: Full merged together analysis object.
         pt_hard_analyses: Pt hard dependent analysis objects to be plotted.
         hist_attribute_name: Name of the attribute under which the histogram is stored.
+        plot_with_ROOT: True if the plot should be done via ROOT.
     """
     # Setup
-    fig, ax = plt.subplots(figsize = (8, 6))
     # NOTE: "husl" is also a good option.
-    colors = iter(sns.color_palette(
+    colors = sns.color_palette(
         palette = "Blues_d", n_colors = len(pt_hard_analyses)
-    ))
+    )
     # Update the plot labels as appropriate using the reaction plane orientation information
     # Help out mypy....
     assert plot_labels.title is not None
@@ -422,7 +423,39 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # attribute is available
     if hasattr(merged_analysis, "reaction_plane_orientation"):
         plot_labels.title = plot_labels.title + f", {merged_analysis.reaction_plane_orientation.display_str()} reaction plane orientation"
-    # Now we can apply the plot labels
+
+    kwargs = {
+        "plot_labels": plot_labels,
+        "output_name": output_name,
+        "merged_analysis": merged_analysis,
+        "pt_hard_analyses": pt_hard_analyses,
+        "hist_attribute_name": hist_attribute_name,
+        "colors": colors,
+    }
+
+    if plot_with_ROOT:
+        _plot_response_spectra_with_ROOT(**kwargs)
+    else:
+        _plot_response_spectra_with_matplotlib(**kwargs)
+
+def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
+                                           output_name: str,
+                                           merged_analysis: analysis_objects.JetHBase,
+                                           pt_hard_analyses: Analyses,
+                                           hist_attribute_name: str,
+                                           colors: Sequence[Tuple[float, float, float]]) -> None:
+    """ Plot 1D response spectra with matplotlib.
+
+    Args:
+        plot_labels: Labels for the plot.
+        output_name: Name under which the plot should be stored.
+        merged_analysis: Full merged together analysis object.
+        pt_hard_analyses: Pt hard dependent analysis objects to be plotted.
+        hist_attribute_name: Name of the attribute under which the histogram is stored.
+        colors: List of colors to be used for plotting the pt hard spectra.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
     plot_labels.apply_labels(ax)
 
     # First, we plot the merged analysis. This is the sum of the various pt hard bin contributions.
@@ -465,6 +498,80 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     fig.tight_layout()
 
     # Save and cleanup
+    output_name += "_mpl"
     plot_base.save_plot(merged_analysis.output_info, fig, output_name)
     plt.close(fig)
+
+def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
+                                     output_name: str,
+                                     merged_analysis: analysis_objects.JetHBase,
+                                     pt_hard_analyses: Analyses,
+                                     hist_attribute_name: str,
+                                     colors: Sequence[Tuple[float, float, float]]) -> None:
+    """ Plot 1D response spectra with ROOT.
+
+    Args:
+        plot_labels: Labels for the plot.
+        output_name: Name under which the plot should be stored.
+        merged_analysis: Full merged together analysis object.
+        pt_hard_analyses: Pt hard dependent analysis objects to be plotted.
+        hist_attribute_name: Name of the attribute under which the histogram is stored.
+        colors: List of colors to be used for plotting the pt hard spectra.
+    """
+    # Setup
+    canvas = ROOT.TCanvas("canvas", "canvas")
+    # Legend
+    legend = ROOT.TLegend(0.55, 0.55, 0.95, 0.9)
+    legend.SetHeader(r"\mathit{p}_{\mathrm{T}}\:\mathrm{bins}", "C")
+    legend.SetNColumns(2)
+    legend.SetBorderSize(0)
+
+    # First, we plot the merged analysis. This is the sum of the various pt hard bin contributions.
+    merged_hist = utils.recursive_getattr(merged_analysis, hist_attribute_name)
+    # Apply axis labels (which must be set on the hist)
+    plot_labels.apply_labels(merged_hist)
+    # Style the merged hist to ensure that it is possible to see the points
+    merged_hist.SetMarkerStyle(ROOT.kFullCircle)
+    merged_hist.SetMarkerSize(1)
+    merged_hist.SetMarkerColor(ROOT.kBlack)
+    merged_hist.SetLineColor(ROOT.kBlack)
+    # Ensure that the max is never beyond 300 for better presentation.
+    max_limit = merged_hist.GetXaxis().GetXmax()
+    if max_limit > 300:
+        max_limit = 300
+    merged_hist.GetXaxis().SetRangeUser(0, max_limit)
+
+    # Label and draw
+    legend.AddEntry(merged_hist, "Merged")
+    merged_hist.Draw("same")
+
+    # Now, we plot the pt hard dependent hists
+    for i, ((key_index, analysis), color) in enumerate(zip(pt_hard_analyses.items(), colors)):
+        # Setup
+        color = ROOT.TColor.GetColor(*color)
+        # Determine the proper label.
+        label = labels.pt_range_string(
+            pt_bin = key_index.pt_hard_bin,
+            lower_label = "",
+            upper_label = "hard",
+            only_show_lower_value_for_last_bin = True,
+        )
+
+        # Retrieve and style the hist
+        hist = utils.recursive_getattr(analysis, hist_attribute_name)
+        hist.SetMarkerStyle(ROOT.kFullCircle + i)
+        hist.SetMarkerSize(1)
+        hist.SetMarkerColor(color)
+        hist.SetLineColor(color)
+
+        # Label and draw
+        legend.AddEntry(hist, labels.use_label_with_root(label))
+        hist.Draw("same")
+
+    # Final presentation settings
+    legend.Draw()
+
+    # Save and cleanup
+    output_name += "_ROOT"
+    plot_base.save_plot(merged_analysis.output_info, canvas, output_name)
 
