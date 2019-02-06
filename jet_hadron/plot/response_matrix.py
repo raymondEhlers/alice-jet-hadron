@@ -115,11 +115,11 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
             rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}"
         )
     ))
-    # Event activity + collision system
+    # Collision system + event activity
     latex_labels.append(ROOT.TLatex(
         0.5625, 0.84,
         labels.use_label_with_root(
-            rf"{inclusive.event_activity.display_str()}\:{inclusive.collision_system.display_str()}"
+            rf"{inclusive.collision_system.display_str()}\:{inclusive.event_activity.display_str()}"
         ),
     ))
     # Particle level spectra range in detector pt.
