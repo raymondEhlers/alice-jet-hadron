@@ -110,14 +110,14 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels = []
     # ALICE + collision energy
     latex_labels.append(ROOT.TLatex(
-        0.605, 0.90,
+        0.595, 0.90,
         labels.use_label_with_root(
             rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}"
         )
     ))
     # Event activity + collision system
     latex_labels.append(ROOT.TLatex(
-        0.475, 0.84,
+        0.5625, 0.84,
         labels.use_label_with_root(
             rf"{inclusive.event_activity.display_str()}\:{inclusive.collision_system.display_str()}"
         ),
@@ -125,7 +125,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Particle level spectra range in detector pt.
     particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
     latex_labels.append(ROOT.TLatex(
-        0.525, 0.78,
+        0.605, 0.78,
         labels.pt_range_string(
             particle_level_spectra_bin,
             lower_label = "T,jet",
@@ -134,18 +134,20 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     ))
     # Constituent cuts
     latex_labels.append(ROOT.TLatex(
-        0.565, 0.69,
+        0.5675, 0.70,
         labels.use_label_with_root(labels.constituent_cuts(additional_label = "det")),
     ))
     # Leading hadron bias
     latex_labels.append(ROOT.TLatex(
-        0.635, 0.61,
+        0.6275, 0.625,
         labels.use_label_with_root(inclusive.leading_hadron_bias.display_str(additional_label = "det")),
     ))
     # Jet finding
-    latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(labels.jet_finding())))
+    latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(labels.jet_finding())))
 
-    x_label = labels.use_label_with_root(labels.jet_pt_display_label(upper_label = "part"))
+    x_label = labels.use_label_with_root(
+        labels.jet_pt_display_label(upper_label = "part") + r"\:" + labels.momentum_units_label_gev()
+    )
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
 
     # Plot the actual hists. The inclusive orientation will be plotted first.

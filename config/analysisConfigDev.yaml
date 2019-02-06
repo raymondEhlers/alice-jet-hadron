@@ -293,6 +293,7 @@ ResponseFinal:
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/dev/test/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        aliceLabel: final
         iterables:
             reaction_plane_orientation: true
 ResponseManager:
