@@ -987,6 +987,14 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 plotting.update()
 
+    def package_and_write_final_responses(self) -> None:
+        """ Package up and write the final repsonse matrices. """
+        output_filename = os.path.join(self.output_info.output_prefix, "final_responses.root")
+        with histogram.RootOpen(output_filename, mode = "RECREATE"):
+            for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+                hist = analysis.response_matrix.Clone(f"{analysis.response_matrix.GetName()}_{analysis.reaction_plane_orientation}")
+                hist.Write()
+
     def run(self) -> bool:
         """ Run the response matrix analyses. """
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
@@ -1003,9 +1011,10 @@ class ResponseManager(generic_class.EqualityMixin):
         # 3. Write histograms (and read histograms if requested).
         # 4. Final processing, including projecting particle level spectra
         # 5. Plotting
+        # 6. Writing final hists together to a single final
         #
         # If we are starting from reading histograms, we start from step 3.
-        steps = 3 if self.task_config["read_hists_from_root_file"] else 5
+        steps = 4 if self.task_config["read_hists_from_root_file"] else 6
         with self.progress_manager.counter(total = steps,
                                            desc = "Overall processing progress:",
                                            unit = "") as overall_progress:
@@ -1036,6 +1045,10 @@ class ResponseManager(generic_class.EqualityMixin):
             self.plot_results(
                 histogram_info_for_processing = histogram_info_for_processing,
             )
+            overall_progress.update()
+
+            # Package up all of the responses in one file.
+            self.package_and_write_final_responses()
             overall_progress.update()
 
         return True
