@@ -135,7 +135,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # NOTE: We cannot use most of these labels because we need to add additional detector level labels
     #       to most of the quantities. However, we can use some, so we take advntage as we can.
     # TODO: Can we add an addiitonal label?
-    jet_finding, constituent_cuts, leading_hadron, jet_pt = labels.jet_properties_label(particle_level_spectra_bin)
+    jet_finding, constituent_cuts, _, _ = labels.jet_properties_label(particle_level_spectra_bin)
     latex_labels.append(ROOT.TLatex(
         0.565, 0.69,
         labels.use_label_with_root(
@@ -147,9 +147,8 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     #latex_labels.append(ROOT.TLatex(0.565, 0.69, "#it{p}_{T}^{ch,det}#it{c}, E_{T}^{clus,det} > 3.0 GeV"))
     latex_labels.append(ROOT.TLatex(
         0.635, 0.61,
-        r"\mathit{E}_{\mathrm{T}}^{\mathrm{lead\:clus,det}} > 6.0\:\mathrm{GeV}"
+        inclusive.leading_hadron_bias.display_str(additional_label = "det"),
     ))
-    #latex_labels.append(ROOT.TLatex(0.635, 0.61, "E_{T}^{lead clus,det} > 6.0 GeV"))
     latex_labels.append(ROOT.TLatex(0.72, 0.545, labels.use_label_with_root(jet_finding)))
     #latex_labels.append(ROOT.TLatex(0.72, 0.545, "anti-#it{k}_{T}  R = 0.2"))
 
@@ -167,7 +166,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         hist.GetXaxis().SetTitle(x_label)
         full_y_label = y_label
         if analysis.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
-            full_y_label = "(1/N_{jets})" + y_label
+            full_y_label = r"(1/\mathrm{N}_{\mathrm{jets}})" + y_label
         hist.GetYaxis().SetTitle(full_y_label)
 
         # Style each individual hist. In principle, we could do this for only one # hist and then set the
