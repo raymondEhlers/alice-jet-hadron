@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from jet_hadron.base import analysis_objects
-from jet_hadron.base.typing_helpers import Canvas
+from jet_hadron.base.typing_helpers import Canvas, Hist
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -57,13 +57,27 @@ class PlotLabels:
     x_label: Optional[str] = None
     y_label: Optional[str] = None
 
-    def apply_labels(self, ax: matplotlib.axes.Axes) -> None:
+    def apply_labels(self, obj: Union[matplotlib.axes.Axes, Hist]) -> None:
+        if hasattr(obj, "GetXaxis"):
+            self._apply_labels_ROOT(hist = obj)
+        else:
+            self._apply_labels_mpl(ax = obj)
+
+    def _apply_labels_mpl(self, ax: matplotlib.axes.Axes) -> None:
         if self.title is not None:
             ax.set_title(self.title)
         if self.x_label is not None:
             ax.set_xlabel(self.x_label)
         if self.y_label is not None:
             ax.set_ylabel(self.y_label)
+
+    def _apply_labels_ROOT(self, hist: Hist) -> None:
+        if self.title is not None:
+            hist.SetTitle(self.title)
+        if self.x_label is not None:
+            hist.GetXaxis().SetTitle(self.x_label)
+        if self.y_label is not None:
+            hist.GetYaxis().SetTitle(self.y_label)
 
 def save_plot(obj: analysis_objects.PlottingOutputWrapper,
               figure: Union[matplotlib.figure.Figure, Canvas],
