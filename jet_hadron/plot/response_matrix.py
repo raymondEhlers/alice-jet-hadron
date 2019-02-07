@@ -466,6 +466,7 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         yerr = merged_hist.errors,
         label = "Merged",
         color = "black",
+        fmt = ".",
     )
 
     # Now, we plot the pt hard dependent hists
@@ -481,10 +482,12 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         # Plot the histogram.
         hist = utils.recursive_getattr(analysis, hist_attribute_name)
         h = histogram.Histogram1D.from_existing_hist(hist)
-        ax.plot(
+        ax.errorbar(
             h.x, h.y,
+            yerr = h.errors,
             label = label,
             color = color,
+            fmt = ".",
         )
 
     # Final presentation settings
