@@ -22,20 +22,21 @@ from jet_hadron.base.typing_helpers import Canvas, Hist
 
 # Setup logger
 logger = logging.getLogger(__name__)
-# Enable latex
-plt.rc('text', usetex=True)
-# Potentially improve the layout
-# See: https://stackoverflow.com/a/17390833
-#from matplotlib import rcParams
-#rcParams.update({'figure.autolayout': True})
+
 # Setup seaborn
+# NOTE: This needs to go before customizing matplotlib because this will override some of those settings.
 sns.set(context = "notebook", style = "white")
 
-# For sans serif fonts in LaTeX (required for setting the fonts below)
-# See: https://stackoverflow.com/a/11612347
-# Set the tex fonts to be the same as the normal matplotlib fonts
-# See: https://stackoverflow.com/a/27697390
-plt.rc("text.latex", preamble = r"\usepackage{sfmath}")
+# Customize matplotlib
+# Enable latex
+matplotlib.rcParams["text.usetex"] = True
+# Ensure that axis ticks go inward instead of outward
+matplotlib.rcParams["xtick.direction"] = "in"
+matplotlib.rcParams["ytick.direction"] = "in"
+# Below, we set the LaTeX fornts to be the same as those used in matplotlib.
+# For sans serif fonts in LaTeX (required for setting the fonts below), see: https://stackoverflow.com/a/11612347
+# To set the tex fonts to be the same as the normal matplotlib fonts, see: https://stackoverflow.com/a/27697390
+matplotlib.rcParams["text.latex.preamble"].append(r"\usepackage{sfmath}")
 matplotlib.rcParams["mathtext.fontset"] = "custom"
 matplotlib.rcParams["mathtext.rm"] = "Bitstream Vera Sans"
 matplotlib.rcParams["mathtext.it"] = "Bitstream Vera Sans:italic"
