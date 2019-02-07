@@ -1079,10 +1079,10 @@ class ResponseManager(generic_class.EqualityMixin):
         # Analysis steps:
         # 1. Setup response matrix and pt hard objects.
         # 2. Pt hard bin outliers removal, scaling, and merging into final response objects.
-        # 3. Write histograms (and read histograms if requested).
-        # 4. Final processing, including projecting particle level spectra
-        # 5. Plotting
-        # 6. Writing final hists together to a single final
+        # 3. Write histograms (or read histograms if requested).
+        # 4. Final processing, including projecting particle level spectra.
+        # 5. Plotting.
+        # 6. Writing final hists together to a single final.
         #
         # If we are starting from reading histograms, we start from step 3.
         steps = 4 if self.task_config["read_hists_from_root_file"] else 6
@@ -1109,6 +1109,9 @@ class ResponseManager(generic_class.EqualityMixin):
                 overall_progress.update()
 
             # Final post processing steps.
+            # This processing is performed after reading or writing the histograms because there are a
+            # number of parameters here which could change. Instead of trying to deal with detecting when
+            # is the proper time to reprocess, we just always reprocess.
             self.run_final_processing()
             overall_progress.update()
 
