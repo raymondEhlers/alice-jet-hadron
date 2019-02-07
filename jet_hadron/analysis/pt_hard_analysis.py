@@ -98,7 +98,11 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         return True
 
     def _extract_scale_factor(self) -> float:
-        """ Extract the scale factor from the stored information. """
+        """ Extract the scale factor from the stored information.
+
+        Some additional information on extracting the scale factor is available here:
+        https://twiki.cern.ch/twiki/bin/viewauth/ALICE/PPEventNormalisation .
+        """
         # Pt hard bin 1 is stored in root indexed by 2 by convention, so we need
         # a +1 to get the proper values.
         cross_section = self.cross_section.GetBinContent(self.pt_hard_bin.bin + 1) * self.cross_section.GetEntries()

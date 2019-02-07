@@ -41,10 +41,10 @@ jet\_hadron.analysis.response\_matrix module
     :undoc-members:
     :show-inheritance:
 
-jet\_hadron.analysis.rm\_dev module
------------------------------------
+jet\_hadron.analysis.response\_matrix\_helpers module
+-----------------------------------------------------
 
-.. automodule:: jet_hadron.analysis.rm_dev
+.. automodule:: jet_hadron.analysis.response_matrix_helpers
     :members:
     :undoc-members:
     :show-inheritance:
