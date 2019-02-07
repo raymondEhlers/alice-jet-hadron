@@ -146,6 +146,26 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
         )
 
     # Final presentation settings
+    # Axis ticks
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 10))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(base = 2))
+    tick_shared_args = {
+        "axis": "both",
+        "bottom": True,
+        "left": True,
+    }
+    ax.tick_params(
+        which = "major",
+        # Size of the axis mark labels
+        labelsize = 15,
+        length = 8,
+        **tick_shared_args,
+    )
+    ax.tick_params(
+        which = "minor",
+        length = 4,
+        **tick_shared_args,
+    )
     # Limits
     ax.set_xlim(0, particle_level_max_pt)
     # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
