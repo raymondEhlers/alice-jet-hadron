@@ -113,7 +113,64 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
     """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
+    # Diamond, square, up triangle, circle
+    markers = ["D", "s", "^", "o"]
+    colors = ["black", "blue", "green", "red"]
+    # Label axes
+    plot_labels.apply_labels(ax)
+
+    # Plot the actual hists. The inclusive orientation will be plotted first.
+    particle_level_max_pt = 0
+    for analysis, color, marker in zip(ep_analyses.values(), colors, markers):
+        # Store this value for convenience. It is the same for all orientations.
+        particle_level_max_pt = analysis.task_config["particle_level_spectra"]["particle_level_max_pt"]
+
+        # Convert and plot hist
+        h = histogram.Histogram1D.from_existing_hist(analysis.particle_level_spectra)
+        ax.errorbar(
+            h.x, h.y,
+            xerr = (h.bin_edges[1:] - h.bin_edges[:-1]) / 2,
+            yerr = h.errors,
+            label = analysis.reaction_plane_orientation.display_str(),
+            color = color,
+            marker = marker,
+            linestyle = "",
+        )
+
+    # Final presentation settings
+    # Limits
+    ax.set_xlim(0, particle_level_max_pt)
+    # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
+    # we have to set the values by hand.
+    ax.set_ylim(10**-4, 0.4)
     ax.set_yscale("log")
+    # Legend
+    ax.legend(
+        loc = "lower left",
+        frameon = False,
+        fontsize = 18,
+    )
+    # General labels
+    label = ""
+    for v in general_labels.values():
+        # Only prepended a new line if we already have content.
+        if label != "":
+            label += "\n"
+        # Then, ensure that each line is a valid latex line.
+        label += labels.make_valid_latex_string(v)
+    # Finally, draw the fully processed label in the upper right corner.
+    ax.text(0.95, 0.95, s = label,
+            horizontalalignment = "right",
+            verticalalignment = "top",
+            multialignment = "right",
+            fontsize = 18,
+            transform = ax.transAxes)
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name += "_mpl"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
 
 def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
                                            output_name: str,
