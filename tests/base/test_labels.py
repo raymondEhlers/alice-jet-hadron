@@ -16,6 +16,17 @@ from jet_hadron.base import params
 logger = logging.getLogger(__name__)
 
 @pytest.mark.parametrize("value, expected", [
+    (r"$\mathrm{hello}$", r"$\mathrm{hello}$"),
+    (r"\mathrm{hello}$", r"$\mathrm{hello}$"),
+    (r"$\mathrm{hello}", r"$\mathrm{hello}$"),
+    (r"\mathrm{hello}", r"$\mathrm{hello}$"),
+    ("", ""),
+], ids = ["No change", "Wrap start", "Wrap end", "Wrap both sides", "Empty string"])
+def test_make_valid_latex_string(logging_mixin, value: str, expected: str):
+    """ Test for making a string into a valid latex string. """
+    assert labels.make_valid_latex_string(value) == expected
+
+@pytest.mark.parametrize("value, expected", [
     (r"\textbf{test}", r"\textbf{test}"),
     (r"Pb \textendash Pb", r"Pb \mbox{-} Pb"),
     (r"$0-10\% \mathrm{test}$", r"$0-10\mbox{%} \mathrm{test}$"),

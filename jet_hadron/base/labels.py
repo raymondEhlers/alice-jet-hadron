@@ -16,6 +16,24 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+def make_valid_latex_string(s: str) -> str:
+    """ Take a string and make it a valid latex math string by wrapping it with "$"" when necessary.
+
+    Of course, strings are only wrapped with the "$" if they are not already present.
+
+    Args:
+        s: The input string.
+    Returns:
+        The properly formatted string.
+    """
+    if s == "":
+        return s
+    if not s.startswith("$"):
+        s = "$" + s
+    if not s.endswith("$"):
+        s = s + "$"
+    return s
+
 def use_label_with_root(label: str) -> str:
     """ Automatically convert LaTeX to something that is mostly ROOT compatible.
 
