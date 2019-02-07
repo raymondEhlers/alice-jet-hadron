@@ -281,7 +281,6 @@ class EventActivity(enum.Enum):
         ret_val = ""
         # For inclusive, we want to return an empty string.
         if self != EventActivity.inclusive:
-            logger.debug(f"dict: {dict(self.value_range)}")
             ret_val = r"%(min)s \textendash %(max)s \%%" % dict(self.value_range)
         return ret_val
 
