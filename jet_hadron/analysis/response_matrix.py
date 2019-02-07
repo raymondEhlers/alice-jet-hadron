@@ -144,7 +144,6 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             cent_min = self.event_activity.value_range.min,
             cent_max = self.event_activity.value_range.max
         )
-        logger.debug(f"input_list_name: {self.input_list_name}")
         # Task settings
         # Default: No additional normalization.
         self.response_normalization = self.task_config.get(
