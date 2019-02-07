@@ -45,10 +45,48 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
     # Pull out the dict because we need to grab individual analyses for some labeling information, which doesn't
     # play well with generators (the generator will be exhausted).
     ep_analyses = dict(ep_analyses)
+
+    # Determine the general and plot labels
+    # First, we need some variables to define the general labels, so we retrieve the inclusive analysis.
+    # All of the parameters retrieved here are shared by all analyses.
+    inclusive = next(iter(ep_analyses.values()))
+    # Then we define some additional helper variables
+    particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
+    embedded_additional_label = inclusive.event_activity.display_str()
+
+    # General labels
+    general_labels = {
+        "alice_and_collision_energy":
+            rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}",
+        "collision_system_and_event_activity":
+            rf"{inclusive.collision_system.display_str(embedded_additional_label = embedded_additional_label)}",
+        "detector_pt_range": labels.pt_range_string(
+            particle_level_spectra_bin,
+            lower_label = "T,jet",
+            upper_label = "det",
+        ),
+        "constituent_cuts": labels.constituent_cuts(additional_label = "det"),
+        "leading_hadron_bias": inclusive.leading_hadron_bias.display_str(additional_label = "det"),
+        "jet_finding": labels.jet_finding(),
+    }
+
+    # Plot labels
+    y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+    if inclusive.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
+        y_label = r"(1/\mathrm{N}_{\mathrm{jets}})" + y_label
+    plot_labels = plot_base.PlotLabels(
+        title = "",
+        x_label = fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})",
+        y_label = y_label,
+    )
+
+    # Finally, we collect our arguments for the plotting functions.
     kwargs: Dict[str, Any] = {
         "ep_analyses": ep_analyses,
         "output_name": "particle_level_spectra",
         "output_info": output_info,
+        "general_labels": general_labels,
+        "plot_labels": plot_labels,
     }
 
     if plot_with_ROOT:
@@ -58,23 +96,37 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
 
 def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
                                                  output_name: str,
-                                                 output_info: analysis_objects.PlottingOutputWrapper) -> None:
+                                                 output_info: analysis_objects.PlottingOutputWrapper,
+                                                 general_labels: Dict[str, str],
+                                                 plot_labels: plot_base.PlotLabels) -> None:
     """ Plot the particle level spectra with matplotlib.
 
     Args:
-
+        ep_analyses: The final event plane dependent response matrix analysis objects.
+        output_name: Name of the output plot.
+        output_info: Output information.
+        general_labels: General informational labels for the plot (ALICE, collision system, etc).
+        plot_labels: plot and axis titles.
+    Returns:
+        None. The created canvas is plotted and saved.
     """
-    ...
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    ax.set_yscale("log")
 
 def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
                                            output_name: str,
-                                           output_info: analysis_objects.PlottingOutputWrapper) -> None:
+                                           output_info: analysis_objects.PlottingOutputWrapper,
+                                           general_labels: Dict[str, str],
+                                           plot_labels: plot_base.PlotLabels) -> None:
     """ Plot the particle level spectra with ROOT.
 
     Args:
         ep_analyses: The final event plane dependent response matrix analysis objects.
         output_name: Name of the output plot.
         output_info: Output information.
+        general_labels: General informational labels for the plot (ALICE, collision system, etc).
+        plot_labels: plot and axis titles.
     Returns:
         None. The created canvas is plotted and saved.
     """
@@ -102,46 +154,35 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Make the legend transparent
     legend.SetFillStyle(0)
 
-    # Retrieve the inclusive analysis to complete the labeling.
-    # All of the parameters retrieved here are shared by all analyses.
-    inclusive = next(iter(ep_analyses.values()))
-
     # Main labeling
     latex_labels = []
     # ALICE + collision energy
     latex_labels.append(ROOT.TLatex(
         0.595, 0.90,
-        labels.use_label_with_root(
-            rf"{inclusive.alice_label.display_str()}\:{inclusive.collision_energy.display_str()}"
-        )
+        labels.use_label_with_root(general_labels["alice_and_collision_energy"])
     ))
     # Collision system + event activity
     # We want the centrality to appear between the cross symbol and Pb--Pb
-    embedded_additional_label = inclusive.event_activity.display_str()
     latex_labels.append(ROOT.TLatex(
         0.5625, 0.84,
-        labels.use_label_with_root(
-            rf"{inclusive.collision_system.display_str(embedded_additional_label = embedded_additional_label)}"
-        ),
+        labels.use_label_with_root(general_labels["collision_system_and_event_activity"]),
     ))
     # Particle level spectra range in detector pt.
-    particle_level_spectra_bin = inclusive.task_config["particle_level_spectra"]["particle_level_spectra_bin"]
     latex_labels.append(ROOT.TLatex(
         0.605, 0.78,
-        labels.pt_range_string(
-            particle_level_spectra_bin,
-            lower_label = "T,jet",
-            upper_label = "det",
-        ),
+        labels.use_label_with_root(general_labels["detector_pt_range"]),
     ))
     # Constituent cuts
     latex_labels.append(ROOT.TLatex(
         0.5675, 0.70,
-        labels.use_label_with_root(labels.constituent_cuts(additional_label = "det")),
+        labels.use_label_with_root(general_labels["constituent_cuts"]),
     ))
     # Leading hadron bias
-    # NOTE: The x position of this label depends on it's value!
-    # We start we a semi-reasonable position, we expectation that we will usually overwrite it.
+    # The x position of this label depends on the value.
+    # We need some additional parameters to determine the position, so we retrieve the inclusive analysis.
+    # All of the parameters retrieved here are shared by all analyses.
+    inclusive = next(iter(ep_analyses.values()))
+    # We start we a semi-reasonable position with the expectation that we will usually overwrite it.
     leading_hadron_bias_label_x_position = 0.6
     if inclusive.leading_hadron_bias.type == params.LeadingHadronBiasType.track:
         leading_hadron_bias_label_x_position = 0.6275
@@ -150,15 +191,10 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         leading_hadron_bias_label_x_position = 0.6615
     latex_labels.append(ROOT.TLatex(
         leading_hadron_bias_label_x_position, 0.625,
-        labels.use_label_with_root(inclusive.leading_hadron_bias.display_str(additional_label = "det")),
+        labels.use_label_with_root(general_labels["leading_hadron_bias"]),
     ))
     # Jet finding
-    latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(labels.jet_finding())))
-
-    x_label = labels.use_label_with_root(
-        fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
-    )
-    y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+    latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(general_labels["jet_finding"])))
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
     for i, (analysis, color, marker) in enumerate(zip(ep_analyses.values(), colors, markers)):
@@ -166,12 +202,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         hist = analysis.particle_level_spectra
 
         # Set the titles
-        hist.SetTitle("")
-        hist.GetXaxis().SetTitle(x_label)
-        full_y_label = y_label
-        if analysis.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
-            full_y_label = r"(1/\mathrm{N}_{\mathrm{jets}})" + y_label
-        hist.GetYaxis().SetTitle(full_y_label)
+        plot_labels.apply_labels(hist)
 
         # Style each individual hist. In principle, we could do this for only one # hist and then set the
         # axis labels to empty for the rest, but then we would have to empty out the labels. This is just,
