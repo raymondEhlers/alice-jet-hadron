@@ -17,6 +17,14 @@ jet\_hadron.analysis.correlations module
     :undoc-members:
     :show-inheritance:
 
+jet\_hadron.analysis.correlations\_helpers module
+-------------------------------------------------
+
+.. automodule:: jet_hadron.analysis.correlations_helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 jet\_hadron.analysis.fit module
 -------------------------------
 
@@ -29,6 +37,14 @@ jet\_hadron.analysis.generic\_tasks module
 ------------------------------------------
 
 .. automodule:: jet_hadron.analysis.generic_tasks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+jet\_hadron.analysis.pt\_hard\_analysis module
+----------------------------------------------
+
+.. automodule:: jet_hadron.analysis.pt_hard_analysis
     :members:
     :undoc-members:
     :show-inheritance:

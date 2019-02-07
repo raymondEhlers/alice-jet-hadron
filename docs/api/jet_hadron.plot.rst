@@ -57,6 +57,14 @@ jet\_hadron.plot.highlight\_RPF module
     :undoc-members:
     :show-inheritance:
 
+jet\_hadron.plot.response\_matrix module
+----------------------------------------
+
+.. automodule:: jet_hadron.plot.response_matrix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 jet\_hadron.plot.root\_base module
 ----------------------------------
 
