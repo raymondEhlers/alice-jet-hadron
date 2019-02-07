@@ -74,9 +74,10 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
     if inclusive.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
         y_label = r"(1/\mathrm{N}_{\mathrm{jets}})" + y_label
+        y_label = f"${y_label}$"
     plot_labels = plot_base.PlotLabels(
         title = "",
-        x_label = fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})",
+        x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
         y_label = y_label,
     )
 
