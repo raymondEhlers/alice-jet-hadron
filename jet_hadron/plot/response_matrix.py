@@ -506,7 +506,8 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         yerr = merged_hist.errors,
         label = "Merged",
         color = "black",
-        fmt = ".",
+        marker = ".",
+        linestyle = "",
     )
 
     # Now, we plot the pt hard dependent hists
@@ -527,7 +528,8 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
             yerr = h.errors,
             label = label,
             color = color,
-            fmt = ".",
+            marker = ".",
+            linestyle = "",
         )
 
     # Final presentation settings
