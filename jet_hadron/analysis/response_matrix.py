@@ -752,7 +752,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 setting_up.update()
 
-    def run_pt_hard_bin_processing(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+    def _run_pt_hard_bin_processing(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
         """ Run all pt hard bin related processing.
 
         Args:
@@ -869,7 +869,7 @@ class ResponseManager(generic_class.EqualityMixin):
         """
         self._histogram_io(label = "Reading", func = ResponseMatrix.init_hists_from_root_file)
 
-    def run_final_processing(self) -> None:
+    def _run_final_processing(self) -> None:
         """ Run final post processing steps. """
         # Final post processing steps
         with self.progress_manager.counter(total = len(self.final_responses),
@@ -888,7 +888,7 @@ class ResponseManager(generic_class.EqualityMixin):
             # NOTE: Technically, we do plotting here, but it's quite minimal, and it's all in the service of a simple
             #       crosscheck of the result, so it's not worth it to store the result in the manager.
             difference, absolute_value_of_difference = \
-                self.check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations()
+                self._check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations()
             plot_response_matrix.plot_particle_level_spectra_agreement(
                 difference = difference,
                 absolute_value_of_difference = absolute_value_of_difference,
@@ -904,7 +904,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
                 processing.update()
 
-    def check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations(self) -> Tuple[Hist, Hist]:
+    def _check_particle_level_spectra_agreement_between_inclusive_and_sum_of_EP_orientations(self) -> Tuple[Hist, Hist]:
         """ Check the agreement of the particle level spectra between the inclusive and sum of all EP orientations.
 
         This is basically a final crosscheck that this has been brought over from the older RM code base.
@@ -955,7 +955,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         return difference, absolute_value_of_difference
 
-    def plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+    def _plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
         """ Plot the results of the response matrix processing.
 
         Args:
@@ -1057,7 +1057,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 plotting.update()
 
-    def package_and_write_final_responses(self) -> None:
+    def _package_and_write_final_responses(self) -> None:
         """ Package up and write the final repsonse matrices. """
         output_filename = os.path.join(self.output_info.output_prefix, "final_responses.root")
         with histogram.RootOpen(output_filename, mode = "RECREATE"):
@@ -1099,7 +1099,7 @@ class ResponseManager(generic_class.EqualityMixin):
                 overall_progress.update()
 
                 # Run all pt hard related processing, including outliers removal, scaling, and merging hists.
-                self.run_pt_hard_bin_processing(
+                self._run_pt_hard_bin_processing(
                     histogram_info_for_processing = histogram_info_for_processing,
                 )
                 overall_progress.update()
@@ -1111,17 +1111,17 @@ class ResponseManager(generic_class.EqualityMixin):
             # This processing is performed after reading or writing the histograms because there are a
             # number of parameters here which could change. Instead of trying to deal with detecting when
             # is the proper time to reprocess, we just always reprocess.
-            self.run_final_processing()
+            self._run_final_processing()
             overall_progress.update()
 
             # Plot the results
-            self.plot_results(
+            self._plot_results(
                 histogram_info_for_processing = histogram_info_for_processing,
             )
             overall_progress.update()
 
             # Package up all of the responses in one file.
-            self.package_and_write_final_responses()
+            self._package_and_write_final_responses()
             overall_progress.update()
 
         return True
