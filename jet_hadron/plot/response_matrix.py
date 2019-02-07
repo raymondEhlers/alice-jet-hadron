@@ -140,8 +140,16 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         labels.use_label_with_root(labels.constituent_cuts(additional_label = "det")),
     ))
     # Leading hadron bias
+    # NOTE: The x position of this label depends on it's value!
+    # We start we a semi-reasonable position, we expectation that we will usually overwrite it.
+    leading_hadron_bias_label_x_position = 0.6
+    if inclusive.leading_hadron_bias.type == params.LeadingHadronBiasType.track:
+        leading_hadron_bias_label_x_position = 0.6275
+    if inclusive.leading_hadron_bias.type == params.LeadingHadronBiasType.cluster and \
+            inclusive.leading_hadron_bias.value < 10:
+        leading_hadron_bias_label_x_position = 0.6615
     latex_labels.append(ROOT.TLatex(
-        0.6275, 0.625,
+        leading_hadron_bias_label_x_position, 0.625,
         labels.use_label_with_root(inclusive.leading_hadron_bias.display_str(additional_label = "det")),
     ))
     # Jet finding
