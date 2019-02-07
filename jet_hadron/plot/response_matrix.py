@@ -69,6 +69,14 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
         "leading_hadron_bias": inclusive.leading_hadron_bias.display_str(additional_label = "det"),
         "jet_finding": labels.jet_finding(),
     }
+    # Ensure that each line is a valid latex line.
+    # The heuristic is roughly that full statements (such as jet_finding) are already wrapped in "$",
+    # while partial statements, such as the leading hadron bias, event activity, etc are not wrapped in "$".
+    # This is due to the potential for such "$" to interfere with including those partial statements in other
+    # statements. As an example, it would be impossible to use the ``embedded_additional_label`` above if the
+    # ``event_activity`` included "$".
+    for k, v in general_labels.items():
+        general_labels[k] = labels.make_valid_latex_string(v)
 
     # Plot labels
     y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
@@ -150,15 +158,9 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
         frameon = False,
         fontsize = 18,
     )
-    # General labels
-    label = ""
-    for v in general_labels.values():
-        # Only prepended a new line if we already have content.
-        if label != "":
-            label += "\n"
-        # Then, ensure that each line is a valid latex line.
-        label += labels.make_valid_latex_string(v)
-    # Finally, draw the fully processed label in the upper right corner.
+    # Combine the general labels and then plot them.
+    label = "\n".join(general_labels.values())
+    # The label is anchored in the upper right corner.
     ax.text(0.95, 0.95, s = label,
             horizontalalignment = "right",
             verticalalignment = "top",
@@ -216,13 +218,14 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels = []
     # ALICE + collision energy
     latex_labels.append(ROOT.TLatex(
-        0.595, 0.90,
+        0.5675, 0.90,
         labels.use_label_with_root(general_labels["alice_and_collision_energy"])
     ))
     # Collision system + event activity
     # We want the centrality to appear between the cross symbol and Pb--Pb
+    # NOTE: The y value is minimally adjusted down from the constant 0.06 decrease because the sqrt extends far down.
     latex_labels.append(ROOT.TLatex(
-        0.5625, 0.84,
+        0.5375, 0.839,
         labels.use_label_with_root(general_labels["collision_system_and_event_activity"]),
     ))
     # Particle level spectra range in detector pt.
@@ -242,11 +245,13 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     inclusive = next(iter(ep_analyses.values()))
     # We start we a semi-reasonable position with the expectation that we will usually overwrite it.
     leading_hadron_bias_label_x_position = 0.6
+    # Track bias
     if inclusive.leading_hadron_bias.type == params.LeadingHadronBiasType.track:
-        leading_hadron_bias_label_x_position = 0.6275
+        leading_hadron_bias_label_x_position = 0.6025
+    # Cluster bias
     if inclusive.leading_hadron_bias.type == params.LeadingHadronBiasType.cluster and \
             inclusive.leading_hadron_bias.value < 10:
-        leading_hadron_bias_label_x_position = 0.6615
+        leading_hadron_bias_label_x_position = 0.633
     latex_labels.append(ROOT.TLatex(
         leading_hadron_bias_label_x_position, 0.625,
         labels.use_label_with_root(general_labels["leading_hadron_bias"]),
