@@ -84,6 +84,15 @@ Correlations:
             reaction_plane_orientation: true
             track_pt_bin: *TrackPtBins11h
             jet_pt_bin: *JetPtBins11h
+CorrelationsManager:
+    fit_parameters:
+        # Event plane resolution parameters
+        resolution_parameters:
+            R22: 0.5713
+            R42: &R42 0.2972
+            # Temporarily set to R{4,2} to estimate possible contributions
+            R62: *R42
+            R82: *R42
 
 GeneralHists:
     enabled: false
@@ -719,10 +728,3 @@ fitOptions:
         # Of the form `jetPtBin: trackPtBin`
         1: [8]
         2: [5, 6, 7, 8]
-    # Event plane resolution parameters
-    epResolutionParameters:
-        R22: 0.5713
-        R42: &R42 0.2972
-        # Temporarily set to R4,2 to get possible contributions
-        R62: *R42
-        R82: *R42
