@@ -5,6 +5,7 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+from dataclasses import dataclass
 import logging
 from typing import Any, Dict, Mapping
 
@@ -18,6 +19,21 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base.typing_helpers import Hist
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class PtHardHistogramInformation(analysis_objects.HistogramInformation):
+    """ Helper class to store information about processing an hist in an analysis object.
+
+    This class adds information on the outliers removal axis, which is necessary for any pt hard
+    binned analysis.
+
+    Attributes:
+        description: Description of the histogram.
+        attribute_name: Name of the attribute under which the hist is stored in the analysis object.
+        hist_name: Histogram safe name derived from the attribute name.
+        outliers_removal_axis: Projection axis for the particle level used in outliers removal.
+    """
+    outliers_removal_axis: projectors.TH1AxisType
 
 def calculate_average_n_events(pt_hard_bins: Mapping[Any, Any]) -> float:
     """ Get relative scaling for each pt hard bin and scale the scale factors by each relative value """

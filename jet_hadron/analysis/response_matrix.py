@@ -64,56 +64,32 @@ class ResponseMatrixProjector(projectors.HistProjector):
     """
     ...
 
-@dataclass
-class HistogramInformation:
-    """ Helper class to store information about processing an hist in an analysis object.
-
-    This basically just stores information in a nicely formatted and clear manner.
-
-    Attributes:
-        description: Description of the histogram.
-        attribute_name: Name of the attribute under which the hist is stored in the analysis object.
-        outliers_removal_axis: Projection axis for the particle level used in outliers removal.
-    """
-    description: str
-    attribute_name: str
-    outliers_removal_axis: projectors.TH1AxisType
-
-    @property
-    def hist_name(self) -> str:
-        return self.attribute_name.replace(".", "_")
-
-_response_matrix_histogram_info = {
-    "response_matrix": HistogramInformation(
+_response_matrix_histogram_info: Dict[str, Union[analysis_objects.HistogramInformation,
+                                                 pt_hard_analysis.PtHardHistogramInformation]] = {
+    "response_matrix": pt_hard_analysis.PtHardHistogramInformation(
         description = "Response matrix",
         attribute_name = "response_matrix",
         outliers_removal_axis = projectors.TH1AxisType.y_axis
     ),
-    "response_matrix_errors": HistogramInformation(
+    "response_matrix_errors": analysis_objects.HistogramInformation(
         description = "Response matrix errors",
         attribute_name = "response_matrix_errors",
-        # Outliers should already be removed by the time this histogram is created,
-        # so this isn't a valid field.
-        outliers_removal_axis = None,
     ),
-    "particle_level_spectra": HistogramInformation(
+    "particle_level_spectra": analysis_objects.HistogramInformation(
         description = "Particle level spectra",
         attribute_name = "particle_level_spectra",
-        # Outliers should already be removed by the time this histogram is created,
-        # so this isn't a valid field.
-        outliers_removal_axis = None,
     ),
 }
 
 # Part-, det-level spectra
 for name in ["part", "det"]:
     _response_matrix_histogram_info.update({
-        f"{name}_level_hists_jet_spectra": HistogramInformation(
+        f"{name}_level_hists_jet_spectra": pt_hard_analysis.PtHardHistogramInformation(
             description = f"{name.capitalize()}-level matched jet spectra",
             attribute_name = f"{name}_level_hists.jet_spectra",
             outliers_removal_axis = projectors.TH1AxisType.x_axis,
         ),
-        f"{name}_level_hists_unmatched_jet_spectra": HistogramInformation(
+        f"{name}_level_hists_unmatched_jet_spectra": pt_hard_analysis.PtHardHistogramInformation(
             description = f"{name.capitalize()}-level unmatched jet spectra",
             attribute_name = f"{name}_level_hists.unmatched_jet_spectra",
             outliers_removal_axis = projectors.TH1AxisType.x_axis,
@@ -160,7 +136,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None)
 
-    def __iter__(self) -> Iterator[Tuple[str, HistogramInformation, Union[Hist, None]]]:
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.HistogramInformation, Union[Hist, None]]]:
         """ Iterate over the histograms in the response matrix analysis object.
 
         Returns:
@@ -752,7 +728,8 @@ class ResponseManager(generic_class.EqualityMixin):
                 # Update progress
                 setting_up.update()
 
-    def _run_pt_hard_bin_processing(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+    def _run_pt_hard_bin_processing(self, histogram_info_for_processing:
+                                    Mapping[str, pt_hard_analysis.PtHardHistogramInformation]) -> None:
         """ Run all pt hard bin related processing.
 
         Args:
@@ -955,7 +932,8 @@ class ResponseManager(generic_class.EqualityMixin):
 
         return difference, absolute_value_of_difference
 
-    def _plot_results(self, histogram_info_for_processing: Dict[str, HistogramInformation]) -> None:
+    def _plot_results(self, histogram_info_for_processing:
+                      Mapping[str, pt_hard_analysis.PtHardHistogramInformation]) -> None:
         """ Plot the results of the response matrix processing.
 
         Args:
@@ -1070,9 +1048,11 @@ class ResponseManager(generic_class.EqualityMixin):
         logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
 
         # We need to determine the input information
-        histogram_info_for_processing = {}
+        histogram_info_for_processing: Dict[str, pt_hard_analysis.PtHardHistogramInformation] = {}
         for name, info in _response_matrix_histogram_info.items():
             if name not in ["response_matrix_errors", "particle_level_spectra"]:
+                # Help out mypy...
+                assert isinstance(info, pt_hard_analysis.PtHardHistogramInformation)
                 histogram_info_for_processing[name] = info
 
         # Analysis steps:

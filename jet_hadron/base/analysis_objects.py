@@ -74,6 +74,24 @@ class JetHCorrelationAxis(enum.Enum):
 # Basic data classes
 ####################
 @dataclass
+class HistogramInformation:
+    """ Helper class to store information about processing an hist in an analysis object.
+
+    This basically just stores information in a nicely formatted and clear manner.
+
+    Attributes:
+        description: Description of the histogram.
+        attribute_name: Name of the attribute under which the hist is stored in the analysis object.
+        hist_name: Histogram safe name derived from the attribute name.
+    """
+    description: str
+    attribute_name: str
+
+    @property
+    def hist_name(self) -> str:
+        return self.attribute_name.replace(".", "_")
+
+@dataclass
 class CorrelationObservable1D:
     """ For 1d correlation observables. """
     type: JetHCorrelationType
