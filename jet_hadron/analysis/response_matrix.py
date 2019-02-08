@@ -125,8 +125,9 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         self.response_normalization = self.task_config.get(
             "response_normalization", response_matrix_helpers.ResponseNormalization.none
         )
-        # This will likely be overridden by the deriving class. It should not contain the file ex
-        self.output_filename = "ResponseMatrixHists"
+        # Validate output filename
+        if not self.output_filename.endswith(".root"):
+            self.output_filename += ".root"
 
         # Relevant histograms
         self.response_matrix: Hist = None
@@ -149,7 +150,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
     def init_hists_from_root_file(self) -> None:
         """ Initialize processed histograms from a ROOT file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
-        filename = os.path.join(self.output_prefix, self.output_filename + ".root")
+        filename = os.path.join(self.output_prefix, self.output_filename)
         with histogram.RootOpen(filename = filename, mode = "READ") as f:
             for _, hist_info, _ in self:
                 h = f.Get(hist_info.hist_name)
@@ -164,7 +165,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
 
     def write_hists_to_root_file(self) -> None:
         """ Save processed histograms to a ROOT file. """
-        filename = os.path.join(self.output_prefix, self.output_filename + ".root")
+        filename = os.path.join(self.output_prefix, self.output_filename)
         # Create the output directory if necessary
         directory_name = os.path.dirname(filename)
         if not os.path.exists(directory_name):

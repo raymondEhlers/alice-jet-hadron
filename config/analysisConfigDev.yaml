@@ -275,6 +275,7 @@ Response:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/dev/test/{event_activity}/{leading_hadron_bias}/RP{reaction_plane_orientation}/{task_name}"
+        outputFilename: "ResponseMatrixHists.root"
         # yamllint disable-line rule:line-length
         inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
         iterables:
@@ -302,6 +303,7 @@ ResponseFinal:
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/dev/test/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputFilename: "ResponseMatrixHists.root"
         aliceLabel: final
         iterables:
             reaction_plane_orientation: true
