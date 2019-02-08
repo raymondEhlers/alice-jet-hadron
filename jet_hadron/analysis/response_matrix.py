@@ -141,7 +141,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         """ Iterate over the histograms in the response matrix analysis object.
 
         Returns:
-            Name under which the HistogramInformation object is stored, the HistogramInformation object,
+            Name under which the ``HistogramInformation`` object is stored, the ``HistogramInformation`` object,
             and the histogram itself.
         """
         for name, histogram_info in _response_matrix_histogram_info.items():
