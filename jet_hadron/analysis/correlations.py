@@ -17,7 +17,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -1121,6 +1121,47 @@ class CorrelationHistogramsDeltaEta:
         for k, v in vars(self).items():
             yield k, v
 
+_2d_correlations_histogram_information = {
+    "raw": analysis_objects.HistogramInformation(
+        description = "Raw 2D correlation",
+        attribute_name = "correlation_hists_2d.raw"
+    ),
+    "mixed_event": analysis_objects.HistogramInformation(
+        description = "Mixed event 2D correlation",
+        attribute_name = "correlation_hists_2d.mixed_event"
+    ),
+    "signal": analysis_objects.HistogramInformation(
+        description = "Corrected 2D correlation",
+        attribute_name = "correlation_hists.2d.signal"
+    )
+}
+
+_number_of_triggers_histogram_information = {
+    "number_of_triggers": analysis_objects.HistogramInformation(
+        description = "Number of triggers",
+        attribute_name = "number_of_triggers_hist",
+    ),
+}
+
+_1d_correlations_histogram_information = {
+    "delta_phi_signal_dominated": analysis_objects.HistogramInformation(
+        description = "Delta phi signal dominated correlation",
+        attribute_name = "correlation_hists_delta_phi.signal_dominated"
+    ),
+    "delta_phi_background_dominated": analysis_objects.HistogramInformation(
+        description = "Delta phi background dominated correlation",
+        attribute_name = "correlation_hists_delta_phi.background_dominated"
+    ),
+    "delta_eta_near_side": analysis_objects.HistogramInformation(
+        description = "Delta eta near side correlation",
+        attribute_name = "correlation_hists_delta_eta.near_side"
+    ),
+    "delta_eta_away_side": analysis_objects.HistogramInformation(
+        description = "Delta eta away side correlation",
+        attribute_name = "correlation_hists_delta_eta.away_side"
+    ),
+}
+
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
 
@@ -1162,6 +1203,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         if self.pt_hard_bin:
             self.train_number = self.pt_hard_bin.train_number
             self.input_filename = self.input_filename.format(pt_hard_bin_train_number = self.train_number)
+            self.output_prefix = self.output_prefix.format(pt_hard_bin_train_number = self.train_number)
+        # Validate output filename
+        if not self.output_filename.endswith(".root"):
+            self.output_filename += ".root"
 
         # Basic information
         self.input_hists: Dict[str, Any] = {}
@@ -1191,29 +1236,70 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.signal_dominated_eta_region = self.task_config["deltaEtaRanges"]["signalDominated"]
         self.background_dominated_eta_region = self.task_config["deltaEtaRanges"]["backgroundDominated"]
 
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.HistogramInformation, Union[Hist, None]]]:
+        """ Iterate over the histograms in the correlations analysis object.
+
+        Returns:
+            Name under which the HistogramInformation object is stored, the HistogramInformation object,
+            and the histogram itself.
+        """
+        all_hists_info = {
+            **_2d_correlations_histogram_information,
+            **_number_of_triggers_histogram_information,
+            **_1d_correlations_histogram_information
+        }
+        for name, histogram_info in all_hists_info.items():
+            yield name, histogram_info, utils.recursive_getattr(self, histogram_info.attribute_name)
+
     def _write_2d_correlations(self) -> None:
         """ Write 2D correlatinos to output file. """
-        hist_names = ["raw", "mixed_event", "signal"]
-        self._write_to_root_file(hists = self.correlation_hists_2d, hist_names = hist_names)
+        self._write_hists_to_root_file(hists = _2d_correlations_histogram_information)
 
-    def _write_trigger_jet_spectra(self) -> None:
+    def _write_number_of_triggers_hist(self) -> None:
         """ Write trigger jet spectra to file. """
-        self._write_to_root_file(hists = self, hist_names = ["number_of_triggers_hist"])
+        self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
 
-    def _write_to_root_file(self, hists, hist_names: List[str], mode: str = "UPDATE") -> None:
-        """ Write output list to a file """
+    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.HistogramInformation],
+                                  mode: str = "UPDATE") -> None:
+        """ Write the provided histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename)
+        directory_name = os.path.dirname(filename)
+        if not os.path.exists(directory_name):
+            os.makedirs(directory_name)
 
         logger.info(f"Saving correlations to {filename}")
-
+        # Then actually iterate through and save the hists.
         with histogram.RootOpen(filename = filename, mode = mode):
-            for hist_name in hist_names:
-                hist = getattr(hists, hist_name)
+            for hist_info in hists.values():
+                hist = utils.recursive_getattr(self, hist_info.attribute_name)
+                # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
+                    logger.debug(f"Writing hist {hist} with name {hist.hist_name}")
                     hist.Write()
 
-    def _init_from_root_file(self, **kwargs) -> bool:
-        raise NotImplementedError("Need to move from the previous implementation.")
+    def _init_2d_correlations_hists_from_root_file(self) -> None:
+        """ Initialize 2D correlation hists. """
+        self._init_hists_from_root_file(hists = _2d_correlations_histogram_information)
+
+    def _init_number_of_triggers_hist_from_root_file(self) -> None:
+        """ Write number of triggers hists. """
+        self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
+
+    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.HistogramInformation]) -> None:
+        """ Initialize processed histograms from a ROOT file. """
+        # We want to initialize from our saved hists - they will be at the output_prefix.
+        filename = os.path.join(self.output_prefix, self.output_filename)
+        with histogram.RootOpen(filename = filename, mode = "READ") as f:
+            for hist_info in hists.values():
+                h = f.Get(hist_info.hist_name)
+                if not h:
+                    h = None
+                else:
+                    # Detach it from the file so we can store it for later use.
+                    h.SetDirectory(0)
+                logger.debug(f"Initializing hist {h} to be stored in {hist_info.attribute_name}")
+                # Finally, store the histogram
+                utils.recursive_setattr(self, hist_info.attribute_name, h)
 
     def _setup_sparse_projectors(self) -> None:
         """ Setup the THnSparse projectors.
@@ -1555,8 +1641,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         else:
             # Initialize the 2D correlations from the file
             logger.info("Loading 2D correlations and trigger jet spectra from file")
-            self._init_from_root_file(correlations_2d = True)
-            self._init_from_root_file(trigger_jet_spectra = True)
+            self._init_2d_correlations_hists_from_root_file()
+            self._init_number_of_triggers_hist_from_root_file()
 
         if self.processing_options["plot2DCorrelations"]:
             logger.info("Plotting 2D correlations")
@@ -1919,7 +2005,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _write_1d_correlations(self):
         """ Write 1D correlations to file. """
-        ...
+        self._write_hists_to_root_file(hists = _1d_correlations_histogram_information)
 
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
