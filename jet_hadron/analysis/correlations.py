@@ -17,7 +17,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import Any, cast, Dict, Iterator, List, Mapping, Optional, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -88,13 +88,10 @@ class JetHCorrelationProjector(projectors.HistProjector):
 
     def output_hist(self, output_hist: Hist,
                     input_observable: Any,
-                    **kwargs: Dict[str, Any]) -> analysis_objects.CorrelationObservable1D:
+                    **kwargs: Union[analysis_objects.JetHCorrelationType, analysis_objects.JetHCorrelationAxis]) -> analysis_objects.CorrelationObservable1D:
         """ Wrap the output histogram with some additional information. """
-        correlation_type = kwargs["type"]
-        correlation_axis = kwargs["axis"]
-        # Help out mypy
-        assert isinstance(correlation_type, analysis_objects.JetHCorrelationType)
-        assert isinstance(correlation_axis, analysis_objects.JetHCorrelationAxis)
+        correlation_type = cast(analysis_objects.JetHCorrelationType, kwargs["type"])
+        correlation_axis = cast(analysis_objects.JetHCorrelationAxis, kwargs["axis"])
         return analysis_objects.CorrelationObservable1D(
             type = correlation_type,
             axis = correlation_axis,
