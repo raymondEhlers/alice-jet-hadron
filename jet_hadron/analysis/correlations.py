@@ -1010,30 +1010,8 @@ def printFitParameters(fit):
 #
 #    return analyses
 
-#class GeneralHistograms(analysis_objects.JetHBase):
-#    """ Some very general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
-#    def __init__(self, *args, **kwargs):
-#        super().__init__(*args, **kwargs)
-#
-#        # Basic information
-#        self.input_hists: Dict[str, Any] = {}
-#
-#        # Histograms
-#        self.z_vertex: Hist
-#        self.centrality: Hist
-#        self.event_plane: Hist
-#        self.jet_matching_same_event: Hist
-#        self.jet_matching_mixed_event : Hist
-#        self.track_pt: Hist
-#        self.jet_pt: Hist
-#        self.jet_pt_bias: Hist
-#        # 2D hists
-#        self.jet_eta_phi: Hist
-#        self.jetH_eta_phi: Hist
-#
-
 class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
-    """ Task to plot general task hists.
+    """ Task to plot general task hists, such as centrality, Z vertex, very basic QA spectra, etc.
 
     Note:
         This class inherits from the base class just to add the possibility of disabling the
@@ -1180,37 +1158,6 @@ class CorrelationHistogramsDeltaEta:
         for k, v in vars(self).items():
             yield k, v
 
-#_number_of_triggers_histogram_information = {
-#    "number_of_triggers": analysis_objects.HistogramInformation(
-#        name = "jetH_{key}",
-#        description = "Number of triggers",
-#        attribute_name = "number_of_triggers_hist",
-#    ),
-#}
-#
-#_1d_correlations_histogram_information = {
-#    "delta_phi_signal_dominated": analysis_objects.HistogramInformation(
-#        name = "jetHDPhi_{analysis_identifier}_{key}",
-#        description = "Delta phi signal dominated correlation",
-#        attribute_name = "correlation_hists_delta_phi.signal_dominated"
-#    ),
-#    "delta_phi_background_dominated": analysis_objects.HistogramInformation(
-#        name = "jetHDPhi_{analysis_identifier}_{key}",
-#        description = "Delta phi background dominated correlation",
-#        attribute_name = "correlation_hists_delta_phi.background_dominated"
-#    ),
-#    "delta_eta_near_side": analysis_objects.HistogramInformation(
-#        name = "jetHDPhi_{analysis_identifier}_{key}",
-#        description = "Delta eta near side correlation",
-#        attribute_name = "correlation_hists_delta_eta.near_side"
-#    ),
-#    "delta_eta_away_side": analysis_objects.HistogramInformation(
-#        name = "jetHDPhi_{analysis_identifier}_{key}",
-#        description = "Delta eta away side correlation",
-#        attribute_name = "correlation_hists_delta_eta.away_side"
-#    ),
-#}
-
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
 
@@ -1222,25 +1169,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         track_pt: Track pt bin.
         ...
     """
-    # Properties
-    # Define as static variables since they don't depend on any particular instance
-    hist_name_format = "jetH%(label)s_jetPt{jet_pt_bin}_trackPt{track_pt_bin}_{tag}"
-    hist_name_format_2d = hist_name_format % {"label": "DEtaDPhi"}
-    # Standard 1D hists
-    hist_name_format_delta_phi = hist_name_format % {"label": "DPhi"}
-    hist_name_format_delta_phi_array = hist_name_format % {"label": "DPhi"} + "Array"
-    hist_name_format_delta_eta = hist_name_format % {"label": "DEta"}
-    hist_name_format_delta_eta_array = hist_name_format % {"label": "DEta"} + "Array"
-    # Subtracted 1D hists
-    hist_name_format_delta_phi_subtracted = hist_name_format_delta_phi + "_subtracted"
-    hist_name_format_delta_phi_subtracted_array = hist_name_format_delta_phi_array + "_subtracted"
-    hist_name_format_delta_eta_subtracted = hist_name_format_delta_eta + "_subtracted"
-    hist_name_format_delta_eta_subtracted_array = hist_name_format_delta_eta_array + "_subtracted"
-
-    # These is nothing here to format - it's just the jet spectra
-    # However, the variable name will stay the same for clarity
-    fit_name_format = hist_name_format % {"label": "Fit"}
-
     def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Analysis parameters
@@ -2027,11 +1955,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             title = f"Unsubtracted 1D: {self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}, {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
             x_label = r"$\Delta\varphi$",
             y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
-            output_name = self.hist_name_format_delta_phi.format(
-                jet_pt_bin = self.jet_pt.bin,
-                track_pt_bin =self.track_pt.bin,
-                tag = "joel_comparion_unsub",
-            ),
+            output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
         )
 
     def _compare_to_joel(self):

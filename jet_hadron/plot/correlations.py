@@ -142,11 +142,7 @@ def plot_1d_signal_and_background_root(jet_hadron, canvas: Canvas) -> None:
     hists.background_dominated.hist.Draw("same")
 
     # Save
-    output_name = jet_hadron.hist_name_format_delta_phi.format(
-        jet_pt_bin = jet_hadron.jet_pt.bin,
-        track_pt_bin = jet_hadron.track_pt.bin,
-        tag = "signal_background_comparion",
-    )
+    output_name = f"jetH_delta_phi_{jet_hadron.identifier}_signal_background_comparison"
     plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
 def plot1DCorrelationsWithFits(jet_hadron):
