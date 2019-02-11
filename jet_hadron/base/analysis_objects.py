@@ -11,7 +11,7 @@ import enum
 import logging
 import numpy as np
 import re
-from typing import Any, Dict, List, Mapping, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -94,9 +94,10 @@ class HistogramInformation:
 @dataclass
 class CorrelationObservable1D:
     """ For 1d correlation observables. """
+    hist: Hist
     type: JetHCorrelationType
     axis: JetHCorrelationAxis
-    hist: Hist
+    analysis_identifier: Optional[str] = None
 
 @dataclass
 class ExtractObservable:

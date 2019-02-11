@@ -93,9 +93,9 @@ class JetHCorrelationProjector(projectors.HistProjector):
         correlation_type = cast(analysis_objects.JetHCorrelationType, kwargs["type"])
         correlation_axis = cast(analysis_objects.JetHCorrelationAxis, kwargs["axis"])
         return analysis_objects.CorrelationObservable1D(
+            hist = output_hist,
             type = correlation_type,
             axis = correlation_axis,
-            hist = output_hist,
         )
 
 class JetHAnalysis(analysis_objects.JetHBase):
@@ -1097,6 +1097,49 @@ class CorrelationHistograms2D:
             yield k, v
 
 @dataclass
+class CorrelationObservable1D(analysis_objects.CorrelationObservable1D):
+    @property
+    def name(self) -> str:
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{str(self.axis)}_{analysis_identifier}_{self.type}"
+
+@dataclass
+class DeltaPhiObservable(CorrelationObservable1D):
+    axis: analysis_objects.JetHCorrelationAxis = analysis_objects.JetHCorrelationAxis.delta_phi
+
+@dataclass
+class DeltaPhiSignalDominated(DeltaPhiObservable):
+    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.signal_dominated
+
+@dataclass
+class DeltaPhiBackgroundDominated(DeltaPhiObservable):
+    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.background_dominated
+
+@dataclass
+class DeltaEtaObservable(CorrelationObservable1D):
+    axis: analysis_objects.JetHCorrelationAxis = analysis_objects.JetHCorrelationAxis.delta_eta
+
+@dataclass
+class DeltaEtaNearSide(DeltaEtaObservable):
+    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.near_side
+
+@dataclass
+class DeltaEtaAwaySide(DeltaEtaObservable):
+    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.away_side
+
+# This would be preferred it's somehow possible...
+_temp_analysis_identifier = "analysis_identifier"
+_1d_correlations_histogram_information = {
+    "correlation_hists_delta_phi.signal_dominated": DeltaPhiSignalDominated(hist = None, analysis_identifier = _temp_analysis_identifier),
+    "correlation_hists_delta_phi.background_dominated": DeltaPhiBackgroundDominated(hist = None, analysis_identifier = _temp_analysis_identifier),
+    "correlation_hists_delta_eta.near_side": DeltaEtaNearSide(hist = None, analysis_identifier = _temp_analysis_identifier),
+    "correlation_hists_delta_eta.away_side": DeltaEtaAwaySide(hist = None, analysis_identifier = _temp_analysis_identifier),
+}
+
+@dataclass
 class CorrelationHistogramsDeltaPhi:
     signal_dominated: Optional[analysis_objects.CorrelationObservable1D]
     background_dominated: Optional[analysis_objects.CorrelationObservable1D]
@@ -1118,46 +1161,60 @@ class CorrelationHistogramsDeltaEta:
         for k, v in vars(self).items():
             yield k, v
 
+@dataclass
+class CorrelationObservable2D:
+    hist: Hist
+    type: str
+    # In principle, we could create an enum here, but it's only one value, so it's not worth it.
+    axis: str = "delta_eta_delta_phi"
+    analysis_identifier: Optional[str] = None
+
+    @property
+    def name(self):
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}",
+
 _2d_correlations_histogram_information = {
-    "raw": analysis_objects.HistogramInformation(
-        description = "Raw 2D correlation",
-        attribute_name = "correlation_hists_2d.raw"
-    ),
-    "mixed_event": analysis_objects.HistogramInformation(
-        description = "Mixed event 2D correlation",
-        attribute_name = "correlation_hists_2d.mixed_event"
-    ),
-    "signal": analysis_objects.HistogramInformation(
-        description = "Corrected 2D correlation",
-        attribute_name = "correlation_hists.2d.signal"
-    )
+    "correlation_hists_2d.raw": CorrelationObservable2D(hist = None, type = "raw"),
+    "correlation_hists_2d.mixed_event": CorrelationObservable2D(hist = None, type = "mixed_event"),
+    "correlation_hists_2d.corrected": CorrelationObservable2D(hist = None, type = "corrected"),
 }
 
-_number_of_triggers_histogram_information = {
-    "number_of_triggers": analysis_objects.HistogramInformation(
-        description = "Number of triggers",
-        attribute_name = "number_of_triggers_hist",
-    ),
-}
 
-_1d_correlations_histogram_information = {
-    "delta_phi_signal_dominated": analysis_objects.HistogramInformation(
-        description = "Delta phi signal dominated correlation",
-        attribute_name = "correlation_hists_delta_phi.signal_dominated"
-    ),
-    "delta_phi_background_dominated": analysis_objects.HistogramInformation(
-        description = "Delta phi background dominated correlation",
-        attribute_name = "correlation_hists_delta_phi.background_dominated"
-    ),
-    "delta_eta_near_side": analysis_objects.HistogramInformation(
-        description = "Delta eta near side correlation",
-        attribute_name = "correlation_hists_delta_eta.near_side"
-    ),
-    "delta_eta_away_side": analysis_objects.HistogramInformation(
-        description = "Delta eta away side correlation",
-        attribute_name = "correlation_hists_delta_eta.away_side"
-    ),
-}
+_number_of_triggers_histogram_information: Mapping[Any, Any] = {}
+#_number_of_triggers_histogram_information = {
+#    "number_of_triggers": analysis_objects.HistogramInformation(
+#        name = "jetH_{key}",
+#        description = "Number of triggers",
+#        attribute_name = "number_of_triggers_hist",
+#    ),
+#}
+#
+#_1d_correlations_histogram_information = {
+#    "delta_phi_signal_dominated": analysis_objects.HistogramInformation(
+#        name = "jetHDPhi_{analysis_identifier}_{key}",
+#        description = "Delta phi signal dominated correlation",
+#        attribute_name = "correlation_hists_delta_phi.signal_dominated"
+#    ),
+#    "delta_phi_background_dominated": analysis_objects.HistogramInformation(
+#        name = "jetHDPhi_{analysis_identifier}_{key}",
+#        description = "Delta phi background dominated correlation",
+#        attribute_name = "correlation_hists_delta_phi.background_dominated"
+#    ),
+#    "delta_eta_near_side": analysis_objects.HistogramInformation(
+#        name = "jetHDPhi_{analysis_identifier}_{key}",
+#        description = "Delta eta near side correlation",
+#        attribute_name = "correlation_hists_delta_eta.near_side"
+#    ),
+#    "delta_eta_away_side": analysis_objects.HistogramInformation(
+#        name = "jetHDPhi_{analysis_identifier}_{key}",
+#        description = "Delta eta away side correlation",
+#        attribute_name = "correlation_hists_delta_eta.away_side"
+#    ),
+#}
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
@@ -1206,6 +1263,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self.output_filename += ".root"
 
         # Basic information
+        # Identifier information
+        self.identifier = f"jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
+
         self.input_hists: Dict[str, Any] = {}
         # For convenience since it is frequently accessed.
         self.processing_options = self.task_config["processingOptions"]
@@ -1243,7 +1303,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         all_hists_info = {
             **_2d_correlations_histogram_information,
             **_number_of_triggers_histogram_information,
-            **_1d_correlations_histogram_information
+            **_1d_correlations_histogram_information,
         }
         for name, histogram_info in all_hists_info.items():
             yield name, histogram_info, utils.recursive_getattr(self, histogram_info.attribute_name)
@@ -1272,7 +1332,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
                     logger.debug(f"Writing hist {hist} with name {hist.hist_name}")
-                    hist.Write()
+                    # TODO: Maybe?
+                    hist_name = hist.GetName() + self.identifier
+                    hist.Write(hist_name)
 
     def _init_2d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 2D correlation hists. """
