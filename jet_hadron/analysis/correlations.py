@@ -1068,7 +1068,7 @@ class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
         if self.enabled:
             return super().run(*args, **kwargs)
         else:
-            logger.info("General hists disabled. Skipping running")
+            logger.info("General hists disabled. Skipping running.")
             return False
 
 class GeneralHistogramsManager(generic_tasks.TaskManager):
