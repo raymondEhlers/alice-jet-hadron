@@ -64,6 +64,11 @@ class ResponseMatrixProjector(projectors.HistProjector):
     """
     ...
 
+# NOTE: Much of this information could be stored immediately with the histogram. This would in
+#       fact be more natural. However, we also need the histogram information to be available
+#       externally (particularly the attribute name and outliers_removal_axis) so that we can
+#       know which hists to provide for outliers removal of a set of histograms. We didn't wrap
+#       the histograms themselves because it didn't seem like the extra abstraction was helpful here.
 _response_matrix_histogram_info: Dict[str, Union[analysis_objects.HistogramInformation,
                                                  pt_hard_analysis.PtHardHistogramInformation]] = {
     "response_matrix": pt_hard_analysis.PtHardHistogramInformation(
