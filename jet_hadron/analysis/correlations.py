@@ -18,7 +18,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, cast, Dict, Iterator, List, Mapping, Optional, Tuple, Union
+from typing import Any, cast, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -79,24 +79,10 @@ class JetHCorrelationSparseProjector(projectors.HistProjector):
     ...
 
 class JetHCorrelationProjector(projectors.HistProjector):
-    """ Projector for the Jet-h 2D correlation hists to 1D correlation hists. """
-    def projection_name(self, **kwargs):
-        """ Define the projection name for the Jet-H response matrix projector """
-        track_pt = kwargs["track_pt"]
-        jet_pt = kwargs["jet_pt"]
-        logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
-        return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
-
+    """ Projector for the jet-hadron 2D correlation hists to 1D correlation hists. """
     def get_hist(self, observable: "CorrelationObservable2D", **kwargs: Any) -> Hist:
         """ Retrieve the histogram from the observable. """
         return observable.hist
-
-    # TODO: Verify that this works...
-    def output_hist(self, output_hist: Hist,
-                    input_observable: Any,
-                    **kwargs: Union[analysis_objects.JetHCorrelationType, analysis_objects.JetHCorrelationAxis]) -> "CorrelationObservable1D":
-        """ The output informatino is already specified """
-        return output_hist
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
@@ -1857,7 +1843,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             observable_to_project_from = self.correlation_hists_2d.signal,
             output_observable = self.correlation_hists_delta_eta.near_side,
             output_attribute_name = "hist",
-            projection_name_format = self.correlation_hists_delta_eta.near_side,
+            projection_name_format = self.correlation_hists_delta_eta.near_side.name,
             projection_information = projection_information,
         )
         # Select near side in delta phi
