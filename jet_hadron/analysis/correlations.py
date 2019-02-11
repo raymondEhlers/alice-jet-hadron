@@ -1080,7 +1080,7 @@ class GeneralHistogramsManager(generic_tasks.TaskManager):
         )
 
 @dataclass
-class CorrelationObservable2D(analysis_objects.CorrelationObservable):
+class CorrelationObservable2D(analysis_objects.Observable):
     type: str
     # In principle, we could create an enum here, but it's only one value, so it's not worth it.
     axis: str = "delta_eta_delta_phi"
@@ -1112,13 +1112,12 @@ class CorrelationHistograms2D:
         for k, v in vars(self).items():
             yield k, v
 
-_number_of_triggers_histogram_information: Mapping[str, Any] = {}
-#_number_of_triggers_histogram_information: Mapping[str, analysis_objects.Observable] = {
-#    "number_of_triggers": analysis_objects.Observable(hist = None),
-#}
+_number_of_triggers_histogram_information: Mapping[str, analysis_objects.Observable] = {
+    "number_of_triggers": analysis_objects.Observable(hist = None),
+}
 
 @dataclass
-class CorrelationObservable1D(analysis_objects.CorrelationObservable):
+class CorrelationObservable1D(analysis_objects.Observable):
     type: analysis_objects.JetHCorrelationType
     axis: analysis_objects.JetHCorrelationAxis
     analysis_identifier: Optional[str] = None
@@ -1315,13 +1314,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.signal_dominated_eta_region = self.task_config["deltaEtaRanges"]["signalDominated"]
         self.background_dominated_eta_region = self.task_config["deltaEtaRanges"]["backgroundDominated"]
 
-    def __iter__(self) -> Iterator[analysis_objects.CorrelationObservable]:
+    def __iter__(self) -> Iterator[analysis_objects.Observable]:
         """ Iterate over the histograms in the correlations analysis object.
 
         Returns:
             The observable object, which contains the histogram.
         """
-        all_hists_info: Mapping[str, analysis_objects.CorrelationObservable] = {
+        all_hists_info: Mapping[str, analysis_objects.Observable] = {
             **_2d_correlations_histogram_information,
             **_number_of_triggers_histogram_information,
             **_1d_correlations_histogram_information,
@@ -1337,7 +1336,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write trigger jet spectra to file. """
         self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
 
-    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.CorrelationObservable],
+    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.Observable],
                                   mode: str = "UPDATE") -> None:
         """ Write the provided histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename)
@@ -1363,7 +1362,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write number of triggers hists. """
         self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
 
-    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.CorrelationObservable]) -> None:
+    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.Observable]) -> None:
         """ Initialize processed histograms from a ROOT file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
         filename = os.path.join(self.output_prefix, self.output_filename)
