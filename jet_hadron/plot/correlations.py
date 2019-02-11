@@ -32,11 +32,11 @@ def plot_2d_correlations(jet_hadron):
     canvas = ROOT.TCanvas("canvas2D", "canvas2D")
 
     # Iterate over 2D hists
-    for name, initial_hist in jet_hadron.correlation_hists_2d:
-        hist = initial_hist.Clone(f"{initial_hist.GetName()}_scaled")
+    for name, observable in jet_hadron.correlation_hists_2d:
+        hist = observable.hist.Clone(f"{observable.name}_scaled")
         logger.debug(f"name: {name}, hist: {hist}")
         # We don't want to scale the mixed event hist because we already determined the normalization
-        if "mixed" not in name:
+        if "mixed" not in observable.type:
             correlations_helpers.scale_by_bin_width(hist)
 
         # We don't need the title with all of the labeling
@@ -60,7 +60,7 @@ def plot_2d_correlations(jet_hadron):
         hist.GetZaxis().SetTitleOffset(0.8)
         canvas.SetLeftMargin(0.13)
 
-        if "mixed" in name:
+        if "mixed" in observable.type:
             hist.GetZaxis().SetTitle(r"$a(\Delta\varphi,\Delta\eta)$")
             hist.GetZaxis().SetTitleOffset(0.9)
         else:
@@ -101,11 +101,11 @@ def plot_2d_correlations(jet_hadron):
         tex.DrawLatexNDC(.75, .86, leading_hadron)
 
         # Save plot
-        plot_base.save_plot(jet_hadron.output_info, canvas, initial_hist.GetName())
+        plot_base.save_plot(jet_hadron.output_info, canvas, observable.name)
 
         # Draw as colz to view more precisely
         hist.Draw("colz")
-        plot_base.save_plot(jet_hadron.output_info, canvas, initial_hist.GetName() + "colz")
+        plot_base.save_plot(jet_hadron.output_info, canvas, observable.name + "colz")
 
         canvas.Clear()
 
@@ -313,8 +313,7 @@ def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -
     """
     # Retrieve the hist to be plotted
     # Here we selected the corrected 2D correlation
-    # Bins are currently selected arbitrarily
-    hist = jet_hadron.correlation_hists_2d.signal
+    hist = jet_hadron.correlation_hists_2d.signal.hist
 
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting

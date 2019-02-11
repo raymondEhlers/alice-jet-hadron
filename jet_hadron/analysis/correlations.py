@@ -87,6 +87,10 @@ class JetHCorrelationProjector(projectors.HistProjector):
         logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
         return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
 
+    def get_hist(self, observable: "CorrelationObservable2D", **kwargs: Any) -> Hist:
+        """ Retrieve the histogram from the observable. """
+        return observable.hist
+
     # TODO: Verify that this works...
     def output_hist(self, output_hist: Hist,
                     input_observable: Any,
@@ -1092,7 +1096,7 @@ class CorrelationObservable2D(analysis_objects.Observable):
         analysis_identifier = self.analysis_identifier
         if self.analysis_identifier is None:
             analysis_identifier = "{analysis_identifier}"
-        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}",
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}"
 
 _2d_correlations_histogram_information = {
     "correlation_hists_2d.raw": CorrelationObservable2D(hist = None, type = "raw"),
@@ -1112,8 +1116,14 @@ class CorrelationHistograms2D:
         for k, v in vars(self).items():
             yield k, v
 
+@dataclass
+class NumberOfTriggersObservable(analysis_objects.Observable):
+    @property
+    def name(self) -> str:
+        return "jetH_number_of_triggers"
+
 _number_of_triggers_histogram_information: Mapping[str, analysis_objects.Observable] = {
-    "number_of_triggers": analysis_objects.Observable(hist = None),
+    "number_of_triggers_observable": NumberOfTriggersObservable(hist = None),
 }
 
 @dataclass
@@ -1243,7 +1253,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     # These is nothing here to format - it's just the jet spectra
     # However, the variable name will stay the same for clarity
-    hist_name_format_trigger = "jetH_trigger_pt"
     fit_name_format = hist_name_format % {"label": "Fit"}
 
     def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
@@ -1272,30 +1281,32 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.ran_projections: bool = False
 
         # Relevant histograms
-        self.number_of_triggers_hist: Hist = None
+        self.number_of_triggers_observable: analysis_objects.Observable = dataclasses.replace(
+            _number_of_triggers_histogram_information["number_of_triggers_observable"], hist = None
+        )
         self.correlation_hists_2d: CorrelationHistograms2D = CorrelationHistograms2D(
-            raw = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.raw"], analysis_identifier = self.analysis_identifier),
-            mixed_event = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.mixed_event"], analysis_identifier = self.analysis_identifier),
-            signal = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.signal"], analysis_identifier = self.analysis_identifier),
+            raw = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.raw"], analysis_identifier = self.identifier),
+            mixed_event = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.mixed_event"], analysis_identifier = self.identifier),
+            signal = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.signal"], analysis_identifier = self.identifier),
         )
         self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(
             signal_dominated = dataclasses.replace(
                 cast(DeltaPhiSignalDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.signal_dominated"]),
-                analysis_identifier = self.analysis_identifier,
+                analysis_identifier = self.identifier,
             ),
             background_dominated = dataclasses.replace(
                 cast(DeltaPhiBackgroundDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.background_dominated"]),
-                analysis_identifier = self.analysis_identifier,
+                analysis_identifier = self.identifier,
             ),
         )
         self.correlation_hists_delta_eta: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(
             near_side = dataclasses.replace(
                 cast(DeltaEtaNearSide, _1d_correlations_histogram_information["correlation_hists_delta_eta.near_side"]),
-                analysis_identifier = self.analysis_identifier,
+                analysis_identifier = self.identifier,
             ),
             away_side = dataclasses.replace(
                 cast(DeltaEtaAwaySide, _1d_correlations_histogram_information["correlation_hists_delta_eta.away_side"]),
-                analysis_identifier = self.analysis_identifier,
+                analysis_identifier = self.identifier,
             ),
         )
 
@@ -1462,9 +1473,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         projection_information: Dict[str, Any] = {}
         trigger_projector = JetHCorrelationSparseProjector(
             observable_to_project_from = self.input_hists["fhnTrigger"],
-            output_observable = self,
-            output_attribute_name = "number_of_triggers_hist",
-            projection_name_format = self.hist_name_format_trigger,
+            output_observable = self.number_of_triggers_observable,
+            output_attribute_name = "hist",
+            projection_name_format = self.number_of_triggers_observable.name,
             projection_information = projection_information
         )
         # Take advantage of existing centrality and event plane object, but need to copy and modify the axis type
@@ -1494,12 +1505,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # Raw signal projector
         ###########################
-        projection_information["tag"] = "raw"
+        projection_information = {}
         raw_signal_projector = JetHCorrelationSparseProjector(
             observable_to_project_from = self.input_hists["fhnJH"],
-            output_observable = self.correlation_hists_2d,
-            output_attribute_name = "raw",
-            projection_name_format = self.hist_name_format_2d,
+            output_observable = self.correlation_hists_2d.raw,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_2d.raw.name,
             projection_information = projection_information,
         )
         if self.collision_system != params.CollisionSystem.pp:
@@ -1522,12 +1533,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # TODO: Use a broader range of pt for mixed events like Joel?
         #       To do so, just find bins of higher values.
-        projection_information["tag"] = "mixed"
+        projection_information = {}
         mixed_event_projector = JetHCorrelationSparseProjector(
             observable_to_project_from = self.input_hists["fhnMixedEvents"],
-            output_observable = self.correlation_hists_2d,
-            output_attribute_name = "mixed_event",
-            projection_name_format = self.hist_name_format_2d,
+            output_observable = self.correlation_hists_2d.mixed_event,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_2d.mixed_event.name,
             projection_information = projection_information,
         )
         if self.collision_system != params.CollisionSystem.pp:
@@ -1555,7 +1566,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _determine_number_of_triggers(self) -> int:
         """ Determine the number of triggers for the specific analysis parameters. """
         return correlations_helpers.determine_number_of_triggers(
-            hist = self.number_of_triggers_hist,
+            hist = self.number_of_triggers_observable.hist,
             jet_pt = self.jet_pt,
         )
 
@@ -1651,7 +1662,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Raw signal hist post processing.
         self._post_creation_processing_for_2d_correlation(
-            hist = self.correlation_hists_2d.raw,
+            hist = self.correlation_hists_2d.raw.hist,
             normalization_factor = self.number_of_triggers,
             title_label = "Raw signal",
         )
@@ -1665,10 +1676,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Normalize and post process the mixed event observable
         mixed_event_normalization_factor = self._measure_mixed_event_normalization(
-            mixed_event = self.correlation_hists_2d.mixed_event
+            mixed_event = self.correlation_hists_2d.mixed_event.hist
         )
         self._post_creation_processing_for_2d_correlation(
-            hist = self.correlation_hists_2d.mixed_event,
+            hist = self.correlation_hists_2d.mixed_event.hist,
             normalization_factor = mixed_event_normalization_factor,
             title_label = "Mixed event",
         )
@@ -1680,13 +1691,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         THnSparse can be swapped out when desired.
         """
         # The signal correlation is the raw signal divided by the mixed events
-        self.correlation_hists_2d.signal = self.correlation_hists_2d.raw.Clone(
-            self.hist_name_format_2d.format(jet_pt_bin = self.jet_pt.bin, track_pt_bin = self.track_pt.bin, tag = "corr")
+        self.correlation_hists_2d.signal.hist = self.correlation_hists_2d.raw.hist.Clone(
+            _2d_correlations_histogram_information["correlation_hists_2d.signal"].name
         )
-        self.correlation_hists_2d.signal.Divide(self.correlation_hists_2d.mixed_event)
+        self.correlation_hists_2d.signal.hist.Divide(self.correlation_hists_2d.mixed_event.hist)
 
         self._post_creation_processing_for_2d_correlation(
-            hist = self.correlation_hists_2d.signal,
+            hist = self.correlation_hists_2d.signal.hist,
             normalization_factor = 1.0,
             title_label = "Correlation",
         )
@@ -1711,7 +1722,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Write the correlations
             self._write_2d_correlations()
             # Write triggers
-            self._write_trigger_jet_spectra()
+            self._write_number_of_triggers_hist()
 
             # Ensure we execute the next step
             self.processing_options["generate1DCorrelations"] = True
@@ -1728,7 +1739,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             if self.processing_options["plotRPFHighlights"]:
                 plot_correlations.plot_RPF_fit_regions(
                     self,
-                    filename = f"highlight_RPF_regions_jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
+                    filename = f"highlight_RPF_regions_{self.identifier}"
                 )
 
     def _setup_1d_projectors(self) -> None:
@@ -1745,19 +1756,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # delta_phi signal
         ###########################
-        projection_information = {
-            "type": analysis_objects.JetHCorrelationType.signal_dominated,
-            "axis": analysis_objects.JetHCorrelationAxis.delta_phi,
-            # For labeling purposes
-            "jet_pt": self.jet_pt,
-            "track_pt": self.track_pt,
-        }
-        projection_information["tag"] = str(projection_information["type"])  # type: ignore
+        projection_information: Dict[str, Any] = {}
         delta_phi_signal_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
-            output_observable = self.correlation_hists_delta_phi,
-            output_attribute_name = "signal_dominated",
-            projection_name_format = self.hist_name_format_delta_phi,
+            output_observable = self.correlation_hists_delta_phi.signal_dominated,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_delta_phi.signal_dominated.name,
             projection_information = projection_information,
         )
         # Select signal dominated region in eta
@@ -1800,19 +1804,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # delta_phi Background dominated
         ###########################
-        projection_information = {
-            "type": analysis_objects.JetHCorrelationType.background_dominated,
-            "axis": analysis_objects.JetHCorrelationAxis.delta_phi,
-            # For labeling purposes
-            "jet_pt": self.jet_pt,
-            "track_pt": self.track_pt,
-        }
-        projection_information["tag"] = str(projection_information["type"])  # type: ignore
+        projection_information = {}
         delta_phi_background_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
-            output_observable = self.correlation_hists_delta_phi,
-            output_attribute_name = "background_dominated",
-            projection_name_format = self.hist_name_format_delta_phi,
+            output_observable = self.correlation_hists_delta_phi.background_dominated,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_delta_phi.background_dominated.name,
             projection_information = projection_information,
         )
         # Select background dominated region in eta
@@ -1855,19 +1852,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # delta_eta NS
         ###########################
-        projection_information = {
-            "type": analysis_objects.JetHCorrelationType.near_side,
-            "axis": analysis_objects.JetHCorrelationAxis.delta_eta,
-            # For labeling purposes
-            "jet_pt": self.jet_pt,
-            "track_pt": self.track_pt,
-        }
-        projection_information["tag"] = str(projection_information["type"])  # type: ignore
+        projection_information = {}
         delta_eta_ns_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
-            output_observable = self.correlation_hists_delta_eta,
-            output_attribute_name = "near_side",
-            projection_name_format = self.hist_name_format_delta_eta,
+            output_observable = self.correlation_hists_delta_eta.near_side,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_delta_eta.near_side,
             projection_information = projection_information,
         )
         # Select near side in delta phi
@@ -1893,19 +1883,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # delta_eta AS
         ###########################
-        projection_information = {
-            "type": analysis_objects.JetHCorrelationType.away_side,
-            "axis": analysis_objects.JetHCorrelationAxis.delta_eta,
-            # For labeling purposes
-            "jet_pt": self.jet_pt,
-            "track_pt": self.track_pt,
-        }
-        projection_information["tag"] = str(projection_information["type"])  # type: ignore
+        projection_information = {}
         delta_eta_as_projector = JetHCorrelationProjector(
             observable_to_project_from = self.correlation_hists_2d.signal,
-            output_observable = self.correlation_hists_delta_eta,
-            output_attribute_name = "away_side",
-            projection_name_format = self.hist_name_format_delta_eta,
+            output_observable = self.correlation_hists_delta_eta.away_side,
+            output_attribute_name = "hist",
+            projection_name_format = self.correlation_hists_delta_eta.away_side.name,
             projection_information = projection_information,
         )
         # Select away side in delta phi
