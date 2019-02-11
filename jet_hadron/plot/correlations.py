@@ -77,35 +77,38 @@ def plot_2d_correlations(jet_hadron):
         # Add labels
         # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
         # Instead, print to EPS and then convert to PDF
-        alice_label = str(jet_hadron.alice_label)
+        alice_label = f"${jet_hadron.alice_label.display_str()}$"
         system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
             activity = jet_hadron.event_activity
         )
-        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_hadron.jet_pt)
+        jet_finding = labels.jet_finding()
+        constituent_cuts = labels.constituent_cuts()
+        leading_hadron = "$" + jet_hadron.leading_hadron_bias.display_str() + "$"
+        jet_pt = labels.jet_pt_range_string(jet_hadron.jet_pt)
         assoc_pt = labels.track_pt_range_string(jet_hadron.track_pt)
         logger.debug(f"label: {alice_label}, system_label: {system_label}, constituent_cuts: {constituent_cuts}, leading_hadron: {leading_hadron}, jet_pt: {jet_pt}, assoc_pt: {assoc_pt}")
 
         tex = ROOT.TLatex()
         tex.SetTextSize(0.04)
         # Upper left side
-        tex.DrawLatexNDC(.03, .96, alice_label)
-        tex.DrawLatexNDC(.005, .91, system_label)
-        tex.DrawLatexNDC(.005, .86, jet_pt)
-        tex.DrawLatexNDC(.005, .81, jet_finding)
+        tex.DrawLatexNDC(.005, .96, labels.use_label_with_root(alice_label))
+        tex.DrawLatexNDC(.005, .91, labels.use_label_with_root(system_label))
+        tex.DrawLatexNDC(.005, .86, labels.use_label_with_root(jet_pt))
+        tex.DrawLatexNDC(.005, .81, labels.use_label_with_root(jet_finding))
 
         # Upper right side
-        tex.DrawLatexNDC(.67, .96, assoc_pt)
-        tex.DrawLatexNDC(.73, .91, constituent_cuts)
-        tex.DrawLatexNDC(.75, .86, leading_hadron)
+        tex.DrawLatexNDC(.67, .96, labels.use_label_with_root(assoc_pt))
+        tex.DrawLatexNDC(.7275, .91, labels.use_label_with_root(leading_hadron))
+        tex.DrawLatexNDC(.73, .86, labels.use_label_with_root(constituent_cuts))
 
         # Save plot
         plot_base.save_plot(jet_hadron.output_info, canvas, observable.name)
 
         # Draw as colz to view more precisely
         hist.Draw("colz")
-        plot_base.save_plot(jet_hadron.output_info, canvas, observable.name + "colz")
+        plot_base.save_plot(jet_hadron.output_info, canvas, observable.name + "_colz")
 
         canvas.Clear()
 
@@ -336,13 +339,16 @@ def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -
         ax.yaxis.labelpad = 15
         ax.zaxis.labelpad = 12
         # Overall
-        alice_label = str(jet_hadron.alice_label)
+        alice_label = f"${jet_hadron.alice_label.display_str()}$"
         system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
             activity = jet_hadron.event_activity
         )
-        (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_hadron.jet_pt)
+        jet_finding = labels.jet_finding()
+        constituent_cuts = labels.constituent_cuts()
+        leading_hadron = "$" + jet_hadron.leading_hadron_bias.display_str() + "$"
+        jet_pt = labels.jet_pt_range_string(jet_hadron.jet_pt)
         assoc_pt = labels.track_pt_range_string(jet_hadron.track_pt)
 
         # Upper left side
