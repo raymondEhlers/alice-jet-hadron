@@ -104,23 +104,6 @@ def test_system_label(logging_mixin, energy, system, activity, expected):
     """ Test system labels. """
     assert labels.system_label(energy = energy, system = system, activity = activity) == expected
 
-def test_jet_properties_labels(logging_mixin):
-    """ Test the jet properties labels. """
-    jet_pt_bin = analysis_objects.JetPtBin(bin = 1, range = params.SelectedRange(20.0, 40.0))
-    (jet_finding_expected, constituent_cuts_expected, leading_hadron_expected, jet_pt_expected) = (
-        r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=0.2$",
-        r"$\mathit{p}_{\mathrm{T}}^{\mathrm{ch}}\mathit{c}\mathrm{,}\:\mathit{E}_{\mathrm{T}}^{\mathrm{clus}} > 3\:\mathrm{GeV}$",
-        r"$\mathit{p}_{\mathrm{T}}^{\mathrm{lead,ch}} > 5\:\mathrm{GeV/\mathit{c}}$",
-        r"$20.0 < \mathit{p}_{\mathrm{T,jet}}^{\mathrm{ch+ne}} < 40.0\:\mathrm{GeV/\mathit{c}}$"
-    )
-
-    (jet_finding, constituent_cuts, leading_hadron, jet_pt) = labels.jet_properties_label(jet_pt_bin)
-
-    assert jet_finding == jet_finding_expected
-    assert constituent_cuts == constituent_cuts_expected
-    assert leading_hadron == leading_hadron_expected
-    assert jet_pt == jet_pt_expected
-
 @pytest.mark.parametrize("upper_label, expected", [
     ("", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{}}"),
     (r"det", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}")

@@ -7,7 +7,7 @@
 
 import logging
 import numbers
-from typing import Tuple, Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jet_hadron.base import analysis_objects
@@ -197,23 +197,6 @@ def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, add
         )
 
     return constituent_cuts
-
-def jet_properties_label(jet_pt_bin: "analysis_objects.JetPtBin") -> Tuple[str, str, str, str]:
-    """ Return the jet finding properties based on the jet pt bin.
-
-    Args:
-        jet_pt_bin: Jet pt bin
-    Returns:
-        tuple: (jet_finding, constituent_cuts, leading_hadron, jet_pt)
-    """
-    jet_finding_label = jet_finding()
-    const_cuts = constituent_cuts()
-    leading_hadron = r"$%(pt_label)s > 5\:%(units_label)s$" % {
-        "pt_label": pt_display_label(upper_label = "lead,ch"),
-        "units_label": momentum_units_label_gev(),
-    }
-    jet_pt = jet_pt_range_string(jet_pt_bin)
-    return (jet_finding_label, const_cuts, leading_hadron, jet_pt)
 
 def system_label(energy: Union[float, "params.CollisionEnergy"],
                  system: Union[str, "params.CollisionSystem"],
