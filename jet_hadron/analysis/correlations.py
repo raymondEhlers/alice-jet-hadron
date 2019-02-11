@@ -8,6 +8,7 @@
 import coloredlogs
 import copy
 import ctypes
+import dataclasses
 from dataclasses import dataclass
 import enlighten
 import enum
@@ -86,21 +87,15 @@ class JetHCorrelationProjector(projectors.HistProjector):
         logger.info(f"Projecting hist name: {self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)}")
         return self.projection_name_format.format(track_pt_bin = track_pt.bin, jet_pt_bin = jet_pt.bin, **kwargs)
 
+    # TODO: Verify that this works...
     def output_hist(self, output_hist: Hist,
                     input_observable: Any,
-                    **kwargs: Union[analysis_objects.JetHCorrelationType, analysis_objects.JetHCorrelationAxis]) -> analysis_objects.CorrelationObservable1D:
-        """ Wrap the output histogram with some additional information. """
-        correlation_type = cast(analysis_objects.JetHCorrelationType, kwargs["type"])
-        correlation_axis = cast(analysis_objects.JetHCorrelationAxis, kwargs["axis"])
-        return analysis_objects.CorrelationObservable1D(
-            hist = output_hist,
-            type = correlation_type,
-            axis = correlation_axis,
-        )
+                    **kwargs: Union[analysis_objects.JetHCorrelationType, analysis_objects.JetHCorrelationAxis]) -> "CorrelationObservable1D":
+        """ The output informatino is already specified """
+        return output_hist
 
 class JetHAnalysis(analysis_objects.JetHBase):
     """ Main jet-hadron analysis task. """
-
     def __init__(self, *args, **kwargs):
         """ """
         # Initialize the base class
@@ -280,7 +275,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
         for observable in inputHists.values():
             outputHistName = self.histNameFormatDPhiArray.format(jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin, tag = observable.correlationType.str())
             histArray = analysis_objects.HistArray.initFromRootHist(observable.hist.hist)
-            outputHists[outputHistName] = analysis_objects.CorrelationObservable1D(
+            outputHists[outputHistName] = CorrelationObservable1D(
                 jetPtBin = observable.jetPtBin,
                 trackPtBin = observable.trackPtBin,
                 correlationType = observable.correlationType,
@@ -364,7 +359,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
             # Remove background
             # Already have the background fits, so remove it
             subtractedHist.Add(bgFit, -1)
-            subtractedHists["{}_subtracted".format(name)] = analysis_objects.CorrelationObservable1D(
+            subtractedHists["{}_subtracted".format(name)] = CorrelationObservable1D(
                 jetPtBin = observable.jetPtBin,
                 trackPtBin = observable.trackPtBin,
                 correlationType = observable.correlationType,
@@ -1085,10 +1080,31 @@ class GeneralHistogramsManager(generic_tasks.TaskManager):
         )
 
 @dataclass
+class CorrelationObservable2D(analysis_objects.CorrelationObservable):
+    type: str
+    # In principle, we could create an enum here, but it's only one value, so it's not worth it.
+    axis: str = "delta_eta_delta_phi"
+    analysis_identifier: Optional[str] = None
+
+    @property
+    def name(self):
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}",
+
+_2d_correlations_histogram_information = {
+    "correlation_hists_2d.raw": CorrelationObservable2D(hist = None, type = "raw"),
+    "correlation_hists_2d.mixed_event": CorrelationObservable2D(hist = None, type = "mixed_event"),
+    "correlation_hists_2d.signal": CorrelationObservable2D(hist = None, type = "signal"),
+}
+
+@dataclass
 class CorrelationHistograms2D:
-    raw: Hist
-    mixed_event: Hist
-    signal: Hist
+    raw: CorrelationObservable2D
+    mixed_event: CorrelationObservable2D
+    signal: CorrelationObservable2D
 
     def __iter__(self) -> Iterator[Tuple[str, Hist]]:
         # NOTE: dataclasses.asdict(...) is recursive, so it's far
@@ -1096,15 +1112,24 @@ class CorrelationHistograms2D:
         for k, v in vars(self).items():
             yield k, v
 
+_number_of_triggers_histogram_information: Mapping[str, Any] = {}
+#_number_of_triggers_histogram_information: Mapping[str, analysis_objects.Observable] = {
+#    "number_of_triggers": analysis_objects.Observable(hist = None),
+#}
+
 @dataclass
-class CorrelationObservable1D(analysis_objects.CorrelationObservable1D):
+class CorrelationObservable1D(analysis_objects.CorrelationObservable):
+    type: analysis_objects.JetHCorrelationType
+    axis: analysis_objects.JetHCorrelationAxis
+    analysis_identifier: Optional[str] = None
+
     @property
     def name(self) -> str:
         # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
         analysis_identifier = self.analysis_identifier
         if self.analysis_identifier is None:
             analysis_identifier = "{analysis_identifier}"
-        return f"jetH_{str(self.axis)}_{analysis_identifier}_{self.type}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}"
 
 @dataclass
 class DeltaPhiObservable(CorrelationObservable1D):
@@ -1131,20 +1156,19 @@ class DeltaEtaAwaySide(DeltaEtaObservable):
     type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.away_side
 
 # This would be preferred it's somehow possible...
-_temp_analysis_identifier = "analysis_identifier"
-_1d_correlations_histogram_information = {
-    "correlation_hists_delta_phi.signal_dominated": DeltaPhiSignalDominated(hist = None, analysis_identifier = _temp_analysis_identifier),
-    "correlation_hists_delta_phi.background_dominated": DeltaPhiBackgroundDominated(hist = None, analysis_identifier = _temp_analysis_identifier),
-    "correlation_hists_delta_eta.near_side": DeltaEtaNearSide(hist = None, analysis_identifier = _temp_analysis_identifier),
-    "correlation_hists_delta_eta.away_side": DeltaEtaAwaySide(hist = None, analysis_identifier = _temp_analysis_identifier),
+_1d_correlations_histogram_information: Mapping[str, CorrelationObservable1D] = {
+    "correlation_hists_delta_phi.signal_dominated": DeltaPhiSignalDominated(hist = None),
+    "correlation_hists_delta_phi.background_dominated": DeltaPhiBackgroundDominated(hist = None),
+    "correlation_hists_delta_eta.near_side": DeltaEtaNearSide(hist = None),
+    "correlation_hists_delta_eta.away_side": DeltaEtaAwaySide(hist = None),
 }
 
 @dataclass
 class CorrelationHistogramsDeltaPhi:
-    signal_dominated: Optional[analysis_objects.CorrelationObservable1D]
-    background_dominated: Optional[analysis_objects.CorrelationObservable1D]
+    signal_dominated: DeltaPhiSignalDominated
+    background_dominated: DeltaPhiBackgroundDominated
 
-    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.CorrelationObservable1D]]:
+    def __iter__(self) -> Iterator[Tuple[str, DeltaPhiObservable]]:
         # NOTE: dataclasses.asdict(...) is recursive, so it's far
         #       too aggressive for our purposes!
         for k, v in vars(self).items():
@@ -1152,39 +1176,15 @@ class CorrelationHistogramsDeltaPhi:
 
 @dataclass
 class CorrelationHistogramsDeltaEta:
-    near_side: Optional[analysis_objects.CorrelationObservable1D]
-    away_side: Optional[analysis_objects.CorrelationObservable1D]
+    near_side: DeltaEtaNearSide
+    away_side: DeltaEtaAwaySide
 
-    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.CorrelationObservable1D]]:
+    def __iter__(self) -> Iterator[Tuple[str, DeltaEtaObservable]]:
         # NOTE: dataclasses.asdict(...) is recursive, so it's far
         #       too aggressive for our purposes!
         for k, v in vars(self).items():
             yield k, v
 
-@dataclass
-class CorrelationObservable2D:
-    hist: Hist
-    type: str
-    # In principle, we could create an enum here, but it's only one value, so it's not worth it.
-    axis: str = "delta_eta_delta_phi"
-    analysis_identifier: Optional[str] = None
-
-    @property
-    def name(self):
-        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
-        analysis_identifier = self.analysis_identifier
-        if self.analysis_identifier is None:
-            analysis_identifier = "{analysis_identifier}"
-        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}",
-
-_2d_correlations_histogram_information = {
-    "correlation_hists_2d.raw": CorrelationObservable2D(hist = None, type = "raw"),
-    "correlation_hists_2d.mixed_event": CorrelationObservable2D(hist = None, type = "mixed_event"),
-    "correlation_hists_2d.corrected": CorrelationObservable2D(hist = None, type = "corrected"),
-}
-
-
-_number_of_triggers_histogram_information: Mapping[Any, Any] = {}
 #_number_of_triggers_histogram_information = {
 #    "number_of_triggers": analysis_objects.HistogramInformation(
 #        name = "jetH_{key}",
@@ -1274,9 +1274,31 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Relevant histograms
         self.number_of_triggers_hist: Hist = None
-        self.correlation_hists_2d: CorrelationHistograms2D = CorrelationHistograms2D(None, None, None)
-        self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(None, None)
-        self.correlation_hists_delta_eta: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(None, None)
+        self.correlation_hists_2d: CorrelationHistograms2D = CorrelationHistograms2D(
+            raw = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.raw"], analysis_identifier = self.analysis_identifier),
+            mixed_event = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.mixed_event"], analysis_identifier = self.analysis_identifier),
+            signal = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.signal"], analysis_identifier = self.analysis_identifier),
+        )
+        self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(
+            signal_dominated = dataclasses.replace(
+                cast(DeltaPhiSignalDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.signal_dominated"]),
+                analysis_identifier = self.analysis_identifier,
+            ),
+            background_dominated = dataclasses.replace(
+                cast(DeltaPhiBackgroundDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.background_dominated"]),
+                analysis_identifier = self.analysis_identifier,
+            ),
+        )
+        self.correlation_hists_delta_eta: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(
+            near_side = dataclasses.replace(
+                cast(DeltaEtaNearSide, _1d_correlations_histogram_information["correlation_hists_delta_eta.near_side"]),
+                analysis_identifier = self.analysis_identifier,
+            ),
+            away_side = dataclasses.replace(
+                cast(DeltaEtaAwaySide, _1d_correlations_histogram_information["correlation_hists_delta_eta.away_side"]),
+                analysis_identifier = self.analysis_identifier,
+            ),
+        )
 
         # Fit object
         self.fit_obj: rpf.ReactionPlaneFit
@@ -1293,20 +1315,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.signal_dominated_eta_region = self.task_config["deltaEtaRanges"]["signalDominated"]
         self.background_dominated_eta_region = self.task_config["deltaEtaRanges"]["backgroundDominated"]
 
-    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.HistogramInformation, Union[Hist, None]]]:
+    def __iter__(self) -> Iterator[analysis_objects.CorrelationObservable]:
         """ Iterate over the histograms in the correlations analysis object.
 
         Returns:
-            Name under which the HistogramInformation object is stored, the HistogramInformation object,
-            and the histogram itself.
+            The observable object, which contains the histogram.
         """
-        all_hists_info = {
+        all_hists_info: Mapping[str, analysis_objects.CorrelationObservable] = {
             **_2d_correlations_histogram_information,
             **_number_of_triggers_histogram_information,
             **_1d_correlations_histogram_information,
         }
-        for name, histogram_info in all_hists_info.items():
-            yield name, histogram_info, utils.recursive_getattr(self, histogram_info.attribute_name)
+        for attribute_name, observable in all_hists_info.items():
+            yield observable
 
     def _write_2d_correlations(self) -> None:
         """ Write 2D correlatinos to output file. """
@@ -1316,7 +1337,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write trigger jet spectra to file. """
         self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
 
-    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.HistogramInformation],
+    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.CorrelationObservable],
                                   mode: str = "UPDATE") -> None:
         """ Write the provided histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename)
@@ -1327,14 +1348,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         logger.info(f"Saving correlations to {filename}")
         # Then actually iterate through and save the hists.
         with histogram.RootOpen(filename = filename, mode = mode):
-            for hist_info in hists.values():
-                hist = utils.recursive_getattr(self, hist_info.attribute_name)
+            for observable in hists.values():
+                hist = observable.hist
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
-                    logger.debug(f"Writing hist {hist} with name {hist.hist_name}")
-                    # TODO: Maybe?
-                    hist_name = hist.GetName() + self.identifier
-                    hist.Write(hist_name)
+                    logger.debug(f"Writing hist {hist} with name {observable.name}")
+                    hist.Write(observable.name)
 
     def _init_2d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 2D correlation hists. """
@@ -1344,21 +1363,21 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write number of triggers hists. """
         self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
 
-    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.HistogramInformation]) -> None:
+    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.CorrelationObservable]) -> None:
         """ Initialize processed histograms from a ROOT file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
         filename = os.path.join(self.output_prefix, self.output_filename)
         with histogram.RootOpen(filename = filename, mode = "READ") as f:
-            for hist_info in hists.values():
-                h = f.Get(hist_info.hist_name)
+            for attribute_name, observable in hists.items():
+                h = f.Get(observable.name)
                 if not h:
                     h = None
                 else:
                     # Detach it from the file so we can store it for later use.
                     h.SetDirectory(0)
-                logger.debug(f"Initializing hist {h} to be stored in {hist_info.attribute_name}")
+                logger.debug(f"Initializing hist {h} to be stored in {attribute_name}")
                 # Finally, store the histogram
-                utils.recursive_setattr(self, hist_info.attribute_name, h)
+                utils.recursive_setattr(self, attribute_name, h)
 
     def _setup_sparse_projectors(self) -> None:
         """ Setup the THnSparse projectors.

@@ -92,12 +92,28 @@ class HistogramInformation:
         return self.attribute_name.replace(".", "_")
 
 @dataclass
-class CorrelationObservable1D:
-    """ For 1d correlation observables. """
+class Observable:
+    """ Base observable object.
+
+    Basically, it wraps the histogram so that we can have a consistent interface for a variety
+    of observables.
+    """
     hist: Hist
-    type: JetHCorrelationType
-    axis: JetHCorrelationAxis
+
+    @property
+    def name(self) -> str:
+        return f"hist_{self.hist.GetName()}"
+
+@dataclass
+class CorrelationObservable(Observable):
+    """ For correlation observables. """
+    type: Union[str, enum.Enum]
+    axis: Union[str, enum.Enum]
     analysis_identifier: Optional[str] = None
+
+    @property
+    def name(self) -> str:
+        return f"jetH_{self.axis}_{self.analysis_identifier}_{self.type}"
 
 @dataclass
 class ExtractObservable:
