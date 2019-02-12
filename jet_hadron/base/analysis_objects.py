@@ -26,7 +26,7 @@ from jet_hadron.base.typing_helpers import Hist
 # Setup logger
 logger = logging.getLogger(__name__)
 
-class JetHCorrelationType(enum.Enum):
+class CorrelationType(enum.Enum):
     """ 1D correlation projection type """
     full_range = 0
     # delta phi specialized
@@ -49,7 +49,7 @@ class JetHCorrelationType(enum.Enum):
     to_yaml = classmethod(yaml.enum_to_yaml)
     from_yaml = classmethod(yaml.enum_from_yaml)
 
-class JetHCorrelationAxis(enum.Enum):
+class CorrelationAxis(enum.Enum):
     """ Define the axes of Jet-H 2D correlation hists. """
     delta_phi = projectors.TH1AxisType.x_axis.value
     delta_eta = projectors.TH1AxisType.y_axis.value
@@ -124,8 +124,8 @@ class ExtractObservable:
 @dataclass
 class Fit:
     """ For fit results. """
-    type: JetHCorrelationType
-    axis: JetHCorrelationAxis
+    type: CorrelationType
+    axis: CorrelationAxis
     fit: FitResult
 
 @dataclass

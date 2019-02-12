@@ -538,22 +538,22 @@ class JetHAnalysis(analysis_objects.JetHBase):
                     hists1D = []
                     retrieveArray = False
                     if Correlations1D:
-                        hists1D.append([self.dPhi,         self.histNameFormatDPhi, analysis_objects.JetHCorrelationType.signal_dominated,     analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dPhiSideBand, self.histNameFormatDPhi, analysis_objects.JetHCorrelationType.background_dominated, analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dEtaNS,       self.histNameFormatDEta, analysis_objects.JetHCorrelationType.near_side,            analysis_objects.JetHCorrelationAxis.delta_eta])  # noqa: E241
+                        hists1D.append([self.dPhi,         self.histNameFormatDPhi, analysis_objects.CorrelationType.signal_dominated,     analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dPhiSideBand, self.histNameFormatDPhi, analysis_objects.CorrelationType.background_dominated, analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dEtaNS,       self.histNameFormatDEta, analysis_objects.CorrelationType.near_side,            analysis_objects.CorrelationAxis.delta_eta])  # noqa: E241
                     if Correlations1DSubtracted:
-                        hists1D.append([self.dPhiSubtracted,   self.histNameFormatDPhiSubtracted, analysis_objects.JetHCorrelationType.signal_dominated,     analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dEtaNSSubtracted, self.histNameFormatDEtaSubtracted, analysis_objects.JetHCorrelationType.near_side,            analysis_objects.JetHCorrelationAxis.delta_eta])  # noqa: E241
+                        hists1D.append([self.dPhiSubtracted,   self.histNameFormatDPhiSubtracted, analysis_objects.CorrelationType.signal_dominated,     analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dEtaNSSubtracted, self.histNameFormatDEtaSubtracted, analysis_objects.CorrelationType.near_side,            analysis_objects.CorrelationAxis.delta_eta])  # noqa: E241
                     if Correlations1DArray:
                         logger.debug("Correlations1DArray hists")
                         retrieveArray = True
-                        hists1D.append([self.dPhiArray,         self.histNameFormatDPhiArray, analysis_objects.JetHCorrelationType.signal_dominated,     analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dPhiSideBandArray, self.histNameFormatDPhiArray, analysis_objects.JetHCorrelationType.background_dominated, analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dEtaNS,            self.histNameFormatDEtaArray, analysis_objects.JetHCorrelationType.near_side,            analysis_objects.JetHCorrelationAxis.delta_eta])  # noqa: E241
+                        hists1D.append([self.dPhiArray,         self.histNameFormatDPhiArray, analysis_objects.CorrelationType.signal_dominated,     analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dPhiSideBandArray, self.histNameFormatDPhiArray, analysis_objects.CorrelationType.background_dominated, analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dEtaNS,            self.histNameFormatDEtaArray, analysis_objects.CorrelationType.near_side,            analysis_objects.CorrelationAxis.delta_eta])  # noqa: E241
                     if Correlations1DSubtractedArray:
                         retrieveArray = True
-                        hists1D.append([self.dPhiSubtractedArray,   self.histNameFormatDPhiSubtractedArray, analysis_objects.JetHCorrelationType.signal_dominated, analysis_objects.JetHCorrelationAxis.delta_phi])  # noqa: E241
-                        hists1D.append([self.dEtaNSSubtractedArray, self.histNameFormatDEtaSubtractedArray, analysis_objects.JetHCorrelationType.near_side,        analysis_objects.JetHCorrelationAxis.delta_eta])  # noqa: E241
+                        hists1D.append([self.dPhiSubtractedArray,   self.histNameFormatDPhiSubtractedArray, analysis_objects.CorrelationType.signal_dominated, analysis_objects.CorrelationAxis.delta_phi])  # noqa: E241
+                        hists1D.append([self.dEtaNSSubtractedArray, self.histNameFormatDEtaSubtractedArray, analysis_objects.CorrelationType.near_side,        analysis_objects.CorrelationAxis.delta_eta])  # noqa: E241
 
                     for (storedDict, nameFormat, correlationType, axis) in hists1D:
                         # 1D hists
@@ -624,9 +624,9 @@ class JetHAnalysis(analysis_objects.JetHBase):
         histsToWriteOut["mixedEventNorm"] = (self.histNameFormat2D, "mixed_peakFindingHist", r"Mixed event normalization comparison for a variety of possible functions to find the maximum. This mixed event corresponds to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # dPhi correlations
         # TODO: Depend on the type of fit here instead of assuming signal dominated
-        histsToWriteOut["dPhiCorrelations"] = (self.fitNameFormat, analysis_objects.JetHCorrelationType.signal_dominated.str(), r"\dPhi{} correlation with the all angles signal and event plane dependent background fit components. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
+        histsToWriteOut["dPhiCorrelations"] = (self.fitNameFormat, analysis_objects.CorrelationType.signal_dominated.str(), r"\dPhi{} correlation with the all angles signal and event plane dependent background fit components. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
         # TODO: Add comparisons to Joel, but probably best to do in an entirely separate section
-        histsToWriteOut["joelComparisonSubtracted"] = ("joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}", analysis_objects.JetHCorrelationType.signal_dominated.str() + "_subtracted", r"Subtracted \dPhi{} correlation comparing correlations from this analysis and those produced using the semi-central analysis code described in \cite{jetHEventPlaneAN}. Error bars correspond to statistical errors and error bands correspond to the error on the fit. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
+        histsToWriteOut["joelComparisonSubtracted"] = ("joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}", analysis_objects.CorrelationType.signal_dominated.str() + "_subtracted", r"Subtracted \dPhi{} correlation comparing correlations from this analysis and those produced using the semi-central analysis code described in \cite{jetHEventPlaneAN}. Error bars correspond to statistical errors and error bands correspond to the error on the fit. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
 
         # Define the overall template
         figTemplate = r"""
@@ -1092,8 +1092,8 @@ _number_of_triggers_histogram_information: Mapping[str, analysis_objects.Observa
 
 @dataclass
 class CorrelationObservable1D(analysis_objects.Observable):
-    type: analysis_objects.JetHCorrelationType
-    axis: analysis_objects.JetHCorrelationAxis
+    type: analysis_objects.CorrelationType
+    axis: analysis_objects.CorrelationAxis
     analysis_identifier: Optional[str] = None
 
     @property
@@ -1106,27 +1106,27 @@ class CorrelationObservable1D(analysis_objects.Observable):
 
 @dataclass
 class DeltaPhiObservable(CorrelationObservable1D):
-    axis: analysis_objects.JetHCorrelationAxis = analysis_objects.JetHCorrelationAxis.delta_phi
+    axis: analysis_objects.CorrelationAxis = analysis_objects.CorrelationAxis.delta_phi
 
 @dataclass
 class DeltaPhiSignalDominated(DeltaPhiObservable):
-    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.signal_dominated
+    type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.signal_dominated
 
 @dataclass
 class DeltaPhiBackgroundDominated(DeltaPhiObservable):
-    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.background_dominated
+    type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.background_dominated
 
 @dataclass
 class DeltaEtaObservable(CorrelationObservable1D):
-    axis: analysis_objects.JetHCorrelationAxis = analysis_objects.JetHCorrelationAxis.delta_eta
+    axis: analysis_objects.CorrelationAxis = analysis_objects.CorrelationAxis.delta_eta
 
 @dataclass
 class DeltaEtaNearSide(DeltaEtaObservable):
-    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.near_side
+    type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.near_side
 
 @dataclass
 class DeltaEtaAwaySide(DeltaEtaObservable):
-    type: analysis_objects.JetHCorrelationType = analysis_objects.JetHCorrelationType.away_side
+    type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.away_side
 
 # This would be preferred it's somehow possible...
 _1d_correlations_histogram_information: Mapping[str, CorrelationObservable1D] = {
@@ -1684,7 +1684,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # ranges on the same axis
         delta_phi_signal_projector.projection_dependent_cut_axes.append([
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "negative_eta_signal_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0.6)] + epsilon
@@ -1696,7 +1696,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ])
         delta_phi_signal_projector.projection_dependent_cut_axes.append([
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "Positive_eta_signal_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0)] + epsilon
@@ -1708,7 +1708,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ])
         delta_phi_signal_projector.projection_axes.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_phi,
+                axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "delta_phi",
                 **full_axis_range
             )
@@ -1732,7 +1732,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # on the same axis
         delta_phi_background_projector.projection_dependent_cut_axes.append([
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "negative_eta_background_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(1.2)] + epsilon
@@ -1744,7 +1744,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ])
         delta_phi_background_projector.projection_dependent_cut_axes.append([
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "positive_eta_background_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0.8)] + epsilon
@@ -1756,7 +1756,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ])
         delta_phi_background_projector.projection_axes.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_phi,
+                axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "delta_phi",
                 **full_axis_range,
             )
@@ -1777,7 +1777,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Select near side in delta phi
         delta_eta_ns_projector.additional_axis_cuts.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_phi,
+                axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiNearSide",
                 min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(-1. * math.pi / 2.)] + epsilon),
                 max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] - epsilon)
@@ -1787,7 +1787,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         delta_eta_ns_projector.projection_dependent_cut_axes.append([])
         delta_eta_ns_projector.projection_axes.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "delta_eta",
                 **full_axis_range
             )
@@ -1808,7 +1808,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Select away side in delta phi
         delta_eta_as_projector.additional_axis_cuts.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_phi,
+                axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiAwaySide",
                 min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] + epsilon),
                 max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(3. * math.pi / 2.)] - epsilon)
@@ -1818,7 +1818,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         delta_eta_as_projector.projection_dependent_cut_axes.append([])
         delta_eta_as_projector.projection_axes.append(
             HistAxisRange(
-                axis_type = analysis_objects.JetHCorrelationAxis.delta_eta,
+                axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "delta_eta",
                 **full_axis_range
             )
@@ -1867,8 +1867,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Could also consider trying to get the projector directly and apply it to a hist
                 ################
 
-                if observable.type == analysis_objects.JetHCorrelationType.background_dominated \
-                        and observable.axis == analysis_objects.JetHCorrelationAxis.delta_phi:
+                if observable.type == analysis_objects.CorrelationType.background_dominated \
+                        and observable.axis == analysis_objects.CorrelationAxis.delta_phi:
                     # Scale by (signal region)/(background region)
                     # NOTE: Will be applied as `1/normalization_factor`, so the value is the inverse
                     #normalization_factor = background_range/signal_range

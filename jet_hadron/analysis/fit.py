@@ -284,18 +284,18 @@ class JetHEPFit(object):
         self.calculateFitError = self.fitConfig["calculateFitError"]
 
         # Useful when labeling fit conatiner objects
-        self.overallFitLabel = analysis_objects.JetHCorrelationType.background_dominated
+        self.overallFitLabel = analysis_objects.CorrelationType.background_dominated
         if self.includeSignalInFit:
-            self.overallFitLabel = analysis_objects.JetHCorrelationType.signal_dominated
+            self.overallFitLabel = analysis_objects.CorrelationType.signal_dominated
 
     def GetFitFunction(self, fitType, epAngle):
         """ Simple wrapper to get the fit function corresponding to the selected fitType. """
-        fitFunctionMap = {analysis_objects.JetHCorrelationType.signal_dominated: GetSignalDominatedFitFunction,
-                          analysis_objects.JetHCorrelationType.background_dominated: GetBackgroundDominatedFitFunction}
+        fitFunctionMap = {analysis_objects.CorrelationType.signal_dominated: GetSignalDominatedFitFunction,
+                          analysis_objects.CorrelationType.background_dominated: GetBackgroundDominatedFitFunction}
 
-        # The fit container stores the fit type as a string. We need it as a JetHCorrelationType
+        # The fit container stores the fit type as a string. We need it as a CorrelationType
         if isinstance(fitType, str):
-            fitType = analysis_objects.JetHCorrelationType[fitType]
+            fitType = analysis_objects.CorrelationType[fitType]
         if isinstance(epAngle, str):
             epAngle = params.ReactionPlaneOrientation[epAngle]
         # Retrieve the function
@@ -321,7 +321,7 @@ class JetHEPFit(object):
 
         """
         retVal = True
-        if correlationType == analysis_objects.JetHCorrelationType.signal_dominated:
+        if correlationType == analysis_objects.CorrelationType.signal_dominated:
             # Skip signal fit
             if not self.includeSignalInFit:
                 retVal = False
@@ -364,7 +364,7 @@ class JetHEPFit(object):
                 fitFunc = self.GetFitFunction(fitType = observable.correlationType, epAngle = jetH.reaction_plane_orientation)
 
                 # Restricted the background fit range
-                if observable.correlationType == analysis_objects.JetHCorrelationType.background_dominated:
+                if observable.correlationType == analysis_objects.CorrelationType.background_dominated:
                     # Use only near-side data (ie dPhi < pi/2)
                     NSrange = int(len(x)/2.)
                     x = x[:NSrange]
@@ -645,7 +645,7 @@ class JetHEPFit(object):
 
                 # Retrieve fit data
                 fit = self.EvaluateFit(epAngle = jetH.reaction_plane_orientation,
-                        fitType = analysis_objects.JetHCorrelationType.background_dominated,
+                        fitType = analysis_objects.CorrelationType.background_dominated,
                         xValue = xForFitFunc,
                         fitContainer = fitCont)
 

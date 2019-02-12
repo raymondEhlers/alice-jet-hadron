@@ -31,7 +31,7 @@ np.random.seed(1234)
 ], ids = ["full range", "dPhi signal dominated", "dEta near side"])
 def test_correlation_types(logging_mixin, corr_type, expected):
     """ Test jet-hadron correlation types. """
-    obj = analysis_objects.JetHCorrelationType[corr_type]
+    obj = analysis_objects.CorrelationType[corr_type]
 
     assert str(obj) == expected["str"]
     assert obj.display_str() == expected["display_str"]
@@ -46,7 +46,7 @@ def test_correlation_types(logging_mixin, corr_type, expected):
 ], ids = ["Delta phi", "Delta eta"])
 def test_correlation_axis(logging_mixin, axis, expected):
     """ Test jet-hadron correaltion axis. """
-    obj = analysis_objects.JetHCorrelationAxis[axis]
+    obj = analysis_objects.CorrelationAxis[axis]
 
     assert str(obj) == expected["str"]
     assert obj.display_str() == expected["display_str"]
