@@ -1511,7 +1511,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             jet_pt = self.jet_pt, track_pt = self.track_pt,
         )
 
-    def _compoare_mixed_event_normalization_options(self, mixed_event: Hist) -> None:
+    def _compare_mixed_event_normalization_options(self, mixed_event: Hist) -> None:
         """ Compare mixed event normalization options. """
         eta_limits = self.task_config["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
 
@@ -1599,8 +1599,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Compare mixed event normalization options
         # We must do this before scaling the mixed event (otherwise we will get the wrong scaling values.)
         if self.task_config["mixedEventNormalizationOptions"].get("compareOptions", False):
-            self._compoare_mixed_event_normalization_options(
-                mixed_event = self.correlation_hists_2d.mixed_event
+            self._compare_mixed_event_normalization_options(
+                mixed_event = self.correlation_hists_2d.mixed_event.hist
             )
 
         # Normalize and post process the mixed event observable
