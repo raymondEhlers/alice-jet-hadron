@@ -6,7 +6,7 @@ name: "Analysis config for Jet-H analysis"
 #   - Event activity
 #   - Leading hadron bias type
 
-# Specify all possible leading hadron bias values
+# Specify all possible desired leading hadron bias values
 leadingHadronBiasValues:
     track:
         value: 5
@@ -18,16 +18,13 @@ leadingHadronBiasValues:
             cluster:
                 value: 6
 
-# Iterable options
+# Default iterable options
 iterables:
     reaction_plane_orientation: true
     qvector: false
 
 # Basic configuration
 inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
-# inputListName replaces
-#jetHTaskNameBase: ""
-#jetHTaskNameSuffix: "{biasTypeTag}R2"
 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 # yamllint disable-line rule:line-length
 outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{event_activity}/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qvector}/{task_name}"
@@ -36,13 +33,15 @@ printingExtensions: ["pdf", "eps"]
 aliceLabel: work_in_progress
 trainNumber: &trainNumber 3360
 
-# 11H track and jet pt bins
+# Convenience variables
+# 11h track and jet pt bins
 _jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
 _track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 8.0, 20.0]
 
 etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
 phiBins: !PhiBins [-0.5, 0.5, 1.5]
 
+# Correlations analysis related configuration
 Correlations:
     deltaEtaRanges:
         # They are assumed to be symmetric
@@ -254,6 +253,7 @@ _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
         9: 2709
         10: 2710
 
+# Response matrix related configuration
 PtHardBins:
     moving_average_threshold: 1.0
     override:
@@ -315,6 +315,7 @@ ResponseManager:
         #       so that the output is stored in the same directory.
         outputPrefix: "output/{collision_system}/dev/test/{event_activity}/{leading_hadron_bias}/ResponseFinal"
 
+# Configuration for plotting EMCal corrections from a train.
 EMCalCorrections:
     # Track pt bins that are used when binning various cluster-track matching histograms.
     track_pt_bins: !TrackPtBins [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
@@ -646,6 +647,7 @@ EMCalCorrections:
                 #- "combined"
                 #- "data"
 
+# Configuration for plotting EMCal Embedding related histograms.
 EMCalEmbedding:
     componentsToPlot:
         EventCuts:
@@ -690,13 +692,6 @@ EMCalEmbedding:
             reaction_plane_orientation: false
             pt_hard_bin: *PtHardBins10Bins
 
-bias:
-    track:
-        tag: "trackBias5"
-        trainNumber: *trainNumber
-    cluster:
-        tag: "clusterBias10"
-        trainNumber: *trainNumber
 # Save some time by skipping these bins for analysis
 skipPtBins:
     jet: [0, 2, 3]
