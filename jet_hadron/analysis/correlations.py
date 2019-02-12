@@ -1339,7 +1339,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Event plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
-            logger.info("Using full EP angle range")
+            logger.debug("Using full EP angle range")
         else:
             reaction_plane_axis_range = {
                 "min_val": projectors.HistAxisRange.apply_func_to_find_bin(
@@ -1351,7 +1351,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     self.reaction_plane_orientation.value.bin
                 ),
             }
-            logger.info(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
+            logger.debug(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_cut_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.reaction_plane_orientation,
             axis_range_name = "reaction_plane",
@@ -1932,7 +1932,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
                                our_hist: Hist, their_hist: Hist,
                                title: str, x_label: str, y_label: str,
                                output_name: str) -> None:
-        # Validation
+        # Create a ratio plot
+        # We want to take their hist and divide it by ours. However, we set the title
+        # based on our hist because the comparison should be oriented around our hist.
+        ratio = their_hist.Clone(f"{our_hist.GetName()}_comparison")
+        ratio.Divide(our_hist)
+        ratio = histogram.Histogram1D.from_existing_hist(ratio)
+
+        # Convert to histogram plots for easier plotting
         if not isinstance(our_hist, histogram.Histogram1D):
             our_hist = histogram.Histogram1D.from_existing_hist(our_hist)
         if not isinstance(their_hist, histogram.Histogram1D):
@@ -1943,6 +1950,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             jet_hadron = self,
             our_hist = our_hist,
             their_hist = their_hist,
+            ratio = ratio,
             title = title,
             x_label = x_label,
             y_label = y_label,

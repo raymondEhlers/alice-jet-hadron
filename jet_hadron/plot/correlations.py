@@ -166,26 +166,32 @@ def plot1DCorrelationsWithFits(jet_hadron):
 def comparison_1d(jet_hadron,
                   our_hist: histogram.Histogram1D,
                   their_hist: histogram.Histogram1D,
+                  ratio: histogram.Histogram1D,
                   title: str, x_label: str, y_label: str,
                   output_name: str):
     """ Compare our hist and their hist. """
-    fig, ax = plt.subplots(figsize = (8, 6))
+    fig, ax = plt.subplots(2, 1, sharex = True, gridspec_kw = {"height_ratios": [3, 1]}, figsize = (8, 6))
 
     # Plot data
-    ax.errorbar(our_hist.x, our_hist.y, yerr = our_hist.errors, label = "Our hist")
-    ax.errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
+    ax[0].errorbar(our_hist.x, our_hist.y, yerr = our_hist.errors, label = "Our hist")
+    ax[0].errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
+    # Plot ratio
+    ax[1].errorbar(ratio.x, ratio.y, yerr = ratio.errors, label = "Theirs/ours")
 
     # Set plot properties
-    ax.set_title(title)
-    ax.set_xlabel(r"$\Delta\varphi$")
-    ax.set_ylabel(r"$\mathrm{dN}/\mathrm{d}\varphi$")
-    ax.legend(loc = "best")
+    ax[0].set_title(title)
+    ax[0].set_ylabel(r"$\mathrm{dN}/\mathrm{d}\varphi$")
+    ax[0].legend(loc = "best")
+    ax[1].set_xlabel(r"$\Delta\varphi$")
+    ax[1].set_ylabel("Theirs/ours")
 
     # Final adjustments
     fig.tight_layout()
+    # Reduce spacing between subplots
+    fig.subplots_adjust(hspace = 0, wspace = 0.05)
 
+    # Save and cleanup
     plot_base.save_plot(jet_hadron.output_info, fig, output_name)
-
     plt.close(fig)
 
 def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
