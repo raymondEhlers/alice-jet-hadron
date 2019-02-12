@@ -114,12 +114,12 @@ def plot_2d_correlations(jet_hadron):
 
 def plot_1d_correlations(jet_hadron) -> None:
     """ Plot the 1D correlations defined here. """
+
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
+    _plot_basic_scaled_1d_correlations_ROOT(jet_hadron = jet_hadron, canvas = canvas)
+    _plot_1d_signal_and_background_ROOT(jet_hadron = jet_hadron, canvas = canvas)
 
-    plot_basic_scaled_1d_correlations_root(jet_hadron = jet_hadron, canvas = canvas)
-    plot_1d_signal_and_background_root(jet_hadron = jet_hadron, canvas = canvas)
-
-def plot_basic_scaled_1d_correlations_root(jet_hadron, canvas: Canvas) -> None:
+def _plot_basic_scaled_1d_correlations_ROOT(jet_hadron, canvas: Canvas) -> None:
     """ Basic 1D correlation plot with ROOT.
 
     Note:
@@ -129,20 +129,25 @@ def plot_basic_scaled_1d_correlations_root(jet_hadron, canvas: Canvas) -> None:
         for _, observable in correlations:
             # Draw the 1D histogram.
             observable.hist.Draw("")
-            plot_base.save_plot(jet_hadron.output_info, canvas, observable.hist.GetName())
+            output_name = observable.hist.GetName() + "_ROOT"
+            plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
-def plot_1d_signal_and_background_root(jet_hadron, canvas: Canvas) -> None:
+def _plot_1d_signal_and_background_ROOT(jet_hadron, canvas: Canvas) -> None:
     """ Plot 1D signal and background ROOT hists on a single plot. """
     # Setup
     hists = jet_hadron.correlation_hists_delta_phi
 
     # Plot
+    hists.signal_dominated.hist.SetLineColor(ROOT.kBlack)
+    hists.signal_dominated.hist.SetMarkerColor(ROOT.kBlack)
     hists.signal_dominated.hist.Draw("")
+    hists.background_dominated.hist.SetLineColor(ROOT.kBlue)
     hists.background_dominated.hist.SetMarkerColor(ROOT.kBlue)
     hists.background_dominated.hist.Draw("same")
 
     # Save
     output_name = f"jetH_delta_phi_{jet_hadron.identifier}_signal_background_comparison"
+    output_name += "_ROOT"
     plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
 def plot1DCorrelationsWithFits(jet_hadron):
