@@ -30,6 +30,14 @@ sns.set(context = "notebook", style = "white")
 # Customize matplotlib
 # Enable latex
 matplotlib.rcParams["text.usetex"] = True
+# Enable axis ticks (after they are disabled by seaborn)
+matplotlib.rcParams["xtick.bottom"] = True
+matplotlib.rcParams["ytick.left"] = True
+# Make minor axis ticks visible (but only on left and bottom)
+matplotlib.rcParams["xtick.minor.visible"] = True
+matplotlib.rcParams["ytick.minor.visible"] = True
+matplotlib.rcParams["xtick.minor.top"] = False
+matplotlib.rcParams["ytick.minor.right"] = False
 # Ensure that axis ticks go inward instead of outward
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
