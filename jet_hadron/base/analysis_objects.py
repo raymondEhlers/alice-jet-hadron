@@ -64,7 +64,7 @@ class JetHCorrelationAxis(enum.Enum):
         if angle == "phi":
             angle = "var" + angle
 
-        return r"$\Delta" + "\\" + angle + "$"
+        return fr"\Delta\{angle}"
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)

@@ -88,9 +88,9 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     # Set title, axis labels
     jet_pt_bins_title = labels.jet_pt_range_string(jet_pt)
     track_pt_bins_title = labels.track_pt_range_string(track_pt)
-    hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
-    hist.GetXaxis().SetTitle("#Delta#varphi")
-    hist.GetYaxis().SetTitle("#Delta#eta")
+    hist.SetTitle(rf"{title_label}\:\mathrm{{with}}\:{jet_pt_bins_title} \mathrm{{,}} {track_pt_bins_title}")
+    hist.GetXaxis().SetTitle(r"$\Delta\varphi$")
+    hist.GetYaxis().SetTitle(r"$\Delta\eta$")
 
 def calculate_bin_width_scale_factor(hist: Hist, additional_scale_factor: float = 1.0) -> float:
     """ Calculate the bin width scale factor of a histogram.
@@ -328,7 +328,7 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     # Set title, labels
     jet_pt_bins_title = labels.jet_pt_range_string(jet_pt)
     track_pt_bins_title = labels.track_pt_range_string(track_pt)
-    hist.SetTitle(f"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
-    hist.GetXaxis().SetTitle(axis_label)
-    hist.GetYaxis().SetTitle(f"dN/d{axis_label}")
+    hist.SetTitle(rf"{title_label}\:\mathrm{{with}}\:{jet_pt_bins_title} \mathrm{{,}} {track_pt_bins_title}")
+    hist.GetXaxis().SetTitle(labels.use_label_with_root(axis_label))
+    hist.GetYaxis().SetTitle(f"$dN/d{axis_label}$")
 

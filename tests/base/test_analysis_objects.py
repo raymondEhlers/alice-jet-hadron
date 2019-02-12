@@ -39,10 +39,10 @@ def test_correlation_types(logging_mixin, corr_type, expected):
 @pytest.mark.parametrize("axis, expected", [
     ("delta_phi",
         {"str": "delta_phi",
-            "display_str": r"$\Delta\varphi$"}),
+            "display_str": r"\Delta\varphi"}),
     ("delta_eta",
         {"str": "delta_eta",
-            "display_str": r"$\Delta\eta$"}),
+            "display_str": r"\Delta\eta"}),
 ], ids = ["Delta phi", "Delta eta"])
 def test_correlation_axis(logging_mixin, axis, expected):
     """ Test jet-hadron correaltion axis. """
