@@ -177,6 +177,8 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     Args:
         mixed_event: Mixed event histogram.
         eta_limits: Min and max eta range limits.
+    Returns:
+        Mixed event normalization value.
     """
     # Project to 1D delta phi so it can be used with the signal finder
     peak_finding_hist, peak_finding_hist_array = _peak_finding_objects_from_mixed_event(
