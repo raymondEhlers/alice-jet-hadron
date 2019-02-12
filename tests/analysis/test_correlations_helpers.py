@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 def test_hist_container_scale_factor(logging_mixin, hist_index, expected, test_root_hists):
     """ Test hist container scale factor calculation. """
     hist = dataclasses.astuple(test_root_hists)[hist_index]
-    assert correlations_helpers.calculate_bin_width_scale_factor(hist) == expected["scale_factor"]
+    assert correlations_helpers._calculate_bin_width_scale_factor(hist) == expected["scale_factor"]
     additional_scale_factor = 0.5
-    assert correlations_helpers.calculate_bin_width_scale_factor(
+    assert correlations_helpers._calculate_bin_width_scale_factor(
         hist = hist,
         additional_scale_factor = additional_scale_factor) == \
         expected["scale_factor"] * additional_scale_factor

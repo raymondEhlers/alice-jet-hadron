@@ -92,7 +92,7 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     hist.GetXaxis().SetTitle(r"$\Delta\varphi$")
     hist.GetYaxis().SetTitle(r"$\Delta\eta$")
 
-def calculate_bin_width_scale_factor(hist: Hist, additional_scale_factor: float = 1.0) -> float:
+def _calculate_bin_width_scale_factor(hist: Hist, additional_scale_factor: float = 1.0) -> float:
     """ Calculate the bin width scale factor of a histogram.
 
     Args:
@@ -123,7 +123,7 @@ def scale_by_bin_width(hist: Hist) -> None:
     Returns:
         None. The histogram is scaled in place.
     """
-    scale_factor = calculate_bin_width_scale_factor(hist)
+    scale_factor = _calculate_bin_width_scale_factor(hist)
     hist.Scale(scale_factor)
 
 def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[float, float]) -> Tuple[Hist, np.ndarray]:
