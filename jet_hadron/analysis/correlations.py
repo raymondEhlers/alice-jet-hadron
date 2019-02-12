@@ -1329,12 +1329,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         }
 
         # Define common axes
+        # NOTE: The axis will be changed a copy below when necessary (ie for the trigger, since the axes are different).
         # Centrality axis
         centrality_cut_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.centrality,
             axis_range_name = "centrality",
-            min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, 0 + epsilon),
-            max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, 10 - epsilon),
+            min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.event_activity.value_range.min + epsilon),
+            max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.event_activity.value_range.max - epsilon),
         )
         # Event plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
@@ -1881,6 +1882,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Could also consider trying to get the projector directly and apply it to a hist
                 ################
 
+                # TODO: This is wrong for delta_eta...
                 if observable.type == analysis_objects.CorrelationType.background_dominated \
                         and observable.axis == analysis_objects.CorrelationAxis.delta_phi:
                     # Scale by (signal region)/(background region)
