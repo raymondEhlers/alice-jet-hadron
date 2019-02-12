@@ -65,7 +65,7 @@ def plot_2d_correlations(jet_hadron):
             hist.GetZaxis().SetTitleOffset(0.9)
         else:
             z_title = r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
-            if "corr" in name:
+            if "signal" in observable.type:
                 z_title = z_title % {"label": ""}
             else:
                 z_title = z_title % {"label": r"_{\mathrm{raw}}"}
