@@ -18,7 +18,7 @@ import os
 import pprint
 import math
 import sys
-from typing import Any, cast, Dict, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -1055,7 +1055,7 @@ class CorrelationObservable2D(analysis_objects.Observable):
     analysis_identifier: Optional[str] = None
 
     @property
-    def name(self):
+    def name(self) -> str:
         # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
         analysis_identifier = self.analysis_identifier
         if self.analysis_identifier is None:
@@ -1082,6 +1082,13 @@ class CorrelationHistograms2D:
 
 @dataclass
 class NumberOfTriggersObservable(analysis_objects.Observable):
+    """ Simple container for the spectra used to determine the number of triggers.
+
+    Note:
+        We don't include an identifier for the name because we project the entire spectra
+        and then select subsets of the range later. We will overwrite this object unnecessarily,
+        but that should have minimal impact on the file size.
+    """
     @property
     def name(self) -> str:
         return "jetH_number_of_triggers"
@@ -1195,9 +1202,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.ran_projections: bool = False
 
         # Relevant histograms
+        # We need a field use with replace to successfully copy the dataclass. We just want a clean copy,
+        # (and apparently using replace is strongly preferred for a dataclasses compared to copying)
+        # so we replace the hist (which is already None) with None and we get a copy of the dataclass.
         self.number_of_triggers_observable: analysis_objects.Observable = dataclasses.replace(
-            _number_of_triggers_histogram_information["number_of_triggers_observable"], hist = None
+            _number_of_triggers_histogram_information["number_of_triggers_observable"], hist = None,
         )
+        # Apparently using dataclass replace to copy and modify a dataclass is preferred to
+        # copying the class and changing a value. So we use the replace function.
         self.correlation_hists_2d: CorrelationHistograms2D = CorrelationHistograms2D(
             raw = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.raw"], analysis_identifier = self.identifier),
             mixed_event = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.mixed_event"], analysis_identifier = self.identifier),
@@ -1254,14 +1266,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
             yield observable
 
     def _write_2d_correlations(self) -> None:
-        """ Write 2D correlatinos to output file. """
-        self._write_hists_to_root_file(hists = _2d_correlations_histogram_information)
+        """ Write 2D correlations to output file. """
+        self._write_hists_to_root_file(hists = self.correlation_hists_2d)
 
     def _write_number_of_triggers_hist(self) -> None:
         """ Write trigger jet spectra to file. """
-        self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
+        # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
+        self._write_hists_to_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
 
-    def _write_hists_to_root_file(self, hists: Mapping[str, analysis_objects.Observable],
+    def _write_hists_to_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
                                   mode: str = "UPDATE") -> None:
         """ Write the provided histograms to a ROOT file. """
         filename = os.path.join(self.output_prefix, self.output_filename)
@@ -1272,7 +1285,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         logger.info(f"Saving correlations to {filename}")
         # Then actually iterate through and save the hists.
         with histogram.RootOpen(filename = filename, mode = mode):
-            for observable in hists.values():
+            for _, observable in hists:
                 hist = observable.hist
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
@@ -1281,27 +1294,28 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _init_2d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 2D correlation hists. """
-        self._init_hists_from_root_file(hists = _2d_correlations_histogram_information)
+        self._init_hists_from_root_file(hists = self.correlation_hists_2d)
 
     def _init_number_of_triggers_hist_from_root_file(self) -> None:
         """ Write number of triggers hists. """
-        self._write_hists_to_root_file(hists = _number_of_triggers_histogram_information)
+        # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
+        self._init_hists_from_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
 
-    def _init_hists_from_root_file(self, hists: Mapping[str, analysis_objects.Observable]) -> None:
+    def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
         """ Initialize processed histograms from a ROOT file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
         filename = os.path.join(self.output_prefix, self.output_filename)
         with histogram.RootOpen(filename = filename, mode = "READ") as f:
-            for attribute_name, observable in hists.items():
+            for _, observable in hists:
+                logger.debug(f"Looking for hist {observable.name}")
                 h = f.Get(observable.name)
                 if not h:
                     h = None
                 else:
                     # Detach it from the file so we can store it for later use.
                     h.SetDirectory(0)
-                logger.debug(f"Initializing hist {h} to be stored in {attribute_name}")
-                # Finally, store the histogram
-                utils.recursive_setattr(self, attribute_name, h)
+                logger.debug(f"Initializing hist {h} to be stored in {observable}")
+                observable.hist = h
 
     def _setup_sparse_projectors(self) -> None:
         """ Setup the THnSparse projectors.
@@ -1471,7 +1485,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _setup_projectors(self):
         """ Setup the projectors for the analysis. """
         # NOTE: It's best to define the projector right before utilizing it. Here, this runs as the last
-        #       step of the setup, and then these projectors are executed immeidately.
+        #       step of the setup, and then these projectors are executed immediately.
         #       This is the best practice because we can only define the projectors for single objects once
         #       the histogram that it will project from exists. If it doesn't yet exist, the projector will
         #       fail because it stores the value (ie the hist) at the time of the projector definition.
@@ -1606,7 +1620,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """
         # The signal correlation is the raw signal divided by the mixed events
         self.correlation_hists_2d.signal.hist = self.correlation_hists_2d.raw.hist.Clone(
-            _2d_correlations_histogram_information["correlation_hists_2d.signal"].name
+            self.correlation_hists_2d.signal.name
         )
         self.correlation_hists_2d.signal.hist.Divide(self.correlation_hists_2d.mixed_event.hist)
 
@@ -1975,7 +1989,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _write_1d_correlations(self):
         """ Write 1D correlations to file. """
-        self._write_hists_to_root_file(hists = _1d_correlations_histogram_information)
+        logger.debug("Writing 1D delta phi correlations")
+        self._write_hists_to_root_file(hists = self.correlation_hists_delta_phi)
+        logger.debug("Writing 1D delta eta correlations")
+        self._write_hists_to_root_file(hists = self.correlation_hists_delta_eta)
 
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
