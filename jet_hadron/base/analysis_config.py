@@ -74,7 +74,7 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
     return config
 
 def determine_selected_options_from_kwargs(
-        args: list = None,
+        args: List[Any] = None,
         description: str = "Jet-hadron {task_name}.",
         add_options_function = None, **kwargs: str) -> Tuple[str, params.SelectedAnalysisOptions, argparse.Namespace]:
     """ Determine the selected analysis options from the command line arguments.
@@ -95,7 +95,7 @@ def determine_selected_options_from_kwargs(
     """
     # Make sure there is always a task name
     if "task_name" not in kwargs:
-        kwargs["task_name"] = "analysis"  # type: ignore
+        kwargs["task_name"] = "analysis"
 
     # Setup parser
     parser = argparse.ArgumentParser(description = description.format(**kwargs))
@@ -131,7 +131,7 @@ def determine_selected_options_from_kwargs(
                                                                leading_hadron_bias = parsed_args.biasType)
     return (parsed_args.configFilename, selected_analysis_options, parsed_args)
 
-def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_extra_args_func: Any = None) -> Tuple[params.SelectedAnalysisOptions, dict]:
+def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_extra_args_func: Any = None) -> Tuple[params.SelectedAnalysisOptions, Dict[str, Any]]:
     """ Validate arguments passed to the analysis task. Converts str and float types to enumerations.
 
     Note:
@@ -170,7 +170,7 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
     leading_hadron_bias_type = leading_hadron_bias_type if type(leading_hadron_bias_type) is params.LeadingHadronBiasType else params.LeadingHadronBiasType[leading_hadron_bias_type]  # type: ignore
 
     # Handle additional arguments
-    additional_validated_args: dict = {}
+    additional_validated_args: Dict[str, Any] = {}
     if validate_extra_args_func:
         additional_validated_args.update(validate_extra_args_func())
 
@@ -333,7 +333,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
 
     return (KeyIndex, returned_iterables, objects)
 
-def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: dict = None) -> ConstructedObjects:
+def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: Dict[str, Any] = None) -> ConstructedObjects:
     """ Main function to create an object from the terminal.
 
     Note:

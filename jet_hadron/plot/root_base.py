@@ -7,7 +7,9 @@ They are kept separately to avoid importing ROOT.
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-def drawVerticalLine(xValue, ROOT = None):
+from typing import Any
+
+def draw_vertical_line(x_value: float) -> Any:
     """ Draw a vertical line on a hist which will display properly on a log scale.
 
     Drawing a vertical line with standard functions works fine when the x axis is linear, but it breaks
@@ -19,20 +21,18 @@ def drawVerticalLine(xValue, ROOT = None):
         The line that is returned is **not** owned by ROOT to ensure that it isn't lost prematurely.
 
     Args:
-        xValue (float): x value where the vertical line should be drawn.
-        ROOT (ROOT): ROOT module currently in use. If `None`, it will import ROOT itself. Default: None
+        x_value (float): x value where the vertical line should be drawn.
     Returns:
         ROOT.TLine: Vertical line located at the specified value.
     """
-    if not ROOT:
-        import ROOT
+    import ROOT
 
     line = ROOT.TLine()
     lm = ROOT.gPad.GetLeftMargin()
     rm = 1. - ROOT.gPad.GetRightMargin()
     tm = 1. - ROOT.gPad.GetTopMargin()
     bm = ROOT.gPad.GetBottomMargin()
-    xndc = (rm - lm) * ((xValue - ROOT.gPad.GetUxmin()) / (ROOT.gPad.GetUxmax() - ROOT.gPad.GetUxmin())) + lm
+    xndc = (rm - lm) * ((x_value - ROOT.gPad.GetUxmin()) / (ROOT.gPad.GetUxmax() - ROOT.gPad.GetUxmin())) + lm
     line.SetLineWidth(2)
     line.SetLineColor(ROOT.kBlack)
 

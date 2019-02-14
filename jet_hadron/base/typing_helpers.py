@@ -14,10 +14,10 @@ try:
     Hist = Union[ROOT.TH1, ROOT.THnBase]
     Canvas = ROOT.TCanvas
 except ImportError:
+    Axis = Any
     # It doesn't like the possibility of redefining this, so we need to tell ``mypy`` to ignore it.
-    Axis = Any  # type: ignore
     Hist = Any  # type: ignore
-    Canvas = Any  # type: ignore
+    Canvas = Any
 
 # Tell ROOT to ignore command line options so args are passed to python
 # NOTE: Must be immediately after import ROOT and sometimes must be the first ROOT related import!

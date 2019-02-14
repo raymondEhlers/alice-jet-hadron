@@ -158,6 +158,9 @@ class HistPlotter:
         else:
             title = self.title if self.title else self._first_hist().GetTitle()
 
+        # Help out mypy
+        assert isinstance(title, str)
+
         return title
 
     def _apply_hist_titles(self, ax: matplotlib.axes.Axes) -> None:

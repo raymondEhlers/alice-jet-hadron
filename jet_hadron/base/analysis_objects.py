@@ -206,7 +206,7 @@ class JetHBase(generic_class.EqualityMixin):
         return self.output_info.output_prefix
 
     @output_prefix.setter
-    def output_prefix(self, val) -> None:
+    def output_prefix(self, val: str) -> None:
         self.output_info.output_prefix = val
 
     @property
@@ -214,7 +214,7 @@ class JetHBase(generic_class.EqualityMixin):
         return self.output_info.printing_extensions
 
     @printing_extensions.setter
-    def printing_extensions(self, val) -> None:
+    def printing_extensions(self, val: List[str]) -> None:
         self.output_info.printing_extensions = val
 
     @property
@@ -292,7 +292,7 @@ class JetHReactionPlane(JetHBinnedAnalysis):
 
         return len(self.input_hists) > 0
 
-    def _setup_projectors(self):
+    def _setup_projectors(self) -> None:
         """ Setup projectors needed for the analysis. """
         raise NotImplementedError("Must implement the projectors setup in the derived class.")
 
