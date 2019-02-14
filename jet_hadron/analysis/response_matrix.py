@@ -263,6 +263,8 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         rebin_width = particle_level_spectra_config["rebin_width"]
         if rebin_width > 0:
             hist.Rebin(rebin_width)
+            # Scale to maintain bin width normalization (which we have had for free up to now
+            # because by default the bins are 1 GeV wide).
             hist.Scale(1.0 / rebin_width)
 
         if particle_level_spectra_config["remove_first_bin"]:

@@ -321,8 +321,9 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
                                                  track_pt: analysis_objects.TrackPtBin) -> None:
     """ Basic post processing tasks for a new 1D correlation observable. """
     # Rebin to decrease the fluctuations in the correlations
+    # We don't scale by the rebin factor here because we will scale by bin width later.
+    # Since we will handle it later, it doesn't make sense to try to preserve normalization here.
     hist.Rebin(rebin_factor)
-    hist.Scale(1.0 / rebin_factor)
 
     # Scale
     hist.Scale(1.0 / normalization_factor)
