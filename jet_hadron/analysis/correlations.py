@@ -1586,6 +1586,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         for projector in self.sparse_projectors:
             projector.project()
 
+        # TEMP - try rebinning to directly compare to Joel's.
+        self.correlation_hists_2d.raw.hist.Rebin2D(2, 1)
+        self.correlation_hists_2d.mixed_event.hist.Rebin2D(2, 1)
+        # ENDTEMP
+
         # Determine number of triggers for the analysis.
         self.number_of_triggers = self._determine_number_of_triggers()
 
@@ -1593,6 +1598,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.raw.hist,
             normalization_factor = self.number_of_triggers,
+            #normalization_factor = 1.0,
             title_label = "Raw signal",
         )
 
@@ -1892,10 +1898,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     logger.debug(f"Scaling background by normalization_factor {normalization_factor}")
                 else:
                     normalization_factor = signal_range
+                    # Try adding eta bin width
+                    #normalization_factor = 0.1 / normalization_factor
                     logger.debug(f"Scaling signal by normalization_factor {normalization_factor}")
 
                 # Post process and scale
-                rebin_factor = 2
+                # TEMP Moved rebin up to 2D
+                rebin_factor = 1
+                # ENDTEMP
+
+                # TEMP for comparison with Joel. It doesn't need to be included long term.
+                # N triggers later
+                #normalization_factor *= self.number_of_triggers
+                # ENDTEMP
+
                 title_label = rf"{observable.axis.display_str()}\mathrm{{, {observable.type.display_str()}}}"
                 self._post_creation_processing_for_1d_correlation(
                     hist = observable.hist,
@@ -1984,9 +2000,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _compare_to_joel(self):
         """ Compare 1D correlations against Joel's produced correlations. """
-        # Need track_pt_bin - 1 to conform with convention the 0-index convention.
-        comparison_track_pt_bin = self.track_pt.bin - 1
-        comparison_filename = f"RPF_sysScaleCorrelations{comparison_track_pt_bin}rebinX2bg.root"
+        # Following the naming convection
+        comparison_filename = f"RPF_sysScaleCorrelations{self.track_pt.range.min}-{self.track_pt.range.max}rebinX2bg.root"
+        # "L" is added for some of the later bins to denote log likelihood.
+        if self.track_pt.range.min >= 5.0:
+            comparison_filename = comparison_filename.replace("X2bg", "X2bgL")
         comparison_filename = os.path.join(self.task_config["joelsCorrelationsFilePath"], comparison_filename)
         comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
         logger.debug(f"{comparison_hists}")

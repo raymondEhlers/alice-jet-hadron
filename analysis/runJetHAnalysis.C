@@ -30,6 +30,7 @@ namespace PWGJE {
     class AliAnalysisTaskEmcalJetHCorrelations;
   }
 }
+class AliAnalysisTaskEmcalJetHadEPpid;
 
 #ifdef __CLING__
 // Tell ROOT where to find AliRoot headers
@@ -46,6 +47,7 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 // Include AddTask to test for the LEGO train
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHCorrelations.C"
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHPerformance.C"
+//#include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHadEPpid.C"
 #endif
 
 void LoadMacros();
@@ -56,13 +58,13 @@ AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir,
 //______________________________________________________________________________
 AliAnalysisManager* runJetHAnalysis(
     const char   *cDataType      = "AOD",                                   // set the analysis type, AOD or ESD
-    const char   *cRunPeriod     = "LHC15o",                                // set the run period
+    const char   *cRunPeriod     = "LHC11h",                                // set the run period
     const char   *cLocalFiles    = "aodFiles.txt",                          // set the local list file
-    const UInt_t  iNumEvents     = 1000,                                    // number of events to be analyzed
-    const UInt_t  kPhysSel       = AliVEvent::kAnyINT,
+    const UInt_t  iNumEvents     = 3000,                                     // number of events to be analyzed
+    const UInt_t  kPhysSel       = //AliVEvent::kAnyINT,
                    //AliVEvent::kEMC1 | AliVEvent::kAnyINT,
-                   //AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
-                   //AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // physics selection
+                   AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
+                   AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // physics selection
     const char   *cTaskName      = "EMCalJetHAnalysis",                     // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
     // 1 = prepare the analysis manager and start the analysis
@@ -147,7 +149,7 @@ AliAnalysisManager* runJetHAnalysis(
   if (iDataType == kAod) {
     AliAODInputHandler * pESDHandler = AliAnalysisTaskEmcal::AddAODHandler();
   }
-  else {  
+  else {
     AliESDInputHandler * pESDHandler = AliAnalysisTaskEmcal::AddESDHandler();
   }
 
@@ -196,6 +198,7 @@ AliAnalysisManager* runJetHAnalysis(
   correctionTask->Initialize();
 
   // Background
+  // TODO: Enable (local?) rho task
   std::string sRhoChargedName = "";
   std::string sRhoFullName = "";
   if (iBeamType != AliAnalysisTaskEmcal::kpp && bEnableBackgroundSubtraction == kTRUE) {
@@ -325,6 +328,31 @@ AliAnalysisManager* runJetHAnalysis(
   jetHTask->Initialize();
 
   //////////////////////////////////////////
+  // Run Joel's task for a direct comparison
+  //////////////////////////////////////////
+  std::string jetsName = pFullJet02TaskNew->GetName();
+  std::cout << "jetsName: " << jetsName << "\n";
+  auto joelsTask = AliAnalysisTaskEmcalJetHadEPpid::AddTaskEmcalJetHadEPpid(
+      "AnalysisResults.root", pFullJet02TaskNew->GetName(), "tracks", "caloClusters", "", "",
+      1.6, 2.94, -0.5, 0.5, 0.08, 1, 100000.0, 10.0,
+      0, 0, 1, 0,
+      15.0, 0.2,
+      nTracksMixedEvent, minNTracksMixedEvent, minNEventsMixedEvent,
+      "EMCAL", 0, 10041006, "A-A",
+      triggerEventsSelection, mixedEventsSelection, 10,
+      0, // This means that the efficiency correction is enabled....
+      kTRUE, kFALSE, "clbias10"
+      );
+  joelsTask->SelectCollisionCandidates(triggerEventsSelection | mixedEventsSelection);
+  // Don't use AliEventCuts here, as his task isn't really compatible with it.
+  joelsTask->SetUseBuiltinEventSelection(kTRUE);
+  // May be redundant, but I'm including it because that's what was done in Train 1203
+  // and I don't want to deal with any deviations from it.
+  joelsTask->SetClusBias(clusterBias);
+  joelsTask->SetTrkBias(100000);
+  joelsTask->SetReduceStatsCent(1);
+
+  //////////////////////////////////////////
   // Jet-H performance task for QA-like information
   //////////////////////////////////////////
   PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance * jetHPerformance = AddTaskEmcalJetHPerformance();
@@ -355,9 +383,9 @@ AliAnalysisManager* runJetHAnalysis(
 
   if (!pMgr->InitAnalysis()) return 0;
   pMgr->PrintStatus();
-    
+
   pMgr->SetUseProgressBar(kTRUE, 250);
-  
+
   TFile *pOutFile = new TFile("train.root","RECREATE");
   pOutFile->cd();
   pMgr->Write();
