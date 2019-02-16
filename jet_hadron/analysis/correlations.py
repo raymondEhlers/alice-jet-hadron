@@ -1504,11 +1504,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Setup the input hists and projectors
         super().setup(input_hists = input_hists)
 
-    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Tuple[float, float] = None) -> None:
         """ Perform post creation processing for 2D correlations. """
         correlations_helpers.post_projection_processing_for_2d_correlation(
             hist = hist, normalization_factor = normalization_factor, title_label = title_label,
-            jet_pt = self.jet_pt, track_pt = self.track_pt,
+            jet_pt = self.jet_pt, track_pt = self.track_pt, rebin_factors = rebin_factors,
         )
 
     def _compare_mixed_event_normalization_options(self, mixed_event: Hist) -> None:
@@ -1570,13 +1570,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
             max_linear_fit_2d_rebin = max_linear_fit_2d_rebin,
         )
 
-    def _measure_mixed_event_normalization(self, mixed_event: Hist) -> float:
+    def _measure_mixed_event_normalization(self, mixed_event: Hist, delta_phi_rebin_factor: int = 1) -> float:
         """ Measure the mixed event normalization. """
         # See the note on the selecting the eta_limits in `correlations_helpers.measure_mixed_event_normalization(...)`
         eta_limits = self.task_config["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
         return correlations_helpers.measure_mixed_event_normalization(
             mixed_event = mixed_event,
             eta_limits = eta_limits,
+            delta_phi_rebin_factor = delta_phi_rebin_factor,
         )
 
     def _create_2d_raw_and_mixed_correlations(self) -> None:
@@ -1586,20 +1587,16 @@ class Correlations(analysis_objects.JetHReactionPlane):
         for projector in self.sparse_projectors:
             projector.project()
 
-        # TEMP - try rebinning to directly compare to Joel's.
-        self.correlation_hists_2d.raw.hist.Rebin2D(2, 1)
-        self.correlation_hists_2d.mixed_event.hist.Rebin2D(2, 1)
-        # ENDTEMP
-
         # Determine number of triggers for the analysis.
         self.number_of_triggers = self._determine_number_of_triggers()
+        rebin_factors = self.task_config.get("2d_rebin_factors", None)
 
         # Raw signal hist post processing.
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.raw.hist,
             normalization_factor = self.number_of_triggers,
-            #normalization_factor = 1.0,
             title_label = "Raw signal",
+            rebin_factors = rebin_factors,
         )
 
         # Compare mixed event normalization options
@@ -1611,12 +1608,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Normalize and post process the mixed event observable
         mixed_event_normalization_factor = self._measure_mixed_event_normalization(
-            mixed_event = self.correlation_hists_2d.mixed_event.hist
+            mixed_event = self.correlation_hists_2d.mixed_event.hist,
+            delta_phi_rebin_factor = rebin_factors[0] if rebin_factors else 1,
         )
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.mixed_event.hist,
             normalization_factor = mixed_event_normalization_factor,
             title_label = "Mixed event",
+            rebin_factors = rebin_factors,
         )
 
     def _create_2d_signal_correlation(self) -> None:
@@ -1898,20 +1897,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     logger.debug(f"Scaling background by normalization_factor {normalization_factor}")
                 else:
                     normalization_factor = signal_range
-                    # Try adding eta bin width
-                    #normalization_factor = 0.1 / normalization_factor
                     logger.debug(f"Scaling signal by normalization_factor {normalization_factor}")
 
+                # Determine the rebin factor, which depends on the observable axis.
+                rebin_factor = self.task_config.get(f"1d_rebin_factor_{observable.axis}", 1)
+
                 # Post process and scale
-                # TEMP Moved rebin up to 2D
-                rebin_factor = 1
-                # ENDTEMP
-
-                # TEMP for comparison with Joel. It doesn't need to be included long term.
-                # N triggers later
-                #normalization_factor *= self.number_of_triggers
-                # ENDTEMP
-
                 title_label = rf"{observable.axis.display_str()}\mathrm{{, {observable.type.display_str()}}}"
                 self._post_creation_processing_for_1d_correlation(
                     hist = observable.hist,

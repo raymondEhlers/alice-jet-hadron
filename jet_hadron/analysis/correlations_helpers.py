@@ -70,7 +70,8 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
 
 def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title_label: str,
                                                   jet_pt: analysis_objects.JetPtBin,
-                                                  track_pt: analysis_objects.TrackPtBin) -> None:
+                                                  track_pt: analysis_objects.TrackPtBin,
+                                                  rebin_factors: Tuple[float, float] = None) -> None:
     """ Basic post processing tasks for a new 2D correlation observable.
 
     Args:
@@ -79,9 +80,18 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
         title_label: Histogram title label.
         jet_pt: Jet pt bin.
         track_pt: Track pt bin.
+        rebin_factors: (x rebin factor, y rebin factor). Both values must be specified (can set to 1 if you
+            don't want to rebin a particular axis). Default: None.
     Returns:
         None. The histogram is modified in place.
     """
+    # If we specify a rebin factor, then rebin.
+    if rebin_factors is not None:
+        logger.debug(f"applying rebin_factors: {rebin_factors}")
+        hist.Rebin2D(*rebin_factors)
+
+    logger.debug(f"bin widths phi: {hist.GetXaxis().GetNbins()}, bin widths eta: {hist.GetYaxis().GetNbins()}")
+
     # Scale
     hist.Scale(1.0 / normalization_factor)
 
@@ -164,7 +174,7 @@ def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[
 
     return peak_finding_hist, peak_finding_hist_array
 
-def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float, float]) -> float:
+def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float, float], delta_phi_rebin_factor: int = 1) -> float:
     """ Determine normalization of the mixed event.
 
     The normalization is determined by using the moving average of half of the histogram.
@@ -174,9 +184,14 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     use 0.3 This value also depends on the max track eta. For 0.9, it should be 0.4 (0.9-0.5), but
     for 0.8, it should be 0.3 (0.8-0.5)
 
+    Note:
+        This assumes that delta phi is on the x axis and delta eta is on the y axis.
+
     Args:
         mixed_event: Mixed event histogram.
         eta_limits: Min and max eta range limits.
+        delta_phi_rebin_factor: Factor by which we will rebin the mixed event, and therefore by which we
+            must scaled the mixed event normalization.
     Returns:
         Mixed event normalization value.
     """
@@ -186,8 +201,9 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
         eta_limits = eta_limits
     )
 
-    # Using moving average
-    moving_avg = utils.moving_average(peak_finding_hist_array, n = 36)
+    # Using moving average looking at window half of the size of the delta phi axis (ie looking 5 bins
+    # ahead if there 10 bins in the axis).
+    moving_avg = utils.moving_average(peak_finding_hist_array, n = mixed_event.GetXaxis().GetNbins() // 2)
     max_moving_avg = max(moving_avg)
 
     # Finally determine the mixed event normalziation.
@@ -196,6 +212,10 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     if not mixed_event_normalization != 0:
         logger.warning(f"Could not normalize the mixed event hist \"{mixed_event.GetName()}\" due to no data at (0,0)!")
         mixed_event_normalization = 1
+
+    # Account for a rebin factor. For example, if we rebin by 2, then we need to scale up
+    # the normalization factor by 2.
+    mixed_event_normalization *= delta_phi_rebin_factor
 
     return mixed_event_normalization
 

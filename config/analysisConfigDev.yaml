@@ -51,6 +51,9 @@ Correlations:
         etaRange: [-0.3, 0.3]
         compareOptions: false
     joelsCorrelationsFilePath: "joelsCentralCorrelations"
+    2d_rebin_factors: [2, 1]
+    1d_rebin_factor_delta_eta: 1
+    1d_rebin_factor_delta_phi: 1
     processingOptions:
         # General histograms
         generalHistograms: false
