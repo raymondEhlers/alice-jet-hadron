@@ -1193,7 +1193,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Basic information
         # Identifier information
-        self.identifier = f"jetPt{self.jet_pt.bin}_trackPt{self.track_pt.bin}"
+        jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
+        self.identifier = f"{jet_pt_identifier}_{self.jet_pt.min}_{self.jet_pt.max}_trackPt_{self.track_pt.min}_{self.track_pt.max}"
 
         self.input_hists: Dict[str, Any] = {}
         # For convenience since it is frequently accessed.
