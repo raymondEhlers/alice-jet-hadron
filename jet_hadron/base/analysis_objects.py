@@ -336,6 +336,16 @@ class AnalysisBin(ABC):
         return str(f"{self.name} Range: ({self.range.min}, {self.range.max})")
 
     @property
+    def min(self) -> float:
+        """ Helper to provide more convenient access to the range. """
+        return self.range.min
+
+    @property
+    def max(self) -> float:
+        """ Helper to provide more convenient access to the range. """
+        return self.range.max
+
+    @property
     def name(self) -> str:
         """ Convert class name into capital case. For example: 'JetPtBin' -> 'Jet Pt Bin'. """
         return re.sub("([a-z])([A-Z])", r"\1 \2", self.__class__.__name__)
