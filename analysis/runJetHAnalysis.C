@@ -58,13 +58,13 @@ AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir,
 //______________________________________________________________________________
 AliAnalysisManager* runJetHAnalysis(
     const char   *cDataType      = "AOD",                                   // set the analysis type, AOD or ESD
-    const char   *cRunPeriod     = "LHC11h",                                // set the run period
+    const char   *cRunPeriod     = "LHC15o",                                // set the run period
     const char   *cLocalFiles    = "aodFiles.txt",                          // set the local list file
-    const UInt_t  iNumEvents     = 3000,                                     // number of events to be analyzed
-    const UInt_t  kPhysSel       = //AliVEvent::kAnyINT,
+    const UInt_t  iNumEvents     = 1000,                                     // number of events to be analyzed
+    const UInt_t  kPhysSel       = AliVEvent::kAnyINT,
                    //AliVEvent::kEMC1 | AliVEvent::kAnyINT,
-                   AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
-                   AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // physics selection
+                   /*AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
+                   AliVEvent::kCentral | AliVEvent::kSemiCentral,*/ //AliVEvent::kAny,                         // physics selection
     const char   *cTaskName      = "EMCalJetHAnalysis",                     // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
     // 1 = prepare the analysis manager and start the analysis
@@ -198,7 +198,6 @@ AliAnalysisManager* runJetHAnalysis(
   correctionTask->Initialize();
 
   // Background
-  // TODO: Enable (local?) rho task
   std::string sRhoChargedName = "";
   std::string sRhoFullName = "";
   if (iBeamType != AliAnalysisTaskEmcal::kpp && bEnableBackgroundSubtraction == kTRUE) {
@@ -330,6 +329,8 @@ AliAnalysisManager* runJetHAnalysis(
   //////////////////////////////////////////
   // Run Joel's task for a direct comparison
   //////////////////////////////////////////
+  /*
+  // NOTE: This requires the rho task, even if it's not actually using it.
   std::string jetsName = pFullJet02TaskNew->GetName();
   std::cout << "jetsName: " << jetsName << "\n";
   auto joelsTask = AliAnalysisTaskEmcalJetHadEPpid::AddTaskEmcalJetHadEPpid(
@@ -350,7 +351,7 @@ AliAnalysisManager* runJetHAnalysis(
   // and I don't want to deal with any deviations from it.
   joelsTask->SetClusBias(clusterBias);
   joelsTask->SetTrkBias(100000);
-  joelsTask->SetReduceStatsCent(1);
+  joelsTask->SetReduceStatsCent(1);*/
 
   //////////////////////////////////////////
   // Jet-H performance task for QA-like information
