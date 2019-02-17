@@ -1429,9 +1429,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         self.sparse_projectors.append(trigger_projector)
 
-        # Jet and track pt bin dependent cuts
-        projection_information = {"jet_pt_bin": self.jet_pt.bin, "track_pt_bin": self.track_pt.bin}
-
         ###########################
         # Raw signal projector
         ###########################
@@ -1447,12 +1444,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             raw_signal_projector.additional_axis_cuts.append(centrality_cut_axis)
         if reaction_plane_orientation_cut_axis:
             raw_signal_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
-        # TODO: Do these projectors really need projection dependent cut axes?
-        #       It seems like additionalAxisCuts would be sufficient.
-        projection_dependent_cut_axes = [jet_pt_axis, track_pt_axis]
-        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be
-        #       applied on the same projection!
-        raw_signal_projector.projection_dependent_cut_axes.append(projection_dependent_cut_axes)
+        raw_signal_projector.additional_axis_cuts.append(jet_pt_axis)
+        raw_signal_projector.additional_axis_cuts.append(track_pt_axis)
+        raw_signal_projector.projection_dependent_cut_axes.append([])
         # Projection Axes
         raw_signal_projector.projection_axes.append(delta_phi_axis)
         raw_signal_projector.projection_axes.append(delta_eta_axis)
@@ -1475,10 +1469,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             mixed_event_projector.additional_axis_cuts.append(centrality_cut_axis)
         if reaction_plane_orientation_cut_axis:
             mixed_event_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
-        projection_dependent_cut_axes = [jet_pt_axis, track_pt_axis]
-        # NOTE: We are passing a list to the list of cuts. Therefore, the two cuts defined above will be
-        #       applied on the same projection!
-        mixed_event_projector.projection_dependent_cut_axes.append(projection_dependent_cut_axes)
+        mixed_event_projector.additional_axis_cuts.append(jet_pt_axis)
+        mixed_event_projector.additional_axis_cuts.append(track_pt_axis)
+        mixed_event_projector.projection_dependent_cut_axes.append([])
         # Projection Axes
         mixed_event_projector.projection_axes.append(delta_phi_axis)
         mixed_event_projector.projection_axes.append(delta_eta_axis)
