@@ -1504,7 +1504,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Setup the input hists and projectors
         super().setup(input_hists = input_hists)
 
-    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Tuple[float, float] = None) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Tuple[int, int] = None) -> None:
         """ Perform post creation processing for 2D correlations. """
         correlations_helpers.post_projection_processing_for_2d_correlation(
             hist = hist, normalization_factor = normalization_factor, title_label = title_label,

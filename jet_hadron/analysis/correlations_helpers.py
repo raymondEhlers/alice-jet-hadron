@@ -71,7 +71,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
 def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title_label: str,
                                                   jet_pt: analysis_objects.JetPtBin,
                                                   track_pt: analysis_objects.TrackPtBin,
-                                                  rebin_factors: Tuple[float, float] = None) -> None:
+                                                  rebin_factors: Tuple[int, int] = None) -> None:
     """ Basic post processing tasks for a new 2D correlation observable.
 
     Args:
@@ -87,10 +87,7 @@ def post_projection_processing_for_2d_correlation(hist: Hist, normalization_fact
     """
     # If we specify a rebin factor, then rebin.
     if rebin_factors is not None:
-        logger.debug(f"applying rebin_factors: {rebin_factors}")
         hist.Rebin2D(*rebin_factors)
-
-    logger.debug(f"bin widths phi: {hist.GetXaxis().GetNbins()}, bin widths eta: {hist.GetYaxis().GetNbins()}")
 
     # Scale
     hist.Scale(1.0 / normalization_factor)

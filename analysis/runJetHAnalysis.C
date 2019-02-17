@@ -60,11 +60,11 @@ AliAnalysisManager* runJetHAnalysis(
     const char   *cDataType      = "AOD",                                   // set the analysis type, AOD or ESD
     const char   *cRunPeriod     = "LHC15o",                                // set the run period
     const char   *cLocalFiles    = "aodFiles.txt",                          // set the local list file
-    const UInt_t  iNumEvents     = 1000,                                     // number of events to be analyzed
+    const UInt_t  iNumEvents     = 1000,                                    // number of events to be analyzed
     const UInt_t  kPhysSel       = AliVEvent::kAnyINT,
                    //AliVEvent::kEMC1 | AliVEvent::kAnyINT,
-                   /*AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
-                   AliVEvent::kCentral | AliVEvent::kSemiCentral,*/ //AliVEvent::kAny,                         // physics selection
+                   //AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
+                   //AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // physics selection
     const char   *cTaskName      = "EMCalJetHAnalysis",                     // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
     // 1 = prepare the analysis manager and start the analysis
