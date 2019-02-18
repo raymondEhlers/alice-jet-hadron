@@ -2138,7 +2138,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
         with self._progress_manager.counter(total = len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]),
                                             desc = "Reaction plane fitting:",
                                             unit = "delta phi hists") as fitting:
-            resolution_parameters = self.task_config["fit"]["resolution_parameters"]
+            resolution_parameters = self.task_config["reaction_plane_fit"]["resolution_parameters"]
             # To successfully fit, we need all histograms from a given reaction plane orientation.
             for ep_analyses in \
                     analysis_config.iterate_with_selected_objects_in_order(
@@ -2148,8 +2148,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     ):
                 # Setup the input data
                 input_hists: rpf.fit.Data = {
-                    "signal": [],
-                    "background": [],
+                    "signal": {},
+                    "background": {},
                 }
                 for key_index, analysis in ep_analyses:
                     key = str(analysis.reaction_plane_orientation)
@@ -2160,10 +2160,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
 
                 # Determine the user arguments.
-                user_arguments = self.task_config["fit"].get(analysis.jet_pt.bin, {}) \
-                    .get(analysis.track_pt.bin, {}).get("args", {})
-                use_log_likelihood = self.task_config["fit"].get(analysis.jet_pt.bin, {}) \
-                    .get(analysis.track_pt.bin, False).get("use_log_likelihood", False)
+                user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("args", {})
+                use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, False).get("use_log_likelihood", False)
 
                 # Setup the fit
                 # TODO: Where should this be stored??

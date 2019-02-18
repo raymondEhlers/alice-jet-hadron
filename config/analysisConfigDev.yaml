@@ -85,14 +85,21 @@ Correlations:
         plotWidths: false
     override:
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{leading_hadron_bias}/RP{reaction_plane_orientation}/{task_name}"
+        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         2.76:
             trainNumber: 3360
         5.02:
             trainNumber: 4358
         iterables:
             reaction_plane_orientation: true
-            track_pt_bin: *TrackPtBins11h
+            #track_pt_bin: *TrackPtBins11h
+            track_pt_bin:
+                - !TrackPtBin
+                  bin: 4
+                  range: !SelectedRange [1.5, 2.0]
+                - !TrackPtBin
+                  bin: 5
+                  range: !SelectedRange [2.0, 3.0]
             jet_pt_bin:
                 - !JetPtBin
                   bin: 2
