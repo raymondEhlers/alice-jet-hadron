@@ -7,7 +7,7 @@
 
 import coloredlogs
 import copy
-import ctypes
+#import ctypes
 import dataclasses
 from dataclasses import dataclass
 import enlighten
@@ -16,7 +16,6 @@ import logging
 import os
 import numpy as np
 import pprint
-import math
 import sys
 from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 
@@ -25,7 +24,6 @@ from pachyderm import generic_config
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
-from pachyderm import utils
 from pachyderm.utils import epsilon
 
 import reaction_plane_fit as rpf
@@ -181,48 +179,9 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Run general setup tasks. """
         ...
 
-    def assignGeneralHistsFromDict(self, histDict, outputDict):
-        """ Simple helper to assign hists named in a dict to an output dict. """
-        for name, histName in histDict.items():
-            # NOTE: The hist may not always exist, so we return None if it doesn't!
-            outputDict[name] = self.inputHists.get(histName, None)
-
     def generalHistograms(self):
         """ Process some general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
         ...
-        # Get configuration
-        processing_options = self.taskConfig["processing_options"]
-
-        if processing_options["generalHistograms"]:
-            # 1D hists
-            hists1D = {
-                "zVertex": "fHistZVertex",
-                "centrality": "fHistCentrality",
-                "eventPlane": "fHistEventPlane",
-                "jetMatchingSameEvent": "fHistJetMatchingSameEventCuts",
-                "jetMatchingMixedEvent": "fHistJetMatchingMixedEventCuts",
-                # The following track and jet pt hists look better with logy
-                # They will be selected by the "Pt" in their name to apply logy in the plotting function
-                "trackPt": "fHistTrackPt",
-                # Just 0-10%
-                "jetPt": "fHistJetPt_0",
-                "jetPtBias": "fHistJetPtBias_0"
-            }
-            self.assignGeneralHistsFromDict(histDict = hists1D, outputDict = self.generalHists1D)
-            # 2D hists
-            # All of the jets in "jetEtaPhi" are in the EMCal
-            hists2D = {
-                "jetEtaPhi": "fHistJetEtaPhi",
-                # Eta-phi of charged hadrons used for jet-hadron correlations
-                "jetHEtaPhi": "fHistJetHEtaPhi"
-            }
-            self.assignGeneralHistsFromDict(histDict = hists2D, outputDict = self.generalHists2D)
-
-            # Plots all hists
-            plot_general.plotGeneralAnalysisHistograms(self)
-
-            # Save out the hists
-            self.writeGeneralHistograms()
 
     def generate2DCorrelationsTHnSparse(self):
         """ Generate raw and mixed event 2D correlations. """
@@ -246,12 +205,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         In particular, scale the 1D hists by their bin widths so no further scaling is necessary.
         """
         ...
-        for hists in self.hists1DStandard:
-            #logger.debug("len(hists): {}, hists.keys(): {}".format(len(hists), hists.keys()))
-            for name, observable in hists.items():
-                scaleFactor = observable.hist.calculateFinalScaleFactor()
-                #logger.info("Post projection scaling of hist {} with scale factor 1/{}".format(name, 1/scaleFactor))
-                observable.hist.Scale(scaleFactor)
 
     def generateSparseProjectors(self):
         """ Generate sparse projectors """
@@ -260,24 +213,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
     def generateCorrelationProjectors(self):
         """ Generate correlation projectors (2D -> 1D) """
         ...
-
-    def convert1DRootHistsToArray(self, inputHists, outputHists):
-        """ Convert requested 1D hists to hist array format. """
-        for observable in inputHists.values():
-            outputHistName = self.histNameFormatDPhiArray.format(jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin, tag = observable.correlationType.str())
-            histArray = analysis_objects.HistArray.initFromRootHist(observable.hist.hist)
-            outputHists[outputHistName] = CorrelationObservable1D(
-                jetPtBin = observable.jetPtBin,
-                trackPtBin = observable.trackPtBin,
-                correlationType = observable.correlationType,
-                axis = observable.axis,
-                hist = histArray
-            )
-
-    def convertDPhiHists(self):
-        """ Convert dPhi hists to hist arrays. """
-        self.convert1DRootHistsToArray(self.dPhi, self.dPhiArray)
-        self.convert1DRootHistsToArray(self.dPhiSideBand, self.dPhiSideBandArray)
 
     @staticmethod
     def fitCombinedSignalAndBackgroundRegion(analyses):
@@ -372,37 +307,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
             # Store the subtracted fit
             subtractedFits[subtractedFit.GetName()] = subtractedFit
 
-    def extractYields(self, yieldLimit):
-        # Yields
-        #extractYields(dPhiSubtracted, yields, yieldErrors, yieldLimit, iJetPtBin, iTrackPtBin)
-        parameters = {"NS": [0, self.yieldsNS, self.dPhiSubtracted, self.dPhiSubtractedFit],
-                      "AS": [math.pi, self.yieldsAS, self.dPhiSubtracted, self.dPhiSubtractedFit],
-                      "dEtaNS": [0, self.yieldsDEtaNS, self.dEtaNSSubtracted, self.dEtaNSSubtractedFit]}
-
-        for location, (centralValue, yields, hists, fits) in parameters.items():
-            for (name, observable), fit in zip(hists.items(), fits.values()):
-                # Extract yield
-                min_val = observable.hist.GetXaxis().FindBin(centralValue - yieldLimit + utils.epsilon)
-                max_val = observable.hist.GetXaxis().FindBin(centralValue + yieldLimit - utils.epsilon)
-                yieldError = ctypes.c_double(0)
-                yieldValue = observable.hist.IntegralAndError(min_val, max_val, yieldError, "width")
-
-                # Convert ctype back to python type for convenience
-                yieldError = yieldError.value
-
-                # Scale by track pt bin width
-                trackPtBinWidth = self.track_pt.range.max - self.track_pt.range.min
-                yieldValue /= trackPtBinWidth
-                yieldError /= trackPtBinWidth
-
-                # Store yield
-                yields[f"{name}_yield"] = analysis_objects.ExtractedObservable(
-                    jetPtBin = observable.jetPtBin,
-                    trackPtBin = observable.trackPtBin,
-                    value = yieldValue,
-                    error = yieldError
-                )
-
     def extractWidths(self):
         """ Extract widths from the fits. """
         parameters = {"NS": [2, self.widthsNS, self.dPhiSubtracted, self.dPhiSubtractedFit],
@@ -439,10 +343,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         #                        jetPtBin = observable.jetPtBin,
         #                        trackPtBin = observable.trackPtBin,
         #                        fileAccessMode = mode)
-
-    def writeGeneralHistograms(self):
-        """ Write general histograms to file. """
-        self.writeToRootFile(self.generalHists)
 
     def writeTriggerJetSpectra(self):
         """ Write trigger jet spectra to file. """
@@ -685,28 +585,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Basic post processing tasks for a new 1D correlation observable. """
         ...
 
-    @staticmethod
-    def printProperty(name, val):
-        """ Convenience method to pretty print a property. """
-        logger.info("    {name}: {val}".format(name = name, val = val))
-
-    @staticmethod
-    def constructFromConfigurationFile(configFilename, selectedAnalysisOptions):
-        """ Helper function to construct jet-h correlation analysis objects.
-
-        Args:
-            configFilename (str): Filename of the yaml config.
-            selectedAnalysisOptions (params.SelectedAnalysisOptions): Selected analysis options.
-        Returns:
-            nested tuple: Tuple of nested analysis objects as described in analysis_config.constructFromConfigurationFile(...).
-        """
-        return analysis_config.constructFromConfigurationFile(
-            taskName = "JetHAnalysis",
-            configFilename = configFilename,
-            selectedAnalysisOptions = selectedAnalysisOptions,
-            obj = JetHAnalysis
-        )
-
     @classmethod
     def run(cls, configFilename, selectedAnalysisOptions):
         """ Main driver function to create, process, and plot task hists.
@@ -941,52 +819,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         # Note that the step was completed
         self.ranPostFitProcessing = True
 
-    def yieldsAndWidths(self):
-        # Ensure that the previous step was run
-        if not self.ranPostFitProcessing:
-            logger.critical("Must run the post fit processing step before extracting yields and widths!")
-            sys.exit(1)
-
-        # Get processing options
-        processing_options = self.taskConfig["processing_options"]
-
-        # Extract yields
-        if processing_options["extractYields"]:
-            # Setup yield limits
-            # 1.0 is the value from the semi-central analysis.
-            yieldLimit = self.config.get("yieldLimit", 1.0)
-
-            logger.info("Extracting yields with yield limit: {}".format(yieldLimit))
-            self.extractYields(yieldLimit = yieldLimit)
-            #logger.info("jetH AS yields: {}".format(self.yieldsAS))
-
-            # Plot
-            if processing_options["plotYields"]:
-                plot_extracted.plotYields(self)
-
-            processing_options["extractWidths"] = True
-        else:
-            # Initialize yields from the file
-            pass
-
-        # Extract widths
-        if processing_options["extractWidths"]:
-            # Extract widths
-            logger.info("Extracting widths from the fits.")
-            self.extractWidths()
-            #logger.info("jetH AS widths: {}".format(self.widthsAS))
-
-            # Plot
-            if processing_options["plotWidths"]:
-                plot_extracted.plotWidths(self)
-        else:
-            # Initialize widths from the file
-            pass
-
-        ## Inclusive plots
-        #logger.info("Plotting inclusive jet and track spectra!")
-        #logger.info("Plotting inclusive 2D correlations!")
-
 def printFitParameters(fit):
     """ Print out all of the fit parameters. """
     outputParameters = []
@@ -1001,15 +833,6 @@ def printFitParameters(fit):
 
     pprint.pprint(outputParameters)
     #logger.debug("subtractedFitParameters: {0}".format([param for param in subtractedFit.GetParameters()]))
-
-#def runFromTerminal():
-#    (configFilename, terminalArgs, additionalArgs) = analysis_config.determineSelectedOptionsFromKwargs(taskName = "correlations analysis")
-#    analyses = JetHAnalysis.run(
-#        configFilename = configFilename,
-#        selectedAnalysisOptions = terminalArgs
-#    )
-#
-#    return analyses
 
 class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
     """ Task to plot general task hists, such as centrality, Z vertex, very basic QA spectra, etc.
@@ -1204,6 +1027,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.processing_options = self.task_config["processingOptions"]
         # Status information
         self.ran_projections: bool = False
+        self.ran_fitting: bool = False
+        self.ran_post_fit_processing: bool = False
 
         # Relevant histograms
         # We need a field use with replace to successfully copy the dataclass. We just want a clean copy,
@@ -1998,9 +1823,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _convert_1d_correlations(self):
         """ Convert 1D correlations to Histograms. """
+        # NOTE: This function must not only convert the hist, but also recreate the observable.
         ...
 
-    def _run_1d_projections(self):
+    def _run_1d_projections(self) -> None:
         """ Run the 2D -> 1D projections. """
         if self.processing_options["generate1DCorrelations"]:
             # Setup the projectors here.
@@ -2037,10 +1863,88 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         self.ran_projections = True
 
-    def run_projections(self):
+    def run_projections(self) -> None:
         """ Run all analysis steps through projectors. """
         self._run_2d_projections()
         self._run_1d_projections()
+
+    def extract_yields(self, yield_limit: float) -> None:
+        """ Extract yields. """
+        # TODO: Fill out the rest of this function
+        ...
+        #@dataclass
+        #class YieldWrapper:
+
+        #yields = {
+        #    "delta_phi": self.yield_ns,
+        #    "delta_eta_NS": self.yield_ns,
+        #    "delta_eta_AS": self.yield_ns,
+        #}
+
+        #parameters = {"NS": [0, self.yieldsNS, self.dPhiSubtracted, self.dPhiSubtractedFit],
+        #              "AS": [math.pi, self.yieldsAS, self.dPhiSubtracted, self.dPhiSubtractedFit],
+        #              "dEtaNS": [0, self.yieldsDEtaNS, self.dEtaNSSubtracted, self.dEtaNSSubtractedFit]}
+        #for location, (centralValue, yields, hists, fits) in parameters.items():
+        #    for (name, observable), fit in zip(hists.items(), fits.values()):
+        #        pass
+
+        ## Extract yield
+        #min_val = observable.hist.GetXaxis().FindBin(centralValue - yield_limit + epsilon)
+        #max_val = observable.hist.GetXaxis().FindBin(centralValue + yield_limit - epsilon)
+        #yield_error = ctypes.c_double(0)
+        #yield_value = observable.hist.IntegralAndError(min_val, max_val, yield_error, "width")
+
+        ## Convert ctype back to python type for convenience
+        #yield_error = yield_error.value
+
+        ## Scale by track pt bin width
+        #track_pt_bin_width = self.track_pt.range.max - self.track_pt.range.min
+        #yield_value /= track_pt_bin_width
+        #yield_error /= track_pt_bin_width
+
+        ## Store yield
+        #yields[f"{name}_yield"] = analysis_objects.ExtractedObservable(
+        #    value = yield_value,
+        #    error = yield_error,
+        #)
+
+    def extract_yields_and_widths(self) -> None:
+        # Ensure that the previous step was run
+        if not self.ran_post_fit_processing:
+            raise RuntimeError("Must run the post fit processing step before extracting yields and widths!")
+
+        # Extract yields
+        if self.processing_options["extractYields"]:
+            # Setup yield limits
+            # 1.0 is the value from the semi-central analysis.
+            yield_limit = self.config.get("yield_limit", 1.0)
+
+            logger.info(f"Extracting yields with yield limit: {yield_limit}")
+            self.extract_yields(yield_limit = yield_limit)
+            logger.info(f"AS yields: {self.yield_AS}")
+
+            # Plot
+            if self.processing_options["plotYields"]:
+                plot_extracted.plotYields(self)
+
+            self.processing_options["extractWidths"] = True
+        else:
+            # Initialize yields from the file
+            pass
+
+        # Extract widths
+        if self.processing_options["extractWidths"]:
+            # Extract widths
+            logger.info("Extracting widths from the fits.")
+            self.extract_widths()
+            logger.info(f"AS widths: {self.width_AS}")
+
+            # Plot
+            if self.processing_options["plotWidths"]:
+                plot_extracted.plotWidths(self)
+        else:
+            # Initialize widths from the file
+            pass
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
@@ -2188,6 +2092,11 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Update progress
                 fitting.update()
+
+        # Subtract the fits
+
+        # Extract the yields and widths
+        self.extract_yields_and_widths()
 
         return True
 
