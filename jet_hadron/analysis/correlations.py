@@ -2044,6 +2044,31 @@ class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
         self.config_filename = config_filename
         self.selected_analysis_options = selected_analysis_options
+        self.task_name = "CorrelationsManager"
+        # Retrieve YAML config for manager configuration
+        # NOTE: We don't store the overridden selected_analysis_options because in principle they depend
+        #       on the selected task. In practice, such options are unlikely to vary between the manager
+        #       and the analysis tasks. However, the validation cannot handle the overridden options
+        #       (because the leading hadron bias enum is converting into the object). So we just use
+        #       the overridden option in formatting the output prefix (where it is required to determine
+        #       the right path), and then passed the non-overridden values to the analysis objects.
+        self.config, overridden_selected_analysis_options = analysis_config.read_config_using_selected_options(
+            task_name = self.task_name,
+            config_filename = self.config_filename,
+            selected_analysis_options = self.selected_analysis_options
+        )
+        # Determine the formatting options needed for the output prefix
+        formatting_options = analysis_config.determine_formatting_options(
+            task_name = self.task_name, config = self.config,
+            selected_analysis_options = overridden_selected_analysis_options
+        )
+        # Additional helper variables
+        self.task_config = self.config[self.task_name]
+        self.output_info = analysis_objects.PlottingOutputWrapper(
+            # Format to ensure that the selected analysis options are filled in.
+            output_prefix = self.config["outputPrefix"].format(**formatting_options),
+            printing_extensions = self.config["printingExtensions"],
+        )
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]

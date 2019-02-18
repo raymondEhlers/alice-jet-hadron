@@ -98,7 +98,7 @@ Correlations:
                   bin: 2
                   range: !SelectedRange [20, 40]
 CorrelationsManager:
-    fit_parameters:
+    reaction_plane_fit:
         # Event plane resolution parameters
         resolution_parameters:
             R22: 0.5713
@@ -106,6 +106,21 @@ CorrelationsManager:
             # Temporarily set to R{4,2} to estimate possible contributions
             R62: *R42
             R82: *R42
+        fit_params:
+            jetPtBiased20-40:
+                trackPt1.0-1.5:
+                    args:
+                        test_arg: test_arg
+                    use_log_likelihood: false
+    override:
+        # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
+        #       so that the output is stored in the same directory.
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{leading_hadron_bias}/Correlations"
+        2.76:
+            trainNumber: 3360
+        5.02:
+            trainNumber: 4358
 
 GeneralHists:
     enabled: false
