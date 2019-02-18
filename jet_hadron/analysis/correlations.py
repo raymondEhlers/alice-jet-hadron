@@ -12,9 +12,9 @@ import dataclasses
 from dataclasses import dataclass
 import enlighten
 import enum
-#import IPython
 import logging
 import os
+import numpy as np
 import pprint
 import math
 import sys
@@ -1249,8 +1249,29 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Useful information
         # These values are only half the range (ie only the positive values).
-        self.signal_dominated_eta_region = self.task_config["deltaEtaRanges"]["signalDominated"]
-        self.background_dominated_eta_region = self.task_config["deltaEtaRanges"]["backgroundDominated"]
+        self.signal_dominated_eta_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *self.task_config["deltaEtaRanges"]["signalDominated"]
+            )
+        )
+        self.background_dominated_eta_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *self.task_config["deltaEtaRanges"]["backgroundDominated"]
+            )
+        )
+        self.near_side_phi_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *self.task_config["deltaPhiRanges"]["nearSide"]
+            )
+        )
+        # Interpret these values as defined relative to pi.
+        away_side_values = self.task_config["deltaPhiRanges"]["awaySide"]
+        away_side_values = [np.pi + val for val in away_side_values]
+        self.away_side_phi_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *away_side_values
+            )
+        )
 
     def __iter__(self) -> Iterator[analysis_objects.Observable]:
         """ Iterate over the histograms in the correlations analysis object.
@@ -1701,10 +1722,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "negative_eta_signal_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0.6)] + epsilon
+                    ROOT.TAxis.FindBin, -1 * self.signal_dominated_eta_region.max + epsilon,
                 ),
                 max_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0)] - epsilon
+                    ROOT.TAxis.FindBin, -1 * self.signal_dominated_eta_region.min - epsilon,
                 ),
             )
         ])
@@ -1713,10 +1734,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "Positive_eta_signal_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0)] + epsilon
+                    ROOT.TAxis.FindBin, self.signal_dominated_eta_region.min + epsilon,
                 ),
                 max_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0.6)] - epsilon
+                    ROOT.TAxis.FindBin, self.signal_dominated_eta_region.max - epsilon,
                 ),
             )
         ])
@@ -1749,10 +1770,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "negative_eta_background_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(1.2)] + epsilon
+                    ROOT.TAxis.FindBin, -1 * self.background_dominated_eta_region.max + epsilon,
                 ),
                 max_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, -1 * params.eta_bins[params.eta_bins.index(0.8)] - epsilon
+                    ROOT.TAxis.FindBin, -1 * self.background_dominated_eta_region.min - epsilon,
                 ),
             )
         ])
@@ -1761,10 +1782,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 axis_type = analysis_objects.CorrelationAxis.delta_eta,
                 axis_range_name = "positive_eta_background_dominated",
                 min_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(0.8)] + epsilon
+                    ROOT.TAxis.FindBin, self.background_dominated_eta_region.min + epsilon,
                 ),
                 max_val = HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, params.eta_bins[params.eta_bins.index(1.2)] - epsilon
+                    ROOT.TAxis.FindBin, self.background_dominated_eta_region.max - epsilon,
                 ),
             )
         ])
@@ -1793,8 +1814,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             HistAxisRange(
                 axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiNearSide",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(-1. * math.pi / 2.)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.near_side_phi_region.min + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.near_side_phi_region.max - epsilon)
             )
         )
         # No projection dependent cut axes
@@ -1824,8 +1845,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             HistAxisRange(
                 axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiAwaySide",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(1. * math.pi / 2.)] + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, params.phi_bins[params.phi_bins.index(3. * math.pi / 2.)] - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.away_side_phi_region.min + epsilon),
+                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.away_side_phi_region.max - epsilon)
             )
         )
         # No projection dependent cut axes
@@ -1854,44 +1875,27 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.info(f"Post projection processing of 1D correlation: {observable.axis}, {observable.type}")
 
                 # Determine normalization factor
-                # We only apply this so we don't unnecessarily scale the signal region.
-                # However, it is then important that we report the eta range in which we measure!
-                normalization_factor = 1.
-                # TODO: IMPORTANT: Remove hard code here and restore proper scaling!
-                # Scale is dependent on the signal and background range
-                # Since this is hard-coded, it is calculated very explicitly so it will
-                # be caught if the values are modified.
-                # Ranges are multiplied by 2 because the ranges are symmetric
-                signal_min_val = params.eta_bins[params.eta_bins.index(0.0)]
-                signal_max_val = params.eta_bins[params.eta_bins.index(0.6)]
-                signal_range = (signal_max_val - signal_min_val) * 2.
-                background_min_val = params.eta_bins[params.eta_bins.index(0.8)]
-                background_max_val = params.eta_bins[params.eta_bins.index(1.2)]
-                background_range = (background_max_val - background_min_val) * 2.
-
-                ################
-                # If we wanted to plug into the projectors (it would take some work), we could do something like:
-                ## Determine the min and max values
-                #axis = projector.axis(hist)
-                #min_val = rangeSet.min_val(axis)
-                #max_val = rangeSet.max_val(axis)
-                ## Determine the projection range for proper scaling.
-                #projectionRange += (axis.GetBinUpEdge(max_val) - axis.GetBinLowEdge(min_val))
-                ################
-                # Could also consider trying to get the projector directly and apply it to a hist
-                ################
-
-                # TODO: This is wrong for delta_eta...
-                if observable.type == analysis_objects.CorrelationType.background_dominated \
-                        and observable.axis == analysis_objects.CorrelationAxis.delta_phi:
-                    # Scale by (signal region)/(background region)
-                    # NOTE: Will be applied as `1/normalization_factor`, so the value is the inverse
-                    #normalization_factor = background_range/signal_range
-                    normalization_factor = background_range
-                    logger.debug(f"Scaling background by normalization_factor {normalization_factor}")
+                # However, it is then important that we report the ranges in which we measure!
+                # NOTE: We calculate the values very explicitly to try to ensure that any changes in
+                #       values will be noticed quickly.
+                if observable.axis == analysis_objects.CorrelationAxis.delta_phi:
+                    ranges = {
+                        analysis_objects.CorrelationType.signal_dominated: self.signal_dominated_eta_region,
+                        analysis_objects.CorrelationType.background_dominated: self.background_dominated_eta_region,
+                    }
+                    r = ranges[observable.type]
+                    # Ranges are multiplied by 2 because the ranges are symmetric and the stored values
+                    # only cover the positive range.
+                    normalization_factor = (r.max - r.min) * 2.
+                elif observable.axis == analysis_objects.CorrelationAxis.delta_eta:
+                    ranges = {
+                        analysis_objects.CorrelationType.near_side: self.near_side_phi_region,
+                        analysis_objects.CorrelationType.away_side: self.away_side_phi_region,
+                    }
+                    r = ranges[observable.type]
+                    normalization_factor = r.max - r.min
                 else:
-                    normalization_factor = signal_range
-                    logger.debug(f"Scaling signal by normalization_factor {normalization_factor}")
+                    raise ValueError(f"Unrecognized observable axis: {observable.axis}")
 
                 # Determine the rebin factor, which depends on the observable axis.
                 rebin_factor = self.task_config.get(f"1d_rebin_factor_{observable.axis}", 1)

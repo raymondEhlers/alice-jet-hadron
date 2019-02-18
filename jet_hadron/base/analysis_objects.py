@@ -253,7 +253,8 @@ class JetHBinnedAnalysis(JetHBase):
 
         # Additional binning information
         self.eta_bins: List[EtaBin] = self.config["etaBins"]
-        self.phi_bins: List[PhiBin] = self.config["phiBins"]
+        # NOTE: We skip out on phi bins because it would be rather annoying to properly define
+        #       the binning (since it is so fine), and it doesn't give us a huge benefit.
 
 class JetHReactionPlane(JetHBinnedAnalysis):
     """ Jet-hadron analysis object which includes reaction plane dependence.
@@ -454,10 +455,17 @@ class EtaBins(AnalysisBins):
     """
     _class = EtaBin
 
-class PhiBins:
-    """ Define an array of eta bins.
+class PhiBins(AnalysisBins):
+    """ Define an array of phi bins.
 
     It reads arrays registered under the tag ``!PhiBins``.
+    """
+    _class = PhiBin
+
+class PhiBinsByPi:
+    """ Define an array of phi bins, where each value is multiplied by pi.
+
+    It reads arrays registered under the tag ``!PhiBinsByPi``.
     """
     _class = PhiBin
 

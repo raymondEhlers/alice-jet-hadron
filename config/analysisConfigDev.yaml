@@ -39,15 +39,22 @@ _jet_pt_bins_11h: &JetPtBins11h !JetPtBins [15, 20, 40, 60, 200]
 _track_pt_bins_11h: &TrackPtBins11h !TrackPtBins [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
 constituent_cut_biased_jets: true
 
+# Helpful binning information
 etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
-phiBins: !PhiBins [-0.5, 0.5, 1.5]
 
 # Correlations analysis related configuration
 Correlations:
     deltaEtaRanges:
-        # They are assumed to be symmetric
+        # NOTE: They are assumed to be symmetric with respect to eta.
+        #       This leads to discontinuous selection ranges in the background.
         signalDominated: [0, 0.6]
         backgroundDominated: [0.8, 1.2]
+    deltaPhiRanges:
+        # +/- 1 from 0
+        nearSide: [-1, 1]
+        # These values are defined relative to pi.
+        # +/- 1 from pi.
+        awaySide: [-1, 1]
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false

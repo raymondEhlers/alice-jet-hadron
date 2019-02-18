@@ -28,11 +28,6 @@ logger = logging.getLogger(__name__)
 # Typing helpers
 PtBinIteratorConfig = Optional[Dict[str, Dict[str, Iterable[float]]]]
 
-# Bins
-# eta is absolute value!
-eta_bins = [0, 0.4, 0.6, 0.8, 1.2, 1.5]
-phi_bins = [-1. * np.pi / 2., np.pi / 2., 3. * np.pi / 2]
-
 ########
 # Utility functions
 ########
