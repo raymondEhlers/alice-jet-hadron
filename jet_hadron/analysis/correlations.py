@@ -1368,8 +1368,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         centrality_cut_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.centrality,
             axis_range_name = "centrality",
-            min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.event_activity.value_range.min + epsilon),
-            max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.event_activity.value_range.max - epsilon),
+            min_val = HistAxisRange.apply_func_to_find_bin(
+                ROOT.TAxis.FindBin, self.event_activity.value_range.min + epsilon
+            ),
+            max_val = HistAxisRange.apply_func_to_find_bin(
+                ROOT.TAxis.FindBin, self.event_activity.value_range.max - epsilon
+            ),
         )
         # Event plane selection
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
@@ -1545,24 +1549,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Create the comparison
         (
             # Basic data
-            peak_finding_hist,
-            lin_space, peak_finding_hist_array,
-            lin_space_rebin, peak_finding_hist_array_rebin,
+            peak_finding_hist, lin_space, peak_finding_hist_array, lin_space_rebin, peak_finding_hist_array_rebin,
             # CWT
-            peak_locations,
-            peak_locations_rebin,
+            peak_locations, peak_locations_rebin,
             # Moving Average
-            max_moving_avg,
-            max_moving_avg_rebin,
+            max_moving_avg, max_moving_avg_rebin,
             # Smoothed gaussian
-            lin_space_resample,
-            smoothed_array,
-            max_smoothed_moving_avg,
+            lin_space_resample, smoothed_array, max_smoothed_moving_avg,
             # Linear fits
-            max_linear_fit_1d,
-            max_linear_fit_1d_rebin,
-            max_linear_fit_2d,
-            max_linear_fit_2d_rebin,
+            max_linear_fit_1d, max_linear_fit_1d_rebin, max_linear_fit_2d, max_linear_fit_2d_rebin,
         ) = correlations_helpers.compare_mixed_event_normalization_options(
             mixed_event = mixed_event, eta_limits = eta_limits,
         )
@@ -1571,30 +1566,22 @@ class Correlations(analysis_objects.JetHReactionPlane):
         plot_correlations.mixed_event_normalization(
             self,
             # For labeling purposes
-            hist_name = peak_finding_hist.GetName(),
-            eta_limits = eta_limits,
+            hist_name = peak_finding_hist.GetName(), eta_limits = eta_limits,
             jet_pt_title = labels.jet_pt_range_string(self.jet_pt),
             track_pt_title = labels.track_pt_range_string(self.track_pt),
             # Basic data
-            lin_space = lin_space,
-            peak_finding_hist_array = peak_finding_hist_array,
-            lin_space_rebin = lin_space_rebin,
-            peak_finding_hist_array_rebin = peak_finding_hist_array_rebin,
+            lin_space = lin_space, peak_finding_hist_array = peak_finding_hist_array,
+            lin_space_rebin = lin_space_rebin, peak_finding_hist_array_rebin = peak_finding_hist_array_rebin,
             # CWT
-            peak_locations = peak_locations,
-            peak_locations_rebin = peak_locations_rebin,
+            peak_locations = peak_locations, peak_locations_rebin = peak_locations_rebin,
             # Moving Average
-            max_moving_avg = max_moving_avg,
-            max_moving_avg_rebin = max_moving_avg_rebin,
+            max_moving_avg = max_moving_avg, max_moving_avg_rebin = max_moving_avg_rebin,
             # Smoothed gaussian
             lin_space_resample = lin_space_resample,
-            smoothed_array = smoothed_array,
-            max_smoothed_moving_avg = max_smoothed_moving_avg,
+            smoothed_array = smoothed_array, max_smoothed_moving_avg = max_smoothed_moving_avg,
             # Linear fits
-            max_linear_fit_1d = max_linear_fit_1d,
-            max_linear_fit_1d_rebin = max_linear_fit_1d_rebin,
-            max_linear_fit_2d = max_linear_fit_2d,
-            max_linear_fit_2d_rebin = max_linear_fit_2d_rebin,
+            max_linear_fit_1d = max_linear_fit_1d, max_linear_fit_1d_rebin = max_linear_fit_1d_rebin,
+            max_linear_fit_2d = max_linear_fit_2d, max_linear_fit_2d_rebin = max_linear_fit_2d_rebin,
         )
 
     def _measure_mixed_event_normalization(self, mixed_event: Hist, delta_phi_rebin_factor: int = 1) -> float:
@@ -1826,8 +1813,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
             HistAxisRange(
                 axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiNearSide",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.near_side_phi_region.min + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.near_side_phi_region.max - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.near_side_phi_region.min + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.near_side_phi_region.max - epsilon
+                ),
             )
         )
         # No projection dependent cut axes
@@ -1857,8 +1848,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
             HistAxisRange(
                 axis_type = analysis_objects.CorrelationAxis.delta_phi,
                 axis_range_name = "deltaPhiAwaySide",
-                min_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.away_side_phi_region.min + epsilon),
-                max_val = HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.FindBin, self.away_side_phi_region.max - epsilon)
+                min_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.away_side_phi_region.min + epsilon
+                ),
+                max_val = HistAxisRange.apply_func_to_find_bin(
+                    ROOT.TAxis.FindBin, self.away_side_phi_region.max - epsilon
+                ),
             )
         )
         # No projection dependent cut axes
@@ -1979,7 +1974,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._compare_to_other_hist(
             our_hist = self.correlation_hists_delta_phi.signal_dominated.hist,
             their_hist = comparison_hists[joel_hist_name],
-            title = f"Unsubtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$, {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
+            title = f"Unsubtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$,"
+                    f"{labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
             x_label = r"$\Delta\varphi$",
             y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
