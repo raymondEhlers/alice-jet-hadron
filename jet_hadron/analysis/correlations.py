@@ -35,7 +35,6 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
-from jet_hadron.plot import general as plot_general
 from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
@@ -629,7 +628,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
             logger.info("Running analysis through projecting 1D correlations")
             jetH.runProjections()
 
-            plot_general.plotTriggerJetSpectra(jetH)
+            #plot_general.plotTriggerJetSpectra(jetH)
 
         # TEMP
         #IPython.embed()
