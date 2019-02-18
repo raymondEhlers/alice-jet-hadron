@@ -2089,14 +2089,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
 
                 # Plot the result
-                #rpf_plot.draw_fit(rp_fit = fit_obj, data = fit_data, filename = "")
-
-                # TODO: Store the fit obj, and fit result
-                #       It probably makes most sense to store the fit result together
-                #       because the fit components depend on the main object. But perhaps
-                #       it's best to store the fit compponent in the analysis, and the fit itself
-                #       in the manager object.
-                ...
+                if self.task_config["processing_options"]["plotRPFit"]:
+                    plot_fit.plot_RP_fit(
+                        rp_fit = fit_obj, data = fit_data,
+                        inclusive_analysis = inclusive_analysis,
+                        output_info = self.output_info,
+                        output_name = f"inclusive_signal_fit_{inclusive_analysis.identifier}",
+                    )
 
                 # Update progress
                 fitting.update()

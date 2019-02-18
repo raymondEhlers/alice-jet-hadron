@@ -18,7 +18,10 @@ import seaborn as sns
 from pachyderm import generic_config
 from pachyderm import histogram
 
+import reaction_plane_fit.fit
+
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 
@@ -53,6 +56,169 @@ def vn_parameters():
 
     for vn_param in vn_params:
         pass
+
+def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
+    """ Plot the RP fit components on a given set of axes.
+
+    Args:
+        rp_fit: Reaction plane fit object.
+        data: Reaction plane fit data.
+        axes: Axes on which the residual should be plotted. It must have an axis per component.
+    Returns:
+        None. The axes are modified in place.
+    """
+    # Validation
+    if len(rp_fit.components) != len(axes):
+        raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
+
+    x = rp_fit.fit_result.x
+    for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+        # Get the relevant data
+        hist = data[fit_type]
+
+        # Draw the data according to the given function
+        # Determine the values of the fit function.
+        fit_values = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x)
+
+        # Plot the main values
+        plot = ax.plot(x, fit_values, label = "Fit")
+        # Plot the fit errors
+        errors = rp_fit.fit_result.components[fit_type].errors
+        ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
+        # Plot the data
+        # TODO: Update label.
+        ax.errorbar(
+            x, hist.y, yerr = hist.errors, label = "Data",
+            marker = "o", linestyle = ""
+        )
+
+def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
+    """ Plot fit residuals on a given set of axes.
+
+    Args:
+        rp_fit: Reaction plane fit object.
+        data: Reaction plane fit data.
+        axes: Axes on which the residual should be plotted. It must have an axis per component.
+    Returns:
+        None. The axes are modified in place.
+    """
+    # Validation
+    if len(rp_fit.components) != len(axes):
+        raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
+
+    x = rp_fit.fit_result.x
+    for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+        # Get the relevant data
+        hist = data[fit_type]
+
+        # Note: Residual = data - fit / fit, not just data-fit
+        fit_values = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x)
+        residual = (hist.y - fit_values) / fit_values
+        # TODO: Error calculation.
+
+        # Plot the main values
+        ax.plot(x, residual, label = "Residual")
+
+        # Set the y-axis limit to be symmetric
+        # Selected the value by looking at the data.
+        ax.set_ylim(bottom = -0.1, top = 0.1)
+
+def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str) -> None:
+    """ Add a label to the middle center of a axis for the RPF plot.
+
+    This helper is limited, but useful since we often label at the same location.
+
+    Args:
+        ax: Axis to label.
+        label: Label to be added to the axis.
+    Returns:
+        None. The axis is modified in place.
+    """
+    ax.text(
+        0.5, 0.97, label, horizontalalignment = "center",
+        verticalalignment = "top", multialignment = "left",
+        transform = ax.transAxes
+    )
+
+def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data,
+                inclusive_analysis: analysis_objects.JetHBase,
+                output_info: analysis_objects.PlottingOutputWrapper,
+                output_name: str) -> None:
+    """ Basic plot of the reaction plane fit.
+
+    Args:
+        rp_fit: Reaction plane fit object.
+        data: Reaction plane fit data.
+        inclusive_analysis: Inclusive analysis object. Mainly used for labeling.
+        output_info: Output information.
+        output_name: Name of the output plot.
+    Returns:
+        None. The plot will be saved.
+    """
+    # Setup
+    n_components = len(rp_fit.components)
+    fig, axes = plt.subplots(
+        2, n_components,
+        sharey = "row", sharex = True,
+        gridspec_kw = {"height_ratios": [3, 1]},
+        figsize = (3 * n_components, 6)
+    )
+    flat_axes = axes.flatten()
+
+    # Plot the fits on the upper panels.
+    _plot_rp_fit_components(rp_fit = rp_fit, data = data, axes = flat_axes[:n_components])
+    # Plot the residuals on the lower panels.
+    _plot_rp_fit_residuals(rp_fit = rp_fit, data = data, axes = flat_axes[n_components:])
+
+    # Define upper panel labels.
+    # TODO: Add RP orientation labels via title.
+    # In-plane
+    text = labels.track_pt_range_string(inclusive_analysis.track_pt)
+    text += "\n" + labels.constituent_cuts()
+    text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
+    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
+    # Mid-plane
+    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
+    text += "\n" + labels.system_label(
+        energy = inclusive_analysis.collision_energy,
+        system = inclusive_analysis.collision_system,
+        activity = inclusive_analysis.event_activity
+    )
+    text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
+    text += "\n" + labels.jet_finding()
+    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
+    # Out-of-plane
+    #text = "Background: $0.8<|\Delta\eta|<1.2$"
+    #text += "\nSignal + Background: $|\Delta\eta|<0.6$"
+    #_add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text)
+    # Inclusive
+    text = (
+        r"\chi^{2}/\mathrm{NDF} = "
+        f"{rp_fit.fit_result.minimum_val:.1f}/{rp_fit.fit_result.nDOF} = "
+        f"{rp_fit.fit_result.minimum_val / rp_fit.fit_result.nDOF:.3f}"
+    )
+    _add_label_to_rpf_plot_axis(ax = flat_axes[3], label = labels.make_valid_latex_string(text))
+
+    # Deifne lower panel labels.
+    for ax in flat_axes[n_components:]:
+        # Increate the frequency of major ticks to once every integer.
+        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
+        # Add axis labels
+        ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
+
+    # Specify shared y axis label
+    # Delta phi correlations first
+    flat_axes[0].set_ylabel(labels.delta_phi_axis_label())
+    # Then label the residual
+    flat_axes[n_components].set_ylabel("data - fit / fit")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Reduce spacing between subplots
+    fig.subplots_adjust(hspace = 0, wspace = 0)
+    # Save plot and cleanup
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
     """ Plot showing iminuit QA.
@@ -165,36 +331,11 @@ def PlotRPF(epFitObj):
             # Set y label
             (jetFinding, constituentCuts, leadingHadron, jetPt) = params.jetPropertiesLabel(jetPtBin)
             if i == 0:
-                ax.set_ylabel(r"1/$\mathrm{N}_{\mathrm{trig}}$dN/d$\Delta\varphi$", fontsize = 17)
-                text = ""
-                text += params.generateTrackPtRangeString(trackPtBin) + "\n"
-                text += constituentCuts + "\n"
-                text += leadingHadron
-                ax.text(0.5, 0.9, text, horizontalalignment='center',
-                        verticalalignment='center',
-                        multialignment="left",
-                        transform = ax.transAxes)
-
+                ...
             if i == 1:
-                text = ""
-                text += jetH.aliceLabel.str()
-                text += "\n" + params.systemLabel(energy = jetH.collisionEnergy, system = jetH.collisionSystem, activity = jetH.eventActivity)
-                text += "\n" + jetPt
-                text += "\n" + jetFinding
-                ax.text(0.5, 0.9, text, horizontalalignment='center',
-                        verticalalignment='center',
-                        multialignment="left",
-                        transform = ax.transAxes)
-
+                ...
             if i == 2:
-                #text = ""
-                #text += "Background: $0.8<|\Delta\eta|<1.2$\n"
-                #text += "Signal + Background: $|\Delta\eta|<0.6$"
-                #ax.text(0.5, 0.9, text, horizontalalignment='center',
-                #        verticalalignment='center',
-                #        multialignment="left",
-                #        transform = ax.transAxes)
-                pass
+                ...
 
             for correlationType, correlationDict in [(analysis_objects.CorrelationType.signal_dominated, jetH.dPhiArray),
                                                      (analysis_objects.CorrelationType.background_dominated, jetH.dPhiSideBandArray)]:

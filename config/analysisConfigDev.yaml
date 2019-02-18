@@ -64,8 +64,6 @@ Correlations:
     1d_rebin_factor_delta_phi: 1
     yield_limit: 1.0
     processingOptions:
-        # General histograms
-        generalHistograms: false
         # 2D
         generate2DCorrelations: false
         plot2DCorrelations: false
@@ -106,6 +104,8 @@ Correlations:
                   bin: 2
                   range: !SelectedRange [20, 40]
 CorrelationsManager:
+    processing_options:
+        plotRPFit: true
     reaction_plane_fit:
         # Event plane resolution parameters
         resolution_parameters:
