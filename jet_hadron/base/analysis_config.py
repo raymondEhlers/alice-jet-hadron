@@ -56,7 +56,7 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
     will be skipped.
 
     Args:
-        config (CommentedMap): The dict-like configuration from ruamel.yaml which should be overridden.
+        config: The dict-like configuration from ruamel.yaml which should be overridden.
         selected_options: The selected analysis options. They will be checked in the order with which
             they are passed, so make certain that it matches the order in the configuration file!
         config_containing_override (CommentedMap): The dict-like config containing the override options in
@@ -237,6 +237,31 @@ def read_config_using_selected_options(task_name: str, config_filename: str,
 
     return config, selected_analysis_options
 
+def determine_formatting_options(task_name: str, config: generic_config.DictLike,
+                                 selected_analysis_options: params.SelectedAnalysisOptions) -> Dict[str, Any]:
+    """ Determine the formatting dict with the selected analysis options.
+
+    Beyond the selected analysis options, it is provides additional information, including task name,
+    train number, etc.  This is just a simpler helper function which can also be used outside of
+    configuring JetHBase objects (for example, configuring analysis managers).
+
+    Args:
+        task_name: Name of the analysis task.
+        config: Contains the dict-like analysis configuration. Note that it must already be
+            fully configured and overridden.
+        selected_analysis_options: Selected analysis options.
+    Returns:
+        Dict containing the formatting options.
+    """
+    formatting_options = {}
+    formatting_options["task_name"] = task_name
+    formatting_options["trainNumber"] = config.get("trainNumber", "trainNo")
+
+    # We want to convert the enum values into strings for formatting. Performed with a dict comprehension.
+    formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
+
+    return formatting_options
+
 def construct_from_configuration_file(task_name: str, config_filename: str,
                                       selected_analysis_options: params.SelectedAnalysisOptions,
                                       obj: Any,
@@ -302,9 +327,10 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
 
     # Determine formatting options
     logger.debug(f"selected_analysis_options: {selected_analysis_options.asdict()}")
-    formatting_options = {}
-    formatting_options["task_name"] = task_name
-    formatting_options["trainNumber"] = config.get("trainNumber", "trainNo")
+    formatting_options = determine_formatting_options(
+        task_name = task_name, config = config,
+        selected_analysis_options = selected_analysis_options,
+    )
 
     # Determine task arguments
     args = {}
@@ -318,8 +344,6 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
     #       because otherwise we will have strings for the selected analysis options instead
     #       of the actual enumeration values.
     args.update(selected_analysis_options.asdict())
-    # We want to convert the enum values into strings for formatting. Performed with a dict comprehension.
-    formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
 
     # Iterate over the iterables defined above to create the objects.
     (KeyIndex, returned_iterables, objects) = generic_config.create_objects_from_iterables(
