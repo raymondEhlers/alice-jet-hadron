@@ -77,7 +77,7 @@ def plot_2d_correlations(jet_hadron):
         # Add labels
         # PDF DOES NOT WORK HERE: https://root-forum.cern.ch/t/latex-sqrt-problem/17442/15
         # Instead, print to EPS and then convert to PDF
-        alice_label = f"${jet_hadron.alice_label.display_str()}$"
+        alice_label = labels.make_valid_latex_string(jet_hadron.alice_label.display_str())
         system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
@@ -346,7 +346,7 @@ def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -
         ax.yaxis.labelpad = 15
         ax.zaxis.labelpad = 12
         # Overall
-        alice_label = f"${jet_hadron.alice_label.display_str()}$"
+        alice_label = labels.make_valid_latex_string(jet_hadron.alice_label.display_str())
         system_label = labels.system_label(
             energy = jet_hadron.collision_energy,
             system = jet_hadron.collision_system,
