@@ -1411,7 +1411,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Jet pt axis
         jet_pt_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.jet_pt,
-            axis_range_name = f"jet_pt{self.jet_pt.bin}",
+            axis_range_name = f"jet_pt{self.jet_pt.min}-{self.jet_pt.max}",
             min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.jet_pt.range.min + epsilon
             ),
@@ -1422,7 +1422,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Track pt axis
         track_pt_axis = HistAxisRange(
             axis_type = JetHCorrelationSparse.track_pt,
-            axis_range_name = f"track_pt{self.track_pt.bin}",
+            axis_range_name = f"track_pt{self.track_pt.min}-{self.track_pt.max}",
             min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.track_pt.range.min + epsilon
             ),
