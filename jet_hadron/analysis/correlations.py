@@ -1296,6 +1296,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
         self._write_hists_to_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
 
+    def _write_1d_correlations(self):
+        """ Write 1D correlations to file. """
+        logger.debug("Writing 1D delta phi correlations")
+        self._write_hists_to_root_file(hists = self.correlation_hists_delta_phi)
+        logger.debug("Writing 1D delta eta correlations")
+        self._write_hists_to_root_file(hists = self.correlation_hists_delta_eta)
+
     def _write_hists_to_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
                                   mode: str = "UPDATE") -> None:
         """ Write the provided histograms to a ROOT file. """
@@ -1322,6 +1329,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write number of triggers hists. """
         # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
         self._init_hists_from_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
+
+    def _init_1d_correlations_hists_from_root_file(self) -> None:
+        """ Initialize 1D correlation hists. """
+        self._init_hists_from_root_file(hists = self.correlation_hists_delta_phi)
+        self._init_hists_from_root_file(hists = self.correlation_hists_delta_eta)
 
     def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
         """ Initialize processed histograms from a ROOT file. """
@@ -1990,13 +2002,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Convert 1D correlations to Histograms. """
         ...
 
-    def _write_1d_correlations(self):
-        """ Write 1D correlations to file. """
-        logger.debug("Writing 1D delta phi correlations")
-        self._write_hists_to_root_file(hists = self.correlation_hists_delta_phi)
-        logger.debug("Writing 1D delta eta correlations")
-        self._write_hists_to_root_file(hists = self.correlation_hists_delta_eta)
-
     def _run_1d_projections(self):
         """ Run the 2D -> 1D projections. """
         if self.processing_options["generate1DCorrelations"]:
@@ -2030,8 +2035,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         else:
             # Initialize the 1D correlations from the file
             logger.info("Loading 1D correlations from file")
-            self._init_from_root_file(correlations_1d = True)
-            self._init_from_root_file(correlations_1d_array = True, exitOnFailure = False)
+            self._init_1d_correlations_hists_from_root_file()
 
         self.ran_projections = True
 
