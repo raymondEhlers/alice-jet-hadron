@@ -2013,18 +2013,18 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Performing post projection histogram scaling")
             self._post_1d_projection_scaling()
 
-            # TODO: Move the methods below back above this line
-            if self.processing_options["plot1DCorrelations"]:
-                logger.info("Comparing unsubtracted correlations to Joel's.")
-                self._compare_to_joel()
-                logger.info("Plotting 1D correlations")
-                plot_correlations.plot_1d_correlations(self)
-
             # Create hist arrays
             self._convert_1d_correlations()
 
             # Write the properly scaled projections
             self._write_1d_correlations()
+
+            # Plot the correlations
+            if self.processing_options["plot1DCorrelations"]:
+                logger.info("Comparing unsubtracted correlations to Joel's.")
+                self._compare_to_joel()
+                logger.info("Plotting 1D correlations")
+                plot_correlations.plot_1d_correlations(self)
 
             # Ensure that the next step in the chain is run
             self.processing_options["fit1DCorrelations"] = True
