@@ -73,8 +73,10 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
 
     x = rp_fit.fit_result.x
     for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+        # Setup
         # Get the relevant data
         hist = data[fit_type]
+        reaction_plane_orientation = params.ReactionPlaneOrientation[fit_type.orientation]
 
         # Draw the data according to the given function
         # Determine the values of the fit function.
@@ -86,11 +88,12 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
         errors = rp_fit.fit_result.components[fit_type].errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
         # Plot the data
-        # TODO: Update label.
         ax.errorbar(
             x, hist.y, yerr = hist.errors, label = "Data",
             marker = "o", linestyle = ""
         )
+        # TODO: Update label.
+        ax.set_title(reaction_plane_orientation.display_str())
 
 def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
     """ Plot fit residuals on a given set of axes.
@@ -171,7 +174,6 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
     _plot_rp_fit_residuals(rp_fit = rp_fit, data = data, axes = flat_axes[n_components:])
 
     # Define upper panel labels.
-    # TODO: Add RP orientation labels via title.
     # In-plane
     text = labels.track_pt_range_string(inclusive_analysis.track_pt)
     text += "\n" + labels.constituent_cuts()
@@ -197,7 +199,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
         f"{rp_fit.fit_result.minimum_val:.1f}/{rp_fit.fit_result.nDOF} = "
         f"{rp_fit.fit_result.minimum_val / rp_fit.fit_result.nDOF:.3f}"
     )
-    _add_label_to_rpf_plot_axis(ax = flat_axes[3], label = labels.make_valid_latex_string(text))
+    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
 
     # Deifne lower panel labels.
     for ax in flat_axes[n_components:]:
