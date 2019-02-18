@@ -29,6 +29,7 @@ from pachyderm import utils
 from pachyderm.utils import epsilon
 
 import reaction_plane_fit as rpf
+from reaction_plane_fit import three_orientations
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -1193,8 +1194,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Basic information
         # Identifier information
-        jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
-        self.identifier = f"{jet_pt_identifier}_{self.jet_pt.min}_{self.jet_pt.max}_trackPt_{self.track_pt.min}_{self.track_pt.max}"
+        self.jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
+        self.jet_pt_identifier += f"_{self.jet_pt.min}_{self.jet_pt.max}"
+        self.track_pt_identifier = f"trackPt_{self.track_pt.min}_{self.track_pt.max}"
+        self.identifier = f"{self.jet_pt_identifier}_{self.track_pt_identifier}"
 
         self.input_hists: Dict[str, Any] = {}
         # For convenience since it is frequently accessed.
@@ -1990,7 +1993,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
             comparison_filename = comparison_filename.replace("X2bg", "X2bgL")
         comparison_filename = os.path.join(self.task_config["joelsCorrelationsFilePath"], comparison_filename)
         comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
-        logger.debug(f"{comparison_hists}")
 
         self._compare_unsubtracted_1d_signal_correlation_to_joel(comparison_hists)
 
@@ -2135,7 +2137,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 projecting.update()
 
         # Fitting
-        with self._progress_manager.counter(total = len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]),
+        number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
+        with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
                                             unit = "delta phi hists") as fitting:
             resolution_parameters = self.task_config["reaction_plane_fit"]["resolution_parameters"]
@@ -2163,15 +2166,15 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
                     .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("args", {})
                 use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, False).get("use_log_likelihood", False)
+                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
                 # TODO: Where should this be stored??
-                fit_obj = rpf.three_orientations.InclusiveSignalFit(
+                fit_obj = three_orientations.InclusiveSignalFit(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
-                    signal_region = self.signal_dominated_eta_region,
-                    background_region = self.background_dominated_eta_region,
+                    signal_region = analysis.signal_dominated_eta_region,
+                    background_region = analysis.background_dominated_eta_region,
                 )
 
                 # Now perform the fit.

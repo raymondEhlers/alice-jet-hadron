@@ -66,12 +66,12 @@ Correlations:
         # General histograms
         generalHistograms: false
         # 2D
-        generate2DCorrelations: true
-        plot2DCorrelations: true
-        plotRPFHighlights: true
+        generate2DCorrelations: false
+        plot2DCorrelations: false
+        plotRPFHighlights: false
         # 1D
-        generate1DCorrelations: true
-        plot1DCorrelations: true
+        generate1DCorrelations: false
+        plot1DCorrelations: false
         # Fit and subtract
         fit1DCorrelations: true
         plot1DCorrelationsWithFits: true
