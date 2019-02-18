@@ -1982,6 +1982,12 @@ class CorrelationsManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
         # Store the fits.
+        # We explicitly deselected the reaction plane orientation, because the main fit object doesn't
+        # depend on it.
+        self.fit_key_index = analysis_config.create_key_index_object(
+            "FitKeyIndex",
+            iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
+        )
         self.fit_objects: Dict[Any, rpf_fit.ReactionPlaneFit] = {}
 
         # General histograms
@@ -2023,32 +2029,6 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def fit(self) -> bool:
         """ Fit the stored correlations. """
-        ...
-
-    def run(self) -> bool:
-        """ Run the analysis in the correlations manager. """
-        # First setup the correlations
-        self.setup()
-
-        # Run the general hists
-        self.general_histograms.run()
-
-        # First analysis step
-        with self._progress_manager.counter(total = len(self.analyses),
-                                            desc = "Projecting:",
-                                            unit = "analysis objects") as projecting:
-            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                analysis.run_projections()
-                # Keep track of progress
-                projecting.update()
-
-        # Fitting
-        # We explicitly deselected the reaction plane orientation, because the main fit object doesn't
-        # depend on it.
-        FitKeyIndex = analysis_config.create_key_index_object(
-            "FitKeyIndex",
-            iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
-        )
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
         with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
@@ -2061,12 +2041,16 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         analysis_iterables = self.selected_iterables,
                         selection = "reaction_plane_orientation",
                     ):
+                # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
+                inclusive_analysis: Correlations
                 # Setup the input data
                 input_hists: rpf.fit.Data = {
                     "signal": {},
                     "background": {},
                 }
                 for key_index, analysis in ep_analyses:
+                    if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                        inclusive_analysis = analysis
                     key = str(analysis.reaction_plane_orientation)
                     # Include the signal for inclusive orientations, but background for others.
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
@@ -2076,13 +2060,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Determine the key index for the fit object.
                 # We want all iterables except the one that we selected on (the reaction plane orientations).
-                fit_key_index = FitKeyIndex(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
+                fit_key_index = self.fit_key_index(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
 
                 # Determine the user arguments.
                 user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("args", {})
+                    .get(inclusive_analysis.jet_pt.bin, {}).get(inclusive_analysis.track_pt.bin, {}).get("args", {})
                 use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("use_log_likelihood", False)
+                    .get(inclusive_analysis.jet_pt.bin, {}).get(inclusive_analysis.track_pt.bin, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
                 fit_obj = three_orientations.InclusiveSignalFit(
@@ -2102,7 +2086,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # This should already be caught, but we handle it for good measure
                 if not fit_success:
-                    raise RuntimeError(f"Fit failed for {analysis.identifier}")
+                    raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
 
                 # Plot the result
                 #rpf_plot.draw_fit(rp_fit = fit_obj, data = fit_data, filename = "")
@@ -2117,10 +2101,49 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Update progress
                 fitting.update()
 
-        # Subtract the fits
+        return True
 
-        # Extract the yields and widths
-        self.extract_yields_and_widths()
+    def run(self) -> bool:
+        """ Run the analysis in the correlations manager. """
+        # Analysis steps:
+        # 1. Setup the correlations objects.
+        # 2. Run the general histograms (if enabled.)
+        # 3. Project, normalize, and plot the correlations down to 1D.
+        # 4. Fit and plot the correlations.
+        # 5. Subtract the fits from the correlations.
+        # 6. Extract and plot the widths and yields.
+        steps = 6
+        with self._progress_manager.counter(total = steps,
+                                            desc = "Overall processing progress:",
+                                            unit = "") as overall_progress:
+            # First setup the correlations
+            self.setup()
+            overall_progress.update()
+
+            # Run the general hists
+            self.general_histograms.run()
+            overall_progress.update()
+
+            # First analysis step
+            with self._progress_manager.counter(total = len(self.analyses),
+                                                desc = "Projecting:",
+                                                unit = "analysis objects") as projecting:
+                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                    analysis.run_projections()
+                    # Keep track of progress
+                    projecting.update()
+            overall_progress.update()
+
+            # Fitting
+            self.fit()
+            overall_progress.update()
+
+            # Subtract the fits
+            overall_progress.update()
+
+            # Extract the yields and widths
+            self.extract_yields_and_widths()
+            overall_progress.update()
 
         return True
 
