@@ -1902,29 +1902,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
                 # Post process and scale
                 title_label = rf"{observable.axis.display_str()}\mathrm{{, {observable.type.display_str()}}}"
-                self._post_creation_processing_for_1d_correlation(
+                correlations_helpers.post_creation_processing_for_1d_correlations(
                     hist = observable.hist,
                     normalization_factor = normalization_factor,
                     rebin_factor = rebin_factor,
                     title_label = title_label,
                     axis_label = observable.axis.display_str(),
+                    jet_pt = self.jet_pt,
+                    track_pt = self.track_pt,
                 )
-
-    def _post_creation_processing_for_1d_correlation(self, hist: Hist,
-                                                     normalization_factor: float,
-                                                     rebin_factor: int,
-                                                     title_label: str,
-                                                     axis_label: str):
-        """ Basic post processing tasks for a new 1D correlation. """
-        correlations_helpers.post_creation_processing_for_1d_correlations(
-            hist = hist,
-            normalization_factor = normalization_factor,
-            rebin_factor = rebin_factor,
-            title_label = title_label,
-            axis_label = axis_label,
-            jet_pt = self.jet_pt,
-            track_pt = self.track_pt,
-        )
 
     def _post_1d_projection_scaling(self):
         """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
