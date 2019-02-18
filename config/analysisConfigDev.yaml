@@ -62,6 +62,7 @@ Correlations:
     2d_rebin_factors: [2, 1]
     1d_rebin_factor_delta_eta: 1
     1d_rebin_factor_delta_phi: 1
+    mixed_events_with_EP_dependence: False
     yield_limit: 1.0
     processingOptions:
         # 2D

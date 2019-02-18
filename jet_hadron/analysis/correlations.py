@@ -1278,10 +1278,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             trigger_centrality_cut_axis = copy.deepcopy(centrality_cut_axis)
             trigger_centrality_cut_axis.axis_type = JetHTriggerSparse.centrality
             trigger_projector.additional_axis_cuts.append(trigger_centrality_cut_axis)
-        if reaction_plane_orientation_cut_axis:
-            trigger_reaction_plane_orientation_cut_axis = copy.deepcopy(reaction_plane_orientation_cut_axis)
-            trigger_reaction_plane_orientation_cut_axis.axis_type = JetHTriggerSparse.reaction_plane_orientation
-            trigger_projector.additional_axis_cuts.append(trigger_reaction_plane_orientation_cut_axis)
+        trigger_reaction_plane_orientation_cut_axis = copy.deepcopy(reaction_plane_orientation_cut_axis)
+        trigger_reaction_plane_orientation_cut_axis.axis_type = JetHTriggerSparse.reaction_plane_orientation
+        trigger_projector.additional_axis_cuts.append(trigger_reaction_plane_orientation_cut_axis)
         # No projection dependent cut axes
         trigger_projector.projection_dependent_cut_axes.append([])
         # Projection axis
@@ -1307,8 +1306,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         if self.collision_system != params.CollisionSystem.pp:
             raw_signal_projector.additional_axis_cuts.append(centrality_cut_axis)
-        if reaction_plane_orientation_cut_axis:
-            raw_signal_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
+        raw_signal_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
         raw_signal_projector.additional_axis_cuts.append(jet_pt_axis)
         raw_signal_projector.additional_axis_cuts.append(track_pt_axis)
         raw_signal_projector.projection_dependent_cut_axes.append([])
@@ -1332,7 +1330,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         if self.collision_system != params.CollisionSystem.pp:
             mixed_event_projector.additional_axis_cuts.append(centrality_cut_axis)
-        if reaction_plane_orientation_cut_axis:
+        # According to Joel's AN (Fig 11), there is no dependence on EP orientation for mixed events.
+        # So we only perform this projection if selected in order to improve our mixed event statistics.
+        if self.task_config["mixed_events_with_EP_dependence"]:
             mixed_event_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
         mixed_event_projector.additional_axis_cuts.append(jet_pt_axis)
         mixed_event_projector.additional_axis_cuts.append(track_pt_axis)
