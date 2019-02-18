@@ -27,6 +27,7 @@ from pachyderm.projectors import HistAxisRange
 from pachyderm.utils import epsilon
 
 import reaction_plane_fit as rpf
+from reaction_plane_fit import fit as rpf_fit
 from reaction_plane_fit import three_orientations
 
 from jet_hadron.base import analysis_config
@@ -1981,7 +1982,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
         # Store the fits.
-        self.reaction_plane_fits: Mapping[Any, Any]
+        self.fit_objects: Dict[Any, rpf_fit.ReactionPlaneFit] = {}
 
         # General histograms
         self.general_histograms = GeneralHistogramsManager(
@@ -2021,6 +2022,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 setting_up.update()
 
     def fit(self) -> bool:
+        """ Fit the stored correlations. """
         ...
 
     def run(self) -> bool:
@@ -2041,6 +2043,12 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 projecting.update()
 
         # Fitting
+        # We explicitly deselected the reaction plane orientation, because the main fit object doesn't
+        # depend on it.
+        FitKeyIndex = analysis_config.create_key_index_object(
+            "FitKeyIndex",
+            iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
+        )
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
         with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
@@ -2066,6 +2074,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     else:
                         input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
 
+                # Determine the key index for the fit object.
+                # We want all iterables except the one that we selected on (the reaction plane orientations).
+                fit_key_index = FitKeyIndex(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
+
                 # Determine the user arguments.
                 user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
                     .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("args", {})
@@ -2073,21 +2085,33 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     .get(analysis.jet_pt.bin, {}).get(analysis.track_pt.bin, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
-                # TODO: Where should this be stored??
                 fit_obj = three_orientations.InclusiveSignalFit(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
                     signal_region = analysis.signal_dominated_eta_region,
                     background_region = analysis.background_dominated_eta_region,
                 )
-
                 # Now perform the fit.
-                fit_obj.fit(
+                fit_success, fit_data = fit_obj.fit(
                     data = input_hists,
                     user_arguments = user_arguments,
                 )
 
-                # TODO: Store the fit result.
+                # Contains the fit object, the result, and the fit component results
+                self.fit_objects[fit_key_index] = fit_obj
+
+                # This should already be caught, but we handle it for good measure
+                if not fit_success:
+                    raise RuntimeError(f"Fit failed for {analysis.identifier}")
+
+                # Plot the result
+                #rpf_plot.draw_fit(rp_fit = fit_obj, data = fit_data, filename = "")
+
+                # TODO: Store the fit obj, and fit result
+                #       It probably makes most sense to store the fit result together
+                #       because the fit components depend on the main object. But perhaps
+                #       it's best to store the fit compponent in the analysis, and the fit itself
+                #       in the manager object.
                 ...
 
                 # Update progress

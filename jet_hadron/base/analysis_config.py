@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
 
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
+from pachyderm.generic_config import create_key_index_object  # noqa: F401
 from pachyderm.generic_config import iterate_with_selected_objects  # noqa: F401
 from pachyderm.generic_config import iterate_with_selected_objects_in_order  # noqa: F401
 from pachyderm import yaml
