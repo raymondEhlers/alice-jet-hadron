@@ -163,7 +163,7 @@ def plot1DCorrelationsWithFits(jet_hadron):
             fit.Draw("same")
             plot_base.save_plot(jet_hadron.output_info, canvas, observable.hist.GetName())
 
-def comparison_1d(jet_hadron,
+def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
                   our_hist: histogram.Histogram1D,
                   their_hist: histogram.Histogram1D,
                   ratio: histogram.Histogram1D,
@@ -191,10 +191,10 @@ def comparison_1d(jet_hadron,
     fig.subplots_adjust(hspace = 0, wspace = 0.05)
 
     # Save and cleanup
-    plot_base.save_plot(jet_hadron.output_info, fig, output_name)
+    plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
+def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrapper,
                               # For labeling purposes
                               hist_name: str, eta_limits: Sequence[float], jet_pt_title: str, track_pt_title: str,
                               # Basic data
@@ -271,7 +271,7 @@ def mixed_event_normalization(jet_hadron: analysis_objects.JetHBase,
     ax.set_xlabel(r"$\Delta\varphi$")
 
     #plt.tight_layout()
-    plot_base.save_plot(jet_hadron.output_info, fig, hist_name)
+    plot_base.save_plot(output_info, fig, hist_name)
     # Close the figure
     plt.close(fig)
 

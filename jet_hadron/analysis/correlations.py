@@ -1564,7 +1564,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Plot the comparison
         plot_correlations.mixed_event_normalization(
-            self,
+            self.output_info,
             # For labeling purposes
             hist_name = peak_finding_hist.GetName(), eta_limits = eta_limits,
             jet_pt_title = labels.jet_pt_range_string(self.jet_pt),
@@ -1947,7 +1947,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Make the comparison.
         plot_correlations.comparison_1d(
-            jet_hadron = self,
+            output_info = self.output_info,
             our_hist = our_hist,
             their_hist = their_hist,
             ratio = ratio,
