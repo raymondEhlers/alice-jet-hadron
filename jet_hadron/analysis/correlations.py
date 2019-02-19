@@ -1875,8 +1875,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Plot the correlations
         if self.processing_options["plot1DCorrelations"]:
-            logger.info("Comparing unsubtracted correlations to Joel's.")
-            self._compare_to_joel()
+            if self.collision_energy == params.CollisionEnergy.two_seven_six and self.event_activity == params.EventActivity.central:
+                logger.info("Comparing unsubtracted correlations to Joel's.")
+                self._compare_to_joel()
+            else:
+                logger.info("Skipping comparsion with Joel since we're not analyzing the right system.")
             logger.info("Plotting 1D correlations")
             plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
 
