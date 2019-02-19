@@ -172,7 +172,7 @@ def _plot_all_1d_correlations_with_ROOT(jet_hadron: analysis_objects.JetHBase) -
 def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: analysis_objects.JetHBase, output_name: str) -> None:
     """ Plot 1D signal and background hists on a single plot with matplotlib. """
     # Setup
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize = (8, 6))
     hists = jet_hadron.correlation_hists_delta_phi
 
     h_signal = histogram.Histogram1D.from_existing_hist(hists.signal_dominated.hist)
@@ -192,6 +192,11 @@ def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: analysis_objects.
     # Set labels.
     ax.set_xlabel(labels.make_valid_latex_string(hists.signal_dominated.hist.GetXaxis().GetTitle()))
     ax.set_ylabel(labels.make_valid_latex_string(hists.signal_dominated.hist.GetYaxis().GetTitle()))
+    jet_pt_label = labels.jet_pt_range_string(jet_hadron.jet_pt)
+    track_pt_label = labels.track_pt_range_string(jet_hadron.track_pt)
+    ax.set_title(fr"Unsubtracted 1D ${hists.signal_dominated.axis.display_str()}$,"
+                 f" {jet_hadron.reaction_plane_orientation.display_str()} event plane orient.,"
+                 f" {jet_pt_label}, {track_pt_label}")
 
     # Tweak presentation
     ax.legend(loc = "upper right")
