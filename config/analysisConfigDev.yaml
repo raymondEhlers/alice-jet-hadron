@@ -110,13 +110,18 @@ CorrelationsManager:
     processing_options:
         plotRPFit: true
     reaction_plane_fit:
+        # The fit type will be used to retrieve the fit object from the RPF package.
+        # Could be "InclusiveSignalFit" or "BackgroundFit"
+        fit_type: "InclusiveSignalFit"
         # Event plane resolution parameters
         resolution_parameters:
             R22: 0.5713
             R42: &R42 0.2972
             # Temporarily set to R{4,2} to estimate possible contributions
-            R62: *R42
-            R82: *R42
+            R62: 0
+            R82: 0
+            #R62: *R42
+            #R82: *R42
         fit_params:
             jetPtBiased20-40:
                 trackPt1.0-1.5:

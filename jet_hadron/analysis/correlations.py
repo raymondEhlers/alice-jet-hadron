@@ -2085,7 +2085,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     .get(inclusive_analysis.jet_pt.bin, {}).get(inclusive_analysis.track_pt.bin, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
-                fit_obj = three_orientations.InclusiveSignalFit(
+                fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
+                FitFunction = getattr(three_orientations, fit_type)
+                fit_obj = FitFunction(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
                     signal_region = analysis.signal_dominated_eta_region,
@@ -2110,7 +2112,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         rp_fit = fit_obj, data = fit_data,
                         inclusive_analysis = inclusive_analysis,
                         output_info = self.output_info,
-                        output_name = f"inclusive_signal_fit_{inclusive_analysis.identifier}",
+                        output_name = f"{fit_type}_{inclusive_analysis.identifier}",
                     )
 
                 # Update progress
