@@ -123,11 +123,13 @@ CorrelationsManager:
             #R62: *R42
             #R82: *R42
         fit_params:
-            jetPtBiased20-40:
-                trackPt1.0-1.5:
-                    args:
-                        test_arg: test_arg
-                    use_log_likelihood: false
+            jetPtBiased_20_40:
+                trackPt_5.0_6.0:
+                    #args:
+                    #    test_arg: test_arg
+                    use_log_likelihood: true
+                trackPt_6.0_10.0:
+                    use_log_likelihood: true
     override:
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.

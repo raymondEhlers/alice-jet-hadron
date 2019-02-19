@@ -2080,9 +2080,11 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Determine the user arguments.
                 user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(inclusive_analysis.jet_pt.bin, {}).get(inclusive_analysis.track_pt.bin, {}).get("args", {})
+                    .get(inclusive_analysis.jet_pt_identifier, {}) \
+                    .get(inclusive_analysis.track_pt_identifier, {}).get("args", {})
                 use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(inclusive_analysis.jet_pt.bin, {}).get(inclusive_analysis.track_pt.bin, {}).get("use_log_likelihood", False)
+                    .get(inclusive_analysis.jet_pt_identifier, {}) \
+                    .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
                 fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
