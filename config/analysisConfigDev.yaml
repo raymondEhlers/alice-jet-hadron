@@ -67,12 +67,12 @@ Correlations:
     yield_limit: 1.0
     processingOptions:
         # 2D
-        generate2DCorrelations: false
-        plot2DCorrelations: false
-        plotRPFHighlights: false
+        generate2DCorrelations: true
+        plot2DCorrelations: true
+        plotRPFHighlights: true
         # 1D
-        generate1DCorrelations: false
-        plot1DCorrelations: false
+        generate1DCorrelations: true
+        plot1DCorrelations: true
         plot1DCorrelationsWithROOT: false
         # Fit and subtract
         fit1DCorrelations: true
@@ -87,21 +87,25 @@ Correlations:
         plotWidths: false
     override:
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         2.76:
             trainNumber: 3360
         5.02:
             trainNumber: 4358
         iterables:
             reaction_plane_orientation: true
-            #track_pt_bin: *TrackPtBins11h
-            track_pt_bin:
-                - !TrackPtBin
-                  bin: 4
-                  range: !SelectedRange [1.5, 2.0]
-                - !TrackPtBin
-                  bin: 5
-                  range: !SelectedRange [2.0, 3.0]
+            track_pt_bin: *TrackPtBins11h
+            # NOTE: The individual binning is number from the bin 0.15 - 0.5 as bin 1.
+            #track_pt_bin:
+            #    - !TrackPtBin
+            #      bin: 4
+            #      range: !SelectedRange [1.5, 2.0]
+            #    - !TrackPtBin
+            #      bin: 5
+            #      range: !SelectedRange [2.0, 3.0]
+            #    - !TrackPtBin
+            #      bin: 8
+            #      range: !SelectedRange [5.0, 6.0]
             jet_pt_bin:
                 - !JetPtBin
                   bin: 2
@@ -134,7 +138,7 @@ CorrelationsManager:
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{leading_hadron_bias}/Correlations"
+        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/Correlations"
         2.76:
             trainNumber: 3360
         5.02:
