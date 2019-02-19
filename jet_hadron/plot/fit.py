@@ -689,7 +689,7 @@ def CompareToJoel(epFitObj):
         ax.set_title(r"$\Delta\varphi$ subtracted correlations " + " for {}".format(formatStr))
         # Axis labels
         ax.set_xlabel(r"$\Delta\varphi$")
-        ax.set_ylabel(r"dN/d$\Delta\varphi$")
+        ax.set_ylabel(r"$\mathrm{dN}/\mathrm{d}\Delta\varphi$")
 
         epAngle = params.ReactionPlaneOrientation.all
         #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysis_objects.CorrelationType.signal_dominated]

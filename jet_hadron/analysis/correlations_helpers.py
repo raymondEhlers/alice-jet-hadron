@@ -351,5 +351,5 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     # This won't look so good in ROOT, but that's just because their latex rendering is absolutely atrocious...
     hist.SetTitle(rf"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
     hist.GetXaxis().SetTitle(axis_label)
-    hist.GetYaxis().SetTitle(f"$dN/d{axis_label}$")
+    hist.GetYaxis().SetTitle(fr"$\mathrm{{dN}}/\mathrm{{d}}{axis_label}$")
 
