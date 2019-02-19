@@ -185,9 +185,6 @@ def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: analysis_objects.
         h_background.x, h_background.y, yerr = h_background.errors,
         label = hists.background_dominated.type.display_str(), marker = "o", linestyle = "",
     )
-    hists.background_dominated.hist.SetLineColor(ROOT.kBlue)
-    hists.background_dominated.hist.SetMarkerColor(ROOT.kBlue)
-    hists.background_dominated.hist.Draw("same")
 
     # Set labels.
     ax.set_xlabel(labels.make_valid_latex_string(hists.signal_dominated.hist.GetXaxis().GetTitle()))
