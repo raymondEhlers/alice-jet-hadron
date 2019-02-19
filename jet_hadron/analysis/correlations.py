@@ -1525,6 +1525,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._init_2d_correlations_hists_from_root_file()
             self._init_number_of_triggers_hist_from_root_file()
 
+        # Plotting
         if self.processing_options["plot2DCorrelations"]:
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
@@ -1864,13 +1865,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Write the properly scaled projections
             self._write_1d_correlations()
 
-            # Plot the correlations
-            if self.processing_options["plot1DCorrelations"]:
-                logger.info("Comparing unsubtracted correlations to Joel's.")
-                self._compare_to_joel()
-                logger.info("Plotting 1D correlations")
-                plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
-
             # Ensure that the next step in the chain is run
             self.processing_options["fit1DCorrelations"] = True
         else:
@@ -1878,12 +1872,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Loading 1D correlations from file")
             self._init_1d_correlations_hists_from_root_file()
 
-        self.ran_projections = True
+        # Plot the correlations
+        if self.processing_options["plot1DCorrelations"]:
+            logger.info("Comparing unsubtracted correlations to Joel's.")
+            self._compare_to_joel()
+            logger.info("Plotting 1D correlations")
+            plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
 
     def run_projections(self) -> None:
         """ Run all analysis steps through projectors. """
         self._run_2d_projections()
         self._run_1d_projections()
+
+        # Store that we've completed this step.
+        self.ran_projections = True
 
     def extract_yields(self, yield_limit: float) -> None:
         """ Extract yields. """
