@@ -1411,7 +1411,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         plot_correlations.mixed_event_normalization(
             self.output_info,
             # For labeling purposes
-            hist_name = peak_finding_hist.GetName(), eta_limits = eta_limits,
+            output_name = f"mixed_event_normalization_{self.identifier}", eta_limits = eta_limits,
             jet_pt_title = labels.jet_pt_range_string(self.jet_pt),
             track_pt_title = labels.track_pt_range_string(self.track_pt),
             # Basic data

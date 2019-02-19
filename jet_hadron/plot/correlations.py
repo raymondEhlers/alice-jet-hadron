@@ -7,7 +7,6 @@
 
 import logging
 import matplotlib.pyplot as plt
-from matplotlib.offsetbox import AnchoredText
 import numpy as np
 import seaborn as sns
 from typing import Sequence
@@ -269,7 +268,7 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
 
 def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrapper,
                               # For labeling purposes
-                              hist_name: str, eta_limits: Sequence[float], jet_pt_title: str, track_pt_title: str,
+                              output_name: str, eta_limits: Sequence[float], jet_pt_title: str, track_pt_title: str,
                               # Basic data
                               lin_space: np.ndarray,       peak_finding_hist_array: np.ndarray,  # noqa: E241
                               lin_space_rebin: np.ndarray, peak_finding_hist_array_rebin: np.ndarray,
@@ -283,7 +282,7 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
                               max_linear_fit_1d: float, max_linear_fit_1d_rebin: float,
                               max_linear_fit_2d: float, max_linear_fit_2d_rebin: float) -> None:
     # Make the actual plot
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize = (8, 6))
     # Add additional y margin at the bottom so the legend will fit a bit better
     # Cannot do asyemmtric padding via `ax.set_ymargin()`, so we'll do it by hand
     # See: https://stackoverflow.com/a/42804403
@@ -331,21 +330,25 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
     ax.axhline(max_linear_fit_2d, color = "b", label = "2D fit")
     ax.axhline(max_linear_fit_2d_rebin, color = "b", linestyle = "--", label = "2D fit rebin")
 
-    eta_limits_label = AnchoredText(r"|$\Delta\eta$|<{}".format(eta_limits[1]), loc=2, frameon=False)
-    ax.add_artist(eta_limits_label)
+    ax.text(
+        0.05, 0.95, fr"$|\Delta\eta| < {eta_limits[1]}$", horizontalalignment = "left",
+        verticalalignment = "top", multialignment = "left",
+        transform = ax.transAxes
+    )
 
     # Legend and Labels for the plot
     #ax.set_ymargin = 0.01
-    ax.legend(loc="lower left", ncol=3)
+    ax.legend(loc = "lower left", ncol = 3, frameon = False)
     #ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
     #          ncol=3, mode="expand", borderaxespad=0)
     ax.set_title(f"ME norm. for {jet_pt_title}, {track_pt_title}")
-    ax.set_ylabel(r"$\Delta N/\Delta\varphi$")
+    ax.set_ylabel(labels.delta_phi_axis_label())
     ax.set_xlabel(r"$\Delta\varphi$")
 
-    #plt.tight_layout()
-    plot_base.save_plot(output_info, fig, hist_name)
-    # Close the figure
+    # Final adjustments
+    plt.tight_layout()
+    # Cleanup and save
+    plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
 def define_highlight_regions():
