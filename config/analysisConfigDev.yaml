@@ -73,6 +73,7 @@ Correlations:
         # 1D
         generate1DCorrelations: false
         plot1DCorrelations: false
+        plot1DCorrelationsWithROOT: false
         # Fit and subtract
         fit1DCorrelations: true
         plot1DCorrelationsWithFits: true

@@ -348,7 +348,8 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     # Set title, labels
     jet_pt_bins_title = labels.jet_pt_range_string(jet_pt)
     track_pt_bins_title = labels.track_pt_range_string(track_pt)
-    hist.SetTitle(rf"{title_label}\:\mathrm{{with}}\:{jet_pt_bins_title} \mathrm{{,}} {track_pt_bins_title}")
-    hist.GetXaxis().SetTitle(labels.use_label_with_root(axis_label))
+    # This won't look so good in ROOT, but that's just because their latex rendering is absolutely atrocious...
+    hist.SetTitle(rf"{title_label} with {jet_pt_bins_title}, {track_pt_bins_title}")
+    hist.GetXaxis().SetTitle(axis_label)
     hist.GetYaxis().SetTitle(f"$dN/d{axis_label}$")
 

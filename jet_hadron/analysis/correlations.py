@@ -1753,7 +1753,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 rebin_factor = self.task_config.get(f"1d_rebin_factor_{observable.axis}", 1)
 
                 # Post process and scale
-                title_label = rf"{observable.axis.display_str()}\mathrm{{, {observable.type.display_str()}}}"
+                title_label = rf"${observable.axis.display_str()}$, {observable.type.display_str()}"
                 correlations_helpers.post_creation_processing_for_1d_correlations(
                     hist = observable.hist,
                     normalization_factor = normalization_factor,
@@ -1869,7 +1869,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.info("Comparing unsubtracted correlations to Joel's.")
                 self._compare_to_joel()
                 logger.info("Plotting 1D correlations")
-                plot_correlations.plot_1d_correlations(self)
+                plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
 
             # Ensure that the next step in the chain is run
             self.processing_options["fit1DCorrelations"] = True
