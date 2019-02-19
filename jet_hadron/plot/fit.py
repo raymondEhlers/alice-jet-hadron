@@ -114,13 +114,24 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data
         # Get the relevant data
         hist = data[fit_type]
 
-        # Note: Residual = data - fit / fit, not just data-fit
-        fit_values = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x)
-        residual = (hist.y - fit_values) / fit_values
-        # TODO: Error calculation.
+        # We create a histogram to represent the fit so that we can take advantage
+        # of the error propagation in the Histogram1D object.
+        fit_hist = histogram.Histogram1D(
+            # Bin edges must be the same
+            bin_edges = hist.bin_edges,
+            y = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x),
+            errors_squared = rp_fit.fit_result.components[fit_type].errors ** 2,
+        )
+        # NOTE: Residual = data - fit / fit, not just data-fit
+        residual = (hist - fit_hist) / fit_hist
 
         # Plot the main values
-        ax.plot(x, residual, label = "Residual")
+        plot = ax.plot(x, residual.y, label = "Residual")
+        # Plot the fit errors
+        ax.fill_between(
+            x, residual.y - residual.errors, residual.y + residual.errors,
+            facecolor = plot[0].get_color(), alpha = 0.9,
+        )
 
         # Set the y-axis limit to be symmetric
         # Selected the value by looking at the data.
@@ -207,6 +218,9 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
         ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
         # Add axis labels
         ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
+    # Improve the viewable range for the lower panels.
+    # This value is somewhat arbitrarily selected, but seems to work well enough.
+    flat_axes[n_components].set_ylim(-0.2, 0.2)
 
     # Specify shared y axis label
     # Delta phi correlations first
