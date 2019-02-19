@@ -1318,8 +1318,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         ###########################
         # Mixed Event projector
         ###########################
-        # TODO: Use a broader range of pt for mixed events like Joel?
-        #       To do so, just find bins of higher values.
         projection_information = {}
         mixed_event_projector = JetHCorrelationSparseProjector(
             observable_to_project_from = self.input_hists["fhnMixedEvents"],
@@ -1335,7 +1333,26 @@ class Correlations(analysis_objects.JetHReactionPlane):
         if self.task_config["mixed_events_with_EP_dependence"]:
             mixed_event_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
         mixed_event_projector.additional_axis_cuts.append(jet_pt_axis)
-        mixed_event_projector.additional_axis_cuts.append(track_pt_axis)
+        # At higher pt, tracks are straight enough that the detector acceptance doesn't change much
+        # with increasing pt. According to Joel's AN (fig 13), we can just merge them together above
+        # 2 GeV. The figure shows that the ME is roughly flat (note that there is a constant offset,
+        # so it must be scaled somewhat differently).
+        if self.task_config["use_broader_high_pt_mixed_events"] and self.track_pt.min >= 2.0:
+            # Select from 2.0 to the maximum (10.0)
+            mixed_event_projector.additional_axis_cuts.append(
+                HistAxisRange(
+                    axis_type = JetHCorrelationSparse.track_pt,
+                    axis_range_name = f"track_pt2.0-10.0",
+                    min_val = HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.FindBin, 2.0 + epsilon
+                    ),
+                    max_val = HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.GetNbins
+                    )
+                )
+            )
+        else:
+            mixed_event_projector.additional_axis_cuts.append(track_pt_axis)
         mixed_event_projector.projection_dependent_cut_axes.append([])
         # Projection Axes
         mixed_event_projector.projection_axes.append(delta_phi_axis)
