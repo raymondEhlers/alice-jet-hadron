@@ -2093,6 +2093,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
+                logger.debug(f"Performing RPF for {inclusive_analysis.jet_pt}, {inclusive_analysis.track_pt}")
                 fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                 FitFunction = getattr(three_orientations, fit_type)
                 fit_obj = FitFunction(
@@ -2100,6 +2101,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     use_log_likelihood = use_log_likelihood,
                     signal_region = analysis.signal_dominated_eta_region,
                     background_region = analysis.background_dominated_eta_region,
+                    #use_minos = True,
                 )
                 # Now perform the fit.
                 fit_success, fit_data = fit_obj.fit(
@@ -2125,6 +2127,22 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Update progress
                 fitting.update()
+
+        return True
+
+    def subtract_fits(self) -> bool:
+        """ Subtract the fits from the analysis histograms. """
+        with self._progress_manager.counter(total = len(self.fit_objects),
+                                            desc = "Reaction plane fitting:",
+                                            unit = "delta phi hists") as subtracting:
+            for ep_analyses in \
+                    analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ):
+                # Update progress
+                subtracting.update()
 
         return True
 
@@ -2164,6 +2182,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
             overall_progress.update()
 
             # Subtract the fits
+            self.subtract_fits()
             overall_progress.update()
 
             # Extract the yields and widths
