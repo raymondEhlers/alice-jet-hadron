@@ -92,6 +92,19 @@ def jet_pt_display_label(upper_label: str = "") -> str:
         upper_label = upper_label,
     )
 
+def track_pt_display_label() -> str:
+    """ Generate a display track pt label.
+
+    Args:
+        None.
+    Returns:
+        Properly formatted pt string.
+    """
+    return pt_display_label(
+        lower_label = "T",
+        upper_label = "assoc",
+    )
+
 def momentum_units_label_gev() -> str:
     """ Generate a GeV/c label.
 

@@ -108,7 +108,7 @@ def test_system_label(logging_mixin, energy, system, activity, expected):
     ("", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{}}"),
     (r"det", r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{det}}")
 ], ids = ["Base test", "Superscript"])
-def test_jet_pt_range_string(logging_mixin, upper_label, expected):
+def test_jet_pt_display_string(logging_mixin, upper_label, expected):
     """ Test for generating jet pt labels. """
     # Determine args. Only call with an argument if we've specified one so we can test the default args.
     kwargs = {}
@@ -117,6 +117,10 @@ def test_jet_pt_range_string(logging_mixin, upper_label, expected):
 
     output = labels.jet_pt_display_label(**kwargs)
     assert output == expected
+
+def test_track_pt_display_string(logging_mixin):
+    """ Test for generating the track pt label. """
+    labels.track_pt_display_label() == r"\mathit{p}_{\mathrm{T,jet}}^{\mathrm{assoc}}"
 
 def test_gev_momentum_units_label(logging_mixin):
     """ Test generating GeV/c label in latex. """
