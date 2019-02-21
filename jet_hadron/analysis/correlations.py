@@ -1066,7 +1066,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
 
         # Fit object
-        self.fit_obj: rpf.ReactionPlaneFit
+        self.fit_object: rpf.ReactionPlaneFit
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
@@ -2109,8 +2109,14 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     user_arguments = user_arguments,
                 )
 
-                # Contains the fit object, the result, and the fit component results
+                # Store the fit results
+                # This main object has access to the entire result.
                 self.fit_objects[fit_key_index] = fit_obj
+                # Store the results relevant to each component in the individual analysis.
+                for index, fit_component in fit_obj.components.items():
+                    for key_index, analysis in ep_analyses:
+                        if str(key_index.reaction_plane_orientation) in index.orientation:
+                            analysis.fit_object = fit_component
 
                 # This should already be caught, but we handle it for good measure
                 if not fit_success:
