@@ -80,12 +80,12 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
 
         # Draw the data according to the given function
         # Determine the values of the fit function.
-        fit_values = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x)
+        fit_values = component.evaluate_fit(x = x)
 
         # Plot the main values
         plot = ax.plot(x, fit_values, label = "Fit")
         # Plot the fit errors
-        errors = rp_fit.fit_result.components[fit_type].errors
+        errors = component.fit_result.errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
         # Plot the data
         ax.errorbar(
@@ -119,8 +119,8 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data
         fit_hist = histogram.Histogram1D(
             # Bin edges must be the same
             bin_edges = hist.bin_edges,
-            y = rp_fit.evaluate_fit_component(fit_component = fit_type, x = x),
-            errors_squared = rp_fit.fit_result.components[fit_type].errors ** 2,
+            y = component.evaluate_fit(x = x),
+            errors_squared = component.fit_result.errors ** 2,
         )
         # NOTE: Residual = data - fit / fit, not just data-fit
         residual = (hist - fit_hist) / fit_hist
