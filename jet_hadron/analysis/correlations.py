@@ -1002,9 +1002,16 @@ class Correlations(analysis_objects.JetHReactionPlane):
     """
     def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Basic information
         # Analysis parameters
         self.jet_pt = jet_pt_bin
         self.track_pt = track_pt_bin
+        # Identifier information
+        self.jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
+        self.jet_pt_identifier += f"_{self.jet_pt.min}_{self.jet_pt.max}"
+        self.track_pt_identifier = f"trackPt_{self.track_pt.min}_{self.track_pt.max}"
+        self.identifier = f"{self.jet_pt_identifier}_{self.track_pt_identifier}"
+
         # Pt hard bins are optional.
         self.pt_hard_bin = kwargs.get("pt_hard_bin", None)
         if self.pt_hard_bin:
@@ -1014,13 +1021,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Validate output filename
         if not self.output_filename.endswith(".root"):
             self.output_filename += ".root"
-
-        # Basic information
-        # Identifier information
-        self.jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
-        self.jet_pt_identifier += f"_{self.jet_pt.min}_{self.jet_pt.max}"
-        self.track_pt_identifier = f"trackPt_{self.track_pt.min}_{self.track_pt.max}"
-        self.identifier = f"{self.jet_pt_identifier}_{self.track_pt_identifier}"
 
         self.input_hists: Dict[str, Any] = {}
         # For convenience since it is frequently accessed.
