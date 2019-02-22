@@ -2295,9 +2295,10 @@ def run_from_terminal():
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
         task_name = "Correlations"
     )
+    selected_analysis_options, _ = analysis_config.validate_arguments(selected_args = terminal_args)
     analysis_manager = CorrelationsManager(
         config_filename = config_filename,
-        selected_analysis_options = terminal_args
+        selected_analysis_options = selected_analysis_options,
     )
     # Finally run the analysis.
     analysis_manager.run()

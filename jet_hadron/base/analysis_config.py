@@ -382,10 +382,11 @@ def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables
             ``pachyderm.generic_config.create_objects_from_iterables(...)`` for more.
     """
     (config_filename, terminal_args, additional_args) = determine_selected_options_from_kwargs(task_name = task_name)
+    selected_analysis_options, _ = validate_arguments(selected_args = terminal_args)
     return construct_from_configuration_file(
         task_name = task_name,
         config_filename = config_filename,
-        selected_analysis_options = terminal_args,
+        selected_analysis_options = selected_analysis_options,
         obj = obj,
         additional_possible_iterables = additional_possible_iterables
     )
