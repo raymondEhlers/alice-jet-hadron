@@ -959,12 +959,15 @@ class DeltaEtaNearSide(DeltaEtaObservable):
 class DeltaEtaAwaySide(DeltaEtaObservable):
     type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.away_side
 
-# This would be preferred it's somehow possible...
 _1d_correlations_histogram_information: Mapping[str, CorrelationObservable1D] = {
     "correlation_hists_delta_phi.signal_dominated": DeltaPhiSignalDominated(hist = None),
     "correlation_hists_delta_phi.background_dominated": DeltaPhiBackgroundDominated(hist = None),
+    "correlation_hists_delta_phi_subtracted.signal_dominated": DeltaPhiSignalDominated(hist = None),
+    "correlation_hists_delta_phi_subtracted.background_dominated": DeltaPhiBackgroundDominated(hist = None),
     "correlation_hists_delta_eta.near_side": DeltaEtaNearSide(hist = None),
     "correlation_hists_delta_eta.away_side": DeltaEtaAwaySide(hist = None),
+    "correlation_hists_delta_eta_subtracted.near_side": DeltaEtaNearSide(hist = None),
+    "correlation_hists_delta_eta_subtracted.away_side": DeltaEtaAwaySide(hist = None),
 }
 
 @dataclass
@@ -1040,17 +1043,32 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Apparently using dataclass replace to copy and modify a dataclass is preferred to
         # copying the class and changing a value. So we use the replace function.
         self.correlation_hists_2d: CorrelationHistograms2D = CorrelationHistograms2D(
-            raw = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.raw"], analysis_identifier = self.identifier),
-            mixed_event = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.mixed_event"], analysis_identifier = self.identifier),
-            signal = dataclasses.replace(_2d_correlations_histogram_information["correlation_hists_2d.signal"], analysis_identifier = self.identifier),
+            raw = dataclasses.replace(
+                _2d_correlations_histogram_information["correlation_hists_2d.raw"],
+                analysis_identifier = self.identifier
+            ),
+            mixed_event = dataclasses.replace(
+                _2d_correlations_histogram_information["correlation_hists_2d.mixed_event"],
+                analysis_identifier = self.identifier
+            ),
+            signal = dataclasses.replace(
+                _2d_correlations_histogram_information["correlation_hists_2d.signal"],
+                analysis_identifier = self.identifier
+            ),
         )
         self.correlation_hists_delta_phi: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(
             signal_dominated = dataclasses.replace(
-                cast(DeltaPhiSignalDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.signal_dominated"]),
+                cast(
+                    DeltaPhiSignalDominated,
+                    _1d_correlations_histogram_information["correlation_hists_delta_phi.signal_dominated"]
+                ),
                 analysis_identifier = self.identifier,
             ),
             background_dominated = dataclasses.replace(
-                cast(DeltaPhiBackgroundDominated, _1d_correlations_histogram_information["correlation_hists_delta_phi.background_dominated"]),
+                cast(
+                    DeltaPhiBackgroundDominated,
+                    _1d_correlations_histogram_information["correlation_hists_delta_phi.background_dominated"]
+                ),
                 analysis_identifier = self.identifier,
             ),
         )
@@ -1061,6 +1079,38 @@ class Correlations(analysis_objects.JetHReactionPlane):
             ),
             away_side = dataclasses.replace(
                 cast(DeltaEtaAwaySide, _1d_correlations_histogram_information["correlation_hists_delta_eta.away_side"]),
+                analysis_identifier = self.identifier,
+            ),
+        )
+        self.correlation_hists_delta_phi_subtracted: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(
+            signal_dominated = dataclasses.replace(
+                cast(
+                    DeltaPhiSignalDominated,
+                    _1d_correlations_histogram_information["correlation_hists_delta_phi_subtracted.signal_dominated"]
+                ),
+                analysis_identifier = self.identifier,
+            ),
+            background_dominated = dataclasses.replace(
+                cast(
+                    DeltaPhiBackgroundDominated,
+                    _1d_correlations_histogram_information["correlation_hists_delta_phi_subtracted.background_dominated"]
+                ),
+                analysis_identifier = self.identifier,
+            ),
+        )
+        self.correlation_hists_delta_eta_subtracted: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(
+            near_side = dataclasses.replace(
+                cast(
+                    DeltaEtaNearSide,
+                    _1d_correlations_histogram_information["correlation_hists_delta_eta_subtracted.near_side"]
+                ),
+                analysis_identifier = self.identifier,
+            ),
+            away_side = dataclasses.replace(
+                cast(
+                    DeltaEtaAwaySide,
+                    _1d_correlations_histogram_information["correlation_hists_delta_eta_subtracted.away_side"]
+                ),
                 analysis_identifier = self.identifier,
             ),
         )
@@ -1891,6 +1941,28 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Store that we've completed this step.
         self.ran_projections = True
 
+    def subtract_background_fit_function_from_signal_dominated(self) -> None:
+        """ Subtract the background function extract from a fit from the signal dominated hist.
+
+        Args:
+            None.
+        Returns:
+            None. The subtracted hist is stored.
+        """
+        # We want to subtract the signal dominated hist from the background function.
+        # We want to do the same thing regardless of wehther an object contributed to the signal
+        # dominated or background dominated portion of the fit.
+        signal_dominated = self.correlation_hists_delta_phi.signal_dominated
+        signal_dominated_hist = histogram.Histogram1D.from_existing_hist(signal_dominated.hist)
+        # Evaluate the hist and the fit at the same x locations.
+        x = signal_dominated_hist.x
+        fit_hist = histogram.Histogram1D(
+            bin_edges = signal_dominated_hist.bin_edges,
+            y = self.fit_object.evaluate_background(x),
+            errors_squared = self.fit_object.calculate_background_function_errors(x) ** 2,
+        )
+        self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist
+
     def extract_yields(self, yield_limit: float) -> None:
         """ Extract yields. """
         # TODO: Fill out the rest of this function
@@ -2138,15 +2210,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def subtract_fits(self) -> bool:
         """ Subtract the fits from the analysis histograms. """
-        with self._progress_manager.counter(total = len(self.fit_objects),
-                                            desc = "Reaction plane fitting:",
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Subtracting fit from signal dominated hists:",
                                             unit = "delta phi hists") as subtracting:
-            for ep_analyses in \
-                    analysis_config.iterate_with_selected_objects_in_order(
-                        analysis_objects = self.analyses,
-                        analysis_iterables = self.selected_iterables,
-                        selection = "reaction_plane_orientation",
-                    ):
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Subtract the background function from the signal dominated hist.
+                analysis.subtract_background_fit_function_from_signal_dominated()
+
                 # Update progress
                 subtracting.update()
 
@@ -2208,6 +2278,8 @@ def run_from_terminal():
     logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down pachyderm
     logging.getLogger("pachyderm").setLevel(logging.INFO)
+    # Quiet down reaction_plane_fit
+    logging.getLogger("reaction_plane_fit").setLevel(logging.INFO)
 
     # Turn off stats box
     ROOT.gStyle.SetOptStat(0)
