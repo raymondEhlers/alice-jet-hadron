@@ -16,15 +16,17 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even
 import os
 import re
 import seaborn as sns
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import histogram
 from pachyderm import yaml
 
-from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import base as plot_base
+
+if TYPE_CHECKING:
+    from jet_hadron.analysis import generic_tasks
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -207,7 +209,7 @@ class HistPlotter:
             logger.debug(f"Setting y limits of {self.y_limits}")
             ax.set_ylim(self.y_limits)
 
-    def _add_text_labels(self, ax: matplotlib.axes.Axes, obj: analysis_objects.JetHBase) -> None:
+    def _add_text_labels(self, ax: matplotlib.axes.Axes, obj: "generic_tasks.PlotTaskHists") -> None:
         """ Add text labels to a plot.
 
         Available properties include:
@@ -257,7 +259,7 @@ class HistPlotter:
                     fontsize = self.text_label.get("fontSize", 12.5),
                     transform = ax.transAxes)
 
-    def plot(self, obj: analysis_objects.JetHBase, output_name: str = "") -> None:
+    def plot(self, obj: "generic_tasks.PlotTaskHists", output_name: str = "") -> None:
         # Ensure that the output directory is available.
         path = os.path.join(obj.output_prefix, os.path.dirname(output_name))
         if not os.path.exists(path):

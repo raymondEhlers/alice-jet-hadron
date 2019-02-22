@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, cast, Dict, Sequence, Tuple, TYPE_CHECKING
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -26,9 +26,12 @@ from jet_hadron.plot import base as plot_base
 
 import ROOT
 
+if TYPE_CHECKING:
+    from jet_hadron.analysis import response_matrix
+
 logger = logging.getLogger(__name__)
 
-Analyses = Dict[Any, analysis_objects.JetHBase]
+Analyses = Dict[Any, "response_matrix.ResponseMatrix"]
 
 def plot_particle_level_spectra(ep_analyses: Analyses,
                                 output_info: analysis_objects.PlottingOutputWrapper,
@@ -345,7 +348,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Also save the plot as a c macro
     canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
-def plot_response_matrix_and_errors(obj: analysis_objects.JetHBase,
+def plot_response_matrix_and_errors(obj: "response_matrix.ResponseMatrixBase",
                                     plot_with_ROOT: bool = False) -> None:
     """ Plot the 2D response matrix and response matrix errors hists using ROOT.
 
@@ -498,7 +501,6 @@ def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, outpu
     canvas.SetLogz(True)
 
     # Plot the histogram
-    #logger.debug(f"Response matrix n jets: {response_matrix.Integral()}".format(response_matrix.Integral()))
     hist.SetTitle(name)
     hist.GetXaxis().SetTitle(labels.use_label_with_root(x_label))
     hist.GetYaxis().SetTitle(labels.use_label_with_root(y_label))
@@ -544,6 +546,8 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
     # The pt hard spectra doesn't have a reaction plane orientation, so add it to the title if the
     # attribute is available
     if hasattr(merged_analysis, "reaction_plane_orientation"):
+        # Help out mypy
+        merged_analysis = cast(analysis_objects.JetHReactionPlane, merged_analysis)
         plot_labels.title = plot_labels.title + f", {merged_analysis.reaction_plane_orientation.display_str()} reaction plane orientation"
 
     kwargs = {
