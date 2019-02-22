@@ -38,9 +38,9 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
         Selected analysis options with the determined leading hadron bias object.
     """
     override_options = generic_config.determine_override_options(
-        selected_options = tuple(selected_analysis_options),
+        selected_options = selected_analysis_options.astuple(),
         override_opts = config["leadingHadronBiasValues"],
-        set_of_possible_options = tuple(params.SetOfPossibleOptions),
+        set_of_possible_options = params.SetOfPossibleOptions.astuple(),
     )
     leading_hadron_bias_type = selected_analysis_options.leading_hadron_bias
     leading_hadron_bias_value = override_options["value"]
@@ -48,7 +48,7 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
     assert isinstance(leading_hadron_bias_type, params.LeadingHadronBiasType)
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
-    return_options = selected_analysis_options.asdict()
+    return_options = dict(selected_analysis_options)
     return_options["leading_hadron_bias"] = params.LeadingHadronBias(type = leading_hadron_bias_type,
                                                                      value = leading_hadron_bias_value)
     return params.SelectedAnalysisOptions(**return_options)
@@ -70,8 +70,8 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
         dict: The updated configuration
     """
     config = generic_config.override_options(
-        config, tuple(selected_options),
-        set_of_possible_options = tuple(params.SetOfPossibleOptions),
+        config, selected_options.astuple(),
+        set_of_possible_options = params.SetOfPossibleOptions.astuple(),
         config_containing_override = config_containing_override,
     )
     config = generic_config.simplify_data_representations(config)
@@ -263,7 +263,7 @@ def determine_formatting_options(task_name: str, config: generic_config.DictLike
     formatting_options["trainNumber"] = config.get("trainNumber", "trainNo")
 
     # We want to convert the enum values into strings for formatting. Performed with a dict comprehension.
-    formatting_options.update({k: str(v) for k, v in selected_analysis_options.asdict().items()})
+    formatting_options.update({k: str(v) for k, v in selected_analysis_options})
 
     return formatting_options
 
@@ -331,7 +331,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
     )
 
     # Determine formatting options
-    logger.debug(f"selected_analysis_options: {selected_analysis_options.asdict()}")
+    logger.debug(f"selected_analysis_options: {dict(selected_analysis_options)}")
     formatting_options = determine_formatting_options(
         task_name = task_name, config = config,
         selected_analysis_options = selected_analysis_options,
@@ -348,7 +348,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
     # NOTE: We don't want to update the formatting_options and then use that to update the args
     #       because otherwise we will have strings for the selected analysis options instead
     #       of the actual enumeration values.
-    args.update(selected_analysis_options.asdict())
+    args.update(dict(selected_analysis_options))
 
     # Iterate over the iterables defined above to create the objects.
     (KeyIndex, returned_iterables, objects) = generic_config.create_objects_from_iterables(

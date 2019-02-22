@@ -375,13 +375,13 @@ class SelectedAnalysisOptions:
     event_activity: EventActivity
     leading_hadron_bias: Union[LeadingHadronBias, LeadingHadronBiasType]
 
-    def asdict(self) -> Dict[str, Any]:
-        """ Dictionary of the selected analysis options. """
-        return {k: v for k, v in vars(self).items()}
+    def astuple(self) -> Tuple[Any, ...]:
+        """ Tuple of the selected analysis option values. """
+        return tuple(dict(self).values())
 
-    def __iter__(self) -> Iterator[Any]:
-        for v in vars(self).values():
-            yield v
+    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+        for k, v in vars(self).items():
+            yield k, v
 
 # For use with overriding configuration values
 SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore

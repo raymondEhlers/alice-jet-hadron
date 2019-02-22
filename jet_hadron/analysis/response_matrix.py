@@ -612,7 +612,7 @@ class ResponseManager(generic_class.EqualityMixin):
         self.task_config = self.config[self.task_name]
         self.output_info = analysis_objects.PlottingOutputWrapper(
             # Format to ensure that the selected analysis options are filled in.
-            output_prefix = self.config["outputPrefix"].format(**overridden_selected_analysis_options.asdict()),
+            output_prefix = self.config["outputPrefix"].format(**dict(overridden_selected_analysis_options)),
             printing_extensions = self.config["printingExtensions"],
         )
 

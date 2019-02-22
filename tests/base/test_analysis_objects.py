@@ -83,7 +83,7 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
 
     # We need values to compare against. However, namedtuples are immutable,
     # so we have to create a new one with the proper value.
-    temp_selected_options = selected_analysis_options.asdict()
+    temp_selected_options = dict(selected_analysis_options)
     temp_selected_options["leading_hadron_bias"] = leading_hadron_bias
     selected_analysis_options = params.SelectedAnalysisOptions(**temp_selected_options)
     # Only need for the case of LeadingHadronBiasType!

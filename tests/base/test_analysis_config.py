@@ -55,11 +55,11 @@ def test_determine_leading_hadron_bias(logging_mixin, bias_type, event_activity,
     if bias_type:
         # Both options will lead here. Doing this with "track" doesn't change the values, but
         # also doesn't hurt anything, so it's fine.
-        kwargs = selected_analysis_options.asdict()
+        kwargs = dict(selected_analysis_options)
         kwargs["leading_hadron_bias"] = params.LeadingHadronBiasType[bias_type]
         selected_analysis_options = params.SelectedAnalysisOptions(**kwargs)
     if event_activity:
-        kwargs = selected_analysis_options.asdict()
+        kwargs = dict(selected_analysis_options)
         kwargs["event_activity"] = params.EventActivity[event_activity]
         selected_analysis_options = params.SelectedAnalysisOptions(**kwargs)
 

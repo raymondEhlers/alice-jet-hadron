@@ -48,7 +48,7 @@ def check_JetHBase_object():
             "train_number": 1234,
         }
         # Add these afterwards so we don't have to do each value by hand.
-        default_values.update(selected_analysis_options.asdict())
+        default_values.update(dict(selected_analysis_options))
         # We need to modify the name from "leading_hadron_bias" -> "_leading_hadron_bias"
         default_values["_leading_hadron_bias"] = selected_analysis_options.leading_hadron_bias
         default_values["_leading_hadron_bias_type"] = selected_analysis_options.leading_hadron_bias.type
