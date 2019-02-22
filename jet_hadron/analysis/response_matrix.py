@@ -608,11 +608,16 @@ class ResponseManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options
         )
+        # Determine the formatting options needed for the output prefix
+        formatting_options = analysis_config.determine_formatting_options(
+            task_name = self.task_name, config = self.config,
+            selected_analysis_options = overridden_selected_analysis_options
+        )
         # Additional helper variables
         self.task_config = self.config[self.task_name]
         self.output_info = analysis_objects.PlottingOutputWrapper(
             # Format to ensure that the selected analysis options are filled in.
-            output_prefix = self.config["outputPrefix"].format(**dict(overridden_selected_analysis_options)),
+            output_prefix = self.config["outputPrefix"].format(**formatting_options),
             printing_extensions = self.config["printingExtensions"],
         )
 
