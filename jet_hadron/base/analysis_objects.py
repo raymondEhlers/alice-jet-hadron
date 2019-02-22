@@ -282,7 +282,7 @@ class JetHReactionPlane(JetHBinnedAnalysis):
         if input_hists is None:
             temp_input_hists = histogram.get_histograms_in_list(
                 filename = self.input_filename,
-                input_list = self.input_list_name
+                list_name = self.input_list_name
             )
         else:
             try:

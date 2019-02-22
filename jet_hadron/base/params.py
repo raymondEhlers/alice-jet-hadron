@@ -7,7 +7,6 @@ Also contains methods to access that information.
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-import dataclasses
 from dataclasses import dataclass
 import enum
 import logging
@@ -377,13 +376,8 @@ class SelectedAnalysisOptions:
     leading_hadron_bias: Union[LeadingHadronBias, LeadingHadronBiasType]
 
     def asdict(self) -> Dict[str, Any]:
-        """ Returns a dictionary of the selected analysis options.
-
-        Note:
-            For an unclear reason, this appears to depends on the recursive nature
-            of ``asdict(...)`` to convert the leading hadron bias.
-        """
-        return dataclasses.asdict(self)
+        """ Dictionary of the selected analysis options. """
+        return {k: v for k, v in vars(self).items()}
 
     def __iter__(self) -> Iterator[Any]:
         for v in vars(self).values():

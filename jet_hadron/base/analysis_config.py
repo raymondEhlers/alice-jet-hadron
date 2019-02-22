@@ -38,15 +38,19 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
         Selected analysis options with the determined leading hadron bias object.
     """
     override_options = generic_config.determine_override_options(
-        selected_options = selected_analysis_options,
+        selected_options = tuple(selected_analysis_options),
         override_opts = config["leadingHadronBiasValues"],
-        set_of_possible_options = params.SetOfPossibleOptions
+        set_of_possible_options = tuple(params.SetOfPossibleOptions),
     )
+    leading_hadron_bias_type = selected_analysis_options.leading_hadron_bias
     leading_hadron_bias_value = override_options["value"]
+    # Help out mypy
+    assert isinstance(leading_hadron_bias_type, params.LeadingHadronBiasType)
 
     # Namedtuple is immutable, so we need to return a new one with the proper parameters
     return_options = selected_analysis_options.asdict()
-    return_options["leading_hadron_bias"] = params.LeadingHadronBias(type = selected_analysis_options.leading_hadron_bias, value = leading_hadron_bias_value)
+    return_options["leading_hadron_bias"] = params.LeadingHadronBias(type = leading_hadron_bias_type,
+                                                                     value = leading_hadron_bias_value)
     return params.SelectedAnalysisOptions(**return_options)
 
 def override_options(config: generic_config.DictLike, selected_options: params.SelectedAnalysisOptions, config_containing_override: generic_config.DictLike = None) -> generic_config.DictLike:
@@ -66,9 +70,9 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
         dict: The updated configuration
     """
     config = generic_config.override_options(
-        config, selected_options,
-        set_of_possible_options = params.SetOfPossibleOptions,
-        config_containing_override = config_containing_override
+        config, tuple(selected_options),
+        set_of_possible_options = tuple(params.SetOfPossibleOptions),
+        config_containing_override = config_containing_override,
     )
     config = generic_config.simplify_data_representations(config)
 
