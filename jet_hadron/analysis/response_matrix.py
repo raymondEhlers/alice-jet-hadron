@@ -973,7 +973,6 @@ class ResponseManager(generic_class.EqualityMixin):
             # If we initialize the histograms from file then we won't have the pt hard spectra.
             # In that case, we just skip trying to plot them.
             if hasattr(merged_pt_hard_analysis, "pt_hard_spectra"):
-
                 for plot_with_ROOT in [False, True]:
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
@@ -995,7 +994,7 @@ class ResponseManager(generic_class.EqualityMixin):
             # Plot the particle level spectra.
             for plot_with_ROOT in [False, True]:
                 plot_response_matrix.plot_particle_level_spectra(
-                    ep_analyses = analysis_config.iterate_with_selected_objects(self.final_responses),
+                    ep_analyses_iter = analysis_config.iterate_with_selected_objects(self.final_responses),
                     output_info = self.output_info,
                     plot_with_ROOT = plot_with_ROOT,
                 )

@@ -22,7 +22,7 @@ from jet_hadron.base import params
 logger = logging.getLogger(__name__)
 
 # Typing
-ConstructedObjects = Tuple[Any, Mapping[Any, Any], Mapping[Any, Any]]
+ConstructedObjects = Tuple[Any, Dict[str, Any], Mapping[Any, Any]]
 
 def determine_leading_hadron_bias(config: generic_config.DictLike, selected_analysis_options: params.SelectedAnalysisOptions) -> params.SelectedAnalysisOptions:
     """ Determines the leading hadron bias based on the analysis options.

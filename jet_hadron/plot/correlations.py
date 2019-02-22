@@ -9,7 +9,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING
 
 from pachyderm import histogram
 
@@ -21,6 +21,9 @@ from jet_hadron.plot import highlight_RPF
 from jet_hadron.analysis import correlations_helpers
 
 import ROOT
+
+if TYPE_CHECKING:
+    from jet_hadron.anaylsis import correlations
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -110,7 +113,7 @@ def plot_2d_correlations(jet_hadron):
 
         canvas.Clear()
 
-def plot_1d_correlations(jet_hadron: analysis_objects.JetHBase, plot_with_ROOT: bool = False) -> None:
+def plot_1d_correlations(jet_hadron: "correlations.Correlations", plot_with_ROOT: bool = False) -> None:
     """ Plot the 1D correlations defined here. """
     signal_background_output_name = f"jetH_delta_phi_{jet_hadron.identifier}_signal_background_comparison"
     if plot_with_ROOT:
@@ -131,8 +134,8 @@ def _plot_all_1d_correlations_with_matplotlib(jet_hadron) -> None:
         We don't want to scale the histogram any further here because it's already been fully scaled!
     """
     fig, ax = plt.subplots()
-    for correlations in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
-        for _, observable in correlations:
+    for correlation_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
+        for _, observable in correlation_groups:
             # Draw the 1D histogram.
             h = histogram.Histogram1D.from_existing_hist(observable.hist)
             ax.errorbar(
@@ -155,21 +158,21 @@ def _plot_all_1d_correlations_with_matplotlib(jet_hadron) -> None:
     # Cleanup
     plt.close(fig)
 
-def _plot_all_1d_correlations_with_ROOT(jet_hadron: analysis_objects.JetHBase) -> None:
+def _plot_all_1d_correlations_with_ROOT(jet_hadron: "correlations.Correlations") -> None:
     """ Plot all 1D correlations in a very basic way with ROOT.
 
     Note:
         We don't want to scale the histogram any further here because it's already been fully scaled!
     """
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
-    for correlations in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
-        for _, observable in correlations:
+    for correlations_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
+        for _, observable in correlations_groups:
             # Draw the 1D histogram.
             observable.hist.Draw("")
             output_name = observable.hist.GetName() + "_ROOT"
             plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
-def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: analysis_objects.JetHBase, output_name: str) -> None:
+def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: "correlations.Correlations", output_name: str) -> None:
     """ Plot 1D signal and background hists on a single plot with matplotlib. """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
@@ -206,7 +209,7 @@ def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: analysis_objects.
     plot_base.save_plot(jet_hadron.output_info, fig, output_name)
     plt.close(fig)
 
-def _plot_1d_signal_and_background_with_ROOT(jet_hadron: analysis_objects.JetHBase, output_name: str) -> None:
+def _plot_1d_signal_and_background_with_ROOT(jet_hadron: "correlations.Correlations", output_name: str) -> None:
     """ Plot 1D signal and background hists on a single plot with ROOT. """
     # Setup
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
@@ -390,7 +393,7 @@ def define_highlight_regions():
 
     return highlight_regions
 
-def plot_RPF_fit_regions(jet_hadron: analysis_objects.JetHBase, filename: str) -> None:
+def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str) -> None:
     """ Plot showing highlighted RPF fit regions.
 
     Args:

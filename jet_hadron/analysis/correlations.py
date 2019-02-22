@@ -17,7 +17,7 @@ import os
 import numpy as np
 import pprint
 import sys
-from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
+from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 from pachyderm import generic_class
 from pachyderm import generic_config
@@ -1116,7 +1116,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
 
         # Fit object
-        self.fit_object: rpf.ReactionPlaneFit
+        self.fit_object: rpf.fit.FitComponent
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
@@ -2003,6 +2003,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         #    error = yield_error,
         #)
 
+    def extract_widths(self) -> None:
+        """ """
+        ...
+
     def extract_yields_and_widths(self) -> None:
         # Ensure that the previous step was run
         if not self.ran_post_fit_processing:
@@ -2016,7 +2020,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
             logger.info(f"Extracting yields with yield limit: {yield_limit}")
             self.extract_yields(yield_limit = yield_limit)
-            logger.info(f"AS yields: {self.yield_AS}")
+            #logger.info(f"AS yields: {self.yield_AS}")
 
             # Plot
             if self.processing_options["plotYields"]:
@@ -2032,7 +2036,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Extract widths
             logger.info("Extracting widths from the fits.")
             self.extract_widths()
-            logger.info(f"AS widths: {self.width_AS}")
+            #logger.info(f"AS widths: {self.width_AS}")
 
             # Plot
             if self.processing_options["plotWidths"]:
@@ -2073,6 +2077,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]
+        self.selected_iterables: Dict[str, Sequence[Any]]
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
         # Store the fits.
@@ -2138,7 +2143,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
                 inclusive_analysis: Correlations
                 # Setup the input data
-                input_hists: rpf.fit.Data = {
+                input_hists: rpf.fit.InputData = {
                     "signal": {},
                     "background": {},
                 }
@@ -2228,6 +2233,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 subtracting.update()
 
         return True
+
+    def extract_yields_and_widths(self) -> bool:
+        """ Extract yields and widths from the analysis objects. """
+        ...
 
     def run(self) -> bool:
         """ Run the analysis in the correlations manager. """

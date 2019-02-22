@@ -7,7 +7,7 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Iterator, Mapping, Tuple
 
 from pachyderm import histogram
 from pachyderm import projectors
@@ -99,7 +99,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         if input_hists is None:
             input_hists = histogram.get_histograms_in_list(
                 filename = self.input_filename,
-                input_list = self.input_list_name
+                list_name = self.input_list_name
             )
 
         # The name is different if we use the values after event selection.
@@ -253,7 +253,7 @@ def _get_hists_from_analysis_objects(analyses: Mapping[str, analysis_objects.Jet
         hists[key] = utils.recursive_getattr(analysis, hist_attribute_name)
     return hists
 
-def merge_pt_hard_binned_analyses(analyses: Mapping[Any, analysis_objects.JetHBase],
+def merge_pt_hard_binned_analyses(analyses: Iterator[Tuple[Any, analysis_objects.JetHBase]],
                                   hist_attribute_name,
                                   output_analysis_object) -> None:
     """ Merge together all scaled histograms.

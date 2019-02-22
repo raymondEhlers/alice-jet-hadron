@@ -12,7 +12,7 @@ import enum
 import logging
 import os
 import pprint  # noqa: F401
-from typing import Any, Dict, Iterator, List, Mapping, Tuple, Type, Union
+from typing import Any, Dict, Iterator, List, Mapping, Tuple, Type, TypeVar, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -361,7 +361,9 @@ class TaskManager(ABC, generic_class.EqualityMixin):
 
         return True
 
-def run_helper(manager_class: Type[TaskManager], description: str) -> TaskManager:
+_T = TypeVar("_T", bound = TaskManager)
+
+def run_helper(manager_class: Type[_T], description: str) -> _T:
     """ Helper function to execute most generic task plotting managers.
 
     It sets up the passed manager object and then calls ``run()``.

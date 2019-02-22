@@ -14,7 +14,7 @@ import matplotlib
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, List, Tuple
+from typing import Any, List, Tuple, TYPE_CHECKING
 
 from pachyderm import generic_config
 from pachyderm import histogram
@@ -25,6 +25,9 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
+
+if TYPE_CHECKING:
+    from jet_hadron.analysis import correlations
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -54,7 +57,7 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: List[Tuple[Any, reaction_plane_
     parameter_values_errors = np.zeros(len(fit_objects))
     for i, (key_index, fit_object) in enumerate(fit_objects):
         bin_centers[i] = (key_index.track_pt.max - key_index.track_pt.min) / 2.
-        parameter_values[i] = fit_object.fit_result.parameters[parameter.name]
+        parameter_values[i] = fit_object.fit_result.values_at_minimum[parameter.name]
         parameter_values_errors[i] = fit_object.fit_result.errors_on_parameters[parameter.name]
 
     # Plot the particular parameter.
@@ -206,7 +209,7 @@ def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str) -> None:
     )
 
 def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data,
-                inclusive_analysis: analysis_objects.JetHBase,
+                inclusive_analysis: "correlations.Correlations",
                 output_info: analysis_objects.PlottingOutputWrapper,
                 output_name: str) -> None:
     """ Basic plot of the reaction plane fit.

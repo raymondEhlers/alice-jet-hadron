@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, cast, Dict, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, cast, Dict, Iterator, Sequence, Tuple, TYPE_CHECKING
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 Analyses = Dict[Any, "response_matrix.ResponseMatrix"]
 
-def plot_particle_level_spectra(ep_analyses: Analyses,
+def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
                                 output_info: analysis_objects.PlottingOutputWrapper,
                                 plot_with_ROOT: bool = False) -> None:
     """ Plot the particle level spectra associated with the response.
@@ -47,7 +47,7 @@ def plot_particle_level_spectra(ep_analyses: Analyses,
     """
     # Pull out the dict because we need to grab individual analyses for some labeling information, which doesn't
     # play well with generators (the generator will be exhausted).
-    ep_analyses = dict(ep_analyses)
+    ep_analyses = dict(ep_analyses_iter)
 
     # Determine the general and plot labels
     # First, we need some variables to define the general labels, so we retrieve the inclusive analysis.
