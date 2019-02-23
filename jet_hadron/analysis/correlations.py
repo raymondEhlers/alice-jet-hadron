@@ -2074,6 +2074,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
             output_prefix = self.config["outputPrefix"].format(**formatting_options),
             printing_extensions = self.config["printingExtensions"],
         )
+        # For convenience since it is frequently accessed.
+        self.processing_options = self.task_config["processing_options"]
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]
@@ -2200,7 +2202,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
 
                 # Plot the result
-                if self.task_config["processing_options"]["plotRPFit"]:
+                if self.processing_options["plotRPFit"]:
                     plot_fit.plot_RP_fit(
                         rp_fit = fit_obj, data = fit_data,
                         inclusive_analysis = inclusive_analysis,
@@ -2211,7 +2213,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Update progress
                 fitting.update()
 
-        if self.task_config["processing_options"]["plotRPFit"]:
+        if self.processing_options["plotRPFit"]:
             # Fit parameters
             plot_fit.fit_parameters_vs_assoc_pt(
                 fit_objects = self.fit_objects,
@@ -2233,6 +2235,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                 # Subtract the background function from the signal dominated hist.
                 analysis.subtract_background_fit_function_from_signal_dominated()
+
+                if self.processing_options["plotSubtracted1DCorrelations"]:
+                    plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
 
                 # Update progress
                 subtracting.update()

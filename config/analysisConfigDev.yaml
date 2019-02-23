@@ -67,12 +67,12 @@ Correlations:
     yield_limit: 1.0
     processingOptions:
         # 2D
-        generate2DCorrelations: true
-        plot2DCorrelations: true
-        plotRPFHighlights: true
+        generate2DCorrelations: false
+        plot2DCorrelations: false
+        plotRPFHighlights: false
         # 1D
-        generate1DCorrelations: true
-        plot1DCorrelations: true
+        generate1DCorrelations: false
+        plot1DCorrelations: false
         plot1DCorrelationsWithROOT: false
         # Fit and subtract
         fit1DCorrelations: true
@@ -94,18 +94,21 @@ Correlations:
             trainNumber: 4358
         iterables:
             reaction_plane_orientation: true
-            track_pt_bin: *TrackPtBins11h
-            # NOTE: The individual binning is number from the bin 0.15 - 0.5 as bin 1.
-            #track_pt_bin:
-            #    - !TrackPtBin
-            #      bin: 4
-            #      range: !SelectedRange [1.5, 2.0]
-            #    - !TrackPtBin
-            #      bin: 5
-            #      range: !SelectedRange [2.0, 3.0]
-            #    - !TrackPtBin
-            #      bin: 8
-            #      range: !SelectedRange [5.0, 6.0]
+            #track_pt_bin: *TrackPtBins11h
+            # NOTE: The individual binning is numbered from the bin 0.15 - 0.5 as bin 1.
+            track_pt_bin:
+                #- !TrackPtBin
+                #  bin: 4
+                #  range: !SelectedRange [1.5, 2.0]
+                - !TrackPtBin
+                  bin: 5
+                  range: !SelectedRange [2.0, 3.0]
+                #- !TrackPtBin
+                #  bin: 7
+                #  range: !SelectedRange [4.0, 5.0]
+                #- !TrackPtBin
+                #  bin: 8
+                #  range: !SelectedRange [5.0, 6.0]
             jet_pt_bin:
                 - !JetPtBin
                   bin: 2
@@ -113,6 +116,7 @@ Correlations:
 CorrelationsManager:
     processing_options:
         plotRPFit: true
+        plotSubtracted1DCorrelations: true
     reaction_plane_fit:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
@@ -128,10 +132,14 @@ CorrelationsManager:
             #R82: *R42
         fit_params:
             jetPtBiased_20_40:
-                trackPt_5.0_6.0:
-                    #args:
-                    #    test_arg: test_arg
-                    use_log_likelihood: true
+                #trackPt_2.0_3.0:
+                #    use_log_likelihood: true
+                #trackPt_4.0_5.0:
+                #    use_log_likelihood: true
+                #trackPt_5.0_6.0:
+                #    #args:
+                #    #    test_arg: test_arg
+                #    use_log_likelihood: true
                 trackPt_6.0_10.0:
                     use_log_likelihood: true
     override:

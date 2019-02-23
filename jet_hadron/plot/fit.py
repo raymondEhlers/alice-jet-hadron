@@ -304,7 +304,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def signal_dominated_with_background_function(analysis: "correlations.Correlations"):
+def signal_dominated_with_background_function(analysis: "correlations.Correlations") -> None:
     """ Plot the signal dominated hist with the background function. """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
@@ -334,6 +334,36 @@ def signal_dominated_with_background_function(analysis: "correlations.Correlatio
     # Save plot and cleanup
     plot_base.save_plot(analysis.output_info, fig,
                         f"jetH_delta_phi_{analysis.identifier}_signal_background_function_comparison")
+    plt.close(fig)
+
+def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> None:
+    """ Plot the subtracted signal dominated hist. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    hists = analysis.correlation_hists_delta_phi_subtracted
+    h = hists.signal_dominated.hist
+
+    # Plot the subtracted hist
+    ax.errorbar(
+        h.x, h.y, yerr = h.errors,
+        label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
+    )
+
+    # Labels.
+    ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
+    ax.set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
+    jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
+    track_pt_label = labels.track_pt_range_string(analysis.track_pt)
+    ax.set_title(fr"Subtracted 1D ${hists.signal_dominated.axis.display_str()}$,"
+                 f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+                 f" {jet_pt_label}, {track_pt_label}")
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Save plot and cleanup
+    plot_base.save_plot(analysis.output_info, fig,
+                        f"jetH_delta_phi_{analysis.identifier}_subtracted")
     plt.close(fig)
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):
