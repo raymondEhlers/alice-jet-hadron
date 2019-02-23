@@ -2213,9 +2213,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         if self.task_config["processing_options"]["plotRPFit"]:
             plot_fit.fit_parameters_vs_assoc_pt(
-                # TODO: This iterator will be exhausted...
-                fit_objects = analysis_config.iterate_with_selected_objects(self.fit_objects),
+                fit_objects = self.fit_objects,
                 selected_analysis_options = self.selected_analysis_options,
+                output_info = self.output_info,
             )
 
         return True

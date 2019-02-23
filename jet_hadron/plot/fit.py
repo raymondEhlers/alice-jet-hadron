@@ -14,11 +14,12 @@ import matplotlib
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, List, Tuple, TYPE_CHECKING
+from typing import Any, Mapping, TYPE_CHECKING
 
 from pachyderm import generic_config
 from pachyderm import histogram
 
+import reaction_plane_fit as rpf
 import reaction_plane_fit.fit
 
 from jet_hadron.base import analysis_objects
@@ -31,6 +32,9 @@ if TYPE_CHECKING:
 
 # Setup logger
 logger = logging.getLogger(__name__)
+
+# Typing helpers
+FitObjects = Mapping[Any, rpf.fit.ReactionPlaneFit]
 
 @dataclass
 class ParameterInfo:
@@ -45,7 +49,7 @@ class ParameterInfo:
     output_name: str
     labels: plot_base.PlotLabels
 
-def _plot_fit_parameter_vs_assoc_pt(fit_objects: List[Tuple[Any, reaction_plane_fit.fit.ReactionPlaneFit]],
+def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
                                     parameter: ParameterInfo,
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Implementation to plot the fit parameters vs associated track pt.  """
@@ -55,8 +59,8 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: List[Tuple[Any, reaction_plane_
     bin_centers = np.zeros(len(fit_objects))
     parameter_values = np.zeros(len(fit_objects))
     parameter_values_errors = np.zeros(len(fit_objects))
-    for i, (key_index, fit_object) in enumerate(fit_objects):
-        bin_centers[i] = (key_index.track_pt.max - key_index.track_pt.min) / 2.
+    for i, (key_index, fit_object) in enumerate(fit_objects.items()):
+        bin_centers[i] = key_index.track_pt_bin.bin_center
         parameter_values[i] = fit_object.fit_result.values_at_minimum[parameter.name]
         parameter_values_errors[i] = fit_object.fit_result.errors_on_parameters[parameter.name]
 
@@ -74,42 +78,51 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: List[Tuple[Any, reaction_plane_
     plot_base.save_plot(output_info, fig, parameter.output_name)
     plt.close(fig)
 
-def fit_parameters_vs_assoc_pt(fit_objects, selected_analysis_options):
+def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
+                               selected_analysis_options: params.SelectedAnalysisOptions,
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the extracted fit parameters.
 
+    Args:
+        fit_objects: Fit objects whose parameters will be plotted.
+        selected_analysis_options: Selected analysis options to be used for labeling.
+        output_info: Output information.
     """
-    pt_assoc_label = f"{labels.track_pt_display_label()} ({labels.momentum_units_label_gev()})"
+    pt_assoc_label = labels.make_valid_latex_string(
+        f"{labels.track_pt_display_label()} ({labels.momentum_units_label_gev()})"
+    )
+    prefix = "fit_parameter"
     parameters = [
         # TODO: Add the rest of the parameters.
         ParameterInfo(
             name = "v2_t",
-            output_name = "",
-            labels = plot_base.PlotLabels(title = r"Jet $v_{2}$", x_axis = pt_assoc_label),
+            output_name = f"{prefix}_v2t",
+            labels = plot_base.PlotLabels(title = r"Jet $v_{2}$", x_label = pt_assoc_label),
         ),
         ParameterInfo(
             name = "v2_a",
-            output_name = "",
-            labels = plot_base.PlotLabels(title = r"Associated hadron $v_{2}$", x_axis = pt_assoc_label),
+            output_name = f"{prefix}_v2a",
+            labels = plot_base.PlotLabels(title = r"Associated hadron $v_{2}$", x_label = pt_assoc_label),
         ),
         ParameterInfo(
             name = "v3",
-            output_name = "",
-            labels = plot_base.PlotLabels(title = r"$v_{3}$", x_axis = pt_assoc_label),
+            output_name = f"{prefix}_v3",
+            labels = plot_base.PlotLabels(title = r"$v_{3}$", x_label = pt_assoc_label),
         ),
         ParameterInfo(
             name = "v4_t",
-            output_name = "",
-            labels = plot_base.PlotLabels(title = r"Jet $v_{4}$", x_axis = pt_assoc_label),
+            output_name = f"{prefix}_v4t",
+            labels = plot_base.PlotLabels(title = r"Jet $v_{4}$", x_label = pt_assoc_label),
         ),
         ParameterInfo(
             name = "v4_a",
-            output_name = "",
-            labels = plot_base.PlotLabels(title = r"Associated hadron $v_{4}$", x_axis = pt_assoc_label),
+            output_name = f"{prefix}_v4a",
+            labels = plot_base.PlotLabels(title = r"Associated hadron $v_{4}$", x_label = pt_assoc_label),
         ),
     ]
 
     for parameter in parameters:
-        pass
+        _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
 
 def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP fit components on a given set of axes.

@@ -347,6 +347,17 @@ class AnalysisBin(ABC):
         return self.range.max
 
     @property
+    def bin_width(self) -> float:
+        """ The bin width. """
+        return self.max - self.min
+
+    @property
+    def bin_center(self) -> float:
+        """ The bin center. """
+        # min + half of bin width
+        return self.min + (self.bin_width / 2.0)
+
+    @property
     def name(self) -> str:
         """ Convert class name into capital case. For example: 'JetPtBin' -> 'Jet Pt Bin'. """
         return re.sub("([a-z])([A-Z])", r"\1 \2", self.__class__.__name__)
