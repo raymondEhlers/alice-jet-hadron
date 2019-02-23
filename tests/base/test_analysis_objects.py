@@ -102,3 +102,16 @@ def test_JetHBase_object_construction(logging_mixin, leading_hadron_bias, object
     # Just to be safe
     mocker.stopall()
 
+def test_analysis_bin_properties(logging_mixin):
+    """ Test analysis bin properties.
+
+    Since AnalysisBin is an ABC, we test via ``TrackPtBin``.
+    """
+    track_pt = analysis_objects.TrackPtBin(range = params.SelectedRange(min = 3.0, max = 4.0), bin = 6)
+
+    assert track_pt.min == 3.0
+    assert track_pt.max == 4.0
+    assert track_pt.bin_width == 1.0
+    assert track_pt.bin_center == 3.5
+    assert track_pt.name == "Track Pt Bin"
+
