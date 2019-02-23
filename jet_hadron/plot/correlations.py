@@ -6,6 +6,7 @@
 """
 
 import logging
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -172,10 +173,13 @@ def _plot_all_1d_correlations_with_ROOT(jet_hadron: "correlations.Correlations")
             output_name = observable.hist.GetName() + "_ROOT"
             plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
-def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: "correlations.Correlations", output_name: str) -> None:
-    """ Plot 1D signal and background hists on a single plot with matplotlib. """
+def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotlib.axes.Axes,
+                                                                    jet_hadron: "correlations.Correlations") -> None:
+    """ Plot and label the signal and background dominated hists on the given axis.
+
+    This is a helper function so that we don't have to repat code when we need to plot these hists.
+    """
     # Setup
-    fig, ax = plt.subplots(figsize = (8, 6))
     hists = jet_hadron.correlation_hists_delta_phi
 
     h_signal = histogram.Histogram1D.from_existing_hist(hists.signal_dominated.hist)
@@ -198,7 +202,15 @@ def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: "correlations.Cor
                  f" {jet_hadron.reaction_plane_orientation.display_str()} event plane orient.,"
                  f" {jet_pt_label}, {track_pt_label}")
 
-    # Tweak presentation
+def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: "correlations.Correlations", output_name: str) -> None:
+    """ Plot 1D signal and background hists on a single plot with matplotlib. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Perform the actual plot
+    plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax = ax, jet_hadron = jet_hadron)
+
+    # Labeling
     ax.legend(loc = "upper right")
 
     # Final adjustments

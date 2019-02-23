@@ -26,6 +26,7 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
+from jet_hadron.plot import correlations as plot_correlations
 
 if TYPE_CHECKING:
     from jet_hadron.analysis import correlations
@@ -301,6 +302,38 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
     fig.subplots_adjust(hspace = 0, wspace = 0)
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
+def signal_dominated_with_background_function(analysis: "correlations.Correlations"):
+    """ Plot the signal dominated hist with the background function. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot signal and background dominated hists
+    plot_correlations.plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax = ax, jet_hadron = analysis)
+
+    # Plot background function
+    # First we retrieve the signal dominated histogram to get reference x values and bin edges.
+    h = histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.signal_dominated.hist)
+    background = histogram.Histogram1D(
+        bin_edges = h.bin_edges,
+        y = analysis.fit_object.evaluate_background(h.x),
+        errors_squared = analysis.fit_object.calculate_background_function_errors(h.x) ** 2,
+    )
+    background_plot = ax.plot(background.x, background.y, label = "Background function")
+    ax.fill_between(
+        background.x, background.y - background.errors, background.y + background.errors,
+        facecolor = background_plot[0].get_color(), alpha = 0.9,
+    )
+
+    # Labeling
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Save plot and cleanup
+    plot_base.save_plot(analysis.output_info, fig,
+                        f"jetH_delta_phi_{analysis.identifier}_signal_background_function_comparison")
     plt.close(fig)
 
 def plotMinuitQA(epFitObj, fitObj, fitsDict, minuit, jetPtBin, trackPtBin):

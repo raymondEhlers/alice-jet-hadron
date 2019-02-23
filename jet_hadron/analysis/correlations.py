@@ -2212,11 +2212,16 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 fitting.update()
 
         if self.task_config["processing_options"]["plotRPFit"]:
+            # Fit parameters
             plot_fit.fit_parameters_vs_assoc_pt(
                 fit_objects = self.fit_objects,
                 selected_analysis_options = self.selected_analysis_options,
                 output_info = self.output_info,
             )
+
+            # Signal dominated with background function
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                plot_fit.signal_dominated_with_background_function(analysis)
 
         return True
 
