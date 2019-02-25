@@ -1,8 +1,8 @@
 ---
-# Used to override the standard 12a15e configuration
+# Used to override the standard embedding LHC11h configuration
 internalEventSelection:
+    centralityRange: [30, 50]
     physicsSelection:
         - "kAnyINT"
-        - "kCentral"
         - "KSemiCentral"
         - "kEMCEGA"  # For the GA trigger in Joel's analysis
