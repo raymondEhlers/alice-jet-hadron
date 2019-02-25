@@ -1,0 +1,46 @@
+---
+name: "Configuration options for Jet-H Performance task for embedding MC"
+recycleUnusedEmbeddedEventsMode: true
+enable:
+    QAHists: true
+    responseMatrix: true
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: "LHC11h"
+    centralityRange: [0, 10]
+general:
+    nCentBins: 5
+# Jet collections
+jets:
+    R: &R 0.2
+    leadingHadronBiasType: &leadingHadronType kNeutral
+    hybridLevelJets:
+        collection: "hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme"
+        acceptance: "EMCALfid"
+        R: *R
+    detLevelJets:
+        collection: "detLevelJets_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme"
+        acceptance: "EMCALfid"
+        R: *R
+    partLevelJets:
+        collection: "partLevelJets_AKTFullR020_mcparticles_pT3000_pt_scheme"
+        acceptance: "TPCfid"
+        R: *R
+# Configure response matrix
+responseMatrix:
+    minFractionSharedPt: 0.5
+    useThreeJetCollections: true
+    axes:
+        # Define the dimnesions that we are interested in
+        # Format is ["name", [nBins, min, max]]
+        - ["p_{T,1}", [250, 0, 250]]
+        - ["p_{T,2}", [250, 0, 250]]
+        - ["A_{jet,1}", [60, 0, 1.5]]
+        - ["A_{jet,2}", [60, 0, 1.5]]
+        - ["distance", [40, 0, 0.4]]
+        - ["p_{T,particle,1}^{leading} (GeV/c)", [100, 0, 100]]
+        - ["p_{T,particle,2}^{leading} (GeV/c)", [100, 0, 100]]
+        - ["#theta_{jet,1}^{EP}", [3, 0, 1.570796]]  # max = pi/2
+        - ["#theta_{jet,2}^{EP}", [3, 0, 1.570796]]  # max = pi/2
+        - ["centrality", [10, 0, 100]]

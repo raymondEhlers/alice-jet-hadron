@@ -1,0 +1,16 @@
+---
+name: "Embedding configuration for LHC11a_pass4_AOD - 2.76 TeV pp"
+# The run list is from the Jets_EMC_pp lego train
+# It includes 146859 and 146860 beyond the GA_pp runlist.
+#runlist: [146860, 146859, 146858, 146856, 146824, 146817, 146807,
+#          146806, 146805, 146804, 146803, 146802, 146801, 146748, 146747, 146746]
+# From GA_pp - EMCal GOOD
+runlist: [146746, 146747, 146748, 146801, 146802, 146803, 146804,
+          146805, 146806, 146807, 146817, 146824, 146856, 146858]
+
+internalEventSelection:
+    enabled: true
+    centralityRange: [0, 10]
+    physicsSelection:
+        - "kAnyINT"
+        - "kCentral"

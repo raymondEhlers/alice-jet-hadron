@@ -1,0 +1,8 @@
+---
+# Used to override the standard 12a15e configuration
+internalEventSelection:
+    physicsSelection:
+        - "kAnyINT"
+        - "kCentral"
+        - "KSemiCentral"
+        - "kEMCEGA"  # For the GA trigger in Joel's analysis

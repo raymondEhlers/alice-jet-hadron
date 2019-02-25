@@ -1,0 +1,206 @@
+---
+configurationName: "EMCal embedding corrections configuration for data"
+pass: ""
+recycleUnusedEmbeddedEventsMode: true
+sharedParameters:
+    # Need to determine what we actually want to share
+    #cellBranchName: "emcalCellsNew"
+    #cellBranchName: "EMCALCellsNew"
+    #clusterBranchName: "caloClustersNew"
+    #trackBranchName: "tracksNew"
+    cellBranchName: "usedefault"
+    clusterBranchName: "usedefault"
+    clusterCombinedBranchName: "caloClustersCombined"
+    trackBranchName: "usedefault"
+inputObjects:
+    cells:
+        cells:
+            branchName: "sharedParameters:cellBranchName"
+        cells_embed:
+            branchName: "sharedParameters:cellBranchName"
+            embedding: true
+        cells_combined:
+            branchName: "emcalCellsCombined"
+    clusterContainers:
+        baseClusterContainer:
+            # Sets the branch name
+            branchName: "sharedParameters:clusterBranchName"
+            # Takes all default cuts!
+        baseClusterContainer_embed:
+            embedding: true
+        baseClusterContainer_combined:
+            branchName: "sharedParameters:clusterCombinedBranchName"
+        # Used after clusterizer
+        baseClusterContainer1:
+            # Sets the branch name
+            branchName: "sharedParameters:clusterBranchName"
+            minE: 0.0                        # Formerly clusterEMin
+            minPt: 0.0                       # Formerly clusterPtMin
+        baseClusterContainer1_embed:
+            embedding: true
+        baseClusterContainer1_combined:
+            # Sets the branch name
+            branchName: "sharedParameters:clusterCombinedBranchName"
+        # Used for cluster-track matcher and after
+        baseClusterContainer2:
+            # Sets the branch name
+            branchName: "sharedParameters:clusterBranchName"
+            minE: 0.0                        # Formerly clusterEMin
+            minPt: 0.0                       # Formerly clusterPtMin
+            clusNonLinCorrEnergyCut: 0.15    # Formerly "minPt" and then clusterNonLinCorrEnergyMin
+        baseClusterContainer2_embed:
+            embedding: true
+        baseClusterContainer2_combined:
+            branchName: "sharedParameters:clusterCombinedBranchName"
+    trackContainers:
+        trackContainerName:
+            # Sets the branch name
+            branchName: "sharedParameters:trackBranchName"
+            minPt: 0.15                    # formerly "minPt"
+            trackFilterType: kHybridTracks
+        trackContainerName_embed:
+            embedding: true
+            # The track cuts are different for LHC11a vs LHC11h
+            trackCutsPeriod: "lhc11a"
+# Cell energy
+CellEnergy:
+    createHistos: true
+# _data is equivalent to the base correction, but I am making it explicit for clarity
+CellEnergy_data:
+    enabled: true
+    cellsNames:
+        - cells
+CellEnergy_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+
+# Cell bad channel
+CellBadChannel:
+    createHistos: true
+CellBadChannel_data:
+    enabled: true
+    cellsNames:
+        - cells
+CellBadChannel_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+
+# Cell Time Calib
+CellTimeCalib:
+    createHistos: true
+CellTimeCalib_data:
+    enabled: true
+    cellsNames:
+        - cells
+CellTimeCalib_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+
+# Combine cells together
+CellCombineCollections_combined:
+    enabled: true
+    verifyCombinedCells: true
+    cellsNames:
+        - cells
+
+# Clusterizer
+Clusterizer:
+    createHistos: true
+Clusterizer_embed:
+    enabled: true
+    cellTimeMin: -200e-9
+    cellTimeMax: 200e-9
+    cellsNames:
+        - cells_embed
+    clusterContainersNames:
+        - baseClusterContainer_embed
+Clusterizer_combined:
+    enabled: true
+    cellTimeMin: -200e-9
+    cellTimeMax: 200e-9
+    cellsNames:
+        - cells_combined
+    # By selecting the cluster container here, we set where it will be output
+    clusterContainersNames:
+        - baseClusterContainer_combined
+
+# Exotics
+ClusterExotics:
+    createHistos: true
+ClusterExotics_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+    clusterContainersNames:
+        - baseClusterContainer1_embed
+ClusterExotics_combined:
+    enabled: true
+    cellsNames:
+        - cells_combined
+    clusterContainersNames:
+        - baseClusterContainer1_combined
+
+# Non-linearity
+ClusterNonLinearity:
+    createHistos: true
+ClusterNonLinearity_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+    clusterContainersNames:
+        - baseClusterContainer1_embed
+ClusterNonLinearity_combined:
+    enabled: true
+    cellsNames:
+        - cells_combined
+    clusterContainersNames:
+        - baseClusterContainer1_combined
+
+# Cluster-track matcher
+ClusterTrackMatcher:
+    createHistos: true
+    useDCA: false
+    usePIDmass: false
+ClusterTrackMatcher_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+    clusterContainersNames:
+        - baseClusterContainer2_embed
+    trackContainersNames:
+        - trackContainerName_embed
+ClusterTrackMatcher_combined:
+    enabled: true
+    cellsNames:
+        - cells_combined
+    clusterContainersNames:
+        - baseClusterContainer2_combined
+    trackContainersNames:
+        - trackContainerName
+        - trackContainerName_embed
+
+# Hadronic correction
+ClusterHadronicCorrection:
+    createHistos: true
+ClusterHadronicCorrection_embed:
+    enabled: true
+    cellsNames:
+        - cells_embed
+    clusterContainersNames:
+        - baseClusterContainer2_embed
+    trackContainersNames:
+        - trackContainerName_embed
+ClusterHadronicCorrection_combined:
+    enabled: true
+    # This may not work due to the MC energy fraction not being enabled
+    plotOversubtractionHistograms: true
+    cellsNames:
+        - cells_combined
+    clusterContainersNames:
+        - baseClusterContainer2_combined
+    trackContainersNames:
+        - trackContainerName
+        - trackContainerName_embed

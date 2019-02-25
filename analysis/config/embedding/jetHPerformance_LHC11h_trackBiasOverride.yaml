@@ -1,0 +1,6 @@
+---
+# This overrides the main embedding pp data configuration
+name: "Configuration options for Jet-H Performance task for embedding pp data with a track bias"
+# Jet collections
+jets:
+    leadingHadronBiasType: &leadingHadronType kCharged
