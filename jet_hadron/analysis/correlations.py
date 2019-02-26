@@ -841,7 +841,7 @@ class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
         This class inherits from the base class just to add the possibility of disabling the
         task based on the configuration.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # Only run if it's enabled.
         self.enabled = self.task_config["enabled"]
