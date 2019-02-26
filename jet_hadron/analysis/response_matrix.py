@@ -1137,7 +1137,7 @@ def run_from_terminal():
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
         task_name = "Response matrix"
     )
-    selected_analysis_options = analysis_config.validate_arguments(selected_args = terminal_args)
+    selected_analysis_options, _ = analysis_config.validate_arguments(selected_args = terminal_args)
     analysis_manager = ResponseManager(
         config_filename = config_filename,
         selected_analysis_options = selected_analysis_options,
