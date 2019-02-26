@@ -1,6 +1,7 @@
 ---
 name: "Embedding configuration for semi-central response matrix using LHC12a15e_fix - 2.76 TeV PYTHIA"
 internalEventSelection:
+    enabled: true
     centralityRange: [30, 50]
     physicsSelection:
         - "kAnyINT"
