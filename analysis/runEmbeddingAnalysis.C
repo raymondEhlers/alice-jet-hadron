@@ -56,7 +56,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     const char   *cDataType       = "AOD",                                   // set the analysis type, AOD or ESD
     const char   *cRunPeriod      = "LHC11h",                                // set the run period
     const char   *cEmbedRunPeriod = "LHC12a15e",                             // set the embedded run period
-    const char   *cLocalFiles     = "aodFiles.txt",                          // set the local list file
+    const char   *cLocalFiles     = "",                                      // set the local list file
     const UInt_t  iNumEvents      = 1000,                                    // number of events to be analyzed
     const UInt_t  kPhysSel        = AliVEvent::kEMCEGA | AliVEvent::kMB |
                     AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // Physics selection
@@ -117,11 +117,12 @@ AliAnalysisManager* runEmbeddingAnalysis(
 
   Printf("%s analysis chosen.", cDataType);
 
-  // Return the run period to it's original capitalization.
-  // It is expected to be following the form of "LHC15o".
-  runPeriod = cRunPeriod;
-
   TString sLocalFiles(cLocalFiles);
+  if (sLocalFiles == "") {
+    // File list is of the name period, with ".txt" appended
+    sLocalFiles = runPeriod;
+    sLocalFiles += ".txt";
+  }
   if (iStartAnalysis == 1) {
     if (sLocalFiles == "") {
       Printf("You need to provide the list of local files!");
@@ -129,6 +130,12 @@ AliAnalysisManager* runEmbeddingAnalysis(
     }
     Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, sLocalFiles.Data(), iNumEvents);
   }
+
+  // Return the run period to it's original capitalization.
+  // It is expected to be following the form of "LHC15o".
+  // We wait until after specifying the input file list because it is traditionally
+  // in all lowercase.
+  runPeriod = cRunPeriod;
 
   // Load macros needed for the analysis
   #ifndef __CLING__
@@ -287,6 +294,9 @@ AliAnalysisManager* runEmbeddingAnalysis(
     embeddingHelperConfig += "_" + embedRunPeriod;
     embeddingHelperConfig += ".yaml";
     embeddingHelper->SetConfigurationPath(embeddingHelperConfig.c_str());
+    std::string fileListFilename = embedRunPeriod;
+    fileListFilename += ".txt";
+    embeddingHelper->SetFileListFilename(fileListFilename.c_str());
     if (embedRealData) {
       embeddingHelper->SetTriggerMask(AliVEvent::kEMC1 | AliVEvent::kAnyINT);
       if (testEmbeddingRunList) {
@@ -294,7 +304,6 @@ AliAnalysisManager* runEmbeddingAnalysis(
         embeddingHelper->SetInputFilename("*/ESDs/pass4_with_SDD/AOD113/*/AliAOD.root");
       }
       else {
-        embeddingHelper->SetFileListFilename("aodFilesEmbedData.txt");
         // Observed to give some results with 1000 PbPb events.
         embeddingHelper->SetStartingFileIndex(2);
         embeddingHelper->SetRandomFileAccess(kFALSE);
@@ -306,7 +315,6 @@ AliAnalysisManager* runEmbeddingAnalysis(
       //       equivalent to not applying any event selection. Since we intended not to
       //       apply any event selection, these gave the same outcome.
       embeddingHelper->SetTriggerMask(0);
-      embeddingHelper->SetFileListFilename("aodFilesEmbed.txt");
       embeddingHelper->SetRandomFileAccess(kFALSE);
       //embeddingHelper->SetFileListFilename("tempFiles.txt");
       //embeddingHelper->SetFileListFilename("aodFilesPtHard5.txt");

@@ -59,7 +59,7 @@ AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir,
 AliAnalysisManager* runJetHAnalysis(
     const char   *cDataType      = "AOD",                                   // set the analysis type, AOD or ESD
     const char   *cRunPeriod     = "LHC15o",                                // set the run period
-    const char   *cLocalFiles    = "aodFiles.txt",                          // set the local list file
+    const char   *cLocalFiles    = "",                                      // set the local list file
     const UInt_t  iNumEvents     = 1000,                                    // number of events to be analyzed
     const UInt_t  kPhysSel       = AliVEvent::kAnyINT,
                    //AliVEvent::kEMC1 | AliVEvent::kAnyINT,
@@ -132,11 +132,12 @@ AliAnalysisManager* runJetHAnalysis(
 
   Printf("%s analysis chosen.", cDataType);
 
-  // Return the run period to it's original capitalization.
-  // It is expected to be following the form of "LHC15o".
-  runPeriod = cRunPeriod;
-
   TString sLocalFiles(cLocalFiles);
+  if (sLocalFiles == "") {
+    // File list is of the name period, with ".txt" appended
+    sLocalFiles = runPeriod;
+    sLocalFiles += ".txt";
+  }
   if (iStartAnalysis == 1) {
     if (sLocalFiles == "") {
       Printf("You need to provide the list of local files!");
@@ -144,6 +145,12 @@ AliAnalysisManager* runJetHAnalysis(
     }
     Printf("Setting local analysis for %d files from list %s, max events = %d", iNumFiles, sLocalFiles.Data(), iNumEvents);
   }
+
+  // Return the run period to it's original capitalization.
+  // It is expected to be following the form of "LHC15o".
+  // We wait until after specifying the input file list because it is traditionally
+  // in all lowercase.
+  runPeriod = cRunPeriod;
 
   // Load macros needed for the analysis
   #ifndef __CLING__
