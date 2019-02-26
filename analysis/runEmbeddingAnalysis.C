@@ -71,22 +71,23 @@ AliAnalysisManager* runEmbeddingAnalysis(
 {
   // Setup period
   TString runPeriod(cRunPeriod);
-  runPeriod.ToUpper();
+  runPeriod.ToLower();
 
   // Set Run 2
   Bool_t bIsRun2 = kFALSE;
-  if (runPeriod.Length() == 6 && (runPeriod.BeginsWith("LHC15")
-      || runPeriod.BeginsWith("LHC16")
-      || runPeriod.BeginsWith("LHC17")
-      || runPeriod.BeginsWith("LHC18"))) bIsRun2 = kTRUE;
+  if (runPeriod.Length() == 6 && (runPeriod.BeginsWith("lhc15")
+      || runPeriod.BeginsWith("lhc16")
+      || runPeriod.BeginsWith("lhc17")
+      || runPeriod.BeginsWith("lhc18"))) bIsRun2 = kTRUE;
 
   // Set beam type
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
-  if (runPeriod == "LHC10h" || runPeriod == "LHC11h" || runPeriod == "LHC15o") {
+  if (runPeriod == "lhc10h" || runPeriod == "lhc11h" || runPeriod == "lhc15o") {
     iBeamType = AliAnalysisTaskEmcal::kAA;
   }
-  else if (runPeriod == "LHC12g" || runPeriod == "LHC13b" || runPeriod == "LHC13c" ||
-      runPeriod == "LHC13d" || runPeriod == "LHC13e" || runPeriod == "LHC13f") {
+  else if (runPeriod == "lhc12g" || runPeriod == "lhc13b" || runPeriod == "lhc13c" ||
+      runPeriod == "lhc13d" || runPeriod == "lhc13e" || runPeriod == "lhc13f" ||
+      runPeriod == "LHC16q" || runPeriod == "LHC16r" || runPeriod == "LHC16s" || runPeriod == "LHC16t") {
     iBeamType = AliAnalysisTaskEmcal::kpA;
   }
 
@@ -95,7 +96,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   if (iBeamType != AliAnalysisTaskEmcal::kpp) kGhostArea = 0.005;
 
   // Setup track container
-  AliTrackContainer::SetDefTrackCutsPeriod(runPeriod.ToLower());
+  AliTrackContainer::SetDefTrackCutsPeriod(runPeriod);
   std::cout << "Default track cut period set to: " << AliTrackContainer::GetDefTrackCutsPeriod().Data() << "\n";
 
   // Set data file type
@@ -115,6 +116,10 @@ AliAnalysisManager* runEmbeddingAnalysis(
   }
 
   Printf("%s analysis chosen.", cDataType);
+
+  // Return the run period to it's original capitalization.
+  // It is expected to be following the form of "LHC15o".
+  runPeriod = cRunPeriod;
 
   TString sLocalFiles(cLocalFiles);
   if (iStartAnalysis == 1) {

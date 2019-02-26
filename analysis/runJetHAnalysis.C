@@ -75,21 +75,24 @@ AliAnalysisManager* runJetHAnalysis(
 )
 {
   // Setup period
-  TString sRunPeriod(cRunPeriod);
-  sRunPeriod.ToLower();
+  TString runPeriod(cRunPeriod);
+  runPeriod.ToLower();
 
   // Set Run 2
   Bool_t bIsRun2 = kFALSE;
-  if (sRunPeriod.Length() == 6 && (sRunPeriod.BeginsWith("lhc15") || sRunPeriod.BeginsWith("lhc16") || sRunPeriod.BeginsWith("lhc17"))) bIsRun2 = kTRUE;
+  if (runPeriod.Length() == 6 && (runPeriod.BeginsWith("lhc15")
+      || runPeriod.BeginsWith("lhc16")
+      || runPeriod.BeginsWith("lhc17")
+      || runPeriod.BeginsWith("lhc18"))) bIsRun2 = kTRUE;
 
   // Set beam type
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
-  if (sRunPeriod == "lhc10h" || sRunPeriod == "lhc11h" || sRunPeriod == "lhc15o") {
+  if (runPeriod == "lhc10h" || runPeriod == "lhc11h" || runPeriod == "lhc15o") {
     iBeamType = AliAnalysisTaskEmcal::kAA;
   }
-  else if (sRunPeriod == "lhc12g" || sRunPeriod == "lhc13b" || sRunPeriod == "lhc13c" ||
-      sRunPeriod == "lhc13d" || sRunPeriod == "lhc13e" || sRunPeriod == "lhc13f" ||
-      sRunPeriod == "lhc16q" || sRunPeriod == "lhc16r" || sRunPeriod == "lhc16s" || sRunPeriod == "lhc16t") {
+  else if (runPeriod == "lhc12g" || runPeriod == "lhc13b" || runPeriod == "lhc13c" ||
+      runPeriod == "lhc13d" || runPeriod == "lhc13e" || runPeriod == "lhc13f" ||
+      runPeriod == "LHC16q" || runPeriod == "LHC16r" || runPeriod == "LHC16s" || runPeriod == "LHC16t") {
     iBeamType = AliAnalysisTaskEmcal::kpA;
   }
 
@@ -98,7 +101,7 @@ AliAnalysisManager* runJetHAnalysis(
   if (iBeamType != AliAnalysisTaskEmcal::kpp) kGhostArea = 0.005;
 
   // Setup track container
-  AliTrackContainer::SetDefTrackCutsPeriod(sRunPeriod);
+  AliTrackContainer::SetDefTrackCutsPeriod(runPeriod);
   Printf("Default track cut period set to: %s", AliTrackContainer::GetDefTrackCutsPeriod().Data());
 
   // Configuration
@@ -128,6 +131,10 @@ AliAnalysisManager* runJetHAnalysis(
   }
 
   Printf("%s analysis chosen.", cDataType);
+
+  // Return the run period to it's original capitalization.
+  // It is expected to be following the form of "LHC15o".
+  runPeriod = cRunPeriod;
 
   TString sLocalFiles(cLocalFiles);
   if (iStartAnalysis == 1) {
@@ -259,7 +266,7 @@ AliAnalysisManager* runJetHAnalysis(
     mixedEventsSelection = AliVEvent::kAnyINT;
   }
   else {
-    if (sRunPeriod == "lhc11h") {
+    if (runPeriod == "LHC11h") {
       triggerEventsSelection = AliVEvent::kEMCEGA;
       mixedEventsSelection = AliVEvent::kAnyINT | AliVEvent::kCentral | AliVEvent::kSemiCentral;
     }
