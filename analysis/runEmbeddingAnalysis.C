@@ -59,7 +59,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     const char   *cLocalFiles     = "aodFiles.txt",                          // set the local list file
     const UInt_t  iNumEvents      = 1000,                                    // number of events to be analyzed
     const UInt_t  kPhysSel        = AliVEvent::kEMCEGA | AliVEvent::kMB |
-                    AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // physics selection
+                    AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // Physics selection
     const char   *cTaskName       = "EMCalEmbeddingAnalysis",                     // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
     // 1 = prepare the analysis manager and start the analysis
@@ -70,23 +70,23 @@ AliAnalysisManager* runEmbeddingAnalysis(
 )
 {
   // Setup period
-  TString sRunPeriod(cRunPeriod);
-  sRunPeriod.ToLower();
+  TString runPeriod(cRunPeriod);
+  runPeriod.ToUpper();
 
   // Set Run 2
   Bool_t bIsRun2 = kFALSE;
-  if (sRunPeriod.Length() == 6 && (sRunPeriod.BeginsWith("lhc15")
-      || sRunPeriod.BeginsWith("lhc16")
-      || sRunPeriod.BeginsWith("lhc17")
-      || sRunPeriod.BeginsWith("lhc18"))) bIsRun2 = kTRUE;
+  if (runPeriod.Length() == 6 && (runPeriod.BeginsWith("LHC15")
+      || runPeriod.BeginsWith("LHC16")
+      || runPeriod.BeginsWith("LHC17")
+      || runPeriod.BeginsWith("LHC18"))) bIsRun2 = kTRUE;
 
   // Set beam type
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
-  if (sRunPeriod == "lhc10h" || sRunPeriod == "lhc11h" || sRunPeriod == "lhc15o") {
+  if (runPeriod == "LHC10h" || runPeriod == "LHC11h" || runPeriod == "LHC15o") {
     iBeamType = AliAnalysisTaskEmcal::kAA;
   }
-  else if (sRunPeriod == "lhc12g" || sRunPeriod == "lhc13b" || sRunPeriod == "lhc13c" ||
-      sRunPeriod == "lhc13d" || sRunPeriod == "lhc13e" || sRunPeriod == "lhc13f") {
+  else if (runPeriod == "LHC12g" || runPeriod == "LHC13b" || runPeriod == "LHC13c" ||
+      runPeriod == "LHC13d" || runPeriod == "LHC13e" || runPeriod == "LHC13f") {
     iBeamType = AliAnalysisTaskEmcal::kpA;
   }
 
@@ -95,7 +95,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   if (iBeamType != AliAnalysisTaskEmcal::kpp) kGhostArea = 0.005;
 
   // Setup track container
-  AliTrackContainer::SetDefTrackCutsPeriod(sRunPeriod);
+  AliTrackContainer::SetDefTrackCutsPeriod(runPeriod.ToLower());
   std::cout << "Default track cut period set to: " << AliTrackContainer::GetDefTrackCutsPeriod().Data() << "\n";
 
   // Set data file type
@@ -278,7 +278,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     }
 
     std::string embeddingHelperConfig = configDirBasePath + "embeddingHelper";
-    embeddingHelperConfig += "_" + sRunPeriod;
+    embeddingHelperConfig += "_" + runPeriod;
     embeddingHelperConfig += "_" + embedRunPeriod;
     embeddingHelperConfig += ".yaml";
     embeddingHelper->SetConfigurationPath(embeddingHelperConfig.c_str());
@@ -356,7 +356,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     }
 
     std::string emcalCorrectionsConfig = configDirBasePath + "emcalCorrections";
-    emcalCorrectionsConfig += "_" + sRunPeriod;
+    emcalCorrectionsConfig += "_" + runPeriod;
     emcalCorrectionsConfig += "_" + embedRunPeriod;
     emcalCorrectionsConfig += ".yaml";
     tempCorrectionTask->SetUserConfigurationFilename(emcalCorrectionsConfig);
@@ -901,7 +901,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   }
   jetH->SelectCollisionCandidates(kPhysSel);
   std::string jetHConfig = configDirBasePath + "jetHCorrelations";
-  jetHConfig += "_" + sRunPeriod;
+  jetHConfig += "_" + runPeriod;
   jetHConfig += ".yaml";
   jetH->AddConfigurationFile(jetHConfig, "config");
   jetH->Initialize();
@@ -919,7 +919,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   // Setup configuration
   // Base configuration that will be overridden.
   std::string jetHPerformanceConfigBase = configDirBasePath + "jetHPerformance";
-  jetHPerformanceConfigBase += "_" + sRunPeriod;
+  jetHPerformanceConfigBase += "_" + runPeriod;
   // Period specific configuration.
   std::string jetHPerformanceConfigPeriodSpecific = jetHPerformanceConfigBase;
   // Finalize base config name and set it.
