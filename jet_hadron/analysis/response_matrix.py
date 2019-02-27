@@ -411,6 +411,8 @@ class ResponseMatrix(ResponseMatrixBase):
 
     def _setup_projectors(self) -> None:
         """ Setup the sparse projectors. """
+        # NOTE: The names of the projected histograms defined here must match those set in the fields
+        #       defining the non-projected histograms.
         # Helper range
         full_axis_range = {
             "min_val": projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -440,193 +442,257 @@ class ResponseMatrix(ResponseMatrixBase):
         #################
         # Response matrix
         #################
-        # The response matrix axes are defined above so we can define a (semi-) shared reaction
-        # plane orientation projector axis.
-        response_matrix = ResponseMatrixProjector(
-            observable_to_project_from = utils.recursive_getitem(
-                self.input_hists,
-                self.task_config["response"]["input_name"],
-            ),
-            output_observable = self,
-            output_attribute_name = "response_matrix",
-            projection_name_format = "responseMatrix",
-        )
-        response_matrix.additional_axis_cuts.append(
-            projectors.HistAxisRange(
-                axis_type = response_axes.det_level_leading_particle,
-                axis_range_name = "detLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
+        if self.task_config["response"]["sparse"]:
+            # The response matrix axes are defined above so we can define a (semi-) shared reaction
+            # plane orientation projector axis.
+            response_matrix = ResponseMatrixProjector(
+                observable_to_project_from = utils.recursive_getitem(
+                    self.input_hists,
+                    self.task_config["response"]["input_name"],
                 ),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.GetNbins
-                ),
+                output_observable = self,
+                output_attribute_name = "response_matrix",
+                projection_name_format = "responseMatrix",
             )
-        )
-        response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
+            response_matrix.additional_axis_cuts.append(
+                projectors.HistAxisRange(
+                    axis_type = response_axes.det_level_leading_particle,
+                    axis_range_name = "detLevelLeadingParticle",
+                    min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
+                    ),
+                    max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.GetNbins
+                    ),
+                )
+            )
+            response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
 
-        # No additional cuts for the projection dependent axes
-        response_matrix.projection_dependent_cut_axes.append([])
-        response_matrix.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = response_axes.det_level_jet_pt,
-                axis_range_name = "detLevelJetPt",
-                **full_axis_range
+            # No additional cuts for the projection dependent axes
+            response_matrix.projection_dependent_cut_axes.append([])
+            response_matrix.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = response_axes.det_level_jet_pt,
+                    axis_range_name = "detLevelJetPt",
+                    **full_axis_range
+                )
             )
-        )
-        response_matrix.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = response_axes.part_level_jet_pt,
-                axis_range_name = "partLevelJetPt",
-                **full_axis_range
+            response_matrix.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = response_axes.part_level_jet_pt,
+                    axis_range_name = "partLevelJetPt",
+                    **full_axis_range
+                )
             )
-        )
-        # Save the projector for later use
-        self.projectors.append(response_matrix)
+            # Save the projector for later use
+            self.projectors.append(response_matrix)
 
         #############################
         # Unmatched part level jet pt
         #############################
-        unmatched_part_level_axes = getattr(this_module, self.task_config["unmatched_part_level"]["enum_name"])
-        unmatched_part_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = utils.recursive_getitem(
-                self.input_hists,
-                self.task_config["unmatched_part_level"]["input_name"],
-            ),
-            output_observable = self.part_level_hists,
-            output_attribute_name = "unmatched_jet_spectra",
-            projection_name_format = "unmatchedJetSpectraPartLevel",
-        )
-        # Can't apply a leading cluster cut on part level, since we don't have clusters
-        unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
-        unmatched_part_level_jet_spectra.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = unmatched_part_level_axes.jet_pt,
-                axis_range_name = "unmatchedPartLevelJetSpectra",
-                **full_axis_range
+        if self.task_config["unmatched_part_level"]["sparse"]:
+            unmatched_part_level_axes = getattr(this_module, self.task_config["unmatched_part_level"]["enum_name"])
+            unmatched_part_level_jet_spectra = ResponseMatrixProjector(
+                observable_to_project_from = utils.recursive_getitem(
+                    self.input_hists,
+                    self.task_config["unmatched_part_level"]["input_name"],
+                ),
+                output_observable = self.part_level_hists,
+                output_attribute_name = "unmatched_jet_spectra",
+                projection_name_format = "unmatchedJetSpectraPartLevel",
             )
-        )
-        # Save the projector for later use
-        self.projectors.append(unmatched_part_level_jet_spectra)
+            # Can't apply a leading cluster cut on part level, since we don't have clusters
+            unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
+            unmatched_part_level_jet_spectra.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = unmatched_part_level_axes.jet_pt,
+                    axis_range_name = "unmatchedPartLevelJetSpectra",
+                    **full_axis_range
+                )
+            )
+            # Save the projector for later use
+            self.projectors.append(unmatched_part_level_jet_spectra)
 
         #############################
         # (Matched) Part level jet pt
         #############################
-        part_level_axes = getattr(this_module, self.task_config["part_level"]["enum_name"])
-        part_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = utils.recursive_getitem(
-                self.input_hists,
-                self.task_config["part_level"]["input_name"],
-            ),
-            output_observable = self.part_level_hists,
-            output_attribute_name = "jet_spectra",
-            projection_name_format = "jetSpectraPartLevel",
-        )
-        # The reaction plane orientation axis may be different, so we copy the HistAxisRange
-        # and update the axis to be the one for the part level
-        part_level_reaction_plane_orientation_projector_axis = copy.deepcopy(reaction_plane_orientation_projector_axis)
-        part_level_reaction_plane_orientation_projector_axis.axis_type = \
-            part_level_axes.det_level_reaction_plane_orientation
-        part_level_jet_spectra.additional_axis_cuts.append(part_level_reaction_plane_orientation_projector_axis)
-        # Can't apply a leading cluster cut on part level, since we don't have clusters
-        part_level_jet_spectra.projection_dependent_cut_axes.append([])
-        part_level_jet_spectra.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = part_level_axes.part_level_jet_pt,
-                axis_range_name = "partLevelJetSpectra",
-                **full_axis_range
+        if self.task_config["part_level"]["sparse"]:
+            part_level_axes = getattr(this_module, self.task_config["part_level"]["enum_name"])
+            part_level_jet_spectra = ResponseMatrixProjector(
+                observable_to_project_from = utils.recursive_getitem(
+                    self.input_hists,
+                    self.task_config["part_level"]["input_name"],
+                ),
+                output_observable = self.part_level_hists,
+                output_attribute_name = "jet_spectra",
+                projection_name_format = "jetSpectraPartLevel",
             )
-        )
-        # Save the projector for later use
-        self.projectors.append(part_level_jet_spectra)
+            # The reaction plane orientation axis may be different, so we copy the HistAxisRange
+            # and update the axis to be the one for the part level
+            part_level_reaction_plane_orientation_projector_axis = \
+                copy.deepcopy(reaction_plane_orientation_projector_axis)
+            part_level_reaction_plane_orientation_projector_axis.axis_type = \
+                part_level_axes.det_level_reaction_plane_orientation
+            part_level_jet_spectra.additional_axis_cuts.append(part_level_reaction_plane_orientation_projector_axis)
+            # Can't apply a leading cluster cut on part level, since we don't have clusters
+            part_level_jet_spectra.projection_dependent_cut_axes.append([])
+            part_level_jet_spectra.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = part_level_axes.part_level_jet_pt,
+                    axis_range_name = "partLevelJetSpectra",
+                    **full_axis_range
+                )
+            )
+            # Save the projector for later use
+            self.projectors.append(part_level_jet_spectra)
 
         ############################
         # Unmatched det level jet pt
         ############################
-        unmatched_det_level_axes = getattr(this_module, self.task_config["unmatched_det_level"]["enum_name"])
-        unmatched_det_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = utils.recursive_getitem(
-                self.input_hists,
-                self.task_config["unmatched_det_level"]["input_name"],
-            ),
-            output_observable = self.det_level_hists,
-            output_attribute_name = "unmatched_jet_spectra",
-            projection_name_format = "unmatchedJetSpectraDetLevel",
-        )
+        if self.task_config["unmatched_det_level"]["sparse"]:
+            unmatched_det_level_axes = getattr(this_module, self.task_config["unmatched_det_level"]["enum_name"])
+            unmatched_det_level_jet_spectra = ResponseMatrixProjector(
+                observable_to_project_from = utils.recursive_getitem(
+                    self.input_hists,
+                    self.task_config["unmatched_det_level"]["input_name"],
+                ),
+                output_observable = self.det_level_hists,
+                output_attribute_name = "unmatched_jet_spectra",
+                projection_name_format = "unmatchedJetSpectraDetLevel",
+            )
 
-        # The leading particle axis varies depending on whether the event plane is included in the sparse.
-        leading_particle_axis = unmatched_det_level_axes.leading_particle_PP
-        if self.collision_system in [params.CollisionSystem.PbPb, params.CollisionSystem.embedPythia, params.CollisionSystem.embedPP]:
-            leading_particle_axis = unmatched_det_level_axes.leading_particle_PbPb
-        unmatched_det_level_jet_spectra.additional_axis_cuts.append(
-            projectors.HistAxisRange(
-                axis_type = leading_particle_axis,
-                axis_range_name = "unmatchedDetLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
-                ),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.GetNbins
-                ),
+            # The leading particle axis varies depending on whether the event plane is included in the sparse.
+            leading_particle_axis = unmatched_det_level_axes.leading_particle_PP
+            if self.collision_system in [params.CollisionSystem.PbPb,
+                                         params.CollisionSystem.embedPythia,
+                                         params.CollisionSystem.embedPP]:
+                leading_particle_axis = unmatched_det_level_axes.leading_particle_PbPb
+            unmatched_det_level_jet_spectra.additional_axis_cuts.append(
+                projectors.HistAxisRange(
+                    axis_type = leading_particle_axis,
+                    axis_range_name = "unmatchedDetLevelLeadingParticle",
+                    min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
+                    ),
+                    max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.GetNbins
+                    ),
+                )
             )
-        )
-        unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
-        unmatched_det_level_jet_spectra.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = unmatched_det_level_axes.jet_pt,
-                axis_range_name = "unmatchedDetLevelJetSpectra",
-                **full_axis_range
+            unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
+            unmatched_det_level_jet_spectra.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = unmatched_det_level_axes.jet_pt,
+                    axis_range_name = "unmatchedDetLevelJetSpectra",
+                    **full_axis_range
+                )
             )
-        )
-        # Save the projector for later use
-        self.projectors.append(unmatched_det_level_jet_spectra)
+            # Save the projector for later use
+            self.projectors.append(unmatched_det_level_jet_spectra)
 
         ############################
         # (Matched) Det level jet pt
         ############################
-        det_level_axes = getattr(this_module, self.task_config["det_level"]["enum_name"])
-        det_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = utils.recursive_getitem(
-                self.input_hists,
-                self.task_config["det_level"]["input_name"],
-            ),
-            output_observable = self.det_level_hists,
-            output_attribute_name = "jet_spectra",
-            projection_name_format = "jetSpectraDetLevel",
-        )
-        det_level_jet_spectra.additional_axis_cuts.append(
-            projectors.HistAxisRange(
-                axis_type = det_level_axes.det_level_leading_particle,
-                axis_range_name = "detLevelLeadingParticle",
-                min_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon
+        if self.task_config["det_level"]["sparse"]:
+            det_level_axes = getattr(this_module, self.task_config["det_level"]["enum_name"])
+            det_level_jet_spectra = ResponseMatrixProjector(
+                observable_to_project_from = utils.recursive_getitem(
+                    self.input_hists,
+                    self.task_config["det_level"]["input_name"],
                 ),
-                max_val = projectors.HistAxisRange.apply_func_to_find_bin(
-                    ROOT.TAxis.GetNbins
+                output_observable = self.det_level_hists,
+                output_attribute_name = "jet_spectra",
+                projection_name_format = "jetSpectraDetLevel",
+            )
+            det_level_jet_spectra.additional_axis_cuts.append(
+                projectors.HistAxisRange(
+                    axis_type = det_level_axes.det_level_leading_particle,
+                    axis_range_name = "detLevelLeadingParticle",
+                    min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon
+                    ),
+                    max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                        ROOT.TAxis.GetNbins
+                    )
                 )
             )
-        )
-        # The reaction plane orientation axis may be different, so we copy the HistAxisRange
-        # and update the axis to be the one for the part level
-        det_level_reaction_plane_orientation_projector_axis = copy.deepcopy(reaction_plane_orientation_projector_axis)
-        det_level_reaction_plane_orientation_projector_axis.axis_type = \
-            det_level_axes.det_level_reaction_plane_orientation
-        det_level_jet_spectra.additional_axis_cuts.append(det_level_reaction_plane_orientation_projector_axis)
-        det_level_jet_spectra.projection_dependent_cut_axes.append([])
-        det_level_jet_spectra.projection_axes.append(
-            projectors.HistAxisRange(
-                axis_type = det_level_axes.det_level_jet_pt,
-                axis_range_name = "detLevelJetSpectra", **full_axis_range
+            # The reaction plane orientation axis may be different, so we copy the HistAxisRange
+            # and update the axis to be the one for the part level
+            det_level_reaction_plane_orientation_projector_axis = \
+                copy.deepcopy(reaction_plane_orientation_projector_axis)
+            det_level_reaction_plane_orientation_projector_axis.axis_type = \
+                det_level_axes.det_level_reaction_plane_orientation
+            det_level_jet_spectra.additional_axis_cuts.append(det_level_reaction_plane_orientation_projector_axis)
+            det_level_jet_spectra.projection_dependent_cut_axes.append([])
+            det_level_jet_spectra.projection_axes.append(
+                projectors.HistAxisRange(
+                    axis_type = det_level_axes.det_level_jet_pt,
+                    axis_range_name = "detLevelJetSpectra", **full_axis_range
+                )
             )
-        )
-        # Save the projector for later use
-        self.projectors.append(det_level_jet_spectra)
+            # Save the projector for later use
+            self.projectors.append(det_level_jet_spectra)
 
     def run_projectors(self) -> None:
         """ Execute the projectors to create the projected histograms. """
         # Perform the various projections
         for projector in self.projectors:
             projector.project()
+
+    def retrieve_non_projected_hists(self) -> bool:
+        """ Retrieve histograms which don't require projectors. """
+        # NOTE: The names of the histograms defined here must match those set in the projectors.
+        #################
+        # Response matrix
+        #################
+        if not self.task_config["response"]["sparse"]:
+            self.response_matrix = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["response"]["input_name"]
+            )
+            self.response_matrix.SetName("responseMatrix")
+
+        #############################
+        # Unmatched part level jet pt
+        #############################
+        if not self.task_config["unmatched_part_level"]["sparse"]:
+            self.part_level_hists.unmatched_jet_spectra = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["unmatched_part_level"]["input_name"]
+            )
+            self.part_level_hists.unmatched_jet_spectra.SetName("unmatchedJetSpectraPartLevel")
+
+        #############################
+        # (Matched) Part level jet pt
+        #############################
+        if not self.task_config["part_level"]["sparse"]:
+            self.part_level_hists.jet_spectra = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["part_level"]["input_name"]
+            )
+            self.part_level_hists.jet_spectra.SetName("jetSpectraPartLevel")
+
+        ############################
+        # Unmatched det level jet pt
+        ############################
+        if not self.task_config["unmatched_det_level"]["sparse"]:
+            self.det_level_hists.unmatched_jet_spectra = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["unmatched_det_level"]["input_name"]
+            )
+            self.det_level_hists.unmatched_jet_spectra.SetName("unmatchedJetSpectraDetLevel")
+
+        ############################
+        # (Matched) Det level jet pt
+        ############################
+        if not self.task_config["det_level"]["sparse"]:
+            self.det_level_hists.jet_spectra = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["det_level"]["input_name"]
+            )
+            self.det_level_hists.jet_spectra.SetName("jetSpectraDetLevel")
+
+        return True
 
 class ResponseManager(generic_class.EqualityMixin):
     """ Analysis manager for creating response(s).
@@ -771,6 +837,9 @@ class ResponseManager(generic_class.EqualityMixin):
                     result = analysis.setup(input_hists = input_hists[pt_hard_bin])
                     if result is not True:
                         raise ValueError(f"Setup of {key_index} analysis object failed.")
+                    result = analysis.retrieve_non_projected_hists()
+                    if result is not True:
+                        raise ValueError(f"Retrieval of non-projected hists of {key_index} analysis object failed.")
                     analysis.run_projectors()
 
                     # Ensure that all hists have sumw2 enabled
