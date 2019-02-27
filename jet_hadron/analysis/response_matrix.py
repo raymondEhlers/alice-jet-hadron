@@ -6,12 +6,14 @@
 """
 
 import coloredlogs
+import copy
 from dataclasses import dataclass
 import enlighten
 import enum
 import logging
 import os
 import pprint
+import sys
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Union
 
 from pachyderm import generic_class
@@ -33,6 +35,7 @@ from jet_hadron.analysis import response_matrix_helpers
 import ROOT
 
 logger = logging.getLogger(__name__)
+this_module = sys.modules[__name__]
 
 class ResponseMakerMatchingSparse(enum.Enum):
     """ Defines the axes in the AliJetResponseMaker fMatching THnSparse. """
@@ -54,6 +57,19 @@ class ResponseMakerJetsSparse(enum.Enum):
     reaction_plane_orientation = 4
     leading_particle_PP = 4
     leading_particle_PbPb = 5
+
+class JetHPerformanceResponseSparse(enum.Enum):
+    """ Define the axes of the JetHPerformance response matrix sprase. """
+    det_level_jet_pt = 0
+    part_level_jet_pt = 1
+    det_level_jet_area = 2
+    part_level_jet_area = 3
+    matching_distance = 4
+    det_level_leading_particle = 5
+    part_level_leading_particle = 6
+    det_level_reaction_plane_orientation = 7
+    part_level_reaction_plane_orientation = 8
+    centrality = 9
 
 class ResponseMatrixProjector(projectors.HistProjector):
     """ Projector for the Jet-h response matrix THnSparse.
@@ -401,6 +417,7 @@ class ResponseMatrix(ResponseMatrixBase):
             "max_val": projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
         }
         # Reaction plane selection
+        response_axes = getattr(this_module, self.task_config["response"]["enum_name"])
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
             logger.debug("Using full EP orientation range")
@@ -415,7 +432,7 @@ class ResponseMatrix(ResponseMatrixBase):
             }
             logger.debug(f"Using selected EP orientation range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_projector_axis = projectors.HistAxisRange(
-            axis_type = ResponseMakerMatchingSparse.det_level_reaction_plane_orientation,
+            axis_type = response_axes.det_level_reaction_plane_orientation,
             axis_range_name = "detLevelReactionPlaneOrientation",
             **reaction_plane_axis_range
         )
@@ -423,15 +440,20 @@ class ResponseMatrix(ResponseMatrixBase):
         #################
         # Response matrix
         #################
+        # The response matrix axes are defined above so we can define a (semi-) shared reaction
+        # plane orientation projector axis.
         response_matrix = ResponseMatrixProjector(
-            observable_to_project_from = self.input_hists["fHistMatching"],
+            observable_to_project_from = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["response"]["input_name"],
+            ),
             output_observable = self,
             output_attribute_name = "response_matrix",
             projection_name_format = "responseMatrix",
         )
         response_matrix.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
+                axis_type = response_axes.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon,
@@ -447,14 +469,14 @@ class ResponseMatrix(ResponseMatrixBase):
         response_matrix.projection_dependent_cut_axes.append([])
         response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.det_level_jet_pt,
+                axis_type = response_axes.det_level_jet_pt,
                 axis_range_name = "detLevelJetPt",
                 **full_axis_range
             )
         )
         response_matrix.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.part_level_jet_pt,
+                axis_type = response_axes.part_level_jet_pt,
                 axis_range_name = "partLevelJetPt",
                 **full_axis_range
             )
@@ -465,8 +487,12 @@ class ResponseMatrix(ResponseMatrixBase):
         #############################
         # Unmatched part level jet pt
         #############################
+        unmatched_part_level_axes = getattr(this_module, self.task_config["unmatched_part_level"]["enum_name"])
         unmatched_part_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = self.input_hists["fHistJets2"],
+            observable_to_project_from = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["unmatched_part_level"]["input_name"],
+            ),
             output_observable = self.part_level_hists,
             output_attribute_name = "unmatched_jet_spectra",
             projection_name_format = "unmatchedJetSpectraPartLevel",
@@ -475,7 +501,7 @@ class ResponseMatrix(ResponseMatrixBase):
         unmatched_part_level_jet_spectra.projection_dependent_cut_axes.append([])
         unmatched_part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.jet_pt,
+                axis_type = unmatched_part_level_axes.jet_pt,
                 axis_range_name = "unmatchedPartLevelJetSpectra",
                 **full_axis_range
             )
@@ -486,18 +512,27 @@ class ResponseMatrix(ResponseMatrixBase):
         #############################
         # (Matched) Part level jet pt
         #############################
+        part_level_axes = getattr(this_module, self.task_config["part_level"]["enum_name"])
         part_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = self.input_hists["fHistMatching"],
+            observable_to_project_from = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["part_level"]["input_name"],
+            ),
             output_observable = self.part_level_hists,
             output_attribute_name = "jet_spectra",
             projection_name_format = "jetSpectraPartLevel",
         )
-        part_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
+        # The reaction plane orientation axis may be different, so we copy the HistAxisRange
+        # and update the axis to be the one for the part level
+        part_level_reaction_plane_orientation_projector_axis = copy.deepcopy(reaction_plane_orientation_projector_axis)
+        part_level_reaction_plane_orientation_projector_axis.axis_type = \
+            part_level_axes.det_level_reaction_plane_orientation
+        part_level_jet_spectra.additional_axis_cuts.append(part_level_reaction_plane_orientation_projector_axis)
         # Can't apply a leading cluster cut on part level, since we don't have clusters
         part_level_jet_spectra.projection_dependent_cut_axes.append([])
         part_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.part_level_jet_pt,
+                axis_type = part_level_axes.part_level_jet_pt,
                 axis_range_name = "partLevelJetSpectra",
                 **full_axis_range
             )
@@ -508,17 +543,21 @@ class ResponseMatrix(ResponseMatrixBase):
         ############################
         # Unmatched det level jet pt
         ############################
+        unmatched_det_level_axes = getattr(this_module, self.task_config["unmatched_det_level"]["enum_name"])
         unmatched_det_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = self.input_hists["fHistJets1"],
+            observable_to_project_from = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["unmatched_det_level"]["input_name"],
+            ),
             output_observable = self.det_level_hists,
             output_attribute_name = "unmatched_jet_spectra",
             projection_name_format = "unmatchedJetSpectraDetLevel",
         )
 
         # The leading particle axis varies depending on whether the event plane is included in the sparse.
-        leading_particle_axis = ResponseMakerJetsSparse.leading_particle_PP
+        leading_particle_axis = unmatched_det_level_axes.leading_particle_PP
         if self.collision_system in [params.CollisionSystem.PbPb, params.CollisionSystem.embedPythia, params.CollisionSystem.embedPP]:
-            leading_particle_axis = ResponseMakerJetsSparse.leading_particle_PbPb
+            leading_particle_axis = unmatched_det_level_axes.leading_particle_PbPb
         unmatched_det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
                 axis_type = leading_particle_axis,
@@ -534,7 +573,7 @@ class ResponseMatrix(ResponseMatrixBase):
         unmatched_det_level_jet_spectra.projection_dependent_cut_axes.append([])
         unmatched_det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerJetsSparse.jet_pt,
+                axis_type = unmatched_det_level_axes.jet_pt,
                 axis_range_name = "unmatchedDetLevelJetSpectra",
                 **full_axis_range
             )
@@ -545,15 +584,19 @@ class ResponseMatrix(ResponseMatrixBase):
         ############################
         # (Matched) Det level jet pt
         ############################
+        det_level_axes = getattr(this_module, self.task_config["det_level"]["enum_name"])
         det_level_jet_spectra = ResponseMatrixProjector(
-            observable_to_project_from = self.input_hists["fHistMatching"],
+            observable_to_project_from = utils.recursive_getitem(
+                self.input_hists,
+                self.task_config["det_level"]["input_name"],
+            ),
             output_observable = self.det_level_hists,
             output_attribute_name = "jet_spectra",
             projection_name_format = "jetSpectraDetLevel",
         )
         det_level_jet_spectra.additional_axis_cuts.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.det_level_leading_particle,
+                axis_type = det_level_axes.det_level_leading_particle,
                 axis_range_name = "detLevelLeadingParticle",
                 min_val = projectors.HistAxisRange.apply_func_to_find_bin(
                     ROOT.TAxis.FindBin, self.leading_hadron_bias.value + epsilon
@@ -563,11 +606,16 @@ class ResponseMatrix(ResponseMatrixBase):
                 )
             )
         )
-        det_level_jet_spectra.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
+        # The reaction plane orientation axis may be different, so we copy the HistAxisRange
+        # and update the axis to be the one for the part level
+        det_level_reaction_plane_orientation_projector_axis = copy.deepcopy(reaction_plane_orientation_projector_axis)
+        det_level_reaction_plane_orientation_projector_axis.axis_type = \
+            det_level_axes.det_level_reaction_plane_orientation
+        det_level_jet_spectra.additional_axis_cuts.append(det_level_reaction_plane_orientation_projector_axis)
         det_level_jet_spectra.projection_dependent_cut_axes.append([])
         det_level_jet_spectra.projection_axes.append(
             projectors.HistAxisRange(
-                axis_type = ResponseMakerMatchingSparse.det_level_jet_pt,
+                axis_type = det_level_axes.det_level_jet_pt,
                 axis_range_name = "detLevelJetSpectra", **full_axis_range
             )
         )

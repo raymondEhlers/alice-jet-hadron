@@ -311,16 +311,23 @@ _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
         8: 2708
         9: 2709
         10: 2710
+_testPtHardBins: &TestPtHardBin
+    - !PtHardBin
+      bin: 4
+      range: !SelectedRange [36, 57]
+      train_number: 1234
 
 # Response matrix related configuration
 PtHardBins:
     moving_average_threshold: 1.0
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        #inputFilename: "analysis/AnalysisResults.response.root"
         inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
         iterables:
             reaction_plane_orientation: false
             pt_hard_bin: *PtHardBins10Bins
+            #pt_hard_bin: *TestPtHardBin
 PtHardFinal:
     override:
         outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}"
@@ -330,6 +337,47 @@ PtHardFinal:
             reaction_plane_orientation:
                 - "inclusive"
 Response:
+    # Main response input
+    response:
+        sparse: True
+        enum_name: "ResponseMakerMatchingSparse"
+        input_name: "fHistMatching"
+        # Testing:
+        # sparse: True
+        # enum_name: "JetHPerformanceResponseSparse"
+        # input_name: ["response", "fHistResponseMatrix"]
+    # (Matched) part level spectra
+    part_level:
+        sparse: True
+        enum_name: "ResponseMakerMatchingSparse"
+        input_name: "fHistMatching"
+        # Testing:
+        # sparse: True
+        # enum_name: "JetHPerformanceResponseSparse"
+        # input_name: ["response", "fHistResponseMatrix"]
+    # (Matched) det level spectra
+    det_level:
+        sparse: True
+        enum_name: "ResponseMakerMatchingSparse"
+        input_name: "fHistMatching"
+        # Testing:
+        # sparse: True
+        # enum_name: "JetHPerformanceResponseSparse"
+        # input_name: ["response", "fHistResponseMatrix"]
+    unmatched_part_level:
+        sparse: True
+        enum_name: "ResponseMakerJetsSparse"
+        input_name: "fHistJets2"
+        # Testing:
+        # sparse: False
+        # input_name: ["QA", "partLevelJets", "fHistJetPt"]
+    unmatched_det_level:
+        sparse: True
+        enum_name: "ResponseMakerJetsSparse"
+        input_name: "fHistJets1"
+        # Testing:
+        # sparse: False
+        # input_name: ["QA", "hybridLevelJets", "fHistJetPt"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # yamllint disable-line rule:line-length
@@ -337,9 +385,13 @@ Response:
         outputFilename: "ResponseMatrixHists.root"
         # yamllint disable-line rule:line-length
         inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
+        # Test values:
+        #inputFilename: "analysis/AnalysisResults.response.root"
+        #inputListName: "AliAnalysisTaskEmcalJetHPerformance"
         iterables:
             reaction_plane_orientation: true
             pt_hard_bin: *PtHardBins10Bins
+            #pt_hard_bin: *TestPtHardBin
 # Final response histograms.
 ResponseFinal:
     particle_level_spectra:
@@ -368,7 +420,7 @@ ResponseFinal:
             reaction_plane_orientation: true
 ResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: true
+    read_hists_from_root_file: false
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
