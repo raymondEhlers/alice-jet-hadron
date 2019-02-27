@@ -408,6 +408,7 @@ class ResponseMatrix(ResponseMatrixBase):
         # Basic information
         self.input_hists: Dict[str, Any] = {}
         self.projectors: List[ResponseMatrixProjector] = []
+        self.response_retrieval_info: Dict[str, Any] = self.task_config[self.task_config["responseMatrixTask"]]
 
     def _setup_projectors(self) -> None:
         """ Setup the sparse projectors. """
@@ -419,7 +420,7 @@ class ResponseMatrix(ResponseMatrixBase):
             "max_val": projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins)
         }
         # Reaction plane selection
-        response_axes = getattr(this_module, self.task_config["response"]["enum_name"])
+        response_axes = getattr(this_module, self.response_retrieval_info["response"]["enum_name"])
         if self.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             reaction_plane_axis_range = full_axis_range
             logger.debug("Using full EP orientation range")
@@ -442,13 +443,13 @@ class ResponseMatrix(ResponseMatrixBase):
         #################
         # Response matrix
         #################
-        if self.task_config["response"]["sparse"]:
+        if self.response_retrieval_info["response"]["sparse"]:
             # The response matrix axes are defined above so we can define a (semi-) shared reaction
             # plane orientation projector axis.
             response_matrix = ResponseMatrixProjector(
                 observable_to_project_from = utils.recursive_getitem(
                     self.input_hists,
-                    self.task_config["response"]["input_name"],
+                    self.response_retrieval_info["response"]["input_name"],
                 ),
                 output_observable = self,
                 output_attribute_name = "response_matrix",
@@ -490,12 +491,13 @@ class ResponseMatrix(ResponseMatrixBase):
         #############################
         # Unmatched part level jet pt
         #############################
-        if self.task_config["unmatched_part_level"]["sparse"]:
-            unmatched_part_level_axes = getattr(this_module, self.task_config["unmatched_part_level"]["enum_name"])
+        if self.response_retrieval_info["unmatched_part_level"]["sparse"]:
+            unmatched_part_level_axes = getattr(this_module,
+                                                self.response_retrieval_info["unmatched_part_level"]["enum_name"])
             unmatched_part_level_jet_spectra = ResponseMatrixProjector(
                 observable_to_project_from = utils.recursive_getitem(
                     self.input_hists,
-                    self.task_config["unmatched_part_level"]["input_name"],
+                    self.response_retrieval_info["unmatched_part_level"]["input_name"],
                 ),
                 output_observable = self.part_level_hists,
                 output_attribute_name = "unmatched_jet_spectra",
@@ -516,12 +518,12 @@ class ResponseMatrix(ResponseMatrixBase):
         #############################
         # (Matched) Part level jet pt
         #############################
-        if self.task_config["part_level"]["sparse"]:
-            part_level_axes = getattr(this_module, self.task_config["part_level"]["enum_name"])
+        if self.response_retrieval_info["part_level"]["sparse"]:
+            part_level_axes = getattr(this_module, self.response_retrieval_info["part_level"]["enum_name"])
             part_level_jet_spectra = ResponseMatrixProjector(
                 observable_to_project_from = utils.recursive_getitem(
                     self.input_hists,
-                    self.task_config["part_level"]["input_name"],
+                    self.response_retrieval_info["part_level"]["input_name"],
                 ),
                 output_observable = self.part_level_hists,
                 output_attribute_name = "jet_spectra",
@@ -549,12 +551,13 @@ class ResponseMatrix(ResponseMatrixBase):
         ############################
         # Unmatched det level jet pt
         ############################
-        if self.task_config["unmatched_det_level"]["sparse"]:
-            unmatched_det_level_axes = getattr(this_module, self.task_config["unmatched_det_level"]["enum_name"])
+        if self.response_retrieval_info["unmatched_det_level"]["sparse"]:
+            unmatched_det_level_axes = getattr(this_module,
+                                               self.response_retrieval_info["unmatched_det_level"]["enum_name"])
             unmatched_det_level_jet_spectra = ResponseMatrixProjector(
                 observable_to_project_from = utils.recursive_getitem(
                     self.input_hists,
-                    self.task_config["unmatched_det_level"]["input_name"],
+                    self.response_retrieval_info["unmatched_det_level"]["input_name"],
                 ),
                 output_observable = self.det_level_hists,
                 output_attribute_name = "unmatched_jet_spectra",
@@ -593,12 +596,12 @@ class ResponseMatrix(ResponseMatrixBase):
         ############################
         # (Matched) Det level jet pt
         ############################
-        if self.task_config["det_level"]["sparse"]:
-            det_level_axes = getattr(this_module, self.task_config["det_level"]["enum_name"])
+        if self.response_retrieval_info["det_level"]["sparse"]:
+            det_level_axes = getattr(this_module, self.response_retrieval_info["det_level"]["enum_name"])
             det_level_jet_spectra = ResponseMatrixProjector(
                 observable_to_project_from = utils.recursive_getitem(
                     self.input_hists,
-                    self.task_config["det_level"]["input_name"],
+                    self.response_retrieval_info["det_level"]["input_name"],
                 ),
                 output_observable = self.det_level_hists,
                 output_attribute_name = "jet_spectra",
@@ -645,50 +648,50 @@ class ResponseMatrix(ResponseMatrixBase):
         #################
         # Response matrix
         #################
-        if not self.task_config["response"]["sparse"]:
+        if not self.response_retrieval_info["response"]["sparse"]:
             self.response_matrix = utils.recursive_getitem(
                 self.input_hists,
-                self.task_config["response"]["input_name"]
+                self.response_retrieval_info["response"]["input_name"]
             )
             self.response_matrix.SetName("responseMatrix")
 
         #############################
         # Unmatched part level jet pt
         #############################
-        if not self.task_config["unmatched_part_level"]["sparse"]:
+        if not self.response_retrieval_info["unmatched_part_level"]["sparse"]:
             self.part_level_hists.unmatched_jet_spectra = utils.recursive_getitem(
                 self.input_hists,
-                self.task_config["unmatched_part_level"]["input_name"]
+                self.response_retrieval_info["unmatched_part_level"]["input_name"]
             )
             self.part_level_hists.unmatched_jet_spectra.SetName("unmatchedJetSpectraPartLevel")
 
         #############################
         # (Matched) Part level jet pt
         #############################
-        if not self.task_config["part_level"]["sparse"]:
+        if not self.response_retrieval_info["part_level"]["sparse"]:
             self.part_level_hists.jet_spectra = utils.recursive_getitem(
                 self.input_hists,
-                self.task_config["part_level"]["input_name"]
+                self.response_retrieval_info["part_level"]["input_name"]
             )
             self.part_level_hists.jet_spectra.SetName("jetSpectraPartLevel")
 
         ############################
         # Unmatched det level jet pt
         ############################
-        if not self.task_config["unmatched_det_level"]["sparse"]:
+        if not self.response_retrieval_info["unmatched_det_level"]["sparse"]:
             self.det_level_hists.unmatched_jet_spectra = utils.recursive_getitem(
                 self.input_hists,
-                self.task_config["unmatched_det_level"]["input_name"]
+                self.response_retrieval_info["unmatched_det_level"]["input_name"]
             )
             self.det_level_hists.unmatched_jet_spectra.SetName("unmatchedJetSpectraDetLevel")
 
         ############################
         # (Matched) Det level jet pt
         ############################
-        if not self.task_config["det_level"]["sparse"]:
+        if not self.response_retrieval_info["det_level"]["sparse"]:
             self.det_level_hists.jet_spectra = utils.recursive_getitem(
                 self.input_hists,
-                self.task_config["det_level"]["input_name"]
+                self.response_retrieval_info["det_level"]["input_name"]
             )
             self.det_level_hists.jet_spectra.SetName("jetSpectraDetLevel")
 

@@ -337,47 +337,54 @@ PtHardFinal:
             reaction_plane_orientation:
                 - "inclusive"
 Response:
-    # Main response input
-    response:
-        sparse: True
-        enum_name: "ResponseMakerMatchingSparse"
-        input_name: "fHistMatching"
-        # Testing:
-        # sparse: True
-        # enum_name: "JetHPerformanceResponseSparse"
-        # input_name: ["response", "fHistResponseMatrix"]
-    # (Matched) part level spectra
-    part_level:
-        sparse: True
-        enum_name: "ResponseMakerMatchingSparse"
-        input_name: "fHistMatching"
-        # Testing:
-        # sparse: True
-        # enum_name: "JetHPerformanceResponseSparse"
-        # input_name: ["response", "fHistResponseMatrix"]
-    # (Matched) det level spectra
-    det_level:
-        sparse: True
-        enum_name: "ResponseMakerMatchingSparse"
-        input_name: "fHistMatching"
-        # Testing:
-        # sparse: True
-        # enum_name: "JetHPerformanceResponseSparse"
-        # input_name: ["response", "fHistResponseMatrix"]
-    unmatched_part_level:
-        sparse: True
-        enum_name: "ResponseMakerJetsSparse"
-        input_name: "fHistJets2"
-        # Testing:
-        # sparse: False
-        # input_name: ["QA", "partLevelJets", "fHistJetPt"]
-    unmatched_det_level:
-        sparse: True
-        enum_name: "ResponseMakerJetsSparse"
-        input_name: "fHistJets1"
-        # Testing:
-        # sparse: False
-        # input_name: ["QA", "hybridLevelJets", "fHistJetPt"]
+    # Select which of the tasks (with their specification defined below) produced the response.
+    responseMatrixTask: "ResponseMaker"
+    ResponseMaker:
+        # Main response input
+        response:
+            sparse: True
+            enum_name: "ResponseMakerMatchingSparse"
+            input_name: "fHistMatching"
+        # (Matched) part level spectra
+        part_level:
+            sparse: True
+            enum_name: "ResponseMakerMatchingSparse"
+            input_name: "fHistMatching"
+        # (Matched) det level spectra
+        det_level:
+            sparse: True
+            enum_name: "ResponseMakerMatchingSparse"
+            input_name: "fHistMatching"
+        unmatched_part_level:
+            sparse: True
+            enum_name: "ResponseMakerJetsSparse"
+            input_name: "fHistJets2"
+        unmatched_det_level:
+            sparse: True
+            enum_name: "ResponseMakerJetsSparse"
+            input_name: "fHistJets1"
+    JetHPerformance:
+        # Main response input
+        response:
+            sparse: True
+            enum_name: "JetHPerformanceResponseSparse"
+            input_name: ["response", "fHistResponseMatrix"]
+        # (Matched) part level spectra
+        part_level:
+            sparse: True
+            enum_name: "JetHPerformanceResponseSparse"
+            input_name: ["response", "fHistResponseMatrix"]
+        # (Matched) det level spectra
+        det_level:
+            sparse: True
+            enum_name: "JetHPerformanceResponseSparse"
+            input_name: ["response", "fHistResponseMatrix"]
+        unmatched_part_level:
+            sparse: False
+            input_name: ["QA", "partLevelJets", "fHistJetPt"]
+        unmatched_det_level:
+            sparse: False
+            input_name: ["QA", "hybridLevelJets", "fHistJetPt"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # yamllint disable-line rule:line-length
