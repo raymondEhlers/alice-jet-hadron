@@ -322,11 +322,13 @@ PtHardBins:
     moving_average_threshold: 1.0
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
-        #inputFilename: "analysis/AnalysisResults.response.root"
         inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
+        # Test values:
+        #inputFilename: "analysis/AnalysisResults.response.root"
         iterables:
             reaction_plane_orientation: false
             pt_hard_bin: *PtHardBins10Bins
+            # Test values:
             #pt_hard_bin: *TestPtHardBin
 PtHardFinal:
     override:
@@ -339,6 +341,7 @@ PtHardFinal:
 Response:
     # Select which of the tasks (with their specification defined below) produced the response.
     responseMatrixTask: "ResponseMaker"
+    #responseMatrixTask: "JetHPerformance"
     ResponseMaker:
         # Main response input
         response:
@@ -388,16 +391,17 @@ Response:
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # yamllint disable-line rule:line-length
+        inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
+        # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
-        # yamllint disable-line rule:line-length
-        inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
         # Test values:
         #inputFilename: "analysis/AnalysisResults.response.root"
         #inputListName: "AliAnalysisTaskEmcalJetHPerformance"
         iterables:
             reaction_plane_orientation: true
             pt_hard_bin: *PtHardBins10Bins
+            # Test values:
             #pt_hard_bin: *TestPtHardBin
 # Final response histograms.
 ResponseFinal:

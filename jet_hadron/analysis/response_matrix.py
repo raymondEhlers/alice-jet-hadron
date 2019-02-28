@@ -207,13 +207,13 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         """
         for hist in [self.response_matrix, self.response_matrix_errors, self.particle_level_spectra]:
             if hist and not hist.GetSumw2N() > 0:
-                logger.debug(f"hist: {hist.GetName()}")
+                logger.debug(f"Setting Sumw2 for hist: {hist.GetName()}")
                 hist.Sumw2(True)
 
         for hists in [self.part_level_hists, self.det_level_hists]:
             for _, hist in hists:
                 if hist and not hist.GetSumw2N() > 0:
-                    logger.debug(f"hist: {hist.GetName()}")
+                    logger.debug(f"Setting Sumw2 for hist: {hist.GetName()}")
                     hist.Sumw2(True)
 
     def project_particle_level_spectra(self) -> None:
@@ -881,6 +881,7 @@ class ResponseManager(generic_class.EqualityMixin):
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
                 # Scale the pt hard spectra
+                logger.debug("Scaling the pt hard spectra.")
                 pt_hard_bin.run(
                     average_number_of_events = average_number_of_events,
                     outliers_removal_axis = projectors.TH1AxisType.x_axis,
@@ -902,7 +903,7 @@ class ResponseManager(generic_class.EqualityMixin):
                     # will share the same cut index.
                     hists = [utils.recursive_getattr(ep_analysis, hist_info.attribute_name)
                              for ep_analysis in ep_analyses.values()]
-                    logger.debug(f"attribute_name: {hist_info.attribute_name}, hists: {hists}")
+                    logger.debug(f"Running pt hard analysis for attribute_name: {hist_info.attribute_name}, hists: {hists}")
                     pt_hard_bin.run(
                         average_number_of_events = average_number_of_events,
                         outliers_removal_axis = hist_info.outliers_removal_axis,
