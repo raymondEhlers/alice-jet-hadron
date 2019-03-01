@@ -11,6 +11,9 @@ eventCuts:
     centralityRange: [0, 10]
 general:
     nCentBins: 5
+QA:
+    cellsName: "emcalCellsCombined"
+    embeddedCellsName: "emcalCells"
 # Configure response matrix
 responseMatrix:
     minFractionSharedPt: 0.5
