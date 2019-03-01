@@ -69,6 +69,17 @@ CellEnergy_data:
     cellsNames:
         - cells
 
+# Energy variation so that we can apply the same non-linearity correction to the data and the MC
+# Here, we scale the MC up by 4.1%, as determined by James (comparing the non-linearity functions).
+CellEnergyVariation_embed:
+    enabled: true
+    createHistos: true
+    minCellE: 0.05
+    maxCellE: 120.
+    energyScaleFactorConstant: 1.041
+    cellsNames:
+        - cells_embed
+
 # Cell bad channel
 CellBadChannel:
     createHistos: true
