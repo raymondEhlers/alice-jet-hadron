@@ -1,0 +1,5 @@
+---
+# This overrides the base and period specific configurations
+name: "Configuration options for Jet-H Performance task for embedding in semi-central collisions"
+eventCuts:
+    centralityRange: [30, 50]
