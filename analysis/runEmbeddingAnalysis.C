@@ -58,7 +58,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     const char   *cEmbedRunPeriod = "LHC12a15e",                             // set the embedded run period
     const char   *cLocalFiles     = "",                                      // set the local list file
     const UInt_t  iNumEvents      = 1000,                                    // number of events to be analyzed
-    const UInt_t  kPhysSel        = AliVEvent::kEMCEGA | AliVEvent::kMB |
+    const UInt_t  kPhysSel        = AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
                     AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // Physics selection
     const char   *cTaskName       = "EMCalEmbeddingAnalysis",                     // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
@@ -264,7 +264,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   //AliLog::SetClassDebugLevel("AliJetContainer", AliLog::kDebug+7);
   //AliLog::SetClassDebugLevel("AliJetResponseMaker", AliLog::kDebug+0);
   //AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHCorrelations", AliLog::kDebug+2);
-  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug+2);
+  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug+0);
   //AliLog::SetClassDebugLevel("AliTrackContainer", AliLog::kDebug+0);
   //AliLog::SetClassDebugLevel("AliAnalysisTask", AliLog::kDebug+7);
   //AliLog::SetClassDebugLevel("AliAnalysisTaskSE", AliLog::kDebug+7);
