@@ -3,6 +3,7 @@ name: "Embedding configuration for LHC12a15e_fix - 2.76 TeV PYTHIA"
 internalEventSelection:
     enabled: true
     centralityRange: [0, 10]
+    useEventCutsAutomaticTriggerSelection: False
     physicsSelection:
         - "kAnyINT"
         - "kCentral"
