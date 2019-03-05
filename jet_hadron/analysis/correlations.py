@@ -1853,8 +1853,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
             output_name = output_name,
         )
 
-    def _compare_unsubtracted_1d_signal_correlation_to_joel(self, comparison_hists):
+    def _compare_unsubtracted_1d_signal_correlation_to_joel(self) -> None:
         """ Compare Joel's unsubtracted delta phi signal region correlations to mine. """
+        comparison_hists = correlations_helpers.get_joels_comparison_hists(
+            track_pt = self.track_pt,
+            path = self.task_config["joelsCorrelationsFilePath"]
+        )
         # Define map by hand because it's out of our control.
         map_to_joels_hist_names = {
             params.ReactionPlaneOrientation.inclusive: "all",
@@ -1877,18 +1881,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
             y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
         )
-
-    def _compare_to_joel(self):
-        """ Compare 1D correlations against Joel's produced correlations. """
-        # Following the naming convection
-        comparison_filename = f"RPF_sysScaleCorrelations{self.track_pt.range.min}-{self.track_pt.range.max}rebinX2bg.root"
-        # "L" is added for some of the later bins to denote log likelihood.
-        if self.track_pt.range.min >= 5.0:
-            comparison_filename = comparison_filename.replace("X2bg", "X2bgL")
-        comparison_filename = os.path.join(self.task_config["joelsCorrelationsFilePath"], comparison_filename)
-        comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
-
-        self._compare_unsubtracted_1d_signal_correlation_to_joel(comparison_hists)
 
     def _convert_1d_correlations(self):
         """ Convert 1D correlations to Histograms. """
@@ -1927,7 +1919,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         if self.processing_options["plot1DCorrelations"]:
             if self.collision_energy == params.CollisionEnergy.two_seven_six and self.event_activity == params.EventActivity.central:
                 logger.info("Comparing unsubtracted correlations to Joel's.")
-                self._compare_to_joel()
+                self._compare_unsubtracted_1d_signal_correlation_to_joel()
             else:
                 logger.info("Skipping comparsion with Joel since we're not analyzing the right system.")
             logger.info("Plotting 1D correlations")

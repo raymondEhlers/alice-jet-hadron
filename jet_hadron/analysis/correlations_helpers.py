@@ -7,10 +7,11 @@
 
 import logging
 import numpy as np
+import os
 import scipy
 import scipy.signal
 import scipy.interpolate
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -353,3 +354,21 @@ def post_creation_processing_for_1d_correlations(hist: Hist,
     hist.GetXaxis().SetTitle(axis_label)
     hist.GetYaxis().SetTitle(fr"$\mathrm{{dN}}/\mathrm{{d}}{axis_label}$")
 
+def get_joels_comparison_hists(track_pt: analysis_objects.TrackPtBin, path: str) -> Dict[str, Any]:
+    """ Get Joel's comparison histograms.
+
+    Args:
+        track_pt: Track pt bin.
+        path: Path to the directory where the reference files are stored.
+    Returns:
+        Histograms that are stored in the file.
+    """
+    # Following the naming convection
+    comparison_filename = f"RPF_sysScaleCorrelations{track_pt.min}-{track_pt.max}rebinX2bg.root"
+    # "L" is added for some of the later bins to denote log likelihood.
+    if track_pt.min >= 5.0:
+        comparison_filename = comparison_filename.replace("X2bg", "X2bgL")
+    comparison_filename = os.path.join(path, comparison_filename)
+    comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
+
+    return comparison_hists
