@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 3372
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 1
+alienOutputDir: ""
+status: "Test of a single pt hard bin"

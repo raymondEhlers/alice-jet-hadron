@@ -1,0 +1,7 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 2861
+production: "LHC11h"
+embeddedProduction: "LHC11a"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/2861_20180115-1729/merge_runlist_1"
+status: "Ran with min bias (don't need a cluster bias) to compare to the statistics available with the GA trigger"

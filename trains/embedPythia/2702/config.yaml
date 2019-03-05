@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 2702
+ptHardBin: 2
+production: "LHC11h"
+embeddedProduction: "LHC12a15e_fix"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/2702_20171111-0619/merge_runlist_1"
+status: ""

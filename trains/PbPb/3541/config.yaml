@@ -1,0 +1,6 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 3541
+production: "LHC11h"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/3541_20180412-2339/merge_runlist_1"
+status: "Changed eta from < 0.8 to < 0.9"

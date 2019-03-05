@@ -1,0 +1,7 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 2731
+production: "LHC11h"
+embeddedProduction: "LHC11a"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/2731_20171116-2137/merge_runlist_1"
+status: "Event selection mismatch between pp and Pb--Pb depleted statistics"

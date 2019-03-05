@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4482
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 6
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4482_20190304-0007/merge"
+status: "Response matrix for 30-50% (ie using .99 for the efficiency). Created using the Jet-H Performance Task."

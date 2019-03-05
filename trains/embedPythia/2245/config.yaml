@@ -1,0 +1,13 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 2245
+ptHardBin: 5
+production: "LHC11h"
+embeddedProduction: "LHC12a15e_fix"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/2245_20170627-1949/merge_runlist_1"
+status: >
+    "Oversampling test - Seems to be successful!
+
+    There were ~ 31 million PbPb events, ~1500 events/MC file and ~400 MC files. Thus, 31 million/ (~1500*400) ~ 50.
+    The average number of embedded files used was ~80-100, but this seems reasonable given that so many of the above
+    numbers are approximate, such as the number of events / MC file, etc."

@@ -1,0 +1,6 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 1203
+production: "LHC11h"
+alienOutputDir: ""
+status: "Joel's production of LHC11h central collisions"

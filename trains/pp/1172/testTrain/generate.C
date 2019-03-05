@@ -1,0 +1,1 @@
+../../../../../localTestTrain/root6_legotrain_generate.C

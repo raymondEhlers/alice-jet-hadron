@@ -1,0 +1,7 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 3232
+production: "LHC11h"
+embeddedProduction: "LHC11a"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/3232_20180306-0700/merge_runlist_1"
+status: "10 GeV cluster Bias"

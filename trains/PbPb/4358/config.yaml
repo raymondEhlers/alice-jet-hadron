@@ -1,0 +1,9 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4358
+production: "LHC15o"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4358_20190109-1739/merge"
+status: |
+    "First run of jet-hadron correlations at 5 TeV with a 5 GeV track bias. Run with wrong single track"
+    "reconstruction efficiency (it used the LHC11h one)... Further, it is missing some of the output which"
+    "didn't merge successfully. May need to find a way to reduce memory usage a bit."

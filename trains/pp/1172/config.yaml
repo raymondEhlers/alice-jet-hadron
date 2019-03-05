@@ -1,0 +1,6 @@
+---
+train: "Jets_EMC_pp"
+trainNumber: 1172
+production: "LHC11a"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_pp/1172_20180413-0025/merge"
+status: "Comparing 5 GeV track bias and 10 GeV cluster bias"

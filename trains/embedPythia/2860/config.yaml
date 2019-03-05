@@ -1,0 +1,9 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 2860
+production: "LHC11h"
+embeddedProduction: "LHC11a"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/2860_20180115-0407/merge_runlist_1"
+status: |
+    "GA Trigger with only physics selection that we are interested in applied to ensure that embedded"
+    "statistics are not lost. To be compared against 2861"

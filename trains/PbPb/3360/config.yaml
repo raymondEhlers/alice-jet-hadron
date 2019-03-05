@@ -1,0 +1,6 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 3360
+production: "LHC11h"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/3360_20180314-0206/merge_runlist_1"
+status: "Comparing 5 GeV track bias and 10 GeV cluster Bias"

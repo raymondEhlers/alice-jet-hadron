@@ -1,0 +1,1 @@
+../../../../../localTestTrain/runTest.sh

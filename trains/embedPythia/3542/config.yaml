@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 3542
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 1
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/3542_20180413-1631/merge_runlist_1"
+status: "Response matrix for 0-10% (ie using .98 for the efficiency). Created using the Jet Response Maker."
