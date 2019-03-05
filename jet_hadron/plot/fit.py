@@ -125,6 +125,104 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
     for parameter in parameters:
         _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
 
+def _plot_rp_fit_subtracted(ep_analyses: Mapping[Any, "correlations.Correlations"], axes: matplotlib.axes.Axes) -> None:
+    """ Plot the RP subtracted histograms on the given set of axes.
+
+    Args:
+        ep_analyses: Event plane dependent correlation analysis objects.
+        axes: Axes on which the subtracted hists should be plotted. It must have an axis per component.
+    Returns:
+        None. The axes are modified in place.
+    """
+    #x = rp_fit.fit_result.x
+    #for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+    for (key_index, analysis), ax in zip(ep_analyses, axes):
+        hists = analysis.correlation_hists_delta_phi_subtracted
+        h = hists.signal_dominated.hist
+
+        # Plot the subtracted hist
+        ax.errorbar(
+            h.x, h.y, yerr = h.errors,
+            label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
+        )
+
+        # Label RP orinetation
+        ax.set_title(analysis.reaction_plane_orientation.display_str())
+
+        # Add horizontal line at 0 for comparison
+        ax.axhline(y = 0, color = "black")
+
+def rp_fit_subtracted(ep_analyses: Mapping[Any, "correlations.Correlations"],
+                      inclusive_analysis: "correlations.Correlations",
+                      output_info: analysis_objects.PlottingOutputWrapper,
+                      output_name: str) -> None:
+    """ Basic plot of the reaction plane fit subtracted hists.
+
+    Args:
+        ep_analyses: Event plane dependent correlation analysis objects.
+        inclusive_analysis: Inclusive analysis object. Mainly used for labeling.
+        output_info: Output information.
+        output_name: Name of the output plot.
+    Returns:
+        None. The plot will be saved.
+    """
+    # Setup
+    n_components = len(ep_analyses)
+    fig, axes = plt.subplots(
+        1, n_components,
+        sharey = "row", sharex = True,
+        #gridspec_kw = {"height_ratios": [3, 1]},
+        figsize = (3 * n_components, 6)
+    )
+    flat_axes = axes.flatten()
+
+    # Plot the fits on the upper panels.
+    _plot_rp_fit_subtracted(ep_analyses = ep_analyses, axes = flat_axes[:n_components])
+
+    # Define upper panel labels.
+    # In-plane
+    text = labels.track_pt_range_string(inclusive_analysis.track_pt)
+    text += "\n" + labels.constituent_cuts()
+    text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
+    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
+    # Mid-plane
+    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
+    text += "\n" + labels.system_label(
+        energy = inclusive_analysis.collision_energy,
+        system = inclusive_analysis.collision_system,
+        activity = inclusive_analysis.event_activity
+    )
+    text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
+    text += "\n" + labels.jet_finding()
+    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
+    # Out-of-plane
+    #text = "Background: $0.8<|\Delta\eta|<1.2$"
+    #text += "\nSignal + Background: $|\Delta\eta|<0.6$"
+    #_add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text)
+    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
+
+    for ax in flat_axes:
+        # Increate the frequency of major ticks to once every integer.
+        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
+        # Set label
+        ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
+
+    ax.set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
+    #jet_pt_label = labels.jet_pt_range_string(inclusive_analysis.jet_pt)
+    #track_pt_label = labels.track_pt_range_string(inclusive_analysis.track_pt)
+    #ax.set_title(fr"Subtracted 1D ${inclusive_analysis.correlation_hists_delta_phi_subtracted.signal_dominated.axis.display_str()}$,"
+    #             f" {inclusive_analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+    #             f" {jet_pt_label}, {track_pt_label}")
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Reduce spacing between subplots
+    fig.subplots_adjust(hspace = 0, wspace = 0)
+    # Save plot and cleanup
+    plot_base.save_plot(output_info, fig,
+                        f"jetH_delta_phi_{inclusive_analysis.identifier}_rp_subtracted")
+
 def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP fit components on a given set of axes.
 

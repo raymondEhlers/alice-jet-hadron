@@ -2232,15 +2232,40 @@ class CorrelationsManager(generic_class.EqualityMixin):
         with self._progress_manager.counter(total = len(self.analyses),
                                             desc = "Subtracting fit from signal dominated hists:",
                                             unit = "delta phi hists") as subtracting:
-            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+            for ep_analyses, rp_fit in \
+                    zip(analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ),
+                    self.fit_objects
+                    ):
                 # Subtract the background function from the signal dominated hist.
-                analysis.subtract_background_fit_function_from_signal_dominated()
+                for key_index, analysis in ep_analyses:
+                    analysis.subtract_background_fit_function_from_signal_dominated()
 
+                    if self.processing_options["plotSubtracted1DCorrelations"]:
+                        plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
+
+                # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
+                inclusive_analysis: Correlations
+                for key_index, analysis in ep_analyses:
+                    if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                        inclusive_analysis = analysis
+
+                # Plot all RP fit angles together
                 if self.processing_options["plotSubtracted1DCorrelations"]:
-                    plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
+                    fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
+                    plot_fit.rp_fit_subtracted(
+                        ep_analyses = ep_analyses,
+                        inclusive_analysis = inclusive_analysis,
+                        output_info = self.output_info,
+                        output_name = f"{fit_type}_{inclusive_analysis.identifier}",
+                    )
 
                 # Update progress
-                subtracting.update()
+                for key_index, analysis in ep_analyses:
+                    subtracting.update()
 
         return True
 
