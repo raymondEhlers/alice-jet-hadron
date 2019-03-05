@@ -1828,18 +1828,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
                                our_hist: Hist, their_hist: Hist,
                                title: str, x_label: str, y_label: str,
                                output_name: str) -> None:
-        # Create a ratio plot
-        # We want to take their hist and divide it by ours. However, we set the title
-        # based on our hist because the comparison should be oriented around our hist.
-        ratio = their_hist.Clone(f"{our_hist.GetName()}_comparison")
-        ratio.Divide(our_hist)
-        ratio = histogram.Histogram1D.from_existing_hist(ratio)
-
-        # Convert to histogram plots for easier plotting
+        # Convert for simplicity
         if not isinstance(our_hist, histogram.Histogram1D):
             our_hist = histogram.Histogram1D.from_existing_hist(our_hist)
         if not isinstance(their_hist, histogram.Histogram1D):
             their_hist = histogram.Histogram1D.from_existing_hist(their_hist)
+
+        # Create a ratio plot
+        # We want to take their hist and divide it by ours.
+        ratio = their_hist / our_hist
 
         # Make the comparison.
         plot_correlations.comparison_1d(
@@ -1954,6 +1951,41 @@ class Correlations(analysis_objects.JetHReactionPlane):
             errors_squared = self.fit_object.calculate_background_function_errors(x) ** 2,
         )
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist
+
+    def compare_subtracted_1d_signal_correlation_to_joel(self) -> None:
+        """ Compare subtracted 1D signal correlation hists to Joel.
+
+        Args:
+            None.
+        Returns:
+            None. The comparison will be plotted.
+        """
+        comparison_hists = correlations_helpers.get_joels_comparison_hists(
+            track_pt = self.track_pt,
+            path = self.task_config["joelsCorrelationsFilePath"]
+        )
+        # Define map by hand because it's out of our control.
+        map_to_joels_hist_names = {
+            params.ReactionPlaneOrientation.inclusive: "all",
+            params.ReactionPlaneOrientation.in_plane: "in",
+            params.ReactionPlaneOrientation.mid_plane: "mid",
+            params.ReactionPlaneOrientation.out_of_plane: "out",
+        }
+
+        # Example hist name for all orientations: "allReconstructedSignalwithErrorsNOMnosub"
+        joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
+        joel_hist_name += "ReconstructedSignalwithErrorsNOM"
+
+        self._compare_to_other_hist(
+            our_hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            their_hist = comparison_hists[joel_hist_name],
+            title = f"Subtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$,"
+                    f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
+                    f" {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
+            x_label = r"$\Delta\varphi$",
+            y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
+            output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_sub",
+        )
 
     def extract_yields(self, yield_limit: float) -> None:
         """ Extract yields. """
@@ -2233,17 +2265,22 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     self.fit_objects
                     ):
                 # Subtract the background function from the signal dominated hist.
+                inclusive_analysis: Correlations
                 for key_index, analysis in ep_analyses:
                     analysis.subtract_background_fit_function_from_signal_dominated()
 
-                    if self.processing_options["plotSubtracted1DCorrelations"]:
-                        plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
-
-                # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
-                inclusive_analysis: Correlations
-                for key_index, analysis in ep_analyses:
+                    # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                         inclusive_analysis = analysis
+
+                    if self.processing_options["plotSubtracted1DCorrelations"]:
+                        plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
+                        # Compare to Joel
+                        if analysis.collision_energy == params.CollisionEnergy.two_seven_six and analysis.event_activity == params.EventActivity.central:
+                            logger.info("Comparing subtracted correlations to Joel's.")
+                            analysis.compare_subtracted_1d_signal_correlation_to_joel()
+                        else:
+                            logger.info("Skipping comparsion with Joel since we're not analyzing the right system.")
 
                 # Plot all RP fit angles together
                 if self.processing_options["plotSubtracted1DCorrelations"]:
