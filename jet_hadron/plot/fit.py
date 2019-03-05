@@ -14,7 +14,7 @@ import matplotlib
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, Mapping, TYPE_CHECKING
+from typing import Any, List, Mapping, Tuple, TYPE_CHECKING
 
 from pachyderm import generic_config
 from pachyderm import histogram
@@ -125,7 +125,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
     for parameter in parameters:
         _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
 
-def _plot_rp_fit_subtracted(ep_analyses: Mapping[Any, "correlations.Correlations"], axes: matplotlib.axes.Axes) -> None:
+def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP subtracted histograms on the given set of axes.
 
     Args:
@@ -152,7 +152,7 @@ def _plot_rp_fit_subtracted(ep_analyses: Mapping[Any, "correlations.Correlations
         # Add horizontal line at 0 for comparison
         ax.axhline(y = 0, color = "black")
 
-def rp_fit_subtracted(ep_analyses: Mapping[Any, "correlations.Correlations"],
+def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]],
                       inclusive_analysis: "correlations.Correlations",
                       output_info: analysis_objects.PlottingOutputWrapper,
                       output_name: str) -> None:
