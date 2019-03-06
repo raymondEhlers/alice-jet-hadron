@@ -292,6 +292,8 @@ AliAnalysisManager* runEmbeddingAnalysis(
     std::string embeddingHelperConfig = configDirBasePath + "embeddingHelper";
     embeddingHelperConfig += "_" + runPeriod;
     embeddingHelperConfig += "_" + embedRunPeriod;
+    // The semi-central response config is sometimes used for testing
+    //embeddingHelperConfig += "_semiCentralResponse";
     embeddingHelperConfig += ".yaml";
     embeddingHelper->SetConfigurationPath(embeddingHelperConfig.c_str());
     std::string fileListFilename = embedRunPeriod;
