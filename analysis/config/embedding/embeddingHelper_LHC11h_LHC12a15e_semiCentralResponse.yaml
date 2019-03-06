@@ -4,6 +4,6 @@ internalEventSelection:
     enabled: true
     centralityRange: [30, 50]
     physicsSelection:
-        - "kAnyINT"
+        - "kMB"
         - "kSemiCentral"
         - "kEMCEGA"  # For the GA trigger in Joel's analysis
