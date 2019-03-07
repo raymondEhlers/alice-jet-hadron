@@ -577,12 +577,16 @@ class PtHardBins:
         train_numbers = configuration["train_numbers"]
         # Create the PtHardBin objects.
         pt_bins = []
-        for i, (pt, pt_next) in enumerate(zip(bins[:-1], bins[1:])):
+        # Sanity check
+        if len(train_numbers) != len(bins) - 1:
+            raise ValueError(f"Number of trains: {len(train_numbers)} is not equal to number of bins: {len(bins) - 1}")
+        # Assign the bins
+        for pt, pt_next, (bin_label, train_number) in zip(bins[:-1], bins[1:], train_numbers.items()):
             pt_bins.append(
                 PtHardBin(
-                    bin = i + 1,
+                    bin = bin_label,
                     range = params.SelectedRange(min = pt, max = pt_next),
-                    train_number = train_numbers[i + 1],
+                    train_number = train_number,
                 )
             )
         return pt_bins
