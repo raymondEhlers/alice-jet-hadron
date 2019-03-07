@@ -296,7 +296,7 @@ GeneralHists:
                 - ""
 
 # Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
-_ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
+_ptHardBin10BinsBak: !PtHardBins &PtHardBins10BinsBak
     # Disabled here due to a bug parsing the combination of the tag and the anchor
     # yamllint disable-line rule:indentation
     bins: [5, 11, 21, 36, 57, 84, 117, 152, 191, 234, -1]
@@ -311,6 +311,21 @@ _ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
         8: 2708
         9: 2709
         10: 2710
+_ptHardBin10Bins: !PtHardBins &PtHardBins10Bins
+    # Disabled here due to a bug parsing the combination of the tag and the anchor
+    # yamllint disable-line rule:indentation
+    bins: [5, 11, 21, 36, 57, 84, 117, 152, 191, 234, -1]
+    train_numbers:
+        1: 4477
+        2: 4478
+        3: 4479
+        4: 4480
+        5: 4481
+        6: 4482
+        7: 4483
+        8: 4484
+        9: 4485
+        10: 4486
 _testPtHardBins: &TestPtHardBin
     - !PtHardBin
       bin: 4
@@ -332,7 +347,10 @@ PtHardBins:
             #pt_hard_bin: *TestPtHardBin
 PtHardFinal:
     override:
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}"
+        # ResponseMaker
+        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}"
+        # JetHPerformance
+        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/{task_name}"
         iterables:
             # Technically this is true, although not very helpful. However, we must have at least
             # one iterator, so this allows us to do so with minimal change.
@@ -340,64 +358,66 @@ PtHardFinal:
                 - "inclusive"
 Response:
     # Select which of the tasks (with their specification defined below) produced the response.
-    responseMatrixTask: "ResponseMaker"
-    #responseMatrixTask: "JetHPerformance"
+    #responseMatrixTask: "ResponseMaker"
+    responseMatrixTask: "JetHPerformance"
     ResponseMaker:
         # Main response input
         response:
-            sparse: True
+            sparse: true
             enum_name: "ResponseMakerMatchingSparse"
             input_name: "fHistMatching"
         # (Matched) part level spectra
         part_level:
-            sparse: True
+            sparse: true
             enum_name: "ResponseMakerMatchingSparse"
             input_name: "fHistMatching"
         # (Matched) det level spectra
         det_level:
-            sparse: True
+            sparse: true
             enum_name: "ResponseMakerMatchingSparse"
             input_name: "fHistMatching"
         unmatched_part_level:
-            sparse: True
+            sparse: true
             enum_name: "ResponseMakerJetsSparse"
             input_name: "fHistJets2"
         unmatched_det_level:
-            sparse: True
+            sparse: true
             enum_name: "ResponseMakerJetsSparse"
             input_name: "fHistJets1"
     JetHPerformance:
         # Main response input
         response:
-            sparse: True
+            sparse: true
             enum_name: "JetHPerformanceResponseSparse"
             input_name: ["response", "fHistResponseMatrix"]
         # (Matched) part level spectra
         part_level:
-            sparse: True
+            sparse: true
             enum_name: "JetHPerformanceResponseSparse"
             input_name: ["response", "fHistResponseMatrix"]
         # (Matched) det level spectra
         det_level:
-            sparse: True
+            sparse: true
             enum_name: "JetHPerformanceResponseSparse"
             input_name: ["response", "fHistResponseMatrix"]
         unmatched_part_level:
-            sparse: False
+            sparse: false
             input_name: ["QA", "partLevelJets", "fHistJetPt"]
         unmatched_det_level:
-            sparse: False
+            sparse: false
             input_name: ["QA", "hybridLevelJets", "fHistJetPt"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        # ResponseMaker
         # yamllint disable-line rule:line-length
-        inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
+        #inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
+        # JetHPerformance
+        inputListName: "AliAnalysisTaskEmcalJetHPerformance"
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         # Test values:
         #inputFilename: "analysis/AnalysisResults.response.root"
-        #inputListName: "AliAnalysisTaskEmcalJetHPerformance"
         iterables:
             reaction_plane_orientation: true
             pt_hard_bin: *PtHardBins10Bins
@@ -423,8 +443,12 @@ ResponseFinal:
         # Plot the points for each angle with a small offset.
         plot_points_with_offset: false
     override:
+        # ResponseMaker
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        # JetHPerformance
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         aliceLabel: final
         iterables:
@@ -435,7 +459,11 @@ ResponseManager:
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        # ResponseMaker
+        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        # JetHPerformance
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/ResponseFinal"
 
 # Configuration for plotting EMCal corrections from a train.
 EMCalCorrections:
