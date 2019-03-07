@@ -136,6 +136,14 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
         # Store this value for convenience. It is the same for all orientations.
         particle_level_max_pt = analysis.task_config["particle_level_spectra"]["particle_level_max_pt"]
 
+        # For inclusive, use open markers that are plotted on top of all points.
+        additional_args = {}
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            additional_args.update({
+                "fillstyle": "none",
+                "zorder": 10,
+            })
+
         # Convert and plot hist
         h = histogram.Histogram1D.from_existing_hist(analysis.particle_level_spectra)
         ax.errorbar(
@@ -146,6 +154,7 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
             color = color,
             marker = marker,
             linestyle = "",
+            **additional_args
         )
 
     # Final presentation settings
@@ -217,7 +226,10 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Aesthetics
     # Colors and markers are from Joel's plots.
     colors = [ROOT.kBlack, ROOT.kBlue - 7, 8, ROOT.kRed - 4]
-    markers = [ROOT.kFullDiamond, ROOT.kFullSquare, ROOT.kFullTriangleUp, ROOT.kFullCircle]
+    markers = [ROOT.kOpenDiamond, ROOT.kFullSquare, ROOT.kFullTriangleUp, ROOT.kFullCircle]
+    # Diamond: 1.6
+    # Triangle: 1.2
+    marker_sizes = [1.6, 1.1, 1.2, 1.1]
 
     # Canvas
     canvas = ROOT.TCanvas("canvas", "canvas")
@@ -283,7 +295,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(general_labels["jet_finding"])))
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
-    for i, (analysis, color, marker) in enumerate(zip(ep_analyses.values(), colors, markers)):
+    for i, (analysis, color, marker, marker_size) in enumerate(zip(ep_analyses.values(), colors, markers, marker_sizes)):
         # The hist to be plotted. We explicitly retrieve it for convenience.
         hist = analysis.particle_level_spectra
 
@@ -312,12 +324,14 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         hist.GetXaxis().SetRangeUser(0, analysis.task_config["particle_level_spectra"]["particle_level_max_pt"])
 
         # Set histogram aesthetics
-        #logger.debug(f"color: {color}")
         hist.SetLineColor(color)
         hist.SetMarkerColor(color)
         hist.SetMarkerStyle(marker)
         # Increase marker size slightly
-        hist.SetMarkerSize(1.1)
+        hist.SetMarkerSize(marker_size)
+        # Could increase the line width if the inclusive angle was closed, but
+        # the open marker doesn't look very good...
+        #hist.SetLineWidth(2)
 
         # Offset points
         # See: https://root.cern.ch/root/roottalk/roottalk03/2765.html
@@ -335,6 +349,9 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
 
         # Last, we draw the actual hist.
         hist.Draw("same")
+
+    # Redraw the inclusive hist so that it's on top.
+    inclusive.particle_level_spectra.Draw("same")
 
     # Draw all of the labels and the legend.
     for tex in latex_labels:
