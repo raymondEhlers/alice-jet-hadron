@@ -439,6 +439,18 @@ class ResponseMatrix(ResponseMatrixBase):
             axis_range_name = "detLevelReactionPlaneOrientation",
             **reaction_plane_axis_range
         )
+        # Matching distance
+        # Cut the matching distance at R.
+        matching_distance_projector_axis = projectors.HistAxisRange(
+            axis_type = response_axes.matching_distance,
+            axis_range_name = "matchingDistance",
+            min_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                None, 1
+            ),
+            max_val = projectors.HistAxisRange.apply_func_to_find_bin(
+                ROOT.TAxis.FindBin, 0.2,
+            )
+        )
 
         #################
         # Response matrix
@@ -467,6 +479,9 @@ class ResponseMatrix(ResponseMatrixBase):
                     ),
                 )
             )
+            # Matching distance
+            response_matrix.additional_axis_cuts.append(matching_distance_projector_axis)
+            # Reaction plane orientation
             response_matrix.additional_axis_cuts.append(reaction_plane_orientation_projector_axis)
 
             # No additional cuts for the projection dependent axes
@@ -529,8 +544,13 @@ class ResponseMatrix(ResponseMatrixBase):
                 output_attribute_name = "jet_spectra",
                 projection_name_format = "jetSpectraPartLevel",
             )
-            # The reaction plane orientation axis may be different, so we copy the HistAxisRange
-            # and update the axis to be the one for the part level
+            # The matching distance and reaction plane orientation axes may be different, so we copy
+            # the HistAxisRange and update the axis to be the one for the part level
+            # Matching distance
+            part_level_matching_distance_projector_axis = copy.deepcopy(matching_distance_projector_axis)
+            part_level_matching_distance_projector_axis.axis_type = part_level_axes.matching_distance
+            part_level_jet_spectra.additional_axis_cuts.append(part_level_matching_distance_projector_axis)
+            # Event plane orientation
             part_level_reaction_plane_orientation_projector_axis = \
                 copy.deepcopy(reaction_plane_orientation_projector_axis)
             part_level_reaction_plane_orientation_projector_axis.axis_type = \
@@ -619,8 +639,13 @@ class ResponseMatrix(ResponseMatrixBase):
                     )
                 )
             )
-            # The reaction plane orientation axis may be different, so we copy the HistAxisRange
-            # and update the axis to be the one for the part level
+            # The matching distance and reaction plane orientation axis may be different, so we copy
+            # the HistAxisRange and update the axis to be the one for the det level
+            # Matching distance
+            det_level_matching_distance_projector_axis = copy.deepcopy(matching_distance_projector_axis)
+            det_level_matching_distance_projector_axis.axis_type = det_level_axes.matching_distance
+            det_level_jet_spectra.additional_axis_cuts.append(det_level_matching_distance_projector_axis)
+            # Event plane orientaton
             det_level_reaction_plane_orientation_projector_axis = \
                 copy.deepcopy(reaction_plane_orientation_projector_axis)
             det_level_reaction_plane_orientation_projector_axis.axis_type = \
