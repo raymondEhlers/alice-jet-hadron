@@ -645,6 +645,8 @@ class ResponseMatrix(ResponseMatrixBase):
     def retrieve_non_projected_hists(self) -> bool:
         """ Retrieve histograms which don't require projectors. """
         # NOTE: The names of the histograms defined here must match those set in the projectors.
+        logger.debug("Retrieving non-projected hists")
+
         #################
         # Response matrix
         #################
@@ -1194,7 +1196,7 @@ class ResponseManager(generic_class.EqualityMixin):
         # 3. Write histograms (or read histograms if requested).
         # 4. Final processing, including projecting particle level spectra.
         # 5. Plotting.
-        # 6. Writing final hists together to a single final.
+        # 6. Writing final hists together to a single file.
         #
         # If we are starting from reading histograms, we start from step 3.
         steps = 4 if self.task_config["read_hists_from_root_file"] else 6
