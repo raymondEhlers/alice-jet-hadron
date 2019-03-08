@@ -82,10 +82,12 @@ def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_
         general_labels[k] = labels.make_valid_latex_string(v)
 
     # Plot labels
-    y_label = r"\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+    y_label = r"$\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}$"
     if inclusive.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
         y_label = r"(1/\mathrm{N}_{\mathrm{jets}})" + y_label
-        y_label = f"${y_label}$"
+        y_label = labels.make_valid_latex_string(y_label)
+    if inclusive.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_bin"]:
+        y_label = "Arb. Units"
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
