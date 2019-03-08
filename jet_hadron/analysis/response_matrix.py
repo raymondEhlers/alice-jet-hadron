@@ -290,15 +290,29 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             hist.SetBinContent(1, 0)
             hist.SetBinError(1, 0)
 
+        # Sanity check
+        if particle_level_spectra_config["normalize_by_n_jets"] and particle_level_spectra_config["normalize_at_selected_jet_pt_bin"]:
+            raise RuntimeError("Cannot request normalization by both n jets and at a selected pt bin. Please check your configuration.")
+
         # Scale by N_{jets}
         # The number of entries should be equal to the number of jets. However, it's not a straightforward
         # number to extract because of all of the scaling related to pt hard bins
         if particle_level_spectra_config["normalize_by_n_jets"]:
             # Integrate over the hist to determine the number of jets displayed.
-            # 1e-5 is to ensure we do the integral from [0, 100) (ie not inclusive of the bin beyond 100)
-            max_value = particle_level_spectra_config["particle_level_max_pt"] - utils.epsilon
-            entries = hist.Integral(hist.FindBin(0), hist.FindBin(max_value))
+            # NOTE: This normalization also makes it into a probability distribution.
+            max_value = particle_level_spectra_config["particle_level_max_pt"]
+            entries = hist.Integral(hist.FindBin(0 + epsilon), hist.FindBin(max_value - epsilon))
             logger.debug(f"entries from hist: {hist.GetEntries()}, from integral: {entries}")
+
+            # Normalize the histogram
+            hist.Scale(1.0 / entries)
+
+        if particle_level_spectra_config["normalize_at_selected_jet_pt_bin"]:
+            # Determine the number of entries at the selected bin value
+            values = particle_level_spectra_config["normalize_at_selected_jet_pt_values"]
+            entries = hist.Integral(hist.FindBin(values.min + epsilon), hist.FindBin(values.max - epsilon))
+            #entries = hist.GetBinContent(hist.FindBin(value[0] + epsilon))
+            logger.debug(f"Number of entries with {values}: {entries}")
 
             # Normalize the histogram
             hist.Scale(1.0 / entries)

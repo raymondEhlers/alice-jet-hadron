@@ -438,6 +438,9 @@ ResponseFinal:
         remove_first_bin: true
         # Normalize each spectra the number of jets displayed.
         normalize_by_n_jets: true
+        # Normalize at selected jet pt bin
+        normalize_at_selected_jet_pt_bin: false
+        normalize_at_selected_jet_pt_values: !SelectedRange [25, 35]
         # Maximum particle level pt to display.
         particle_level_max_pt: 100
         # Plot the points for each angle with a small offset.
@@ -455,7 +458,7 @@ ResponseFinal:
             reaction_plane_orientation: true
 ResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: false
+    read_hists_from_root_file: true
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
