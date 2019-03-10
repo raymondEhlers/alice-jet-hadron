@@ -1,0 +1,12 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4487
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 3
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4487_20190307-0034/merge"
+status: |
+    "Response matrix for 30-50% (ie using .99 for the efficiency). Created using the Jet-H Performance Task."
+    "Re-running pt hard bin 3 with kMB instead of kAnyINT to try to avoid cell time issue which indicates"
+    "that embedded events are being repeated. Result was that it still repeated the issue, so we need"
+    "more specific QA information to address this issue. See train 4489."
