@@ -1,0 +1,13 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4489
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 3
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4489_20190310-1724/merge"
+status: |
+    "Response matrix for 30-50% (ie using .99 for the efficiency). Created using the Jet-H Performance Task."
+    "Re-running pt hard bin 3 with some QA hists for large negative cell time evnets (which indicates repeated events)."
+    "The QA didn't gather the proper information, as it recorded the event selection of the current event instead"
+    "of the event that lead to the embedding being used twice. New QA information was added and will be investigated"
+    "with another train."
