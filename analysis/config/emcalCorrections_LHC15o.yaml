@@ -36,6 +36,7 @@ ClusterExotics:
 ClusterNonLinearity:
     enabled: true
     createHistos: true
+    nonLinFunct: kBeamTestCorrectedv4
 ClusterTrackMatcher:
     enabled: true
     createHistos: true
