@@ -143,14 +143,14 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         # Plot the subtracted hist
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
-            label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
+            label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
         )
 
         # Label RP orinetation
         ax.set_title(analysis.reaction_plane_orientation.display_str())
 
         # Add horizontal line at 0 for comparison
-        ax.axhline(y = 0, color = "black")
+        ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 
 def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]],
                       inclusive_analysis: "correlations.Correlations",
