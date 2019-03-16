@@ -2196,7 +2196,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
 
                 # Setup the fit
-                logger.debug(f"Performing RPF for {inclusive_analysis.jet_pt}, {inclusive_analysis.track_pt}")
+                logger.debug(f"Performing RPF for {inclusive_analysis.jet_pt_identifier}, {inclusive_analysis.track_pt_identifier}")
                 fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                 FitFunction = getattr(three_orientations, fit_type)
                 fit_obj = FitFunction(
