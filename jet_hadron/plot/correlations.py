@@ -188,9 +188,17 @@ def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotl
         label = hists.signal_dominated.type.display_str(), marker = "o", linestyle = "",
     )
     h_background = histogram.Histogram1D.from_existing_hist(hists.background_dominated.hist)
-    ax.errorbar(
+    # Plot with opacity first
+    background_plot = ax.errorbar(
         h_background.x, h_background.y, yerr = h_background.errors,
-        label = hists.background_dominated.type.display_str(), marker = "o", linestyle = "",
+        marker = "o", linestyle = "", alpha = 0.5,
+    )
+    # Then restrict range and plot without opacity
+    near_side = len(h_background.x) // 2
+    ax.errorbar(
+        h_background.x[:near_side], h_background.y[:near_side], yerr = h_background.errors[:near_side],
+        label = hists.background_dominated.type.display_str(),
+        marker = "o", linestyle = "", color = background_plot[0].get_color()
     )
 
     # Set labels.

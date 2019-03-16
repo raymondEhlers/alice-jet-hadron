@@ -237,27 +237,36 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
     if len(rp_fit.components) != len(axes):
         raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
 
+    # TODO: Centralize these values
+    signal_color = "C0"  # Blue
+    background_color = "C1"  # Orange
+    fit_color = "C4"  # Purple
+
     x = rp_fit.fit_result.x
     for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
         # Setup
         # Get the relevant data
         hist = data[fit_type]
         reaction_plane_orientation = params.ReactionPlaneOrientation[fit_type.orientation]
+        data_color = background_color
+        if reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            data_color = signal_color
+
+        # Plot the data first to ensure that the colors are consistent with previous plots
+        ax.errorbar(
+            x, hist.y, yerr = hist.errors, label = "Data",
+            marker = "o", linestyle = "", color = data_color,
+        )
 
         # Draw the data according to the given function
         # Determine the values of the fit function.
         fit_values = component.evaluate_fit(x = x)
 
         # Plot the main values
-        plot = ax.plot(x, fit_values, label = "Fit")
+        plot = ax.plot(x, fit_values, label = "Fit", color = fit_color)
         # Plot the fit errors
         errors = component.fit_result.errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
-        # Plot the data
-        ax.errorbar(
-            x, hist.y, yerr = hist.errors, label = "Data",
-            marker = "o", linestyle = ""
-        )
         # TODO: Update label.
         ax.set_title(reaction_plane_orientation.display_str())
 
@@ -274,6 +283,9 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data
     # Validation
     if len(rp_fit.components) != len(axes):
         raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
+
+    # TODO: Centralize these values
+    fit_color = "C4"  # Purple
 
     x = rp_fit.fit_result.x
     for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
@@ -292,7 +304,7 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data
         residual = (hist - fit_hist) / fit_hist
 
         # Plot the main values
-        plot = ax.plot(x, residual.y, label = "Residual")
+        plot = ax.plot(x, residual.y, label = "Residual", color = fit_color)
         # Plot the fit errors
         ax.fill_between(
             x, residual.y - residual.errors, residual.y + residual.errors,
