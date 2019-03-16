@@ -270,6 +270,10 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
         # TODO: Update label.
         ax.set_title(reaction_plane_orientation.display_str())
 
+    # Increase the upper range by 8% to ensure that the labels don't overlap with the data.
+    lower_limit, upper_limit = ax.get_ylim()
+    axes[0].set_ylim(bottom = lower_limit, top = upper_limit * 1.08)
+
 def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
     """ Plot fit residuals on a given set of axes.
 
