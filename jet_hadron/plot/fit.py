@@ -152,6 +152,10 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         # Add horizontal line at 0 for comparison
         ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 
+    # Increase the upper range by 10% to ensure that the labels don't overlap with the data.
+    lower_limit, upper_limit = ax.get_ylim()
+    axes[0].set_ylim(bottom = lower_limit, top = upper_limit * 1.10)
+
 def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]],
                       inclusive_analysis: "correlations.Correlations",
                       output_info: analysis_objects.PlottingOutputWrapper,
