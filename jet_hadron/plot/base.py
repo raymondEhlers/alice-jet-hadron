@@ -50,6 +50,12 @@ matplotlib.rcParams["mathtext.rm"] = "Bitstream Vera Sans"
 matplotlib.rcParams["mathtext.it"] = "Bitstream Vera Sans:italic"
 matplotlib.rcParams["mathtext.bf"] = "Bitstream Vera Sans:bold"
 
+class AnalysisColors:
+    """ Exceedingly simple class to store analysis colors. """
+    signal = "C0"  # Blue from MPL
+    background = "C1"  # Orange from MPL
+    fit = "C4"  # Purple from MPL
+
 @dataclass
 class PlotLabels:
     """ Simple wrapper for keeping plot labels together.
