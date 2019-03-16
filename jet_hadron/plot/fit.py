@@ -211,7 +211,7 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
         # Set label
         ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
 
-    ax.set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
+    flat_axes[0].set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
     #jet_pt_label = labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     #track_pt_label = labels.track_pt_range_string(inclusive_analysis.track_pt)
     #ax.set_title(fr"Subtracted 1D ${inclusive_analysis.correlation_hists_delta_phi_subtracted.signal_dominated.axis.display_str()}$,"
