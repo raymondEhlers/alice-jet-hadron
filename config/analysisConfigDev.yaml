@@ -78,13 +78,6 @@ Correlations:
         fit1DCorrelations: true
         plot1DCorrelationsWithFits: true
         subtract1DCorrelations: true
-        plotSubtracted1DCorrelations: true
-        # Yields
-        extractYields: false
-        plotYields: false
-        # Widths
-        extractWidths: false
-        plotWidths: false
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
@@ -120,6 +113,12 @@ CorrelationsManager:
     processing_options:
         plotRPFit: true
         plotSubtracted1DCorrelations: true
+        # Yields
+        extractYields: false
+        plotYields: false
+        # Widths
+        extractWidths: false
+        plotWidths: false
     reaction_plane_fit:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"

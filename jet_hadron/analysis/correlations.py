@@ -1767,7 +1767,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.info("Comparing unsubtracted correlations to Joel's.")
                 self._compare_unsubtracted_1d_signal_correlation_to_joel()
             else:
-                logger.info("Skipping comparsion with Joel since we're not analyzing the right system.")
+                logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
             logger.info("Plotting 1D correlations")
             plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
 
@@ -2103,6 +2103,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     )
 
                 # Update progress
+                for key_index, analysis in ep_analyses:
+                    analysis.ran_fitting = True
                 fitting.update()
 
         if self.processing_options["plotRPFit"]:
@@ -2135,20 +2137,26 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Subtract the background function from the signal dominated hist.
                 inclusive_analysis: Correlations
                 for key_index, analysis in ep_analyses:
+                    # Sanity check
+                    if not analysis.ran_fitting:
+                        raise RuntimeError("Must run the fitting before subtracting!")
+
+                    # Subtract
                     analysis.subtract_background_fit_function_from_signal_dominated()
 
-                    # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
+                    # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                         inclusive_analysis = analysis
 
                     if self.processing_options["plotSubtracted1DCorrelations"]:
                         plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
                         # Compare to Joel
-                        if analysis.collision_energy == params.CollisionEnergy.two_seven_six and analysis.event_activity == params.EventActivity.central:
+                        if analysis.collision_energy == params.CollisionEnergy.two_seven_six \
+                                and analysis.event_activity == params.EventActivity.central:
                             logger.info("Comparing subtracted correlations to Joel's.")
                             analysis.compare_subtracted_1d_signal_correlation_to_joel()
                         else:
-                            logger.info("Skipping comparsion with Joel since we're not analyzing the right system.")
+                            logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
 
                 # Plot all RP fit angles together
                 if self.processing_options["plotSubtracted1DCorrelations"]:
@@ -2162,13 +2170,40 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Update progress
                 for key_index, analysis in ep_analyses:
+                    analysis.ran_post_fit_processing = True
                     subtracting.update()
 
         return True
 
-    def extract_yields_and_widths(self) -> bool:
-        """ Extract yields and widths from the analysis objects. """
-        ...
+    def extract_yields(self) -> bool:
+        """ Extract yields from analysis objects. """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Extractin' yields:",
+                                            unit = "delta phi hists") as extracting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Ensure that the previous step was run
+                if not analysis.ran_post_fit_processing:
+                    raise RuntimeError("Must run the post fit processing step before extracting yields!")
+
+                # Update progress
+                extracting.update()
+
+        return True
+
+    def extract_widths(self) -> bool:
+        """ Extract widths from analysis objects. """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Extractin' widths:",
+                                            unit = "delta phi hists") as extracting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Ensure that the previous step was run
+                if not analysis.ran_post_fit_processing:
+                    raise RuntimeError("Must run the post fit processing step before extracting widths!")
+
+                # Update progress
+                extracting.update()
+
+        return True
 
     def run(self) -> bool:
         """ Run the analysis in the correlations manager. """
@@ -2178,8 +2213,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
         # 3. Project, normalize, and plot the correlations down to 1D.
         # 4. Fit and plot the correlations.
         # 5. Subtract the fits from the correlations.
-        # 6. Extract and plot the widths and yields.
-        steps = 6
+        # 6. Extract and plot the yields.
+        # 7. Extract and plot the widths.
+        steps = 7
         with self._progress_manager.counter(total = steps,
                                             desc = "Overall processing progress:",
                                             unit = "") as overall_progress:
@@ -2209,8 +2245,12 @@ class CorrelationsManager(generic_class.EqualityMixin):
             self.subtract_fits()
             overall_progress.update()
 
-            # Extract the yields and widths
-            self.extract_yields_and_widths()
+            # Extract yields
+            self.extract_yields()
+            overall_progress.update()
+
+            # Extract widths
+            self.extract_widths()
             overall_progress.update()
 
         return True
