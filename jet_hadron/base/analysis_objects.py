@@ -116,7 +116,7 @@ class CorrelationObservable(Observable):
         return f"jetH_{self.axis}_{self.analysis_identifier}_{self.type}"
 
 @dataclass
-class ExtractObservable:
+class ExtractedObservable:
     """ For extracted observable such as widths or yields. """
     value: float
     error: float

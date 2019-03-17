@@ -627,68 +627,7 @@ class JetHEPFit(object):
         return errorVals
 
     def SubtractEPHists(self):
-        for keys, jetH in analysis_config.unrollNestedDict(self.analyses):
-            assert keys[0] == jetH.reaction_plane_orientation
-            for observable in jetH.dPhiArray.values():
-                #retVal = self.CheckIfFitIsEnabled(epAngle, observable.correlationType)
-                #if retVal == False:
-                #    continue
-
-                # x values for the fit to be evaluated at
-                # Plot fit at same points as data
-                # Defined seperately because we may want to change this in the future
-                xForFitFunc = observable.hist.binCenters
-
-                # Retrieve fit container
-                # We know that it exists because we just checked.
-                fitCont = self.fitContainers[(observable.jetPtBin, observable.trackPtBin)]
-
-                # Retrieve fit data
-                fit = self.EvaluateFit(epAngle = jetH.reaction_plane_orientation,
-                        fitType = analysis_objects.CorrelationType.background_dominated,
-                        xValue = xForFitFunc,
-                        fitContainer = fitCont)
-
-                # Subtract the fit from the hist
-                subtracted = observable.hist.array - fit
-                # TODO: Error prop?
-                subtractedErrors = observable.hist.errors
-
-                histArray = analysis_objects.HistArray(_binCenters = observable.hist.x,
-                        _array = subtracted,
-                        _errors = subtractedErrors)
-
-                subtractedHistName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = observable.jetPtBin,
-                        trackPtBin = observable.trackPtBin,
-                        tag = observable.correlationType)
-
-                jetH.dPhiSubtractedArray[subtractedHistName] = analysis_objects.CorrelationObservable1D(jetPtBin = observable.jetPtBin,
-                        trackPtBin = observable.trackPtBin,
-                        axis = observable.axis,
-                        correlationType = observable.correlationType,
-                        hist = histArray)
-
-                logger.debug("Storing subtracted hist under name {}".format(subtractedHistName))
-
-                # Save out the newly subtracted hist
-                # TODO: This will overrite the unsubtracted hist. Determine how to make these names unique
-                #histArray.saveToYAML(self.outputPrefix, histType = observable.correlationType, jetPtBin = observable.jetPtBin, trackPtBin = observable.trackPtBin)
-
-    def RetrieveWidths(self):
-        """ Extract widths from the fits. """
-        widths = {}
-        # Retrieve the widths parameter and it's error
-        for location in ["ns", "as"]:
-            widths[location] = {}
-            for (jetPtBin, trackPtBin), fitCont in self.fitContainers.items():
-                value = fitCont.params["{}Sigma".format(location)]
-                error = fitCont.params["error_{}Sigma".format(location)]
-                widths[location][(jetPtBin, trackPtBin)] = analysis_objects.ExtractedObservable(jetPtBin = jetPtBin,
-                        trackPtBin = trackPtBin,
-                        value = value,
-                        error = error)
-
-        return widths
+        ...
 
     @staticmethod
     def GetArgsForFunc(func, xValue, fitContainer):

@@ -12,7 +12,6 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-import os
 import seaborn as sns
 from typing import Any, List, Mapping, Tuple, TYPE_CHECKING
 
@@ -900,73 +899,3 @@ def PlotSubtractedEPHists(epFitObj):
         # Cleanup
         plt.close(figAll)
 
-def CompareToJoel(epFitObj):
-    # Open ROOT file
-    filename = "RPF_sysScaleCorrelations{trackPtBin}rebinX2bg.root"
-
-    joelAllAnglesName = "allReconstructedSignalwithErrorsNOM"
-    joelAllAnglesErrorMinName = "allReconstructedSignalwithErrorsMIN"
-    joelAllAnglesErrorMaxName = "allReconstructedSignalwithErrorsMAX"
-
-    # Iterate over the data and subtract the hists
-    for (jetPtBin, trackPtBin), fitCont in epFitObj.fitContainers.items():
-        import ROOT
-        logger.info("Comparing with Joel's code for trackPtBin {}".format(trackPtBin))
-
-        # TODO: Remove hard code
-        # TODO: Move this out of here if possible (but perhaps it's fine)
-        fIn = ROOT.TFile.Open(os.path.join("output", "plotting", "PbPb", "joelCentral", filename.format(trackPtBin = trackPtBin)), "READ")
-        joelAllAngles = fIn.Get(joelAllAnglesName)
-        joelAllAnglesErrorMin = fIn.Get(joelAllAnglesErrorMinName)
-        joelAllAnglesErrorMax = fIn.Get(joelAllAnglesErrorMaxName)
-
-        # Define axes for plot
-        fig, ax = plt.subplots()
-
-        jetPtString = params.generateJetPtRangeString(jetPtBin)
-        trackPtString = params.generateTrackPtRangeString(trackPtBin)
-        formatStr = """{jetPtString}\n{trackPtString}""".format(jetPtString = jetPtString, trackPtString = trackPtString)
-        ax.set_title(r"$\Delta\varphi$ subtracted correlations " + " for {}".format(formatStr))
-        # Axis labels
-        ax.set_xlabel(r"$\Delta\varphi$")
-        ax.set_ylabel(r"$\mathrm{dN}/\mathrm{d}\Delta\varphi$")
-
-        epAngle = params.ReactionPlaneOrientation.all
-        #data = epFitObj.subtractedHistData[(jetPtBin, trackPtBin)][epAngle][analysis_objects.CorrelationType.signal_dominated]
-        _, jetH = next(generic_config.unrollNestedDict(epFitObj.analyses[epAngle]))
-        observableName = jetH.histNameFormatDPhiSubtractedArray.format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = analysis_objects.CorrelationType.signal_dominated)
-        observable = jetH.dPhiSubtractedArray[observableName]
-
-        # Plot my dada
-        myDataPlot = ax.errorbar(observable.hist.binCenters, observable.hist.array, yerr = observable.hist.errors, label = "This analysis")
-        myDataPlotColor = myDataPlot[0].get_color()
-        fitErrors = fitCont.errors[(epAngle.str(), analysis_objects.CorrelationType.signal_dominated.str())]
-        ax.fill_between(observable.hist.binCenters, observable.hist.array - fitErrors, observable.hist.array + fitErrors, facecolor = myDataPlotColor, zorder = 10, alpha = 0.8)
-
-        # Plot joel data
-        joelData = histogram.getArrayFromHist(joelAllAngles)
-        joelDataPlot = ax.errorbar(joelData["binCenters"], joelData["y"], yerr = joelData["errors"], label = "Joel")
-        joelDataPlotColor = joelDataPlot[0].get_color()
-        joelErrorMin = histogram.getArrayFromHist(joelAllAnglesErrorMin)
-        ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMin["y"], facecolor = joelDataPlotColor)
-        joelErrorMax = histogram.getArrayFromHist(joelAllAnglesErrorMax)
-        ax.fill_between(joelData["binCenters"], joelData["y"], joelErrorMax["y"], facecolor = joelDataPlotColor)
-
-        # Tight the plotting up
-        # TODO: Shorten up title (convert the information to a text box), and re-enable this option
-        #       For explanation of the error, see: https://github.com/mwaskom/seaborn/issues/954
-        #fig.tight_layout()
-        # Then adjust spacing between subplots
-        # Must go second so it isn't reset by tight_layout()
-        # Tuned for "paper" context
-        fig.subplots_adjust(hspace = 0, wspace = 0.05, bottom = 0.12, left = 0.1)
-
-        # Show legend
-        plt.legend(loc="best")
-
-        # Save plot
-        # TODO: Define this name in the class!
-        plot_base.save_plot(epFitObj, fig, "joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}_subtracted".format(jetPtBin = jetPtBin, trackPtBin = trackPtBin, tag = epFitObj.overallFitLabel.str()))
-
-        # Cleanup
-        plt.close(fig)

@@ -214,21 +214,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Generate correlation projectors (2D -> 1D) """
         ...
 
-    @staticmethod
-    def fitCombinedSignalAndBackgroundRegion(analyses):
-        """ Driver for the apply the reaction plane fit to the signal and background regions. """
-        # Define EP fit object to manage the RPF
-        epFit = fitting.JetHEPFit(analyses)
-
-        # Setup and perform the fit
-        epFit.DefineFits()
-        epFit.PerformFit()
-
-        # Fit errors
-        epFit.DetermineFitErrors()
-
-        return epFit
-
     def fitBackgroundDominatedRegion(self):
         """ Fit the background dominated 1D correlations. """
         fitFunctions = {params.collisionSystem.pp: fitting.fitDeltaPhiBackground,
@@ -639,19 +624,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         logger.info("Running 1D fits")
         epFit = JetHAnalysis.runFitting(analyses)
 
-        if epFit:
-            logger.info("Running post EP fit processing")
-            logger.info("Subtracting EP hists")
-            # TODO: Ensure that the new analyses object is handled properly!
-            # TODO: This does more than it the name implies, so it should be renamed!
-            JetHAnalysis.subtractEPHists(analyses, epFit)
-        else:
-            # Finish the analysis
-            for keys, task in generic_config.unrollNestedDict(analyses):
-                logger.info(f"Running {keys} post fit analysis")
-                jetH.postFitProcessing()
-                jetH.yieldsAndWidths()
-
         return (analyses, epFit)
 
     def runProjections(self):
@@ -707,44 +679,30 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     @staticmethod
     def runFitting(analyses):
+        """ Run pp fitting. """
         # TODO: TEMP
         self = None
         # ENDTEMP
-        # Ensure that the previous step was run
-        for _, jetH in generic_config.unrollNestedDict(analyses):
-            if not jetH.ranProjections:
-                raise RuntimeError("Must run the projection step before fitting!")
 
-        # Get the first analysis so we can get configuration options, etc
-        _, firstAnalysis = next(generic_config.unrollNestedDict(analyses))
-        processing_options = firstAnalysis.taskConfig["processing_options"]
+        # processing_options["fit1DCorrelations"]
+        if False:
+            # Run the fitting code
+            epFit = None
 
-        # Run the fitting code
-        if processing_options["fit1DCorrelations"]:
-            if firstAnalysis.collisionSystem == params.collisionSystem.PbPb:
-                # Run the combined fit over the analyses
-                epFit = JetHAnalysis.fitCombinedSignalAndBackgroundRegion(analyses)
+            # Handle pp in the standard way
+            # Fit the 1D correlations
+            logger.info("Fitting the background domintation region")
+            self.fitBackgroundDominatedRegion()
+            logger.info("Fitting signal region")
+            self.fitSignalRegion()
+            #self.fitSignalRegion(hists = hists, jetH = jetH, outputPrefix = outputPrefix)
+            self.fitDEtaCorrelations()
 
-                if processing_options["plot1DCorrelationsWithFits"]:
-                    # Plot the result
-                    plot_fit.PlotRPF(epFit)
-            else:
-                epFit = None
+            # Write output
+            self.write1DFits()
 
-                # Handle pp in the standard way
-                # Fit the 1D correlations
-                logger.info("Fitting the background domintation region")
-                self.fitBackgroundDominatedRegion()
-                logger.info("Fitting signal region")
-                self.fitSignalRegion()
-                #self.fitSignalRegion(hists = hists, jetH = jetH, outputPrefix = outputPrefix)
-                self.fitDEtaCorrelations()
-
-                # Write output
-                self.write1DFits()
-
-                # Ensure that the next step in the chain is run
-                processing_options["subtract1DCorrelations"] = True
+            # Ensure that the next step in the chain is run
+            #processing_options["subtract1DCorrelations"] = True
         else:
             # TODO: This isn't well defined because self isn't defined.
             #       Need to think more about how to handle it properly.
@@ -759,32 +717,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
     @staticmethod
     def subtractEPHists(analyses, epFit):
-        # TODO: Refactor this function!
-        # Ensure that the previous step was run
-        for _, jetH in generic_config.unrollNestedDict(analyses):
-            if not jetH.runFitting:
-                raise RuntimeError("Must run the fitting step before subtraction!")
-
-        # Get the first analysis so we can get configuration options, etc
-        _, firstAnalysis = next(generic_config.unrollNestedDict(analyses))
-        processing_options = firstAnalysis.taskConfig["processing_options"]
-
-        # Subtracted fit functions from the correlations
-        if processing_options["subtract1DCorrelations"]:
-            logger.info("Subtracting EP dPhi hists")
-            epFit.SubtractEPHists()
-
-            if processing_options["plotSubtracted1DCorrelations"]:
-                plot_fit.PlotSubtractedEPHists(epFit)
-
-            logger.info("Comparing to Joel")
-            plot_fit.CompareToJoel(epFit)
-
-            logger.info("Plotting widths")
-            widths = epFit.RetrieveWidths()
-            plot_extracted.PlotWidthsNew(firstAnalysis, widths)
+        ...
 
     def postFitProcessing(self):
+        """ PP post processing """
         # Ensure that the previous step was run
         if not self.ranFitting:
             logger.critical("Must run the fitting step before subtracting correlations!")
@@ -2026,6 +1962,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
         #    value = yield_value,
         #    error = yield_error,
         #)
+
+    def _retrieve_widths_from_RPF(self) -> Dict[str, analysis_objects.ExtractedObservable]:
+        """ Extract widths from the RPFit. """
+        # TODO: Still to be tested.
+        widths = {}
+        # Retrieve the widths parameter and it's error
+        for location in ["ns", "as"]:
+            value = self.fit_object.fit_result.values_at_minimum[f"{location}_sigma"]
+            error = self.fit_object.fit_result.errors_on_parameters[f"{location}_sigma"]
+            widths[location] = analysis_objects.ExtractedObservable(
+                value = value, error = error
+            )
+
+        return widths
 
     def extract_widths(self) -> None:
         """ """
