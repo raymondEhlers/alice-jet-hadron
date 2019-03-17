@@ -78,8 +78,6 @@ setup(
         "numpy",
         "matplotlib",
         "seaborn",
-        "iminuit>=1.3",
-        "probfit",
         "numdifftools",
         "pachyderm",
         "reaction_plane_fit",

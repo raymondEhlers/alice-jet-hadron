@@ -22,7 +22,7 @@ WORKDIR ${JET_HADRON_ROOT}
 # Copy the jet-hadron analysis into the image.
 COPY --chown=overwatch:overwatch . ${JET_HADRON_ROOT}
 
-# Necessary for iminuit, probfit
+# Necessary for reaction_plane_fit
 RUN pip install --user --upgrade --no-cache-dir numpy cython
 # Install the jet-hadron analysis.
 RUN pip install --user --upgrade --no-cache-dir -e .[tests,dev,docs]

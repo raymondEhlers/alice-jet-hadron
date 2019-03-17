@@ -17,7 +17,8 @@ The code is structured as:
 # Quick start
 
 This package requires python 3.6 and above. A few prerequisites are required which unfortunately cannot be
-resolved solely by pip because of the packaging details of `probfit`.
+resolved solely by pip because of the packaging details of `probfit` (which is depended on by
+`reaction_plane_fit`).
 
 ```bash
 $ pip install numpy cython
