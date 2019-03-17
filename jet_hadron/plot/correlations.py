@@ -18,7 +18,8 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
-# TODO: Resolve this.... Either put this module the base package or change otherwise...
+# NOTE: This is not standard for the plot packageto rely on the analysis package
+#       However, it is convenient (and it doens't cause an import loops), so we tolerate it.
 from jet_hadron.analysis import correlations_helpers
 
 import ROOT

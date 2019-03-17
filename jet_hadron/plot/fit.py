@@ -263,8 +263,7 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
         # Plot the fit errors
         errors = component.fit_result.errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
-        # TODO: Update label.
-        ax.set_title(reaction_plane_orientation.display_str())
+        ax.set_title(f"{reaction_plane_orientation.display_str()} orient.")
 
     # Increase the upper range by 8% to ensure that the labels don't overlap with the data.
     lower_limit, upper_limit = ax.get_ylim()

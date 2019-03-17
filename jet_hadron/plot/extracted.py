@@ -43,12 +43,6 @@ def createTGraphsFromExtractedValues(jetH, values):
     """
     graphs = {}
     for jetPtBin in params.iterateOverJetPtBins():
-        # TODO: Improve fits and remove this temporary condition!
-        # TEMP
-        #if jetPtBin != 1:
-        #    continue
-        # ENDTEMP
-
         graphs[jetPtBin] = ROOT.TGraphErrors(len(params.trackPtBins) - 1)
         # Disable title
         graphs[jetPtBin].SetTitle("")
@@ -60,12 +54,6 @@ def createTGraphsFromExtractedValues(jetH, values):
         offset = 0.07 * observable.jetPtBin
         binCenterPoint = params.trackPtBins[trackPtBin] + halfBinWidth + offset
         logger.debug("binCenterPoint: {}".format(binCenterPoint))
-
-        # TODO: Improve fits and remove this temporary condition!
-        # TEMP
-        if trackPtBin > 4:
-            continue
-        # ENDTEMP
 
         graphs[observable.jetPtBin].SetPoint(observable.trackPtBin, binCenterPoint, observable.value)
         # Second argument simply sets the x error to 0, since we don't want to see that bar.
@@ -96,12 +84,6 @@ def plotExtractedValues(jetH, values, parameters):
     # NOTE: i is equivalent to the key of the graph dicts. Either is fine.
     firstDraw = False
     for i, graph in enumerate(graphs.values()):
-        # TODO: Improve fits and remove this temporary condition!
-        # TEMP
-        if i != 1:
-            continue
-        # ENDTEMP
-
         # Style
         graph.SetLineColor(colors[i + 1])
         graph.SetMarkerColor(colors[i + 1])
