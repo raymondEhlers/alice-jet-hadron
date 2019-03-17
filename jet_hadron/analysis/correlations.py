@@ -2174,6 +2174,11 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     "background": {},
                 }
                 for key_index, analysis in ep_analyses:
+                    # Sanity checks
+                    if analysis.ran_projections is False:
+                        raise ValueError("Hists must be projected before running the fit.")
+
+                    # Setup the input data
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                         inclusive_analysis = analysis
                     key = str(analysis.reaction_plane_orientation)
