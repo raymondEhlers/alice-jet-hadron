@@ -607,8 +607,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
             # Ensure that the next step in the chain is run
             #processing_options["subtract1DCorrelations"] = True
         else:
-            # TODO: This isn't well defined because self isn't defined.
-            #       Need to think more about how to handle it properly.
             # Initialize the fits from the file
             self.InitFromRootFile(Fits1D = True)
 
