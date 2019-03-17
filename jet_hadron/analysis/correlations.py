@@ -12,6 +12,7 @@ import dataclasses
 from dataclasses import dataclass
 import enlighten
 import enum
+import IPython
 import logging
 import os
 import numpy as np
@@ -25,6 +26,7 @@ from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
 from pachyderm.utils import epsilon
+from pachyderm import yaml
 
 import reaction_plane_fit as rpf
 from reaction_plane_fit import fit as rpf_fit
@@ -51,6 +53,8 @@ logger = logging.getLogger(__name__)
 # Run in batch mode
 ROOT.gROOT.SetBatch(True)
 
+this_module = sys.modules[__name__]
+
 class JetHCorrelationSparse(enum.Enum):
     """ Defines the axes in the Jet-Hadron THn Sparses. """
     centrality = 0
@@ -62,11 +66,19 @@ class JetHCorrelationSparse(enum.Enum):
     jet_hadron_deltaR = 6
     reaction_plane_orientation = 7
 
+    # Handle YAML serialization
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
+
 class JetHTriggerSparse(enum.Enum):
     """ Define the axes in the Jet-Hadron Trigger Sparse. """
     centrality = 0
     jet_pt = 1
     reaction_plane_orientation = 2
+
+    # Handle YAML serialization
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
 
 class JetHCorrelationSparseProjector(projectors.HistProjector):
     """ Projector for THnSparse into 2D histograms.
@@ -2203,6 +2215,38 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         return True
 
+def write_analyses(manager: CorrelationsManager, output_filename: str) -> None:
+    """ Write analyses to file via YAML. """
+    # Need to register all ROOT histograms so that we can write them.
+    root_classes_needed_for_yaml = [
+        ROOT.TH1F,
+        ROOT.TH2F,
+        ROOT.TH1D,
+        ROOT.TH2D,
+        ROOT.THnSparseF,
+    ]
+    # NOTE: MAy need KeyIndex...
+    #KeyIndex = next(iter(manager.analyses))
+
+    # Register the necessary modules and classes
+    y = yaml.yaml(
+        modules_to_register = [
+            histogram,
+            projectors,
+            HistAxisRange,
+            this_module,
+        ],
+        classes_to_register = [
+            #KeyIndex,
+            *root_classes_needed_for_yaml,
+        ],
+    )
+
+    analyses = list(manager.analyses.values())
+
+    with open(output_filename, "w") as f:
+        y.dump(analyses, f)
+
 def run_from_terminal():
     """ Driver function for running the correlations analysis. """
     # Basic setup
@@ -2231,6 +2275,9 @@ def run_from_terminal():
     )
     # Finally run the analysis.
     analysis_manager.run()
+
+    logging.getLogger("parso").setLevel(logging.INFO)
+    IPython.embed()
 
     # Return it for convenience.
     return analysis_manager
