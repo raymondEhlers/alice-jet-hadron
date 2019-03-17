@@ -175,45 +175,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
         # All widths
         self.widths = [self.widthsNS, self.widthsAS, self.widthsDEtaNS]
 
-    def retrieveInputHists(self):
-        """ Run general setup tasks. """
-        ...
-
-    def generalHistograms(self):
-        """ Process some general histograms such as centrality, Z vertex, very basic QA spectra, etc. """
-        ...
-
-    def generate2DCorrelationsTHnSparse(self):
-        """ Generate raw and mixed event 2D correlations. """
-        ...
-
-    def generate2DSignalCorrelation(self):
-        """ Generate 2D signal correlation.
-
-        Intentionally decoupled for creating the raw and mixed event hists so that the THnSparse can be swapped out
-        when desired.
-        """
-        ...
-
-    def generate1DCorrelations(self):
-        """ Generate 1D Correlation by projecting 2D correlations. """
-        ...
-
-    def post1DProjectionScaling(self):
-        """ Perform post projection scalings.
-
-        In particular, scale the 1D hists by their bin widths so no further scaling is necessary.
-        """
-        ...
-
-    def generateSparseProjectors(self):
-        """ Generate sparse projectors """
-        ...
-
-    def generateCorrelationProjectors(self):
-        """ Generate correlation projectors (2D -> 1D) """
-        ...
-
     def fitBackgroundDominatedRegion(self):
         """ Fit the background dominated 1D correlations. """
         fitFunctions = {params.collisionSystem.pp: fitting.fitDeltaPhiBackground,
@@ -311,38 +272,10 @@ class JetHAnalysis(analysis_objects.JetHBase):
         """ Write output list to a file """
         ...
 
-    def writeHistsToYAML(self, output_observable, mode = "wb"):
-        """ Write hist to YAML file. """
-
-        logger.info("Saving hist arrays!")
-
-        #for histCollection in output_observable:
-        #    for name, observable in histCollection.items():
-        #        if isinstance(observable, analysis_objects.Observable):
-        #            hist = observable.hist
-        #        else:
-        #            hist = observable
-
-        #        hist.saveToYAML(prefix = self.outputPrefix,
-        #                        objType = observable.correlationType,
-        #                        jetPtBin = observable.jetPtBin,
-        #                        trackPtBin = observable.trackPtBin,
-        #                        fileAccessMode = mode)
-
-    def writeTriggerJetSpectra(self):
-        """ Write trigger jet spectra to file. """
-        self.writeToRootFile([self.triggerJetPt])
-
-    def write2DCorrelations(self):
-        """ Write the 2D Correlations to file. """
-        ...
-
     def write1DCorrelations(self):
         """ Write the 1D Correlations to file. """
         # Write the ROOT files
         self.writeToRootFile(self.hists1DStandard)
-        # Write the yaml files
-        self.writeHistsToYAML(self.hists1DStandardArray)
 
     def writeSubtracted1DCorrelations(self):
         """ Write the subtracted 1D Correlations to file. """
@@ -359,18 +292,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
     def writeSubtracted1DFits(self):
         """ Write the subtracted 1D fits to file. """
         self.writeToRootFile(self.fits1DSubtracted)
-
-    def writeYields(self):
-        """ Write yields to a YAML file. """
-        pass
-
-    def writeWidths(self):
-        """ Write widths to a YAML file. """
-        pass
-
-    def writeExtractedValuesToYAML(self, values, extractedValueLabel):
-        """ Write extracted values to a YAML file. """
-        pass
 
     def InitFromRootFile(self, GeneralHists = False, TriggerJetSpectra = False, Correlations2D = False, Correlations1D = False, Correlations1DArray = False, Correlations1DSubtracted = False, Correlations1DSubtractedArray = False, Fits1D = False, exitOnFailure = True):
         """ Initialize the JetHAnalysis object from a saved ROOT file. """
@@ -604,11 +525,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
             opts = ["{name}: \"{value}\"".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
             logger.info("Processing jet-h correlations task {} with options:\n\t{}".format(jetH.taskName, "\n\t".join(opts)))
 
-            jetH.retrieveInputHists()
             jetH.generateTeXToIncludeFiguresInAN()
-
-            logger.info("Creating general histograms")
-            jetH.generalHistograms()
 
             logger.info("Running analysis through projecting 1D correlations")
             jetH.runProjections()
@@ -646,20 +563,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
             ...
 
         if processing_options["generate1DCorrelations"]:
-            # First generate the projectors
-            logger.info("Generating 1D projectors")
-            self.generateCorrelationProjectors()
-            # Project in 1D
-            logger.info("Projecting 1D correlations")
-            self.generate1DCorrelations()
-
-            # Perform post-projection scalings to avoid needing to scale the fit functions later
-            logger.info("Performing post projection histogram scalings")
-            self.post1DProjectionScaling()
-
-            # Create hist arrays
-            self.convertDPhiHists()
-
             # Write the properly scaled projections
             self.write1DCorrelations()
 
