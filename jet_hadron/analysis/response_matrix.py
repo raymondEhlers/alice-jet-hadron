@@ -1174,9 +1174,9 @@ class ResponseManager(generic_class.EqualityMixin):
                 for plot_with_ROOT in [False, True]:
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
-                            title = r"$\mathit{p}_{\mathrm{T}}$ hard spectra",
-                            x_label = r"$\mathit{p}_{\mathrm{T}}^{\mathrm{hard}}$",
-                            y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
+                            title = r"$p_{\mathrm{T}}$ hard spectra",
+                            x_label = r"$p_{\mathrm{T}}^{\mathrm{hard}}$",
+                            y_label = r"$\frac{\mathrm{d}N}{\mathrm{d}p_{\mathrm{T}}}$",
                         ),
                         output_name = "pt_hard_spectra",
                         merged_analysis = merged_pt_hard_analysis,
@@ -1228,10 +1228,10 @@ class ResponseManager(generic_class.EqualityMixin):
                         plot_response_matrix.plot_response_spectra(
                             plot_labels = plot_base.PlotLabels(
                                 title = hist_info.description,
-                                x_label = r"$\mathit{p}_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
+                                x_label = r"$p_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
                                     "label": base_label,
                                 },
-                                y_label = r"$\frac{dN}{d\mathit{p}_{\mathrm{T}}}$",
+                                y_label = r"$\frac{\mathrm{d}N}{\mathrm{d}p_{\mathrm{T}}}$",
                             ),
                             output_name = f"{base_label}_level_{output_label}",
                             merged_analysis = self.final_responses[

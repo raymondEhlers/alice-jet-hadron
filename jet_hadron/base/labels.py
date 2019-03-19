@@ -60,7 +60,7 @@ def et_display_label(lower_label: str = "T", upper_label: str = "") -> str:
     Returns:
         Properly formatted E_T string.
     """
-    return r"\mathit{E}_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
+    return r"E_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
         "lower_label": lower_label,
         "upper_label": upper_label,
     }
@@ -74,7 +74,7 @@ def pt_display_label(lower_label: str = "T", upper_label: str = "") -> str:
     Returns:
         Properly formatted pt string.
     """
-    return r"\mathit{p}_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
+    return r"p_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
         "lower_label": lower_label,
         "upper_label": upper_label,
     }
@@ -180,7 +180,7 @@ def jet_finding(R: float = 0.2) -> str:
     Returns:
         A properly latex formatted jet finding label.
     """
-    return r"$\mathrm{anti \textendash} \mathit{k}_{\mathrm{T}}\;R=%(R)s$" % {"R": R}
+    return r"$\mathrm{anti \textendash} k_{\mathrm{T}}\;R=%(R)s$" % {"R": R}
 
 def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, additional_label: str = "") -> str:
     """ The jet constituent cut label.

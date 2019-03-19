@@ -242,15 +242,15 @@ GeneralHists:
                     enabled: true
         TrackPt: !HistPlotter
             kwargs:
-                title: Associated track $\mathit{p}_{\mathrm{T}}$
-                x_label: $\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$
-                y_label: $\mathrm{d}N/\mathrm{d}\mathit{p}_{\mathrm{T}}$
+                title: Associated track $p_{\mathrm{T}}$
+                x_label: $p_{\mathrm{T}}^{\mathrm{assoc}}$
+                y_label: $\mathrm{d}N/\mathrm{d}p_{\mathrm{T}}$
                 logy: true
                 text_label:
                     enabled: true
         JetPt: !HistPlotter
             kwargs:
-                title: Jet $\mathit{p}_{\mathrm{T}}$
+                title: Jet $p_{\mathrm{T}}$
                 logy: true
                 text_label:
                     enabled: true
@@ -261,7 +261,7 @@ GeneralHists:
                     - "fHistJetPt_3": "50-90\\%"
         JetPtBias: !HistPlotter
             kwargs:
-                title: Jet $\mathit{p}_{\mathrm{T}}$ which passes bias
+                title: Jet $p_{\mathrm{T}}$ which passes bias
                 logy: true
                 text_label:
                     enabled: true

@@ -156,7 +156,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
                         )
 
                         angle_label = determine_angle_label(angle)
-                        # Ex: "$\\Delta\\varphi$, Pos. tracks, $\\eta < 0$, $4 < \\mathit{p}_{\\mathrm{T}}< 5$"
+                        # Ex: "$\\Delta\\varphi$, Pos. tracks, $\\eta < 0$, $4 < p_{\\mathrm{T}}< 5$"
                         label = f"{angle_label}, {cent_label}, {eta_direction_label}, {pt_bin_label}"
                         # Save in the expected format
                         hist_names.append({name: label})

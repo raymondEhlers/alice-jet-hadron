@@ -82,7 +82,7 @@ def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_
         general_labels[k] = labels.make_valid_latex_string(v)
 
     # Plot labels
-    y_label = r"\mathrm{d}N/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+    y_label = r"\mathrm{d}N/\mathrm{d}p_{\mathrm{T}}"
     if inclusive.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
         y_label = r"(1/N_{\mathrm{jets}})" + y_label
         y_label = y_label
@@ -673,7 +673,7 @@ def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
     canvas.SetLogy(True)
     # Legend
     legend = ROOT.TLegend(0.37, 0.55, 0.9, 0.9)
-    legend.SetHeader(r"\mathit{p}_{\mathrm{T}}\:\mathrm{bins}", "C")
+    legend.SetHeader(r"p_{\mathrm{T}}\:\mathrm{bins}", "C")
     # Increase text size
     legend.SetTextSize(0.025)
     # Use two columns because we have a lot of entries.
@@ -752,7 +752,7 @@ def plot_particle_level_spectra_agreement(difference: Hist, absolute_value_of_di
     x_label = labels.use_label_with_root(
         fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
     )
-    y_label = r"\mathrm{d}N/\mathrm{d}\mathit{p}_{\mathrm{T}}"
+    y_label = r"\mathrm{d}N/\mathrm{d}p_{\mathrm{T}}"
 
     # Apply settings to hists
     for h in [difference, absolute_value_of_difference]:
