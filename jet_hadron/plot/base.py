@@ -41,6 +41,8 @@ matplotlib.rcParams["ytick.minor.right"] = False
 # Ensure that axis ticks go inward instead of outward
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
+# Enable AMS math package (for among other things, "\text")
+matplotlib.rcParams["text.latex.preamble"].append(r"\usepackage{amsmath}")
 # Below, we set the LaTeX fornts to be the same as those used in matplotlib.
 # For sans serif fonts in LaTeX (required for setting the fonts below), see: https://stackoverflow.com/a/11612347
 # To set the tex fonts to be the same as the normal matplotlib fonts, see: https://stackoverflow.com/a/27697390
