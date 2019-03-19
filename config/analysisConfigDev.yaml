@@ -350,9 +350,9 @@ PtHardBins:
 PtHardFinal:
     override:
         # ResponseMaker
-        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}"
+        #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}"
         # JetHPerformance
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/{task_name}"
+        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/{task_name}"
         iterables:
             # Technically this is true, although not very helpful. However, we must have at least
             # one iterator, so this allows us to do so with minimal change.
@@ -416,7 +416,7 @@ Response:
         # JetHPerformance
         inputListName: "AliAnalysisTaskEmcalJetHPerformance"
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         # Test values:
         #inputFilename: "analysis/AnalysisResults.response.root"
@@ -450,25 +450,25 @@ ResponseFinal:
     override:
         # ResponseMaker
         # yamllint disable-line rule:line-length
-        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}/RP{reaction_plane_orientation}"
         # JetHPerformance
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         aliceLabel: final
         iterables:
             reaction_plane_orientation: true
 ResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: true
+    read_hists_from_root_file: false
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
         # ResponseMaker
-        #outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
         # JetHPerformance
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/dev/{event_activity}/{leading_hadron_bias}/JetHPerformance/ResponseFinal"
+        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
 
 # Configuration for plotting EMCal corrections from a train.
 EMCalCorrections:
