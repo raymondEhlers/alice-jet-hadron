@@ -25,7 +25,7 @@ def plotYields(jetH):
     for yields, rangeLimits, tag in [(jetH.yieldsAS, (5e-3, 3), "yieldsAS"),
                                      (jetH.yieldsNS, (5e-3, 5), "yieldsNS"),
                                      (jetH.yieldsDEtaNS, (5e-3, 2), "yieldsDEtaNS")]:
-        parameters = (r"\mathit{p}_{\mathrm{T}}^{assoc}", r"$\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}} (GeV/\mathit{c})^{-1}$", rangeLimits, tag)
+        parameters = (r"\mathit{p}_{\mathrm{T}}^{assoc}", r"$\mathrm{d}N/\mathrm{d}\mathit{p}_{\mathrm{T}} (GeV/\mathit{c})^{-1}$", rangeLimits, tag)
         plotExtractedValues(jetH, yields, parameters)
 
 def plotWidths(jetH):

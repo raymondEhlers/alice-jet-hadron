@@ -261,8 +261,8 @@ def system_label(energy: Union[float, "params.CollisionEnergy"],
 
 def delta_phi_axis_label(normalized_by_n_trig: bool = True) -> str:
     """ The delta phi y axis label. """
-    axis_label = r"\mathrm{dN}/\mathrm{d}\varphi"
+    axis_label = r"\mathrm{d}N/\mathrm{d}\varphi"
     if normalized_by_n_trig:
-        axis_label = r"1/\mathrm{N}_{\mathrm{trig}}" + axis_label
+        axis_label = r"1/N_{\mathrm{trig}}" + axis_label
 
     return make_valid_latex_string(axis_label)

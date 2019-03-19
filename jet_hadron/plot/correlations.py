@@ -67,7 +67,7 @@ def plot_2d_correlations(jet_hadron):
             hist.GetZaxis().SetTitle(r"$a(\Delta\varphi,\Delta\eta)$")
             hist.GetZaxis().SetTitleOffset(0.9)
         else:
-            z_title = r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
+            z_title = r"$1/N_{\mathrm{trig}}\mathrm{d^{2}}N%(label)s/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$"
             if "signal" in observable.type:
                 z_title = z_title % {"label": ""}
             else:
@@ -278,7 +278,7 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
 
     # Set plot properties
     ax[0].set_title(title)
-    ax[0].set_ylabel(r"$\mathrm{dN}/\mathrm{d}\varphi$")
+    ax[0].set_ylabel(r"$\mathrm{d}N/\mathrm{d}\varphi$")
     ax[0].legend(loc = "best")
     ax[1].set_xlabel(r"$\Delta\varphi$")
     ax[1].set_ylabel("Theirs/ours")
@@ -440,7 +440,7 @@ def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str)
         # Axis
         # Needed to fix z axis rotation. See: https://stackoverflow.com/a/21921168
         ax.zaxis.set_rotate_label(False)
-        ax.set_zlabel(r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{d^{2}N}/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$", rotation=90)
+        ax.set_zlabel(r"$1/N_{\mathrm{trig}}\mathrm{d^{2}}N/\mathrm{d}\Delta\varphi\mathrm{d}\Delta\eta$", rotation=90)
         # Set the distance from axis to label in pixels.
         # This is not ideal, but clearly tight_layout doesn't work as well for 3D plots
         ax.xaxis.labelpad = 12

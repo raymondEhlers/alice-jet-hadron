@@ -244,7 +244,7 @@ GeneralHists:
             kwargs:
                 title: Associated track $\mathit{p}_{\mathrm{T}}$
                 x_label: $\mathit{p}_{\mathrm{T}}^{\mathrm{assoc}}$
-                y_label: $\mathrm{dN}/\mathrm{d}\mathit{p}_{\mathrm{T}}$
+                y_label: $\mathrm{d}N/\mathrm{d}\mathit{p}_{\mathrm{T}}$
                 logy: true
                 text_label:
                     enabled: true

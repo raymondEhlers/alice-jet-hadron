@@ -1724,7 +1724,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
                     f" {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
             x_label = r"$\Delta\varphi$",
-            y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
+            y_label = r"$\mathrm{d}N/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
         )
 
@@ -1832,7 +1832,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
                     f" {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
             x_label = r"$\Delta\varphi$",
-            y_label = r"$\mathrm{dN}/\mathrm{d}\varphi$",
+            y_label = r"$\mathrm{d}\mathit{N}/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_sub",
         )
 

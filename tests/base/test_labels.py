@@ -129,8 +129,8 @@ def test_gev_momentum_units_label(logging_mixin):
     assert output == expected
 
 @pytest.mark.parametrize("include_normalized_by_n_trig, expected", [
-    (False, r"$\mathrm{dN}/\mathrm{d}\varphi$"),
-    (True, r"$1/\mathrm{N}_{\mathrm{trig}}\mathrm{dN}/\mathrm{d}\varphi$"),
+    (False, r"$\mathrm{d}N/\mathrm{d}\varphi$"),
+    (True, r"$1/N_{\mathrm{trig}}\mathrm{d}N/\mathrm{d}\varphi$"),
 ], ids = ["Do not include n_trig", "Include n_trig"])
 def test_delta_phi_axis_label(logging_mixin, include_normalized_by_n_trig, expected):
     """ Test for the delta phi axis label. """
