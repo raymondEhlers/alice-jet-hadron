@@ -48,6 +48,7 @@ def test_save_plot(logging_mixin, setup_save_tests, use_canvas):
         "obj": obj,
         "figure": canvas if use_canvas else figure,
         "output_name": filename,
+        "pdf_with_ROOT": True,
     }
     filenames = plot_base.save_plot(**args)
 
@@ -71,10 +72,25 @@ def test_save_canvas_impl(logging_mixin, mocker, setup_save_tests):
     """ Test the implementation for saving a ROOT canvas. """
     (obj, figure, canvas, expected_filenames) = setup_save_tests
     filename = "filename"
-    filenames = plot_base.save_canvas_impl(canvas, obj.output_prefix, filename, obj.printing_extensions)
+    filenames = plot_base.save_canvas_impl(canvas, obj.output_prefix, filename, obj.printing_extensions, True)
     canvas.SaveAs.assert_called()
 
     assert filenames == [name.format(filename = filename) for name in expected_filenames]
+
+def test_skip_PDF_in_ROOT(logging_mixin, mocker, setup_save_tests):
+    """ Test the implementation of skipping PDFs when saving the ROOT canvas. """
+    (obj, figure, canvas, expected_filenames) = setup_save_tests
+    #obj.printing_extensions = [ext for ext in obj.printing_extensions if "pdf" not in ext]
+    #expected_filenames = [f for f in expected_filenames if "pdf" not in f]
+    final_filenames = [f for f in expected_filenames if "pdf" not in f]
+    filename = "filename"
+    filenames = plot_base.save_canvas_impl(canvas, obj.output_prefix, filename, obj.printing_extensions)
+    # If we only have PDF in the printing extensions, then we won't have any canvases to save, and therefore
+    # we won't have tried to save the canvas.
+    if len(final_filenames) > 0:
+        canvas.SaveAs.assert_called()
+
+    assert filenames == [name.format(filename = filename) for name in final_filenames]
 
 def test_registration_of_kBird_colormap(logging_mixin):
     """ Test to ensure that the ROOT kBird colormap is registered in matplotlib successfully. """

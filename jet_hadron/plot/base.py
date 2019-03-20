@@ -99,7 +99,8 @@ class PlotLabels:
 
 def save_plot(obj: analysis_objects.PlottingOutputWrapper,
               figure: Union[matplotlib.figure.Figure, Canvas],
-              output_name: str) -> List[str]:
+              output_name: str,
+              pdf_with_ROOT: bool = False) -> List[str]:
     """ Loop over all requested file extensions and save the current plot in matplotlib.
 
     Uses duck typing to properly save both matplotlib figures and ROOT canvases.
@@ -108,6 +109,9 @@ def save_plot(obj: analysis_objects.PlottingOutputWrapper,
         obj: Contains the output_prefix and printing_extensions
         figure: Figure or ROOT canvas on which the plot was drawn.
         output_name: Filename under which the plot should be saved, but without the file extension.
+        pdf_with_ROOT: True if the ROOT canvas should be saved as a PDF (assuming that it was requested in
+            the list of printing extensions). ROOT + pdf + latex labels often fails dramatically, so
+            this should only be enabled in rare cases.
     Returns:
         Filenames under which the plot was saved.
     """
@@ -117,14 +121,21 @@ def save_plot(obj: analysis_objects.PlottingOutputWrapper,
 
     # Check for the proper attribute for a ROOT canvas
     if hasattr(figure, "SaveAs"):
-        return save_canvas_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
-    # If not, we it is
-    return save_plot_impl(figure, obj.output_prefix, output_name, obj.printing_extensions)
+        return save_canvas_impl(
+            canvas = figure, output_prefix = obj.output_prefix, output_name = output_name,
+            printing_extensions = obj.printing_extensions, pdf_with_ROOT = pdf_with_ROOT
+        )
+    # If not, we plot it with MPL.
+    return save_plot_impl(
+        fig = figure, output_prefix = obj.output_prefix, output_name = output_name,
+        printing_extensions = obj.printing_extensions
+    )
 
 # Base functions
 def save_canvas_impl(canvas: Canvas,
                      output_prefix: str, output_name: str,
-                     printing_extensions: Sequence[str]) -> List[str]:
+                     printing_extensions: Sequence[str],
+                     pdf_with_ROOT: bool = False) -> List[str]:
     """ Implementation of generic save canvas function.
 
     It loops over all requested file extensions and save the ROOT canvas.
@@ -133,13 +144,21 @@ def save_canvas_impl(canvas: Canvas,
         canvas: Canvas on which the plot was drawn.
         output_prefix: File path to where files should be saved.
         output_name: Filename under which the plot should be saved, but without the file extension.
-        printing_extensions (list): List of file extensions under which plots should be saved. They should
+        printing_extensions: List of file extensions under which plots should be saved. They should
             not contain the dot!
+        pdf_with_ROOT: True if the ROOT canvas should be saved as a PDF (assuming that it was requested in
+            the list of printing extensions). ROOT + pdf + latex labels often fails dramatically, so
+            this should only be enabled in rare cases.
     Returns:
         list: Filenames under which the plot was saved.
     """
     filenames = []
     for extension in printing_extensions:
+        # Skip drawing PDFs with ROOT because it handles LaTeX so poorly.
+        # We will only produce it if explicitly requested.
+        if extension == "pdf" and not pdf_with_ROOT:
+            continue
+
         filename = os.path.join(output_prefix, output_name + "." + extension)
         # Probably don't want this log message since ROOT will also generate a message
         #logger.debug("Saving ROOT canvas to \"{}\"".format(filename))
