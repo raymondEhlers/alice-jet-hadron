@@ -185,7 +185,7 @@ def save_plot_impl(fig: matplotlib.figure.Figure,
     filenames = []
     for extension in printing_extensions:
         filename = os.path.join(output_prefix, output_name + "." + extension)
-        logger.debug("Saving matplotlib figure to \"{}\"".format(filename))
+        logger.debug(f"Saving matplotlib figure to \"{filename}\"")
         fig.savefig(filename)
         filenames.append(filename)
     return filenames
