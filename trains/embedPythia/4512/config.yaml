@@ -1,0 +1,13 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4512
+production: "LHC11h"
+embeddedProduction: "LHC12a15e"
+ptHardBin: 3
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4512_20190312-1803/merge"
+status: |
+    "Response matrix for 30-50% (ie using .99 for the efficiency). Created using the Jet-H Performance Task."
+    "Re-running pt hard bin 3 with some QA hists for large negative cell time evnets (which indicates repeated events)."
+    "Somehow, it appears that all of the doubly corrected events were selected. It's not clear to me how that"
+    "is remotely possible, but there isn't really much else that can be done. Fortunately, the time cuts should"
+    "take care of everything."
