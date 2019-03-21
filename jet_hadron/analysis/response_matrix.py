@@ -1316,7 +1316,7 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython)
         # Otherwise, IPython will act very strangely and is basically impossible to use.
-        self._progress_manager.stop()
+        self.progress_manager.stop()
 
         return True
 
