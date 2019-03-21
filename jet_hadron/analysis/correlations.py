@@ -2253,6 +2253,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
             self.extract_widths()
             overall_progress.update()
 
+        # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython)
+        # Otherwise, IPython will act very strangely and is basically impossible to use.
+        self._progress_manager.stop()
+
         return True
 
 def write_analyses(manager: CorrelationsManager, output_filename: str) -> None:
@@ -2317,9 +2321,10 @@ def run_from_terminal():
     analysis_manager.run()
 
     logging.getLogger("parso").setLevel(logging.INFO)
+    # Embed IPython to allow for some additional exploration
     IPython.embed()
 
-    # Return it for convenience.
+    # Return the manager for convenience.
     return analysis_manager
 
 if __name__ == "__main__":

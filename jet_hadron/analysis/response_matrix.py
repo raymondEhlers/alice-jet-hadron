@@ -1314,6 +1314,10 @@ class ResponseManager(generic_class.EqualityMixin):
             self._package_and_write_final_responses()
             overall_progress.update()
 
+        # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython)
+        # Otherwise, IPython will act very strangely and is basically impossible to use.
+        self._progress_manager.stop()
+
         return True
 
 def run_from_terminal():
