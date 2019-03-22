@@ -16,6 +16,7 @@ from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
+from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
 # NOTE: This is not standard for the plot packageto rely on the analysis package
@@ -179,6 +180,13 @@ def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotl
     """ Plot and label the signal and background dominated hists on the given axis.
 
     This is a helper function so that we don't have to repat code when we need to plot these hists.
+    It can also be used in other modules.
+
+    Args:
+        ax: Axis on which the histograms should be plotted.
+        jet_hadron: Correlations object from which the delta_phi hists should be retrieved.
+    Returns:
+        None. The given axis is modified.
     """
     # Setup
     hists = jet_hadron.correlation_hists_delta_phi
@@ -247,6 +255,55 @@ def _plot_1d_signal_and_background_with_ROOT(jet_hadron: "correlations.Correlati
     # Save
     output_name += "_ROOT"
     plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
+
+def delta_eta_unsubtracted(hists: "correlations.CorrelationHistogramsDeltaEta",
+                           jet_pt: analysis_objects.JetPtBin, track_pt: analysis_objects.TrackPtBin,
+                           reaction_plane_orientation: params.ReactionPlaneOrientation,
+                           identifier: str, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot 1D delta eta correlations on a single plot.
+
+    Args:
+        hists: Unsubtracted delta eta histograms.
+        jet_pt: Jet pt bin.
+        track_pt: Track pt bin.
+        reaction_plane_orientation: Reaction plane orientation.
+        identifier: Analysis identifier string. Usually contains jet pt, track pt, and other information.
+        output_info: Standard information needed to store the output.
+    Returns:
+        None.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot NS, AS
+    h_near_side = histogram.Histogram1D.from_existing_hist(hists.near_side.hist)
+    ax.errorbar(
+        h_near_side.x, h_near_side.y, yerr = h_near_side.errors,
+        label = hists.near_side.type.display_str(), marker = "o", linestyle = "",
+    )
+    h_away_side = histogram.Histogram1D.from_existing_hist(hists.away_side.hist)
+    ax.errorbar(
+        h_away_side.x, h_away_side.y, yerr = h_away_side.errors,
+        label = hists.away_side.type.display_str(), marker = "o", linestyle = "",
+    )
+
+    # Set labels.
+    ax.set_xlabel(labels.make_valid_latex_string(hists.near_side.hist.GetXaxis().GetTitle()))
+    ax.set_ylabel(labels.make_valid_latex_string(hists.near_side.hist.GetYaxis().GetTitle()))
+    ax.set_title(fr"Unsubtracted 1D ${hists.near_side.axis.display_str()}$,"
+                 f" {reaction_plane_orientation.display_str()} event plane orient.,"
+                 f" {labels.jet_pt_range_string(jet_pt)}, {labels.track_pt_range_string(track_pt)}")
+
+    # Labeling
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+
+    # Save and cleanup
+    output_name = f"jetH_delta_eta_{identifier}_near_away_side_comparison"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
 
 def plot1DCorrelationsWithFits(jet_hadron):
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")

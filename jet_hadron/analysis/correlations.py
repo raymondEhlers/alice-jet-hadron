@@ -1770,6 +1770,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
             logger.info("Plotting 1D correlations")
             plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
+            plot_correlations.delta_eta_unsubtracted(
+                hists = self.correlation_hists_delta_eta,
+                jet_pt = self.jet_pt, track_pt = self.track_pt,
+                reaction_plane_orientation = self.reaction_plane_orientation,
+                identifier = self.identifier,
+                output_info = self.output_info,
+            )
 
     def run_projections(self) -> None:
         """ Run all analysis steps through projectors. """
