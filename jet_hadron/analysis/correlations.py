@@ -1761,11 +1761,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
         )
 
-    def _convert_1d_correlations(self):
-        """ Convert 1D correlations to Histograms. """
-        # NOTE: This function must not only convert the hist, but also recreate the observable.
-        ...
-
     def _run_1d_projections(self) -> None:
         """ Run the 2D -> 1D projections. """
         if self.processing_options["generate1DCorrelations"]:
@@ -1780,9 +1775,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Perform post-projection scaling to avoid needing to scale the fit functions later
             logger.info("Performing post projection histogram scaling")
             self._post_1d_projection_scaling()
-
-            # Create hist arrays
-            self._convert_1d_correlations()
 
             # Write the properly scaled projections
             self._write_1d_correlations()
@@ -2099,27 +2091,31 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     background_region = analysis.background_dominated_eta_region,
                     #use_minos = True,
                 )
-                # Now perform the fit.
-                fit_success, fit_data = fit_obj.fit(
-                    data = input_hists,
-                    user_arguments = user_arguments,
-                )
+                if self.processing_options["fit_correlations"]:
+                    # Now perform the fit.
+                    fit_success, fit_data = fit_obj.fit(
+                        data = input_hists,
+                        user_arguments = user_arguments,
+                    )
 
-                # Store the fit results
-                # This main object has access to the entire result.
-                self.fit_objects[fit_key_index] = fit_obj
-                # Store the results relevant to each component in the individual analysis.
-                for index, fit_component in fit_obj.components.items():
-                    for key_index, analysis in ep_analyses:
-                        if str(key_index.reaction_plane_orientation) in index.orientation:
-                            analysis.fit_object = fit_component
+                    # Store the fit results
+                    # This main object has access to the entire result.
+                    self.fit_objects[fit_key_index] = fit_obj
+                    # Store the results relevant to each component in the individual analysis.
+                    for index, fit_component in fit_obj.components.items():
+                        for key_index, analysis in ep_analyses:
+                            if str(key_index.reaction_plane_orientation) in index.orientation:
+                                analysis.fit_object = fit_component
 
-                # This should already be caught, but we handle it for good measure
-                if not fit_success:
-                    raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
+                    # This should already be caught, but we handle it for good measure
+                    if not fit_success:
+                        raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
+                else:
+                    # TODO: Load from file.
+                    ...
 
                 # Plot the result
-                if self.processing_options["plotRPFit"]:
+                if self.processing_options["plot_RPF"]:
                     plot_fit.plot_RP_fit(
                         rp_fit = fit_obj, data = fit_data,
                         inclusive_analysis = inclusive_analysis,
@@ -2132,7 +2128,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     analysis.ran_fitting = True
                 fitting.update()
 
-        if self.processing_options["plotRPFit"]:
+        if self.processing_options["plot_RPF"]:
             # Fit parameters
             plot_fit.fit_parameters_vs_assoc_pt(
                 fit_objects = self.fit_objects,
@@ -2167,13 +2163,17 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         raise RuntimeError("Must run the fitting before subtracting!")
 
                     # Subtract
-                    analysis.subtract_background_fit_function_from_signal_dominated()
+                    if self.processing_options["subtract_correlations"]:
+                        analysis.subtract_background_fit_function_from_signal_dominated()
+                    else:
+                        # TODO: Load from file.
+                        ...
 
                     # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                         inclusive_analysis = analysis
 
-                    if self.processing_options["plotSubtracted1DCorrelations"]:
+                    if self.processing_options["plot_subtracted_correlations"]:
                         plot_fit.fit_subtracted_signal_dominated(analysis = analysis)
                         # Compare to Joel
                         if analysis.collision_energy == params.CollisionEnergy.two_seven_six \
@@ -2184,7 +2184,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                             logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
 
                 # Plot all RP fit angles together
-                if self.processing_options["plotSubtracted1DCorrelations"]:
+                if self.processing_options["plot_subtracted_correlations"]:
                     fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                     plot_fit.rp_fit_subtracted(
                         ep_analyses = ep_analyses,

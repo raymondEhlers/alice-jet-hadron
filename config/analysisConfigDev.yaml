@@ -112,8 +112,10 @@ Correlations:
                   range: !SelectedRange [20, 40]
 CorrelationsManager:
     processing_options:
-        plotRPFit: false
-        plotSubtracted1DCorrelations: false
+        fit_correlations: true
+        plot_RPF: false
+        subtract_correlations: true
+        plot_subtracted_correlations: false
         # Yields
         extract_yields: true
         plot_yields: false
