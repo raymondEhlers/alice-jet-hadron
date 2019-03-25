@@ -544,11 +544,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
 
             #plot_general.plotTriggerJetSpectra(jetH)
 
-        # TEMP
-        #IPython.embed()
-        #sys.exit(0)
-        # ENDTEMP
-
         # Need all of the event plane angles to perform the RP Fit
         logger.info("Running 1D fits")
         epFit = JetHAnalysis.runFitting(analyses)
