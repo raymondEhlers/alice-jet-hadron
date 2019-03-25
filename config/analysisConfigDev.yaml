@@ -64,7 +64,8 @@ Correlations:
     1d_rebin_factor_delta_phi: 1
     mixed_events_with_EP_dependence: false
     use_broader_high_pt_mixed_events: true
-    yield_limit: 1.0
+    delta_phi_yield_limit: 1.0
+    delta_eta_yield_limit: 0.6
     processingOptions:
         # 2D
         generate2DCorrelations: false
@@ -111,14 +112,14 @@ Correlations:
                   range: !SelectedRange [20, 40]
 CorrelationsManager:
     processing_options:
-        plotRPFit: true
-        plotSubtracted1DCorrelations: true
+        plotRPFit: false
+        plotSubtracted1DCorrelations: false
         # Yields
-        extractYields: false
-        plotYields: false
+        extract_yields: true
+        plot_yields: false
         # Widths
-        extractWidths: false
-        plotWidths: false
+        extract_widths: true
+        plot_widths: false
     reaction_plane_fit:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"

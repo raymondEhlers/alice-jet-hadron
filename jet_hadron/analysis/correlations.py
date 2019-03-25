@@ -25,6 +25,7 @@ from pachyderm import generic_config
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
+from pachyderm import utils
 from pachyderm.utils import epsilon
 from pachyderm import yaml
 
@@ -836,6 +837,25 @@ class CorrelationHistogramsDeltaEta:
         for k, v in vars(self).items():
             yield k, v
 
+@dataclass
+class CorrelationYields:
+    near_side: analysis_objects.ExtractedObservable
+    away_side: analysis_objects.ExtractedObservable
+
+    def __iter__(self) -> Iterator[Tuple[str, DeltaPhiObservable]]:
+        for k, v in vars(self).items():
+            yield k, v
+
+@dataclass
+class CorrelationWidths:
+    near_side: analysis_objects.ExtractedObservable
+    away_side: analysis_objects.ExtractedObservable
+
+    def __iter__(self) -> Iterator[Tuple[str, DeltaPhiObservable]]:
+        for k, v in vars(self).items():
+            yield k, v
+
+
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
 
@@ -957,6 +977,24 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 ),
                 analysis_identifier = self.identifier,
             ),
+        )
+        # Yields
+        self.yields_delta_phi: CorrelationYields = CorrelationYields(
+            near_side = analysis_objects.ExtractedObservable(-1, -1),
+            away_side = analysis_objects.ExtractedObservable(-1, -1),
+        )
+        self.yields_delta_eta: CorrelationYields = CorrelationYields(
+            near_side = analysis_objects.ExtractedObservable(-1, -1),
+            away_side = analysis_objects.ExtractedObservable(-1, -1),
+        )
+        # Widths
+        self.widths_delta_phi: CorrelationWidths = CorrelationWidths(
+            near_side = analysis_objects.ExtractedObservable(-1, -1),
+            away_side = analysis_objects.ExtractedObservable(-1, -1),
+        )
+        self.widths_delta_eta: CorrelationWidths = CorrelationWidths(
+            near_side = analysis_objects.ExtractedObservable(-1, -1),
+            away_side = analysis_objects.ExtractedObservable(-1, -1),
         )
 
         # Fit object
@@ -1838,101 +1876,86 @@ class Correlations(analysis_objects.JetHReactionPlane):
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_sub",
         )
 
-    def extract_yields(self, yield_limit: float) -> None:
-        """ Extract yields. """
-        # TODO: Fill out the rest of this function
-        ...
-        #@dataclass
-        #class YieldWrapper:
+    def _extract_yield_from_hist(self, hist: histogram.Histogram1D,
+                                 central_value: float, yield_limit: float) -> analysis_objects.ExtractedObservable:
+        """ Helper function to actually extract a yield from a histogram.
 
-        #yields = {
-        #    "delta_phi": self.yield_ns,
-        #    "delta_eta_NS": self.yield_ns,
-        #    "delta_eta_AS": self.yield_ns,
-        #}
+        Yields are extracted within central_value +/- yield_limit.
 
-        #parameters = {"NS": [0, self.yieldsNS, self.dPhiSubtracted, self.dPhiSubtractedFit],
-        #              "AS": [math.pi, self.yieldsAS, self.dPhiSubtracted, self.dPhiSubtractedFit],
-        #              "dEtaNS": [0, self.yieldsDEtaNS, self.dEtaNSSubtracted, self.dEtaNSSubtractedFit]}
-        #for location, (centralValue, yields, hists, fits) in parameters.items():
-        #    for (name, observable), fit in zip(hists.items(), fits.values()):
-        #        pass
+        Args:
+            hist: Histogram from which the yield should be extracted.
+            central_value: Central value from which the yield should be integrated.
+            yield_limit: Distance from the central value to include in the yield.
+        Returns:
+            Extracted observable containing the yield and the error on the yield.
+        """
+        # Integrate the histogram to get the yield.
+        yield_value, yield_error = hist.integral(
+            min_value = central_value - yield_limit + epsilon, max_value = central_value + yield_limit - epsilon,
+        )
 
-        ## Extract yield
-        #min_val = observable.hist.GetXaxis().FindBin(centralValue - yield_limit + epsilon)
-        #max_val = observable.hist.GetXaxis().FindBin(centralValue + yield_limit - epsilon)
-        #yield_error = ctypes.c_double(0)
-        #yield_value = observable.hist.IntegralAndError(min_val, max_val, yield_error, "width")
+        # Scale by track pt bin width
+        track_pt_bin_width = self.track_pt.max - self.track_pt.min
+        yield_value /= track_pt_bin_width
+        yield_error /= track_pt_bin_width
 
-        ## Convert ctype back to python type for convenience
-        #yield_error = yield_error.value
+        # Store the yield in an observable
+        observable = analysis_objects.ExtractedObservable(value = yield_value, error = yield_error)
+        return observable
 
-        ## Scale by track pt bin width
-        #track_pt_bin_width = self.track_pt.range.max - self.track_pt.range.min
-        #yield_value /= track_pt_bin_width
-        #yield_error /= track_pt_bin_width
-
-        ## Store yield
-        #yields[f"{name}_yield"] = analysis_objects.ExtractedObservable(
-        #    value = yield_value,
-        #    error = yield_error,
-        #)
-
-    def _retrieve_widths_from_RPF(self) -> Dict[str, analysis_objects.ExtractedObservable]:
-        """ Extract widths from the RPFit. """
-        # TODO: Still to be tested.
-        widths = {}
-        # Retrieve the widths parameter and it's error
-        for location in ["ns", "as"]:
-            value = self.fit_object.fit_result.values_at_minimum[f"{location}_sigma"]
-            error = self.fit_object.fit_result.errors_on_parameters[f"{location}_sigma"]
-            widths[location] = analysis_objects.ExtractedObservable(
-                value = value, error = error
+    def extract_yields(self) -> None:
+        """ Extract and store near-side and away-side yields. """
+        # Delta phi yields
+        logger.debug("Extracting delta phi yields.")
+        # Of the form (attribute_name, central_value)
+        delta_phi_regions = [
+            ("near_side", 0),
+            ("away_side", np.pi),
+        ]
+        for attribute_name, central_value in delta_phi_regions:
+            observable = self._extract_yield_from_hist(
+                hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+                central_value = central_value,
+                yield_limit = self.task_config["delta_phi_yield_limit"],
             )
+            # Store the extract yield
+            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}")
+            setattr(self.yields_delta_phi, attribute_name, observable)
 
-        return widths
+        # Delta eta yields
+        logger.debug("Extracting delta eta yields.")
+        # Of the form (attribute_name, central_value)
+        delta_eta_regions = [
+            ("near_side", 0),
+            ("away_side", 0),
+        ]
+        for attribute_name, central_value in delta_eta_regions:
+            observable = self._extract_yield_from_hist(
+                hist = utils.recursive_getattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist"),
+                central_value = central_value,
+                yield_limit = self.task_config["delta_eta_yield_limit"],
+            )
+            setattr(self.yields_delta_eta, attribute_name, observable)
+
+    def _retrieve_widths_from_RPF(self) -> None:
+        """ Helper function to actually extract and store widths from the RP fit. """
+        regions = ["near_side", "away_side"]
+        # Retrieve the widths parameter and it's error
+        for region in regions:
+            # Need to convert "near_side" -> "ns" to retrieve the parameters
+            short_name = "".join([s[0] for s in region.split("_")])
+            width_value = self.fit_object.fit_result.values_at_minimum[f"{short_name}_sigma"]
+            width_error = self.fit_object.fit_result.errors_on_parameters[f"{short_name}_sigma"]
+            logger.debug(f"Extracted {region} width: {width_value}, error: {width_error}")
+
+            # Store the output
+            observable = analysis_objects.ExtractedObservable(value = width_value, error = width_error)
+            setattr(self.widths_delta_phi, region, observable)
 
     def extract_widths(self) -> None:
-        """ """
-        ...
-
-    def extract_yields_and_widths(self) -> None:
-        # Ensure that the previous step was run
-        if not self.ran_post_fit_processing:
-            raise RuntimeError("Must run the post fit processing step before extracting yields and widths!")
-
-        # Extract yields
-        if self.processing_options["extractYields"]:
-            # Setup yield limits
-            # 1.0 is the value from the semi-central analysis.
-            yield_limit = self.config.get("yield_limit", 1.0)
-
-            logger.info(f"Extracting yields with yield limit: {yield_limit}")
-            self.extract_yields(yield_limit = yield_limit)
-            #logger.info(f"AS yields: {self.yield_AS}")
-
-            # Plot
-            if self.processing_options["plotYields"]:
-                plot_extracted.plotYields(self)
-
-            self.processing_options["extractWidths"] = True
-        else:
-            # Initialize yields from the file
-            pass
-
-        # Extract widths
-        if self.processing_options["extractWidths"]:
-            # Extract widths
-            logger.info("Extracting widths from the fits.")
-            self.extract_widths()
-            #logger.info(f"AS widths: {self.width_AS}")
-
-            # Plot
-            if self.processing_options["plotWidths"]:
-                plot_extracted.plotWidths(self)
-        else:
-            # Initialize widths from the file
-            pass
+        """ Extract and store near-side and away-side widths. """
+        self._retrieve_widths_from_RPF()
+        # ...
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
@@ -2179,31 +2202,53 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def extract_yields(self) -> bool:
         """ Extract yields from analysis objects. """
-        with self._progress_manager.counter(total = len(self.analyses),
-                                            desc = "Extractin' yields:",
-                                            unit = "delta phi hists") as extracting:
-            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                # Ensure that the previous step was run
-                if not analysis.ran_post_fit_processing:
-                    raise RuntimeError("Must run the post fit processing step before extracting yields!")
+        if self.processing_options["extract_yields"]:
+            with self._progress_manager.counter(total = len(self.analyses),
+                                                desc = "Extractin' yields:",
+                                                unit = "delta phi hists") as extracting:
+                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                    # Ensure that the previous step was run
+                    if not analysis.ran_post_fit_processing:
+                        raise RuntimeError("Must run the post fit processing step before extracting yields!")
 
-                # Update progress
-                extracting.update()
+                    # Extract and store the yields.
+                    analysis.extract_yields()
+
+                    # Update progress
+                    extracting.update()
+        else:
+            # TODO: Load yields from file.
+            ...
+
+        # Plot
+        if self.processing_options["plot_yields"]:
+            plot_extracted.plotYields(self)
 
         return True
 
     def extract_widths(self) -> bool:
         """ Extract widths from analysis objects. """
-        with self._progress_manager.counter(total = len(self.analyses),
-                                            desc = "Extractin' widths:",
-                                            unit = "delta phi hists") as extracting:
-            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                # Ensure that the previous step was run
-                if not analysis.ran_post_fit_processing:
-                    raise RuntimeError("Must run the post fit processing step before extracting widths!")
+        if self.processing_options["extract_widths"]:
+            with self._progress_manager.counter(total = len(self.analyses),
+                                                desc = "Extractin' widths:",
+                                                unit = "delta phi hists") as extracting:
+                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                    # Ensure that the previous step was run
+                    if not analysis.ran_post_fit_processing:
+                        raise RuntimeError("Must run the post fit processing step before extracting widths!")
 
-                # Update progress
-                extracting.update()
+                    # Extract and store the yields.
+                    analysis.extract_widths()
+
+                    # Update progress
+                    extracting.update()
+        else:
+            # TODO: Load widths from file.
+            ...
+
+        # Plot
+        if self.processing_options["plot_widths"]:
+            plot_extracted.plotWidths(self)
 
         return True
 
