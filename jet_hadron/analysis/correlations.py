@@ -899,7 +899,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Relevant histograms
         # We need a field use with replace to successfully copy the dataclass. We just want a clean copy,
-        # (and apparently using replace is strongly preferred for a dataclasses compared to copying)
+        # (and apparently using replace is strongly preferred for a dataclass compared to copying)
         # so we replace the hist (which is already None) with None and we get a copy of the dataclass.
         self.number_of_triggers_observable: analysis_objects.Observable = dataclasses.replace(
             _number_of_triggers_histogram_information["number_of_triggers_observable"], hist = None,
@@ -1828,7 +1828,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             None. The subtracted hist is stored.
         """
         # We want to subtract the signal dominated hist from the background function.
-        # We want to do the same thing regardless of wehther an object contributed to the signal
+        # We want to do the same thing regardless of whether an object contributed to the signal
         # dominated or background dominated portion of the fit.
         signal_dominated = self.correlation_hists_delta_phi.signal_dominated
         signal_dominated_hist = histogram.Histogram1D.from_existing_hist(signal_dominated.hist)
@@ -2035,7 +2035,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 if not input_hists:
                     input_hists = histogram.get_histograms_in_file(filename = analysis.input_filename)
                 logger.debug(f"{key_index}")
-                # Setup input histograms and projctors.
+                # Setup input histograms and projectors.
                 analysis.setup(input_hists = input_hists)
                 # Keep track of progress
                 setting_up.update()
@@ -2054,7 +2054,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         analysis_iterables = self.selected_iterables,
                         selection = "reaction_plane_orientation",
                     ):
-                # We will keep track of the inclusive analysis so we cna easily access some analysis parameters.
+                # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
                 inclusive_analysis: Correlations
                 # Setup the input data
                 input_hists: rpf.fit.InputData = {
@@ -2316,7 +2316,7 @@ def write_analyses(manager: CorrelationsManager, output_filename: str) -> None:
         ROOT.TH2D,
         ROOT.THnSparseF,
     ]
-    # NOTE: MAy need KeyIndex...
+    # NOTE: May need KeyIndex...
     #KeyIndex = next(iter(manager.analyses))
 
     # Register the necessary modules and classes
@@ -2367,6 +2367,7 @@ def run_from_terminal():
     # Finally run the analysis.
     analysis_manager.run()
 
+    # Quiet down IPython.
     logging.getLogger("parso").setLevel(logging.INFO)
     # Embed IPython to allow for some additional exploration
     IPython.embed()
