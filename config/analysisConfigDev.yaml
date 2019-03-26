@@ -463,7 +463,7 @@ ResponseFinal:
             reaction_plane_orientation: true
 ResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: false
+    read_hists_from_root_file: true
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.

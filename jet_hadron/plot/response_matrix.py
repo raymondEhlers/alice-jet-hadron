@@ -228,7 +228,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Aesthetics
     # Colors and markers are from Joel's plots.
     colors = [ROOT.kBlack, ROOT.kBlue - 7, 8, ROOT.kRed - 4]
-    markers = [ROOT.kOpenDiamond, ROOT.kFullSquare, ROOT.kFullTriangleUp, ROOT.kFullCircle]
+    markers = [ROOT.kFullDiamond, ROOT.kFullSquare, ROOT.kFullTriangleUp, ROOT.kFullCircle]
     # Diamond: 1.6
     # Triangle: 1.2
     marker_sizes = [1.6, 1.1, 1.2, 1.1]
