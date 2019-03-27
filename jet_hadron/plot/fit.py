@@ -203,7 +203,7 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
 
     for ax in flat_axes:
-        # Increate the frequency of major ticks to once every integer.
+        # Increase the frequency of major ticks to once every integer.
         ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
         # Set label
         ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
@@ -386,9 +386,9 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
     )
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
 
-    # Deifne lower panel labels.
+    # Define lower panel labels.
     for ax in flat_axes[n_components:]:
-        # Increate the frequency of major ticks to once every integer.
+        # Increase the frequency of major ticks to once every integer.
         ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
         # Add axis labels
         ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
