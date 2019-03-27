@@ -14,7 +14,7 @@ from typing import List, Optional, Sequence, Union
 import matplotlib
 import matplotlib.pyplot as plt
 
-import seaborn as sns
+import pachyderm.plot
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
@@ -23,34 +23,8 @@ from jet_hadron.base.typing_helpers import Canvas, Hist
 # Setup logger
 logger = logging.getLogger(__name__)
 
-# Setup seaborn
-# NOTE: This needs to go before customizing matplotlib because this will override some of those settings.
-sns.set(context = "notebook", style = "white")
-
-# Customize matplotlib
-# Enable latex
-matplotlib.rcParams["text.usetex"] = True
-# Enable axis ticks (after they are disabled by seaborn)
-matplotlib.rcParams["xtick.bottom"] = True
-matplotlib.rcParams["ytick.left"] = True
-# Make minor axis ticks visible (but only on left and bottom)
-matplotlib.rcParams["xtick.minor.visible"] = True
-matplotlib.rcParams["ytick.minor.visible"] = True
-matplotlib.rcParams["xtick.minor.top"] = False
-matplotlib.rcParams["ytick.minor.right"] = False
-# Ensure that axis ticks go inward instead of outward
-matplotlib.rcParams["xtick.direction"] = "in"
-matplotlib.rcParams["ytick.direction"] = "in"
-# Enable AMS math package (for among other things, "\text")
-matplotlib.rcParams["text.latex.preamble"].append(r"\usepackage{amsmath}")
-# Below, we set the LaTeX fornts to be the same as those used in matplotlib.
-# For sans serif fonts in LaTeX (required for setting the fonts below), see: https://stackoverflow.com/a/11612347
-# To set the tex fonts to be the same as the normal matplotlib fonts, see: https://stackoverflow.com/a/27697390
-matplotlib.rcParams["text.latex.preamble"].append(r"\usepackage{sfmath}")
-matplotlib.rcParams["mathtext.fontset"] = "custom"
-matplotlib.rcParams["mathtext.rm"] = "Bitstream Vera Sans"
-matplotlib.rcParams["mathtext.it"] = "Bitstream Vera Sans:italic"
-matplotlib.rcParams["mathtext.bf"] = "Bitstream Vera Sans:bold"
+# Configure plot styling.
+pachyderm.plot.configure()
 
 class AnalysisColors:
     """ Exceedingly simple class to store analysis colors. """
