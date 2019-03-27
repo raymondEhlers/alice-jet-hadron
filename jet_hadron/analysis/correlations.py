@@ -2032,8 +2032,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Keep track of progress
                 setting_up.update()
 
-    def fit(self) -> bool:
-        """ Fit the stored correlations. """
+    def _reaction_plane_fit(self) -> None:
+        """ Fit the delta phi correlations using the reaction plane fit. """
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
         with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
@@ -2091,28 +2091,36 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     background_region = analysis.background_dominated_eta_region,
                     #use_minos = True,
                 )
+
+                # Now, perform the fit (or load in the fit result).
+                rpf_filename = os.path.join(self.output_info.output_prefix, f"RPFitResult_{inclusive_analysis.identifier}.yaml")
                 if self.processing_options["fit_correlations"]:
-                    # Now perform the fit.
+                    # Perform the fit.
                     fit_success, fit_data = fit_obj.fit(
                         data = input_hists,
                         user_arguments = user_arguments,
                     )
 
-                    # Store the fit results
-                    # This main object has access to the entire result.
-                    self.fit_objects[fit_key_index] = fit_obj
-                    # Store the results relevant to each component in the individual analysis.
-                    for index, fit_component in fit_obj.components.items():
-                        for key_index, analysis in ep_analyses:
-                            if str(key_index.reaction_plane_orientation) in index.orientation:
-                                analysis.fit_object = fit_component
-
                     # This should already be caught, but we handle it for good measure
                     if not fit_success:
                         raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
+
+                    # Write out the fit results
+                    logger.debug(f"Writing RPF to {rpf_filename}")
+                    fit_obj.write_fit_results(filename = rpf_filename)
                 else:
-                    # TODO: Load from file.
-                    ...
+                    # Load from file.
+                    logger.debug(f"Loading RPF from {rpf_filename}")
+                    fit_obj.read_fit_results(filename = rpf_filename)
+
+                # Store the fit results in the manager.
+                # This main object has access to the entire result.
+                self.fit_objects[fit_key_index] = fit_obj
+                # Store the results relevant to each component in the individual analysis.
+                for index, fit_component in fit_obj.components.items():
+                    for key_index, analysis in ep_analyses:
+                        if str(key_index.reaction_plane_orientation) in index.orientation:
+                            analysis.fit_object = fit_component
 
                 # Plot the result
                 if self.processing_options["plot_RPF"]:
@@ -2140,6 +2148,10 @@ class CorrelationsManager(generic_class.EqualityMixin):
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                 plot_fit.signal_dominated_with_background_function(analysis)
 
+    def fit(self) -> bool:
+        """ Fit the stored correlations. """
+        # Fit the delta phi correlations using the reaction plane fit.
+        self._reaction_plane_fit()
         return True
 
     def subtract_fits(self) -> bool:
