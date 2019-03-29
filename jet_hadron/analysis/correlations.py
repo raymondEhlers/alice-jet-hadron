@@ -2125,8 +2125,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Plot the result
                 if self.processing_options["plot_RPF"]:
                     plot_fit.plot_RP_fit(
-                        rp_fit = fit_obj, data = fit_data,
+                        rp_fit = fit_obj,
                         inclusive_analysis = inclusive_analysis,
+                        ep_analyses = ep_analyses,
                         output_info = self.output_info,
                         output_name = f"{fit_type}_{inclusive_analysis.identifier}",
                     )

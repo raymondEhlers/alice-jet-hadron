@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-from typing import Any, List, Mapping, Tuple, TYPE_CHECKING
+from typing import Any, List, Mapping, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import histogram
 
@@ -224,28 +224,41 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     plot_base.save_plot(output_info, fig,
                         f"jetH_delta_phi_{inclusive_analysis.identifier}_rp_subtracted")
 
-def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
+def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP fit components on a given set of axes.
 
     Args:
         rp_fit: Reaction plane fit object.
-        data: Reaction plane fit data.
+        ep_analyses: Event plane dependent correlation analysis objects.
         axes: Axes on which the residual should be plotted. It must have an axis per component.
     Returns:
         None. The axes are modified in place.
     """
     # Validation
     if len(rp_fit.components) != len(axes):
-        raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
+        raise TypeError(
+            f"Number of axes is not equal to the number of fit components."
+            f"# of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+        )
+    if len(ep_analyses) != len(axes):
+        raise TypeError(
+            f"Number of axes is not equal to the number of EP analysis objects."
+            f"# of analyis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+        )
 
     x = rp_fit.fit_result.x
-    for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+    for (key_index, analysis), ax in zip(ep_analyses, axes):
         # Setup
         # Get the relevant data
-        hist = data[fit_type]
-        reaction_plane_orientation = params.ReactionPlaneOrientation[fit_type.orientation]
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            h: Union["correlations.DeltaPhiSignalDominated", "correlations.DeltaPhiBackgroundDominated"] = \
+                analysis.correlation_hists_delta_phi.signal_dominated
+        else:
+            h = analysis.correlation_hists_delta_phi.background_dominated
+        hist = histogram.Histogram1D.from_existing_hist(h)
+        # Determine the proper display color
         data_color = plot_base.AnalysisColors.background
-        if reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
             data_color = plot_base.AnalysisColors.signal
 
         # Plot the data first to ensure that the colors are consistent with previous plots
@@ -256,45 +269,59 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, dat
 
         # Draw the data according to the given function
         # Determine the values of the fit function.
-        fit_values = component.evaluate_fit(x = x)
+        fit_values = analysis.fit_object.evaluate_fit(x = x)
 
         # Plot the main values
         plot = ax.plot(x, fit_values, label = "Fit", color = plot_base.AnalysisColors.fit)
         # Plot the fit errors
-        errors = component.fit_result.errors
+        errors = analysis.fit_object.fit_result.errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
-        ax.set_title(f"{reaction_plane_orientation.display_str()} orient.")
+        ax.set_title(f"{analysis.reaction_plane_orientation.display_str()} orient.")
 
     # Increase the upper range by 8% to ensure that the labels don't overlap with the data.
     lower_limit, upper_limit = ax.get_ylim()
     axes[0].set_ylim(bottom = lower_limit, top = upper_limit * 1.08)
 
-def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data, axes: matplotlib.axes.Axes) -> None:
+def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
     """ Plot fit residuals on a given set of axes.
 
     Args:
         rp_fit: Reaction plane fit object.
-        data: Reaction plane fit data.
+        ep_analyses: Event plane dependent correlation analysis objects.
         axes: Axes on which the residual should be plotted. It must have an axis per component.
     Returns:
         None. The axes are modified in place.
     """
     # Validation
     if len(rp_fit.components) != len(axes):
-        raise TypeError(f"Number of axes is not equal to the number of fit components. # of components: {len(rp_fit.components)}, # of axes: {len(axes)}")
+        raise TypeError(
+            f"Number of axes is not equal to the number of fit components."
+            f"# of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+        )
+    if len(ep_analyses) != len(axes):
+        raise TypeError(
+            f"Number of axes is not equal to the number of EP analysis objects."
+            f"# of analyis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+        )
 
     x = rp_fit.fit_result.x
-    for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
+    for (key_index, analysis), ax in zip(ep_analyses, axes):
+        # Setup
         # Get the relevant data
-        hist = data[fit_type]
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            h: Union["correlations.DeltaPhiSignalDominated", "correlations.DeltaPhiBackgroundDominated"] = \
+                analysis.correlation_hists_delta_phi.signal_dominated
+        else:
+            h = analysis.correlation_hists_delta_phi.background_dominated
+        hist = histogram.Histogram1D.from_existing_hist(h)
 
         # We create a histogram to represent the fit so that we can take advantage
         # of the error propagation in the Histogram1D object.
         fit_hist = histogram.Histogram1D(
             # Bin edges must be the same
             bin_edges = hist.bin_edges,
-            y = component.evaluate_fit(x = x),
-            errors_squared = component.fit_result.errors ** 2,
+            y = analysis.fit_object.evaluate_fit(x = x),
+            errors_squared = analysis.fit_object.fit_result.errors ** 2,
         )
         # NOTE: Residual = data - fit / fit, not just data-fit
         residual = (hist - fit_hist) / fit_hist
@@ -328,16 +355,17 @@ def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str) -> None:
         transform = ax.transAxes
     )
 
-def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_plane_fit.fit.Data,
+def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
                 inclusive_analysis: "correlations.Correlations",
+                ep_analyses: List[Tuple[Any, "correlations.Correlations"]],
                 output_info: analysis_objects.PlottingOutputWrapper,
                 output_name: str) -> None:
     """ Basic plot of the reaction plane fit.
 
     Args:
         rp_fit: Reaction plane fit object.
-        data: Reaction plane fit data.
         inclusive_analysis: Inclusive analysis object. Mainly used for labeling.
+        ep_analyses: Event plane dependent correlation analysis objects.
         output_info: Output information.
         output_name: Name of the output plot.
     Returns:
@@ -354,9 +382,9 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, data: reaction_
     flat_axes = axes.flatten()
 
     # Plot the fits on the upper panels.
-    _plot_rp_fit_components(rp_fit = rp_fit, data = data, axes = flat_axes[:n_components])
+    _plot_rp_fit_components(rp_fit = rp_fit, ep_analyses = ep_analyses, axes = flat_axes[:n_components])
     # Plot the residuals on the lower panels.
-    _plot_rp_fit_residuals(rp_fit = rp_fit, data = data, axes = flat_axes[n_components:])
+    _plot_rp_fit_residuals(rp_fit = rp_fit, ep_analyses = ep_analyses, axes = flat_axes[n_components:])
 
     # Define upper panel labels.
     # In-plane
