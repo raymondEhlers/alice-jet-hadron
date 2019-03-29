@@ -2096,7 +2096,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 rpf_filename = os.path.join(self.output_info.output_prefix, f"RPFitResult_{inclusive_analysis.identifier}.yaml")
                 if self.processing_options["fit_correlations"]:
                     # Perform the fit.
-                    fit_success, fit_data = fit_obj.fit(
+                    fit_success, fit_data, _ = fit_obj.fit(
                         data = input_hists,
                         user_arguments = user_arguments,
                     )
@@ -2137,7 +2137,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     plot_fit.rpf_covariance_matrix(
                         fit_obj.fit_result,
                         output_info = self.output_info,
-                        output_name = f"{fit_type}_{inclusive_analysis.identifier}_covariance_matrix",
+                        identifier = f"{fit_type}_{inclusive_analysis.identifier}",
+                    )
+                    # Correlation matrix
+                    plot_fit.rpf_correlation_matrix(
+                        fit_obj.fit_result,
+                        output_info = self.output_info,
+                        identifier = f"{fit_type}_{inclusive_analysis.identifier}",
                     )
 
                 # Update progress
