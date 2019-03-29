@@ -175,11 +175,17 @@ def rpf_covariance_matrix(fit_result: reaction_plane_fit.base.RPFitResult,
     ax.set_xticks(range(number_of_parameters))
     ax.set_yticks(range(number_of_parameters))
     # Also rotate the x-axis labels so they are all visiable.
-    ax.set_xticklabels(parameter_labels, rotation = -30, horizontalalignment = "right")
+    ax.set_xticklabels(parameter_labels,
+                       rotation = -30, rotation_mode = "anchor",
+                       horizontalalignment = "right")
     ax.set_yticklabels(parameter_labels)
+
+    # Turn spines off and create white grid
+    for edge, spine in ax.spines.items():
+        spine.set_visible(False)
     # Use minor ticks to put a white border between each value
-    ax.set_xticks(np.arange(number_of_parameters) - .5, minor = True)
-    ax.set_yticks(np.arange(number_of_parameters) - .5, minor = True)
+    ax.set_xticks(np.arange(number_of_parameters + 1) - .5, minor = True)
+    ax.set_yticks(np.arange(number_of_parameters + 1) - .5, minor = True)
     ax.grid(which = "minor", color = "w", linestyle = '-', linewidth = 3)
     ax.tick_params(which = "minor", bottom = False, left = False)
 
