@@ -2124,12 +2124,20 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
                 # Plot the result
                 if self.processing_options["plot_RPF"]:
+                    # Main fit plot
                     plot_fit.plot_RP_fit(
                         rp_fit = fit_obj,
                         inclusive_analysis = inclusive_analysis,
                         ep_analyses = ep_analyses,
                         output_info = self.output_info,
                         output_name = f"{fit_type}_{inclusive_analysis.identifier}",
+                    )
+
+                    # Covariance matrix
+                    plot_fit.rpf_covariance_matrix(
+                        fit_obj.fit_result,
+                        output_info = self.output_info,
+                        output_name = f"{fit_type}_{inclusive_analysis.identifier}_covariance_matrix",
                     )
 
                 # Update progress

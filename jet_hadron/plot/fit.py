@@ -17,6 +17,7 @@ from typing import Any, List, Mapping, Tuple, TYPE_CHECKING, Union
 from pachyderm import histogram
 
 import reaction_plane_fit as rpf
+import reaction_plane_fit.base
 import reaction_plane_fit.fit
 
 from jet_hadron.base import analysis_objects
@@ -121,6 +122,83 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
 
     for parameter in parameters:
         _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
+
+def rpf_covariance_matrix(fit_result: reaction_plane_fit.base.RPFitResult,
+                          output_info: analysis_objects.PlottingOutputWrapper,
+                          output_name: str) -> None:
+    """ Plot the RP fit covariance matrix.
+
+    Code substantially improved by using the information at
+    https://matplotlib.org/gallery/images_contours_and_fields/image_annotated_heatmap.html
+
+    Args:
+        fit_result: Reaction plane fit result.
+        output_info: Output information.
+        output_name: Name of the output plot.
+    Returns:
+        None. The covariance matrix is saved.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    # Move x labels to top to follow convention
+    ax.tick_params(top = True, bottom = False,
+                   labeltop = True, labelbottom = False)
+    # Create a map from the labels to valid LaTeX for improved presentation
+    improved_labeling_map = {
+        "ns_amplitude": "A_{NS}", "as_amplitude": "A_{AS}",
+        "ns_sigma": r"\sigma_{NS}", "as_sigma": r"\sigma_{AS}",
+        "BG": r"\text{Signal background}", "v1": "v_{1}", "v2_t": "v_{2}^{t}", "v2_a": "v_{2}^{a}",
+        "v3": "v_{3}", "v4_t": "v_{4}^{t}", "v4_a": "v_{4}^{a}",
+        "B": r"\text{RPF Background}",
+    }
+    # Ensure that the strings are valid LaTeX
+    improved_labeling_map = {k: labels.make_valid_latex_string(v) for k, v in improved_labeling_map.items()}
+    # Fixed parameters aren't in the covariance matrix.
+    number_of_parameters = len(fit_result.free_parameters)
+
+    logger.debug(f"number_of_parameters: {number_of_parameters}")
+    logger.debug(f"values: {list(fit_result.covariance_matrix.values())}")
+    covariance_matrix_values = np.array(list(fit_result.covariance_matrix.values()))
+    covariance_matrix_values = covariance_matrix_values.reshape(number_of_parameters, number_of_parameters)
+
+    # Plot the matrix
+    im = ax.imshow(covariance_matrix_values, cmap = "viridis")
+
+    # Add the colorbar
+    fig.colorbar(im, ax = ax)
+
+    # Axis labeling
+    parameter_labels = [b for a, b in list(fit_result.covariance_matrix)[:number_of_parameters]]
+    parameter_labels = [improved_labeling_map[l] for l in parameter_labels]
+    # Show all axis ticks and then label them
+    # The first step of settings the yticks is required according to the matplotlib docs
+    ax.set_xticks(range(number_of_parameters))
+    ax.set_yticks(range(number_of_parameters))
+    # Also rotate the x-axis labels so they are all visiable.
+    ax.set_xticklabels(parameter_labels, rotation = -30, horizontalalignment = "right")
+    ax.set_yticklabels(parameter_labels)
+    # Use minor ticks to put a white border between each value
+    ax.set_xticks(np.arange(number_of_parameters) - .5, minor = True)
+    ax.set_yticks(np.arange(number_of_parameters) - .5, minor = True)
+    ax.grid(which = "minor", color = "w", linestyle = '-', linewidth = 3)
+    ax.tick_params(which = "minor", bottom = False, left = False)
+
+    # Label values in each element
+    threshold_for_changing_label_colors = im.norm(np.max(covariance_matrix_values)) / 2
+    text_colors = ["white", "black"]
+    for i in range(number_of_parameters):
+        for j in range(number_of_parameters):
+            color = text_colors[im.norm(covariance_matrix_values[i, j]) > threshold_for_changing_label_colors]
+            im.axes.text(j, i, f"{covariance_matrix_values[i, j]:.1f}",
+                         horizontalalignment="center",
+                         verticalalignment="center",
+                         color = color)
+
+    # Final adjustments
+    fig.tight_layout()
+    # Save plot and cleanup
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
 
 def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP subtracted histograms on the given set of axes.
