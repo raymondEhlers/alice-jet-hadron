@@ -152,7 +152,7 @@ def _matrix_values(free_parameters: List[str],
         "ns_amplitude": "A_{NS}", "as_amplitude": "A_{AS}",
         "ns_sigma": r"\sigma_{NS}", "as_sigma": r"\sigma_{AS}",
         "BG": r"\text{Signal background}", "v1": "v_{1}", "v2_t": "v_{2}^{t}", "v2_a": "v_{2}^{a}",
-        "v3": "v_{3}", "v4_t": "v_{4}^{t}", "v4_a": "v_{4}^{a}",
+        "v3": "v_{3}^{2}", "v4_t": "v_{4}^{t}", "v4_a": "v_{4}^{a}",
         "B": r"\text{RPF Background}",
     }
     # Ensure that the strings are valid LaTeX
@@ -160,8 +160,7 @@ def _matrix_values(free_parameters: List[str],
     # Fixed parameters aren't in the covariance matrix.
     number_of_parameters = len(free_parameters)
 
-    logger.debug(f"number_of_parameters: {number_of_parameters}")
-    logger.debug(f"values: {list(matrix.values())}")
+    # Put the values into a form that can actually be plotted. Note that this assumes a square matrix.
     matrix_values = np.array(list(matrix.values()))
     matrix_values = matrix_values.reshape(number_of_parameters, number_of_parameters)
 
