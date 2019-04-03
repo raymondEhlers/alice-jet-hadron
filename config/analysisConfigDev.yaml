@@ -113,9 +113,9 @@ Correlations:
 CorrelationsManager:
     processing_options:
         fit_correlations: true
-        plot_RPF: false
+        plot_RPF: true
         subtract_correlations: true
-        plot_subtracted_correlations: false
+        plot_subtracted_correlations: true
         # Yields
         extract_yields: true
         plot_yields: false
@@ -137,7 +137,20 @@ CorrelationsManager:
             #R82: *R42
         fit_params:
             jetPtBiased_20_40:
-                #trackPt_2.0_3.0:
+                trackPt_2.0_3.0:
+                    args:
+                        #fix_BG: true
+                        #BG: 0
+                        #ns_amplitude: 1.0
+                        #as_amplitude: 0.2
+                        v2_t: 0.04
+                        limit_v2_t: [0.01, 0.20]
+                        v2_a: 0.10
+                        v3: 0.0015
+                        v4_t: 0
+                        fix_v4_t: true
+                        v4_a: 0
+                        fix_v4_a: true
                 #    use_log_likelihood: true
                 #trackPt_4.0_5.0:
                 #    use_log_likelihood: true
