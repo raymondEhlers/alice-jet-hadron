@@ -842,7 +842,7 @@ class CorrelationYields:
     near_side: analysis_objects.ExtractedObservable
     away_side: analysis_objects.ExtractedObservable
 
-    def __iter__(self) -> Iterator[Tuple[str, DeltaPhiObservable]]:
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.ExtractedObservable]]:
         for k, v in vars(self).items():
             yield k, v
 
@@ -851,10 +851,9 @@ class CorrelationWidths:
     near_side: analysis_objects.ExtractedObservable
     away_side: analysis_objects.ExtractedObservable
 
-    def __iter__(self) -> Iterator[Tuple[str, DeltaPhiObservable]]:
+    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.ExtractedObservable]]:
         for k, v in vars(self).items():
             yield k, v
-
 
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
