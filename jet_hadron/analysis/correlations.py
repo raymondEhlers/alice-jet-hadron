@@ -838,6 +838,20 @@ class CorrelationHistogramsDeltaEta:
             yield k, v
 
 @dataclass
+class PedestalFitResult:
+    value: float
+    error: float
+
+@dataclass
+class DeltaEtaFitObjects:
+    near_side: PedestalFitResult
+    away_side: PedestalFitResult
+
+    def __iter__(self) -> Iterator[Tuple[str, PedestalFitResult]]:
+        for k, v in vars(self).items():
+            yield k, v
+
+@dataclass
 class CorrelationYields:
     near_side: analysis_objects.ExtractedObservable
     away_side: analysis_objects.ExtractedObservable
@@ -998,6 +1012,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Fit object
         self.fit_object: rpf.fit.FitComponent
+        self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
+            near_side = PedestalFitResult(value = -1, error = -1),
+            away_side = PedestalFitResult(value = -1, error = -1),
+        )
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
@@ -1810,6 +1828,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Store that we've completed this step.
         self.ran_projections = True
 
+    def fit_delta_eta_correlations(self) -> None:
+        """ Fit a pedestal to the background dominated region of the delta eta correlations. """
+        attribute_names = ["near_side", "away_side"]
+        for attribute_name in attribute_names:
+            correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
+            constant, covariance_matrix = fitting.fit_pedestal_to_delta_eta_background_dominated_region(
+                h = histogram.Histogram1D.from_existing_hist(correlation.hist),
+                fit_range = self.signal_dominated_eta_region.range,
+            )
+
+            # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+            fit_result = PedestalFitResult(value = constant, error = np.sqrt(np.diag(covariance_matrix)))
+            setattr(self.fit_objects_delta_eta, attribute_name, fit_result)
+
     def subtract_background_fit_function_from_signal_dominated(self) -> None:
         """ Subtract the background function extract from a fit from the signal dominated hist.
 
@@ -1979,6 +2011,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
 
             # Store the result
+            # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
             observable = analysis_objects.ExtractedObservable(
                 value = width,
                 error = np.sqrt(np.diag(covariance_matrix)),
@@ -2113,6 +2146,23 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 # Keep track of progress
                 setting_up.update()
 
+    def _fit_delta_eta_correlations(self) -> None:
+        """ Fit the delta eta correlations. """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Fitting:",
+                                            unit = "delta eta correlations") as fitting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                if self.processing_options["fit_correlations"]:
+                    # Fit a pedestal to the background dominated eta region
+                    # The result is stored in the analysis object.
+                    analysis.fit_delta_eta_correlations()
+                else:
+                    # TODO: Load from file.
+                    ...
+
+                # Update progress
+                fitting.update()
+
     def _reaction_plane_fit(self) -> None:
         """ Fit the delta phi correlations using the reaction plane fit. """
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
@@ -2246,6 +2296,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def fit(self) -> bool:
         """ Fit the stored correlations. """
+        # Fit the delta eta correlations
+        self._fit_delta_eta_correlations()
         # Fit the delta phi correlations using the reaction plane fit.
         self._reaction_plane_fit()
         return True

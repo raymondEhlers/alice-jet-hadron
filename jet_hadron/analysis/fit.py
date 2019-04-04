@@ -234,6 +234,31 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
+def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
+                                                          fit_range: params.SelectedRange) -> Tuple[float, np.array]:
+    """ Fit a pedestal to a histogram using ``scipy.optimize.curvefit``.
+
+    The initial value of the fit will be determined by the minimum y value of the histogram.
+
+    Args:
+        h: Histogram to be fit.
+        fit_range: Min and max values within which the fit will be performed.
+    Returns:
+        (constant, covariance matrix)
+    """
+    # For example, -1.2 < h.x < -0.8
+    negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.min)
+    # For example, 0.8 < h.x < 1.2
+    positive_restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
+    restricted_range = negative_restricted_range | positive_restricted_range
+    constant, covariance_matrix = optimization.curve_fit(
+        f = lambda x, c: c,
+        xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = np.min(h.y[restricted_range]),
+        sigma = h.errors[restricted_range],
+    )
+
+    return constant, covariance_matrix
+
 @dataclass
 class GaussianFitInputs:
     """ Storage for Gaussian fit inputs.
