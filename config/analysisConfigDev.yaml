@@ -114,6 +114,7 @@ CorrelationsManager:
     processing_options:
         fit_correlations: true
         plot_RPF: true
+        plot_delta_eta_fit: true
         subtract_correlations: true
         plot_subtracted_correlations: true
         # Yields

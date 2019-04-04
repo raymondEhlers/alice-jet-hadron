@@ -2160,6 +2160,9 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     # TODO: Load from file.
                     ...
 
+                if self.processing_options["plot_delta_eta_fit"]:
+                    plot_fit.delta_eta_fit(analysis)
+
                 # Update progress
                 fitting.update()
 

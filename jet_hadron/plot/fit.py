@@ -565,6 +565,85 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
+def delta_eta_fit(analysis: "correlations.Correlations") -> None:
+    """ Plot the delta eta correlations with the fit. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot both the near side and the away side.
+    attribute_names = ["near_side", "away_side"]
+    for attribute_name in attribute_names:
+        # Setup an individual hist
+        correlation = getattr(analysis.correlation_hists_delta_eta, attribute_name)
+        h = histogram.Histogram1D.from_existing_hist(correlation.hist)
+        label = correlation.type.display_str()
+
+        # Determine the fit range so we can show it in the plot.
+        # For example, -1.2 < h.x < -0.8
+        negative_restricted_range = ((h.x < -1 * analysis.background_dominated_eta_region.min)
+                                     & (h.x > -1 * analysis.background_dominated_eta_region.max))
+        # For example, 0.8 < h.x < 1.2
+        positive_restricted_range = ((h.x > analysis.background_dominated_eta_region.min)
+                                     & (h.x < analysis.background_dominated_eta_region.max))
+        restricted_range = negative_restricted_range | positive_restricted_range
+
+        # First plot all of the data with opacity
+        data_plot = ax.errorbar(
+            h.x, h.y, yerr = h.errors, marker = "o", linestyle = "", alpha = 0.5,
+        )
+        # Then plot again without opacity highlighting the fit range.
+        ax.errorbar(
+            h.x[restricted_range], h.y[restricted_range], yerr = h.errors[restricted_range],
+            label = label,
+            marker = "o", linestyle = "", color = data_plot[0].get_color()
+        )
+
+        # Next, plot the pedestal following the same format
+        fit_result = getattr(analysis.fit_objects_delta_eta, attribute_name)
+        # First plot the restricted values
+        # We have to plot the fit data in two separate halves to prevent the lines
+        # from being connected across the region where were don't fit.
+        # Plot the left half
+        pedestal_plot = ax.plot(
+            h.x[negative_restricted_range],
+            fit_result.value * np.ones(len(h.x[negative_restricted_range])),
+            label = "Pedestal",
+        )
+        # And then the right half
+        ax.plot(
+            h.x[positive_restricted_range],
+            fit_result.value * np.ones(len(h.x[positive_restricted_range])),
+            color = pedestal_plot[0].get_color(),
+        )
+        # Then plot the errors over the entire range.
+        ax.fill_between(
+            h.x,
+            (fit_result.value - fit_result.error) * np.ones(len(h.x)),
+            (fit_result.value + fit_result.error) * np.ones(len(h.x)),
+            facecolor = pedestal_plot[0].get_color(), alpha = 0.7,
+        )
+        # Then plot over the entire range using a dashed line.
+        ax.plot(
+            h.x,
+            fit_result.value * np.ones(len(h.x)),
+            linestyle = "--",
+            color = pedestal_plot[0].get_color(),
+        )
+
+        # Labeling
+        ax.legend(loc = "upper right")
+
+        # Final adjustments
+        fig.tight_layout()
+        # Save plot and cleanup
+        plot_base.save_plot(analysis.output_info, fig,
+                            f"jetH_delta_eta_{analysis.identifier}_{attribute_name}_fit")
+        # Reset for the next iteration of the loop
+        ax.clear()
+
+    # Final cleanup
+    plt.close(fig)
+
 def signal_dominated_with_background_function(analysis: "correlations.Correlations") -> None:
     """ Plot the signal dominated hist with the background function. """
     # Setup
