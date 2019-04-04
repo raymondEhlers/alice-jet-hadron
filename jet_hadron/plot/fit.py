@@ -177,7 +177,7 @@ def _matrix_values(free_parameters: List[str],
     # The first step of settings the yticks is required according to the matplotlib docs
     ax.set_xticks(range(number_of_parameters))
     ax.set_yticks(range(number_of_parameters))
-    # Also rotate the x-axis labels so they are all visiable.
+    # Also rotate the x-axis labels so they are all readable.
     ax.set_xticklabels(parameter_labels,
                        rotation = -30, rotation_mode = "anchor",
                        horizontalalignment = "right")
@@ -270,7 +270,7 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
             label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
         )
 
-        # Label RP orinetation
+        # Label RP orientation
         ax.set_title(analysis.reaction_plane_orientation.display_str())
 
         # Add horizontal line at 0 for comparison

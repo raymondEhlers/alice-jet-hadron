@@ -179,7 +179,7 @@ def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotl
                                                                     jet_hadron: "correlations.Correlations") -> None:
     """ Plot and label the signal and background dominated hists on the given axis.
 
-    This is a helper function so that we don't have to repat code when we need to plot these hists.
+    This is a helper function so that we don't have to repeat code when we need to plot these hists.
     It can also be used in other modules.
 
     Args:
