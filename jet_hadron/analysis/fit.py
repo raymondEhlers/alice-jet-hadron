@@ -236,7 +236,13 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
 
 @dataclass
 class GaussianFitInputs:
-    """ Storage for Gaussian fit inputs. """
+    """ Storage for Gaussian fit inputs.
+
+    Attributes:
+        mean: Mean value of the Gaussian.
+        initial_width: Initial value of the Gaussian fit.
+        fit_range: Min and max values within which the fit will be performed.
+    """
     mean: float
     initial_width: float
     fit_range: params.SelectedRange
@@ -257,7 +263,7 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
     """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
 
     Args:
-        h: Delta phi background subtracted histogram.
+        h: Background subtracted histogram to be fit.
         inputs: Fit inputs in the form of a ``GaussianFitInputs`` dataclass. Must specify the mean, the initial width,
             and the fit range.
     Returns:
@@ -267,7 +273,7 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
     width, covariance_matrix = optimization.curve_fit(
         f = lambda x, w: gaussian(x, inputs.mean, w),
         xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
-        sigma = h.errors[restricted_range]
+        sigma = h.errors[restricted_range],
     )
 
     return width, covariance_matrix
