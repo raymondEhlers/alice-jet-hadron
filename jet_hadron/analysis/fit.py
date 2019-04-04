@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from dataclasses import dataclass
 import logging
 import numpy as np
 from pachyderm import histogram
@@ -7,6 +8,7 @@ import scipy.optimize as optimization
 from typing import Sequence, Tuple
 
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
 
 import ROOT
@@ -232,6 +234,13 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
+@dataclass
+class GaussianFitInputs:
+    """ Storage for Gaussian fit inputs. """
+    mean: float
+    initial_width: float
+    fit_range: params.SelectedRange
+
 def gaussian(x: float, mu: float, sigma: float) -> float:
     """ Normalized gaussian.
 
@@ -244,21 +253,22 @@ def gaussian(x: float, mu: float, sigma: float) -> float:
     """
     return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
 
-def fit_gaussian_to_histogram(h: histogram.Histogram1D, mean: float, initial_width: float, ) -> Tuple[float, np.array]:
+def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, np.array]:
     """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
 
     Args:
         h: Delta phi background subtracted histogram.
-        mean: Mean for the fit. This parameter is fixed.
-        initial_width: Initial width for the gaussian fit.
+        inputs: Fit inputs in the form of a ``GaussianFitInputs`` dataclass. Must specify the mean, the initial width,
+            and the fit range.
     Returns:
         (width, covariance matrix)
     """
+    restricted_range = h.x > inputs.fit_range.min and h.x < inputs.fit_range.max
     width, covariance_matrix = optimization.curve_fit(
-        lambda x, w: gaussian(x, mean, w), h.x, h.y, initial_width, h.errors
+        f = lambda x, w: gaussian(x, inputs.mean, w),
+        xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
+        sigma = h.errors[restricted_range]
     )
 
     return width, covariance_matrix
 
-def fit_delta_phi_background_subtracted_signal(h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, np.array]:
-    """ Fit the delta phi signal regions. """

@@ -1961,16 +1961,22 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Setup
         # Of the form (attribute_name, mean, initial_width)
         delta_phi_regions = [
-            ("near_side", 0, 0.15),
-            ("away_side", np.pi, 0.3),
+            ("near_side", fitting.GaussianFitInputs(
+                mean = 0, initial_width = 0.15,
+                fit_range = self.near_side_phi_region.range,
+            )),
+            ("away_side", fitting.GaussianFitInputs(
+                mean = np.pi, initial_width = 0.3,
+                fit_range = self.away_side_phi_region.range,
+            )),
         ]
         subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
 
         # Fit and extract the widths.
-        for attribute_name, mean, initial_width in delta_phi_regions:
+        for attribute_name, inputs in delta_phi_regions:
             # NOTE: The covariance matrix should only be 1x1 because the width is the only free parameter.
             width, covariance_matrix = fitting.fit_gaussian_to_histogram(
-                h = subtracted.hist, mean = mean, initial_width = initial_width,
+                h = subtracted.hist, inputs = inputs,
             )
 
             # Store the result
