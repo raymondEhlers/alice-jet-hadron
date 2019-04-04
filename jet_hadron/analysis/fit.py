@@ -269,7 +269,7 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
     Returns:
         (width, covariance matrix)
     """
-    restricted_range = h.x > inputs.fit_range.min and h.x < inputs.fit_range.max
+    restricted_range = (h.x > inputs.fit_range.min) & (h.x < inputs.fit_range.max)
     width, covariance_matrix = optimization.curve_fit(
         f = lambda x, w: gaussian(x, inputs.mean, w),
         xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
