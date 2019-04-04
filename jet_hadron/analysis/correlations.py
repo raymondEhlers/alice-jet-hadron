@@ -1929,25 +1929,63 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
             setattr(self.yields_delta_eta, attribute_name, observable)
 
-    def _retrieve_widths_from_RPF(self) -> None:
+    def _retrieve_widths_from_RPF(self) -> bool:
         """ Helper function to actually extract and store widths from the RP fit. """
+        logger.debug("Attempting to extract widths from the RPF fit.")
         regions = ["near_side", "away_side"]
         # Retrieve the widths parameter and it's error
         for region in regions:
             # Need to convert "near_side" -> "ns" to retrieve the parameters
             short_name = "".join([s[0] for s in region.split("_")])
-            width_value = self.fit_object.fit_result.values_at_minimum[f"{short_name}_sigma"]
-            width_error = self.fit_object.fit_result.errors_on_parameters[f"{short_name}_sigma"]
+            width_value = self.fit_object.fit_result.values_at_minimum.get(f"{short_name}_sigma", None)
+            width_error = self.fit_object.fit_result.errors_on_parameters.get(f"{short_name}_sigma", None)
+            # Only attempt to store the width if we were able to extract it.
+            if width_value is None or width_error is None:
+                logger.debug(f"Could not extract width or error from RPF for {self.identifier}, {self.reaction_plane_orientation}")
+                return False
+            # Help out mypy...
+            assert width_value is not None and width_error is not None
             logger.debug(f"Extracted {region} width: {width_value}, error: {width_error}")
 
             # Store the output
             observable = analysis_objects.ExtractedObservable(value = width_value, error = width_error)
             setattr(self.widths_delta_phi, region, observable)
 
+        return True
+
+    def _fit_and_extract_delta_phi_widths(self) -> None:
+        """ Extract delta phi near-side and away-side widths via a gaussian fit.
+
+        The widths are extracted by fitting the subtracted delta phi corerlations to gaussians.
+        """
+        # Setup
+        # Of the form (attribute_name, mean, initial_width)
+        delta_phi_regions = [
+            ("near_side", 0, 0.15),
+            ("away_side", np.pi, 0.3),
+        ]
+        subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
+
+        # Fit and extract the widths.
+        for attribute_name, mean, initial_width in delta_phi_regions:
+            # NOTE: The covariance matrix should only be 1x1 because the width is the only free parameter.
+            width, covariance_matrix = fitting.fit_gaussian_to_histogram(
+                h = subtracted.hist, mean = mean, initial_width = initial_width,
+            )
+
+            # Store the result
+            observable = analysis_objects.ExtractedObservable(
+                value = width,
+                error = np.sqrt(np.diag(covariance_matrix)),
+            )
+            setattr(self.widths_delta_phi, attribute_name, observable)
+
     def extract_widths(self) -> None:
         """ Extract and store near-side and away-side widths. """
-        self._retrieve_widths_from_RPF()
-        # ...
+        # Attempt to retrieve the widths from the RPF.
+        extracted_from_RPF = self._retrieve_widths_from_RPF()
+        if not extracted_from_RPF:
+            self._fit_and_extract_delta_phi_widths()
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):

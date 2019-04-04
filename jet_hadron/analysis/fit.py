@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-#import IPython
 import logging
-from typing import Sequence
+import numpy as np
+from pachyderm import histogram
+import scipy.optimize as optimization
+from typing import Sequence, Tuple
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base.typing_helpers import Hist
@@ -230,3 +232,33 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
+def gaussian(x: float, mu: float, sigma: float) -> float:
+    """ Normalized gaussian.
+
+    Args:
+        x: Indepenednt variable.
+        mu: Mean.
+        sigma: Width.
+    Returns:
+        Normalized gaussian value.
+    """
+    return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
+
+def fit_gaussian_to_histogram(h: histogram.Histogram1D, mean: float, initial_width: float, ) -> Tuple[float, np.array]:
+    """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
+
+    Args:
+        h: Delta phi background subtracted histogram.
+        mean: Mean for the fit. This parameter is fixed.
+        initial_width: Initial width for the gaussian fit.
+    Returns:
+        (width, covariance matrix)
+    """
+    width, covariance_matrix = optimization.curve_fit(
+        lambda x, w: gaussian(x, mean, w), h.x, h.y, initial_width, h.errors
+    )
+
+    return width, covariance_matrix
+
+def fit_delta_phi_background_subtracted_signal(h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, np.array]:
+    """ Fit the delta phi signal regions. """
