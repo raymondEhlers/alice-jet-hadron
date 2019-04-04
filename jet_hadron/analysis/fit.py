@@ -247,7 +247,7 @@ def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram
         (constant, covariance matrix)
     """
     # For example, -1.2 < h.x < -0.8
-    negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.min)
+    negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.max)
     # For example, 0.8 < h.x < 1.2
     positive_restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
     restricted_range = negative_restricted_range | positive_restricted_range

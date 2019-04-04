@@ -1835,7 +1835,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
             constant, covariance_matrix = fitting.fit_pedestal_to_delta_eta_background_dominated_region(
                 h = histogram.Histogram1D.from_existing_hist(correlation.hist),
-                fit_range = self.signal_dominated_eta_region.range,
+                fit_range = self.background_dominated_eta_region.range,
             )
 
             # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
