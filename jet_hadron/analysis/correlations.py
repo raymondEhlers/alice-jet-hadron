@@ -2454,6 +2454,13 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     # Extract and store the yields.
                     analysis.extract_widths()
 
+                    # Plots related to the widths
+                    if self.processing_options["plot_widths"]:
+                        # Plot the gaussian fits used to extract the delta eta widths.
+                        plot_extracted.delta_eta_with_gaussian(analysis)
+                        # Same for delta phi.
+                        plot_extracted.delta_phi_with_gaussians(analysis)
+
                     # Update progress
                     extracting.update()
         else:
@@ -2461,8 +2468,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
             ...
 
         # Plot
-        if self.processing_options["plot_widths"]:
-            plot_extracted.plotWidths(self)
+        #if self.processing_options["plot_widths"]:
+        #    plot_extracted.plotWidths(self)
 
         return True
 

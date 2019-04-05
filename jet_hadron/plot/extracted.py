@@ -8,17 +8,144 @@ Includes quantities such as widths and yields.
 """
 
 import logging
-
-# Import plotting packages
-# Use matplotlib in some cases
 import matplotlib.pyplot as plt
-# And use ROOT in others
+import numpy as np
 import ROOT
+from typing import TYPE_CHECKING, Union
 
-from jet_hadron.base import params as params
+from jet_hadron.base import analysis_objects
+from jet_hadron.base import labels
+from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
+# Careful to watch out for import loops...
+from jet_hadron.analysis import fit as fitting
+
+if TYPE_CHECKING:
+    from jet_hadron.analysis import correlations
 
 logger = logging.getLogger(__name__)
+
+# Typing helpers
+Correlations = Union["correlations.DeltaPhiSignalDominated",
+                     "correlations.DeltaEtaNearSide", "correlations.DeltaEtaAwaySide"]
+
+def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
+    """ Plot the subtracted delta eta near-side. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot only the near side for now because the away-side doesn't have a gaussian shape
+    # Of the form (attribute_name, mean)
+    attribute_names = [
+        ("near_side", 0.0),
+    ]
+    for attribute_name, mean in attribute_names:
+        # Setup
+        # Correlation
+        correlation: Union["correlations.DeltaEtaNearSide"] = \
+            getattr(analysis.correlation_hists_delta_eta_subtracted, attribute_name)
+        # Extracted width
+        extracted_width: analysis_objects.ExtractedObservable = getattr(analysis.widths_delta_eta, attribute_name)
+
+        # Plot the data.
+        h = correlation.hist
+        ax.errorbar(
+            h.x, h.y, yerr = h.errors,
+            marker = "o", linestyle = "",
+            label = f"{correlation.type.display_str()}",
+        )
+
+        # Plot the fit
+        logger.debug(f"mean: {type(mean)}, width: {type(extracted_width.value)}")
+        gauss = fitting.gaussian(h.x, mu = mean, sigma = extracted_width.value)
+        fit_plot = ax.plot(
+            h.x, gauss,
+            label = fr"Gaussian fit: $\mu = $ {mean:.2f}, $\sigma = $ {extracted_width.value:.2f}",
+        )
+        # Fill in the error band.
+        error = extracted_width.error * np.ones(len(h.x))
+        ax.fill_between(
+            h.x, gauss - error, gauss + error,
+            facecolor = fit_plot[0].get_color(), alpha = 0.5,
+        )
+
+        # Labels.
+        ax.set_xlabel(labels.make_valid_latex_string(correlation.axis.display_str()))
+        ax.set_ylabel(labels.make_valid_latex_string(labels.delta_eta_axis_label()))
+        jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
+        track_pt_label = labels.track_pt_range_string(analysis.track_pt)
+        ax.set_title(fr"Subtracted 1D ${correlation.axis.display_str()}$,"
+                     f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+                     f" {jet_pt_label}, {track_pt_label}")
+        ax.legend(loc = "upper right")
+
+        # Final adjustments
+        fig.tight_layout()
+        # Save plot and cleanup
+        plot_base.save_plot(analysis.output_info, fig,
+                            f"jetH_delta_eta_{analysis.identifier}_width_{attribute_name}_fit")
+        # Reset for the next iteration of the loop
+        ax.clear()
+
+    # Final cleanup.
+    plt.close(fig)
+
+def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
+    """ Plot the subtracted delta phi correlation with gaussian fits to the near and away side. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    correlation = analysis.correlation_hists_delta_phi_subtracted.signal_dominated
+    h = correlation.hist
+
+    # First we plot the data
+    ax.errorbar(
+        h.x, h.y, yerr = h.errors,
+        marker = "o", linestyle = "",
+        label = f"{correlation.type.display_str()}",
+    )
+
+    # Of the form (attribute_name, mean)
+    delta_phi_regions = [
+        ("near_side", 0.0),
+        ("away_side", np.pi),
+    ]
+    for attribute_name, mean in delta_phi_regions:
+        # Setup
+        # Extracted width
+        extracted_width: analysis_objects.ExtractedObservable = getattr(analysis.widths_delta_phi, attribute_name)
+        # Convert the attribute name to display better. Ex: "near_side" -> "Near side"
+        attribute_display_name = attribute_name.replace("_", " ").capitalize()
+
+        # Plot the fit
+        gauss = fitting.gaussian(h.x, mu = mean, sigma = extracted_width.value)
+        fit_plot = ax.plot(
+            h.x, gauss,
+            label = fr"{attribute_display_name} gaussian fit: $\mu = $ {mean:.2f}"
+                    fr", $\sigma = $ {extracted_width.value:.2f}",
+        )
+        # Fill in the error band.
+        error = extracted_width.error * np.ones(len(h.x))
+        ax.fill_between(
+            h.x, gauss - error, gauss + error,
+            facecolor = fit_plot[0].get_color(), alpha = 0.5,
+        )
+
+    # Labels.
+    ax.set_xlabel(labels.make_valid_latex_string(correlation.axis.display_str()))
+    ax.set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
+    jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
+    track_pt_label = labels.track_pt_range_string(analysis.track_pt)
+    ax.set_title(fr"Subtracted 1D ${correlation.axis.display_str()}$,"
+                 f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+                 f" {jet_pt_label}, {track_pt_label}")
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Save plot and cleanup
+    plot_base.save_plot(analysis.output_info, fig,
+                        f"jetH_delta_phi_{analysis.identifier}_width_signal_dominated_fit")
+    plt.close(fig)
 
 def plotYields(jetH):
     """ Plot extracted yields. """
