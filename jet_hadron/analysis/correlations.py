@@ -1833,13 +1833,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         attribute_names = ["near_side", "away_side"]
         for attribute_name in attribute_names:
             correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
-            constant, covariance_matrix = fitting.fit_pedestal_to_delta_eta_background_dominated_region(
+            constant, error = fitting.fit_pedestal_to_delta_eta_background_dominated_region(
                 h = histogram.Histogram1D.from_existing_hist(correlation.hist),
                 fit_range = self.background_dominated_eta_region.range,
             )
 
-            # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
-            fit_result = PedestalFitResult(value = constant, error = np.sqrt(np.diag(covariance_matrix)))
+            # Store the result
+            fit_result = PedestalFitResult(value = constant, error = error)
             setattr(self.fit_objects_delta_eta, attribute_name, fit_result)
 
     def subtract_background_fit_function_from_signal_dominated(self) -> None:
@@ -2035,16 +2035,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Fit and extract the widths.
         for attribute_name, inputs in delta_phi_regions:
-            # NOTE: The covariance matrix should only be 1x1 because the width is the only free parameter.
-            width, covariance_matrix = fitting.fit_gaussian_to_histogram(
+            width, width_error = fitting.fit_gaussian_to_histogram(
                 h = subtracted.hist, inputs = inputs,
             )
 
             # Store the result
-            # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
             observable = analysis_objects.ExtractedObservable(
                 value = width,
-                error = np.sqrt(np.diag(covariance_matrix)),
+                error = width_error,
             )
             setattr(self.widths_delta_phi, attribute_name, observable)
 
@@ -2069,15 +2067,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Fit and extract the widths.
         for attribute_name, inputs in delta_eta_regions:
             subtracted = getattr(self.correlation_hists_delta_eta_subtracted, attribute_name)
-            # NOTE: The covariance matrix should only be 1x1 because the width is the only free parameter.
-            width, covariance_matrix = fitting.fit_gaussian_to_histogram(
+            width, error = fitting.fit_gaussian_to_histogram(
                 h = subtracted.hist, inputs = inputs,
             )
 
             # Store the result
             observable = analysis_objects.ExtractedObservable(
                 value = width,
-                error = np.sqrt(np.diag(covariance_matrix)),
+                error = error,
             )
             setattr(self.widths_delta_eta, attribute_name, observable)
 

@@ -235,7 +235,7 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     return fit_func
 
 def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
-                                                          fit_range: params.SelectedRange) -> Tuple[float, np.array]:
+                                                          fit_range: params.SelectedRange) -> Tuple[float, float]:
     """ Fit a pedestal to a histogram using ``scipy.optimize.curvefit``.
 
     The initial value of the fit will be determined by the minimum y value of the histogram.
@@ -244,7 +244,7 @@ def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram
         h: Histogram to be fit.
         fit_range: Min and max values within which the fit will be performed.
     Returns:
-        (constant, covariance matrix)
+        (constant, error)
     """
     # For example, -1.2 < h.x < -0.8
     negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.max)
@@ -257,7 +257,10 @@ def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram
         sigma = h.errors[restricted_range],
     )
 
-    return constant, covariance_matrix
+    # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+    error = float(np.sqrt(np.diag(covariance_matrix)))
+
+    return float(constant), error
 
 @dataclass
 class GaussianFitInputs:
@@ -284,7 +287,7 @@ def gaussian(x: float, mu: float, sigma: float) -> float:
     """
     return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
 
-def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, np.array]:
+def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, float]:
     """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
 
     Args:
@@ -292,7 +295,7 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
         inputs: Fit inputs in the form of a ``GaussianFitInputs`` dataclass. Must specify the mean, the initial width,
             and the fit range.
     Returns:
-        (width, covariance matrix)
+        (width, error)
     """
     restricted_range = (h.x > inputs.fit_range.min) & (h.x < inputs.fit_range.max)
     width, covariance_matrix = optimization.curve_fit(
@@ -301,5 +304,8 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
         sigma = h.errors[restricted_range],
     )
 
-    return width, covariance_matrix
+    # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+    error = float(np.sqrt(np.diag(covariance_matrix)))
+
+    return float(width), error
 
