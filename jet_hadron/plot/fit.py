@@ -644,6 +644,46 @@ def delta_eta_fit(analysis: "correlations.Correlations") -> None:
     # Final cleanup
     plt.close(fig)
 
+def delta_eta_fit_subtracted(analysis: "correlations.Correlations") -> None:
+    """ Plot the subtracted delta eta near-side and away-side. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot both the near side and the away side.
+    attribute_names = ["near_side", "away_side"]
+    for attribute_name in attribute_names:
+        # Setup an individual hist
+        correlation = getattr(analysis.correlation_hists_delta_eta_subtracted, attribute_name)
+        h = correlation.hist
+
+        # Plot the data
+        ax.errorbar(
+            h.x, h.y, yerr = h.errors,
+            marker = "o", linestyle = "",
+            label = f"Subtracted {correlation.type.display_str()}",
+        )
+
+        # Add horizontal line at 0 for comparison.
+        ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
+
+        # Labels.
+        ax.set_xlabel(labels.make_valid_latex_string(correlation.axis.display_str()))
+        ax.set_ylabel(labels.make_valid_latex_string(labels.delta_eta_axis_label()))
+        jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
+        track_pt_label = labels.track_pt_range_string(analysis.track_pt)
+        ax.set_title(fr"Subtracted 1D ${correlation.axis.display_str()}$,"
+                     f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+                     f" {jet_pt_label}, {track_pt_label}")
+        ax.legend(loc = "upper right")
+
+        # Final adjustments
+        fig.tight_layout()
+        # Save plot and cleanup
+        plot_base.save_plot(analysis.output_info, fig,
+                            f"jetH_delta_eta_{analysis.identifier}_{attribute_name}_subtracted")
+        # Reset for the next iteration of the loop
+        ax.clear()
+
 def signal_dominated_with_background_function(analysis: "correlations.Correlations") -> None:
     """ Plot the signal dominated hist with the background function. """
     # Setup

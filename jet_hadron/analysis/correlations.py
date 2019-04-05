@@ -1899,6 +1899,36 @@ class Correlations(analysis_objects.JetHReactionPlane):
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_sub",
         )
 
+    def subtract_delta_eta_correlations(self) -> None:
+        """ Subtract the pedestal from the delta eta correlations.
+
+        For now, we subtract the near-side fit from the away-side because it's not clear what
+        should be done for the away side given the eta swing.
+
+        Args:
+            None.
+        Returns:
+            None. The subtracted hist is stored.
+        """
+        attribute_names = ["near_side", "away_side"]
+        # We will use the near-side pedestal for _both_ the near-side and away-side
+        fit_object = self.fit_objects_delta_eta.near_side
+        for attribute_name in attribute_names:
+            # Retrieve the hist
+            correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
+            correlation_hist = histogram.Histogram1D.from_existing_hist(correlation.hist)
+
+            # Determine the pedestal representing the background.
+            background_hist = histogram.Histogram1D(
+                bin_edges = correlation_hist.bin_edges,
+                y = fit_object.value * np.ones(len(correlation_hist.x)),
+                errors_squared = (fit_object.error * np.ones(len(correlation_hist.x))) ** 2,
+            )
+
+            # Subtract and store the output
+            subtracted_hist = correlation_hist - background_hist
+            utils.recursive_setattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist", subtracted_hist)
+
     def _extract_yield_from_hist(self, hist: histogram.Histogram1D,
                                  central_value: float, yield_limit: float) -> analysis_objects.ExtractedObservable:
         """ Helper function to actually extract a yield from a histogram.
@@ -2057,6 +2087,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Attempt to retrieve the widths from the RPF.
         extracted_from_RPF = self._retrieve_widths_from_RPF()
         if not extracted_from_RPF:
+            logger.debug("Extracting widths via Gaussian fits")
             self._fit_and_extract_delta_phi_widths()
 
         # Delta eta
@@ -2305,8 +2336,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
         self._reaction_plane_fit()
         return True
 
-    def subtract_fits(self) -> bool:
-        """ Subtract the fits from the analysis histograms. """
+    def _subtract_reaction_plane_fits(self) -> None:
+        """ Subtract the reaction plane fit from the delta phi correlations."""
         with self._progress_manager.counter(total = len(self.analyses),
                                             desc = "Subtracting fit from signal dominated hists:",
                                             unit = "delta phi hists") as subtracting:
@@ -2360,6 +2391,31 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 for key_index, analysis in ep_analyses:
                     analysis.ran_post_fit_processing = True
                     subtracting.update()
+
+    def _subtract_delta_eta_fits(self) -> None:
+        """ Subtract the fits from the delta eta correlations. """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Subtracting:",
+                                            unit = "delta eta correlations") as subtracting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                if self.processing_options["subtract_correlations"]:
+                    # Fit a pedestal to the background dominated eta region
+                    # The result is stored in the analysis object.
+                    analysis.subtract_delta_eta_correlations()
+                else:
+                    # TODO: Load from file.
+                    ...
+
+                if self.processing_options["plot_subtracted_correlations"]:
+                    plot_fit.delta_eta_fit_subtracted(analysis)
+
+                # Update progress
+                subtracting.update()
+
+    def subtract_fits(self) -> bool:
+        """ Subtract the fits from the analysis histograms. """
+        self._subtract_reaction_plane_fits()
+        self._subtract_delta_eta_fits()
 
         return True
 
