@@ -2014,23 +2014,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         return True
 
-    def _fit_and_extract_delta_phi_widths(self) -> None:
+    def _fit_and_extract_delta_phi_widths(self, delta_phi_regions: List[Tuple[str, fitting.GaussianFitInputs]]) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
         The widths are extracted by fitting the subtracted delta phi corerlations to gaussians.
         """
         # Setup
-        # Of the form (attribute_name, mean, initial_width)
-        delta_phi_regions = [
-            ("near_side", fitting.GaussianFitInputs(
-                mean = 0, initial_width = 0.15,
-                fit_range = self.near_side_phi_region.range,
-            )),
-            ("away_side", fitting.GaussianFitInputs(
-                mean = np.pi, initial_width = 0.3,
-                fit_range = self.away_side_phi_region.range,
-            )),
-        ]
         subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
 
         # Fit and extract the widths.
@@ -2046,24 +2035,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
             setattr(self.widths_delta_phi, attribute_name, observable)
 
-    def _fit_and_extract_delta_eta_widths(self) -> None:
+    def _fit_and_extract_delta_eta_widths(self, delta_eta_regions: List[Tuple[str, fitting.GaussianFitInputs]]) -> None:
         """ Extract delta eta near-side and away-side widths via a gaussian fit.
 
         The widths are extracted by fitting the subtracted delta eta corerlations to gaussians.
         """
-        # Setup
-        # Of the form (attribute_name, mean, initial_width)
-        delta_eta_regions = [
-            ("near_side", fitting.GaussianFitInputs(
-                mean = 0, initial_width = 0.15,
-                fit_range = self.signal_dominated_eta_region.range,
-            )),
-            ("away_side", fitting.GaussianFitInputs(
-                mean = np.pi, initial_width = 0.3,
-                fit_range = self.signal_dominated_eta_region.range,
-            )),
-        ]
-
         # Fit and extract the widths.
         for attribute_name, inputs in delta_eta_regions:
             subtracted = getattr(self.correlation_hists_delta_eta_subtracted, attribute_name)
@@ -2081,15 +2057,37 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def extract_widths(self) -> None:
         """ Extract and store near-side and away-side widths. """
         # Delta phi
+        # Of the form (attribute_name, mean, initial_width)
+        delta_phi_regions = [
+            ("near_side", fitting.GaussianFitInputs(
+                mean = 0, initial_width = 0.15,
+                fit_range = self.near_side_phi_region.range,
+            )),
+            ("away_side", fitting.GaussianFitInputs(
+                mean = np.pi, initial_width = 0.3,
+                fit_range = self.away_side_phi_region.range,
+            )),
+        ]
         # Attempt to retrieve the widths from the RPF.
         extracted_from_RPF = self._retrieve_widths_from_RPF()
         if not extracted_from_RPF:
             logger.debug("Extracting widths via Gaussian fits")
-            self._fit_and_extract_delta_phi_widths()
+            self._fit_and_extract_delta_phi_widths(delta_phi_regions)
 
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.
-        self._fit_and_extract_delta_eta_widths()
+        # Of the form (attribute_name, mean, initial_width)
+        delta_eta_regions = [
+            ("near_side", fitting.GaussianFitInputs(
+                mean = 0, initial_width = 0.15,
+                fit_range = self.signal_dominated_eta_region.range,
+            )),
+            ("away_side", fitting.GaussianFitInputs(
+                mean = np.pi, initial_width = 0.3,
+                fit_range = self.signal_dominated_eta_region.range,
+            )),
+        ]
+        self._fit_and_extract_delta_eta_widths(delta_eta_regions = delta_eta_regions)
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
