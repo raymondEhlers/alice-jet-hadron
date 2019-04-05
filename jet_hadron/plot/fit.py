@@ -630,7 +630,14 @@ def delta_eta_fit(analysis: "correlations.Correlations") -> None:
             color = pedestal_plot[0].get_color(),
         )
 
-        # Labeling
+        # Labels.
+        ax.set_xlabel(labels.make_valid_latex_string(correlation.axis.display_str()))
+        ax.set_ylabel(labels.make_valid_latex_string(labels.delta_eta_axis_label()))
+        jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
+        track_pt_label = labels.track_pt_range_string(analysis.track_pt)
+        ax.set_title(fr"Unsubtracted 1D ${correlation.axis.display_str()}$,"
+                     f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
+                     f" {jet_pt_label}, {track_pt_label}")
         ax.legend(loc = "upper right")
 
         # Final adjustments
@@ -730,7 +737,7 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
     )
 
     # Labels.
-    ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
+    ax.set_xlabel(labels.make_valid_latex_string(hists.signal_dominated.axis.display_str()))
     ax.set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
     jet_pt_label = labels.jet_pt_range_string(analysis.jet_pt)
     track_pt_label = labels.track_pt_range_string(analysis.track_pt)
