@@ -901,6 +901,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Validate output filename
         if not self.output_filename.endswith(".root"):
             self.output_filename += ".root"
+        self.output_filename_yaml = self.output_filename.replace(".root", ".yaml")
 
         self.input_hists: Dict[str, Any] = {}
         # For convenience since it is frequently accessed.
@@ -1050,6 +1051,26 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
         )
 
+        # Setup YAML
+        self.yaml: yaml.ruamel.yaml.YAML
+        self._setup_yaml()
+
+    def _setup_yaml(self) -> yaml.ruamel.yaml.YAML:
+        """ Setup yaml object to read and write. """
+        try:
+            return self.yaml
+        except AttributeError:
+            self.yaml = yaml.yaml(
+                classes_to_register = [],
+                modules_to_register = [
+                    histogram,
+                    analysis_objects,
+                    this_module,
+                ]
+            )
+
+        return self.yaml
+
     def __iter__(self) -> Iterator[analysis_objects.Observable]:
         """ Iterate over the histograms in the correlations analysis object.
 
@@ -1080,6 +1101,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         logger.debug("Writing 1D delta eta correlations")
         self._write_hists_to_root_file(hists = self.correlation_hists_delta_eta)
 
+    def write_1d_subtracted_correlations(self):
+        """ Write 1D subtracted correlations to file. """
+        logger.debug("Writing 1D subtracted delta phi correlations.")
+        self._write_hists_to_yaml(hists = self.correlation_hists_delta_phi_subtracted)
+        logger.debug("Writing 1D subtracted delta eta correlations")
+        self._write_hists_to_yaml(hists = self.correlation_hists_delta_eta_subtracted)
+
     def _write_hists_to_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
                                   mode: str = "UPDATE") -> None:
         """ Write the provided histograms to a ROOT file. """
@@ -1098,6 +1126,34 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     logger.debug(f"Writing hist {hist} with name {observable.name}")
                     hist.Write(observable.name)
 
+    def _write_hists_to_yaml(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]):
+        """ Write hists to YAML. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "w+") as f:
+            # We attempt to load any histograms in the existing file so we can update them.
+            output = y.load(f)
+            # If this is a new file, then the output will be None. We need somewhere to store
+            # the histograms, so we create an empty dict.
+            if output is None:
+                output = {}
+            # And then move back to beginning of the file and clear it so we can overwrite it.
+            # For truncate, see: https://stackoverflow.com/a/2769090
+            f.truncate(0)
+
+            logger.debug(f"output: {output}")
+
+            # Now look for the histograms to write
+            for _, observable in hists:
+                hist = observable.hist
+                # Only write the histogram if it's valid. It's possible that it's still ``None``.
+                if hist:
+                    logger.debug(f"Writing hist {hist} with name {observable.name}")
+                    output[observable.name] = hist
+
+            # Finally, write the output
+            y.dump(output, f)
+
     def _init_2d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 2D correlation hists. """
         self._init_hists_from_root_file(hists = self.correlation_hists_2d)
@@ -1112,6 +1168,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._init_hists_from_root_file(hists = self.correlation_hists_delta_phi)
         self._init_hists_from_root_file(hists = self.correlation_hists_delta_eta)
 
+    def init_1d_subtracted_delta_eta_corerlations_from_file(self) -> None:
+        """ Initialize 1D subtracted delta eta correlation hists. """
+        self._init_hists_from_yaml_file(hists = self.correlation_hists_delta_eta_subtracted)
+
     def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
         """ Initialize processed histograms from a ROOT file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
@@ -1125,6 +1185,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 else:
                     # Detach it from the file so we can store it for later use.
                     h.SetDirectory(0)
+                logger.debug(f"Initializing hist {h} to be stored in {observable}")
+                observable.hist = h
+
+    def _init_hists_from_yaml_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
+        """ Initialize histograms from a YAML file. """
+        # We want to initialize from our saved hists - they will be at the output_prefix.
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "r") as f:
+            hists_in_file = y.load(f)
+            for _, observable in hists:
+                logger.debug(f"Looking for hist {observable.name}")
+                h = hists_in_file.get(observable.name, None)
                 logger.debug(f"Initializing hist {h} to be stored in {observable}")
                 observable.hist = h
 
@@ -2397,9 +2470,14 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     # Fit a pedestal to the background dominated eta region
                     # The result is stored in the analysis object.
                     analysis.subtract_delta_eta_correlations()
+
+                    # Store the result
+                    logger.debug("Writing 1D subtracted delta eta correlations to file.")
+                    analysis.write_1d_subtracted_correlations()
                 else:
-                    # TODO: Load from file.
-                    ...
+                    # Load from file.
+                    logger.debug("Loading 1D subtracted delta eta correlations from file.")
+                    analysis.init_1d_subtracted_delta_eta_corerlations_from_file()
 
                 if self.processing_options["plot_subtracted_correlations"]:
                     plot_fit.delta_eta_fit_subtracted(analysis)
