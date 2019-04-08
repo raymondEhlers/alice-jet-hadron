@@ -12,6 +12,7 @@ import dataclasses
 from dataclasses import dataclass
 import enlighten
 import enum
+import inspect
 import IPython
 import logging
 import os
@@ -427,78 +428,6 @@ class JetHAnalysis(analysis_objects.JetHBase):
     #################################
     # Utility functions for the class
     #################################
-    def generateTeXToIncludeFiguresInAN(self):
-        """ Generate latex to put into AN. """
-        outputText = ""
-
-        # Define the histograms that should be included
-        # Of the form (name, tag, caption)
-        histsToWriteOut = {}
-        # Raw
-        histsToWriteOut["raw"] = (self.histNameFormat2D, "raw", r"Raw correlation function with the efficiency correction $\epsilon(\pT{},\eta{})$ applied, but before acceptance correction via the mixed events. This correlation is for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
-        # Mixed
-        histsToWriteOut["mixed"] = (self.histNameFormat2D, "mixed", r"Mixed event correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}. Note that this correlation has already been normalized to unity at the region of maximum efficiency.")
-        # Corrected 2D
-        histsToWriteOut["corr"] = (self.histNameFormat2D, "corr", r"Acceptance corrected correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
-        # Mixed event norm
-        histsToWriteOut["mixedEventNorm"] = (self.histNameFormat2D, "mixed_peakFindingHist", r"Mixed event normalization comparison for a variety of possible functions to find the maximum. This mixed event corresponds to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
-        # dPhi correlations
-        # TODO: Depend on the type of fit here instead of assuming signal dominated
-        histsToWriteOut["dPhiCorrelations"] = (self.fitNameFormat, analysis_objects.CorrelationType.signal_dominated.str(), r"\dPhi{} correlation with the all angles signal and event plane dependent background fit components. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
-        # TODO: Add comparisons to Joel, but probably best to do in an entirely separate section
-        histsToWriteOut["joelComparisonSubtracted"] = ("joelComparison_jetPt{jetPtBin}_trackPt{trackPtBin}_{tag}", analysis_objects.CorrelationType.signal_dominated.str() + "_subtracted", r"Subtracted \dPhi{} correlation comparing correlations from this analysis and those produced using the semi-central analysis code described in \cite{jetHEventPlaneAN}. Error bars correspond to statistical errors and error bands correspond to the error on the fit. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}.")
-
-        # Define the overall template
-        figTemplate = r"""
-\begin{figure}
-\centering
-\includegraphics[width=.9\textwidth]{images/%(collisionSystem)s/%(reaction_plane_orientation)s/%(name)s.eps}
-\caption{%(description)s}
-\label{fig:%(name)s}
-\end{figure}"""
-
-        # Iterate over the available pt bins
-        for jetPtBin, trackPtBin in params.iterateOverJetAndTrackPtBins(self.config):
-
-            # Section output
-            out = ""
-
-            # Add section description
-            descriptionDict = {"jetPtLow": params.jetPtBins[jetPtBin], "jetPtHigh": params.jetPtBins[jetPtBin + 1], "trackPtLow": params.trackPtBins[trackPtBin], "trackPtHigh": params.trackPtBins[trackPtBin + 1]}
-            out += "\n"
-            out += r"\subsubsection{$%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$, $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$}" % descriptionDict
-
-            # Iterate over the hists to be included
-            binDict = {"jetPtBin": jetPtBin, "trackPtBin": trackPtBin}
-            for (name, tag, description) in histsToWriteOut.values():
-                # Define name
-                baseDict = {"tag": tag}
-                baseDict.update(binDict)
-                name = name.format(**baseDict)
-                # Fill in description
-                descriptionDict.update({"name": name})
-                descriptionDict.update(baseDict)
-                description = description % descriptionDict
-
-                # Define values needed for figure template
-                figDict = {"reaction_plane_orientation": self.reaction_plane_orientation.filenameStr(),
-                           "description": description,
-                           "collisionSystem": self.collisionSystem.str()}
-                figDict.update(descriptionDict)
-
-                # Fill template and add to output string
-                out += figTemplate % figDict
-            # clearpage due to "too many floats". See: https://tex.stackexchange.com/a/46514
-            out += "\n" + r"\clearpage{}" + "\n"
-
-            # This is quite verbose, but can be useful for debugging
-            #logger.debug("jetPtBin: {}, trackPtBin: {}, out: {}".format(jetPtBin, trackPtBin, out))
-
-            outputText += out
-
-        with open(os.path.join(self.outputPrefix, "resultsCombined.tex"), "wb") as f:
-            f.write(outputText.encode())
-
     @staticmethod
     def postProjectionProcessing1DCorrelation(observable, normalizationFactor, rebinFactor, titleLabel, jetPtBin, trackPtBin):
         """ Basic post processing tasks for a new 1D correlation observable. """
@@ -538,7 +467,7 @@ class JetHAnalysis(analysis_objects.JetHBase):
             opts = ["{name}: \"{value}\"".format(name = name, value = value.str()) for name, value in zip(selectedOptionNames, keys)]
             logger.info("Processing jet-h correlations task {} with options:\n\t{}".format(jetH.taskName, "\n\t".join(opts)))
 
-            jetH.generateTeXToIncludeFiguresInAN()
+            #jetH.generateTeXToIncludeFiguresInAN()
 
             logger.info("Running analysis through projecting 1D correlations")
             jetH.runProjections()
@@ -2161,6 +2090,80 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )),
         ]
         self._fit_and_extract_delta_eta_widths(delta_eta_regions = delta_eta_regions)
+
+    def generate_latex_for_analysis_note(self) -> bool:
+        """ Write LaTeX to include plots in the analysis notes. """
+        @dataclass
+        class LaTeXFigure:
+            path: str
+            label: str
+            caption: str
+
+            def generate_figure(self) -> str:
+                """ Generate the LaTeX figure from the provided values. """
+                figure_template = r"""
+                \begin{figure}
+                    \centering
+                    \includegraphics[width=.9\textwidth]{images/%(hist_path)s.eps}
+                    \caption{%(caption)s}
+                    \label{fig:%(label)s}
+                \end{figure}
+                """
+                # Remove the leading spaces
+                figure_template = inspect.cleandoc(figure_template)
+                figure_template = figure_template % {
+                    "hist_path": os.path.join(self.path, self.label), "label": self.label,
+                    "caption": self.caption,
+                }
+
+                return figure_template
+
+        raw = LaTeXFigure(
+            path = self.output_info.output_prefix,
+            label = self.correlation_hists_2d.raw.name,
+            caption = r"Raw correlation function with the efficiency correction $\epsilon(\pT{},\eta{})$ applied,"
+                      r" but before acceptance correction via the mixed events."
+                      r" This correlation is for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{} and"
+                      r" $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}."
+        )
+        mixed_event = LaTeXFigure(
+            path = self.output_info.output_prefix,
+            label = self.correlation_hists_2d.mixed_event.name,
+            caption = r"Mixed event correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$ \gevc{}"
+                      r" and $%(trackPtLow)s < \pTAssoc{{}} < %(trackPtHigh)s$ \gevc{}. Note that this"
+                      r" correlation has already been normalized to unity at the region of maximum efficiency."
+        )
+        signal = LaTeXFigure(
+            path = self.output_info.output_prefix,
+            label = self.correlation_hists_2d.signal.name,
+            caption = r"Acceptance corrected correlation for $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$"
+                      r" \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}."
+        )
+        mixed_event_normalization = LaTeXFigure(
+            path = self.output_info.output_prefix,
+            label = "mixed_event_normalization",
+            caption = r"Mixed event normalization comparison for a variety of possible functions to find"
+                      r" the maximum. This mixed event corresponds to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$"
+                      r" \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}."
+        )
+        # Delta phi
+        #caption = r"\dPhi{} correlation with the all angles signal and event plane dependent background"
+        #          r" fit components. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$"
+        #          r" \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}."
+        # Joel comparison subtracted
+        #caption = r"Subtracted \dPhi{} correlation comparing correlations from this analysis and those"
+        #          r" produced using the semi-central analysis code described in \cite{jetHEventPlaneAN}."
+        #          r" Error bars correspond to statistical errors and error bands correspond to the error on"
+        #          r" the fit. This correlation corresponding to $%(jetPtLow)s < \pTJet{} < %(jetPtHigh)s$"
+        #          r" \gevc{} and $%(trackPtLow)s < \pTAssoc{} < %(trackPtHigh)s$ \gevc{}."
+
+        figures = [raw, mixed_event, signal, mixed_event_normalization]
+
+        with open("additional_analysis_note_figures.tex", "w+") as f:
+            for fig in figures:
+                f.write(fig.generate_figure() + "\n")
+
+        return True
 
 class CorrelationsManager(generic_class.EqualityMixin):
     def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
