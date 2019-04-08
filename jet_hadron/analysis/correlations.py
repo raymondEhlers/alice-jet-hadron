@@ -722,6 +722,26 @@ class DeltaPhiBackgroundDominated(DeltaPhiObservable):
     type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.background_dominated
 
 @dataclass
+class DeltaPhiSignalDominatedSubtracted(DeltaPhiSignalDominated):
+    @property
+    def name(self) -> str:
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}_subtracted"
+
+@dataclass
+class DeltaPhiBackgroundDominatedSubtracted(DeltaPhiBackgroundDominated):
+    @property
+    def name(self) -> str:
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}_subtracted"
+
+@dataclass
 class DeltaEtaObservable(CorrelationObservable1D):
     axis: analysis_objects.CorrelationAxis = analysis_objects.CorrelationAxis.delta_eta
 
@@ -733,15 +753,35 @@ class DeltaEtaNearSide(DeltaEtaObservable):
 class DeltaEtaAwaySide(DeltaEtaObservable):
     type: analysis_objects.CorrelationType = analysis_objects.CorrelationType.away_side
 
+@dataclass
+class DeltaEtaNearSideSubtracted(DeltaEtaNearSide):
+    @property
+    def name(self) -> str:
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}_subtracted"
+
+@dataclass
+class DeltaEtaAwaySideSubtracted(DeltaEtaAwaySide):
+    @property
+    def name(self) -> str:
+        # If the analysis identifier isn't specified, we preserved the field for it to be filled in later.
+        analysis_identifier = self.analysis_identifier
+        if self.analysis_identifier is None:
+            analysis_identifier = "{analysis_identifier}"
+        return f"jetH_{self.axis}_{analysis_identifier}_{self.type}_subtracted"
+
 _1d_correlations_histogram_information: Mapping[str, CorrelationObservable1D] = {
     "correlation_hists_delta_phi.signal_dominated": DeltaPhiSignalDominated(hist = None),
     "correlation_hists_delta_phi.background_dominated": DeltaPhiBackgroundDominated(hist = None),
-    "correlation_hists_delta_phi_subtracted.signal_dominated": DeltaPhiSignalDominated(hist = None),
-    "correlation_hists_delta_phi_subtracted.background_dominated": DeltaPhiBackgroundDominated(hist = None),
+    "correlation_hists_delta_phi_subtracted.signal_dominated": DeltaPhiSignalDominatedSubtracted(hist = None),
+    "correlation_hists_delta_phi_subtracted.background_dominated": DeltaPhiBackgroundDominatedSubtracted(hist = None),
     "correlation_hists_delta_eta.near_side": DeltaEtaNearSide(hist = None),
     "correlation_hists_delta_eta.away_side": DeltaEtaAwaySide(hist = None),
-    "correlation_hists_delta_eta_subtracted.near_side": DeltaEtaNearSide(hist = None),
-    "correlation_hists_delta_eta_subtracted.away_side": DeltaEtaAwaySide(hist = None),
+    "correlation_hists_delta_eta_subtracted.near_side": DeltaEtaNearSideSubtracted(hist = None),
+    "correlation_hists_delta_eta_subtracted.away_side": DeltaEtaAwaySideSubtracted(hist = None),
 }
 
 @dataclass
@@ -892,14 +932,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.correlation_hists_delta_phi_subtracted: CorrelationHistogramsDeltaPhi = CorrelationHistogramsDeltaPhi(
             signal_dominated = dataclasses.replace(
                 cast(
-                    DeltaPhiSignalDominated,
+                    DeltaPhiSignalDominatedSubtracted,
                     _1d_correlations_histogram_information["correlation_hists_delta_phi_subtracted.signal_dominated"]
                 ),
                 analysis_identifier = self.identifier,
             ),
             background_dominated = dataclasses.replace(
                 cast(
-                    DeltaPhiBackgroundDominated,
+                    DeltaPhiBackgroundDominatedSubtracted,
                     _1d_correlations_histogram_information["correlation_hists_delta_phi_subtracted.background_dominated"]
                 ),
                 analysis_identifier = self.identifier,
@@ -908,14 +948,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.correlation_hists_delta_eta_subtracted: CorrelationHistogramsDeltaEta = CorrelationHistogramsDeltaEta(
             near_side = dataclasses.replace(
                 cast(
-                    DeltaEtaNearSide,
+                    DeltaEtaNearSideSubtracted,
                     _1d_correlations_histogram_information["correlation_hists_delta_eta_subtracted.near_side"]
                 ),
                 analysis_identifier = self.identifier,
             ),
             away_side = dataclasses.replace(
                 cast(
-                    DeltaEtaAwaySide,
+                    DeltaEtaAwaySideSubtracted,
                     _1d_correlations_histogram_information["correlation_hists_delta_eta_subtracted.away_side"]
                 ),
                 analysis_identifier = self.identifier,
