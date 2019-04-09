@@ -18,7 +18,7 @@ import logging
 import os
 import numpy as np
 import sys
-from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -589,7 +589,49 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(f"output: {output}")
 
             # Store the fit.
-            output["fit_objects_delta_eta"] = self.fit_objects_delta_eta
+            output[f"{self.identifier}_fit_objects_delta_eta"] = self.fit_objects_delta_eta
+
+            # Finally, write the output
+            y.dump(output, f)
+
+    def write_yields_to_YAML(self) -> None:
+        """ Write yields to YAML. """
+        self._write_extracted_values_to_YAML(values = {
+            f"{self.identifier}_yields_delta_phi": self.yields_delta_phi,
+            f"{self.identifier}_yields_delta_eta": self.yields_delta_eta,
+        })
+
+    def write_widths_to_YAML(self) -> None:
+        """ Write widths to YAML. """
+        self._write_extracted_values_to_YAML(values = {
+            f"{self.identifier}_widths_delta_phi": self.widths_delta_phi,
+            f"{self.identifier}_widths_delta_eta": self.widths_delta_eta,
+        })
+
+    def _write_extracted_values_to_YAML(self, values: Dict[str, Union[CorrelationWidths, CorrelationYields]]) -> None:
+        """ Write extracted values (widths, yields) to YAML. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "a+") as f:
+            # We have to open with append so that the file will be created if it doesn't exist,
+            # but won't be automatically overwritten when opened (as occurs for "w"). We then
+            # move back to the beginning of the file so we can read the contents
+            f.seek(0)
+            # We attempt to load any histograms in the existing file so we can update them.
+            output = y.load(f)
+            # If this is a new file, then the output will be None. We need somewhere to store
+            # the histograms, so we create an empty dict.
+            if output is None:
+                output = {}
+            # And then move back to beginning of the file and clear it so we can overwrite it.
+            # For truncate, see: https://stackoverflow.com/a/2769090
+            f.truncate(0)
+
+            logger.debug(f"output: {output}")
+
+            # Store the fit.
+            for name, value in values.items():
+                output[name] = value
 
             # Finally, write the output
             y.dump(output, f)
@@ -675,7 +717,29 @@ class Correlations(analysis_objects.JetHReactionPlane):
             fit_information = y.load(f)
 
             # Load the fit from file.
-            self.fit_objects_delta_eta = fit_information["fit_objects_delta_eta"]
+            self.fit_objects_delta_eta = fit_information[f"{self.identifier}_fit_objects_delta_eta"]
+
+    def init_yields_from_file(self) -> None:
+        """ Initialize yields from a YAML file. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "r") as f:
+            stored_data = y.load(f)
+
+            # Load the fit from file.
+            self.yields_delta_phi = stored_data[f"{self.identifier}_yields_delta_phi"]
+            self.yields_delta_eta = stored_data[f"{self.identifier}_yields_delta_eta"]
+
+    def init_widths_from_file(self) -> None:
+        """ Initialize widths from a YAML file. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "r") as f:
+            stored_data = y.load(f)
+
+            # Load the fit from file.
+            self.widths_delta_phi = stored_data[f"{self.identifier}_widths_delta_phi"]
+            self.widths_delta_eta = stored_data[f"{self.identifier}_widths_delta_eta"]
 
     def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
         """ Initialize processed histograms from a ROOT file. """
@@ -2082,23 +2146,26 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def extract_yields(self) -> bool:
         """ Extract yields from analysis objects. """
-        if self.processing_options["extract_yields"]:
-            with self._progress_manager.counter(total = len(self.analyses),
-                                                desc = "Extractin' yields:",
-                                                unit = "delta phi hists") as extracting:
-                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                    # Ensure that the previous step was run
-                    if not analysis.ran_post_fit_processing:
-                        raise RuntimeError("Must run the post fit processing step before extracting yields!")
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Extractin' yields:",
+                                            unit = "delta phi hists") as extracting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Ensure that the previous step was run
+                if not analysis.ran_post_fit_processing:
+                    raise RuntimeError("Must run the post fit processing step before extracting yields!")
 
+                if self.processing_options["extract_yields"]:
                     # Extract and store the yields.
                     analysis.extract_yields()
 
-                    # Update progress
-                    extracting.update()
-        else:
-            # TODO: Load yields from file.
-            ...
+                    # Save the extracted values
+                    analysis.write_yields_to_YAML()
+                else:
+                    # Load from file.
+                    analysis.init_yields_from_file()
+
+                # Update progress
+                extracting.update()
 
         # Plot
         if self.processing_options["plot_yields"]:
@@ -2108,30 +2175,33 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
     def extract_widths(self) -> bool:
         """ Extract widths from analysis objects. """
-        if self.processing_options["extract_widths"]:
-            with self._progress_manager.counter(total = len(self.analyses),
-                                                desc = "Extractin' widths:",
-                                                unit = "delta phi hists") as extracting:
-                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                    # Ensure that the previous step was run
-                    if not analysis.ran_post_fit_processing:
-                        raise RuntimeError("Must run the post fit processing step before extracting widths!")
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Extractin' widths:",
+                                            unit = "delta phi hists") as extracting:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Ensure that the previous step was run
+                if not analysis.ran_post_fit_processing:
+                    raise RuntimeError("Must run the post fit processing step before extracting widths!")
 
+                if self.processing_options["extract_widths"]:
                     # Extract and store the yields.
                     analysis.extract_widths()
 
-                    # Plots related to the widths
-                    if self.processing_options["plot_widths"]:
-                        # Plot the gaussian fits used to extract the delta eta widths.
-                        plot_extracted.delta_eta_with_gaussian(analysis)
-                        # Same for delta phi.
-                        plot_extracted.delta_phi_with_gaussians(analysis)
+                    # Save the extracted values
+                    analysis.write_widths_to_YAML()
+                else:
+                    # Load from file.
+                    analysis.init_widths_from_file()
 
-                    # Update progress
-                    extracting.update()
-        else:
-            # TODO: Load widths from file.
-            ...
+                # Plots related to the widths
+                if self.processing_options["plot_widths"]:
+                    # Plot the gaussian fits used to extract the delta eta widths.
+                    plot_extracted.delta_eta_with_gaussian(analysis)
+                    # Same for delta phi.
+                    plot_extracted.delta_phi_with_gaussians(analysis)
+
+                # Update progress
+                extracting.update()
 
         # Plot
         #if self.processing_options["plot_widths"]:
