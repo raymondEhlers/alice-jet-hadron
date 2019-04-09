@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import logging
 import numpy as np
 from pachyderm import histogram
+import pprint
 import scipy.optimize as optimization
 from typing import Sequence, Tuple
 
@@ -18,6 +19,20 @@ logger = logging.getLogger(__name__)
 # Shared values (TODO: to be removed...)
 v2_cent_00_05_values = [1, 2, 3]
 v2_cent_05_10_values = [1, 2, 3]
+
+def print_root_fit_parameters(fit) -> None:
+    """ Print out all of the ROOT-based fit parameters. """
+    output_parameters = []
+    for i in range(0, fit.GetNpar()):
+        parameter = fit.GetParameter(i)
+        parameter_name = fit.GetParName(i)
+        lower_limit = ROOT.Double(0.0)
+        upper_limit = ROOT.Double(0.0)
+        fit.GetParLimits(i, lower_limit, upper_limit)
+
+        output_parameters.append(f"{i}: {parameter_name} = {parameter} from {lower_limit} - {upper_limit}")
+
+    pprint.pprint(output_parameters)
 
 def fit_delta_phi_background(hist: Hist, track_pt: analysis_objects.TrackPtBin, zyam: bool = True, disable_vn: bool = True, set_fixed_vn: bool = False) -> ROOT.TF1:
     """ Fit the delta phi background. """
