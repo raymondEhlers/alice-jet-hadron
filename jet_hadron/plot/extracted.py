@@ -7,6 +7,7 @@ Includes quantities such as widths and yields.
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+from cycler import cycler
 import logging
 from pachyderm import utils
 import matplotlib.pyplot as plt
@@ -153,12 +154,16 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
     """ Plot extracted values. """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
+    # Specify colors
+    # NOTE: This depends on iterating over the EP orientation in the exact manner specified below.
     ep_colors = {
         params.ReactionPlaneOrientation.inclusive: "black",
-        params.ReactionPlaneOrientation.in_plane: "C0",  # blue
-        params.ReactionPlaneOrientation.mid_plane: "C2",  # green
-        params.ReactionPlaneOrientation.out_of_plane: "C3",  # red
+        params.ReactionPlaneOrientation.in_plane: "tab:blue",  # C0
+        params.ReactionPlaneOrientation.mid_plane: "tab:green",  # C2
+        params.ReactionPlaneOrientation.out_of_plane: "tab:red",  # C3
     }
+    color_cycler = cycler("color", list(ep_colors.values()))
+    ax.set_prop_cycle(color_cycler)
 
     value_attribute_name = "widths_delta_phi.near_side"
 
@@ -183,7 +188,7 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
         bin_centers = bin_centers + displace_index * 0.05
         ax.errorbar(
             bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
-            label = ep_orientation.display_str(), color = ep_colors[ep_orientation], marker = "o",
+            label = ep_orientation.display_str(), marker = "o",
         )
 
     # Help out mypy...
