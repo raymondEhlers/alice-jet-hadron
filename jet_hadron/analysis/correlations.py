@@ -20,6 +20,10 @@ import numpy as np
 import sys
 from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
+# NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
+#       line options
+from jet_hadron.base.typing_helpers import Hist
+
 from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import projectors
@@ -36,7 +40,6 @@ from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
-from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import generic_hist as plot_generic_hist
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
