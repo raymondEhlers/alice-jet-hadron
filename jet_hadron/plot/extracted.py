@@ -154,16 +154,27 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
     """ Plot extracted values. """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
-    # Specify colors
+    # Specify plotting properties
+    # color, marker, fill marker or not
+    # NOTE: Fill marker is specified when plotting becuase of a matplotlib bug
     # NOTE: This depends on iterating over the EP orientation in the exact manner specified below.
-    ep_colors = {
-        params.ReactionPlaneOrientation.inclusive: "black",
-        params.ReactionPlaneOrientation.in_plane: "tab:blue",  # C0
-        params.ReactionPlaneOrientation.mid_plane: "tab:green",  # C2
-        params.ReactionPlaneOrientation.out_of_plane: "tab:red",  # C3
+    ep_plot_properties = {
+        # black, diamond, no fill
+        params.ReactionPlaneOrientation.inclusive: ("black", "D", "none"),
+        # blue = "C0", square, fill
+        params.ReactionPlaneOrientation.in_plane: ("tab:blue", "s", "full"),
+        # green = "C2", triangle up, fill
+        params.ReactionPlaneOrientation.mid_plane: ("tab:green", "^", "full"),
+        # red = "C3", circle, fill
+        params.ReactionPlaneOrientation.out_of_plane: ("tab:red", "o", "full"),
     }
-    color_cycler = cycler("color", list(ep_colors.values()))
-    ax.set_prop_cycle(color_cycler)
+    cyclers = []
+    plot_property_values = list(ep_plot_properties.values())
+    for i, prop in enumerate(["color", "marker", "fillstyle"]):
+        cyclers.append(cycler(prop, [p[i] for p in plot_property_values]))
+    # We skip the fillstyle because apprently it doesn't work with the cycler at the moment due to a bug...
+    combined_cyclers = sum(cyclers[1:-1], cyclers[0])
+    ax.set_prop_cycle(combined_cyclers)
 
     value_attribute_name = "widths_delta_phi.near_side"
 
@@ -188,7 +199,8 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
         bin_centers = bin_centers + displace_index * 0.05
         ax.errorbar(
             bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
-            label = ep_orientation.display_str(), marker = "o",
+            label = ep_orientation.display_str(), linestyle = "",
+            fillstyle = "none" if ep_orientation == params.ReactionPlaneOrientation.inclusive else "full",
         )
 
     # Help out mypy...
