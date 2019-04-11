@@ -8,11 +8,13 @@ Includes quantities such as widths and yields.
 """
 
 import logging
+from pachyderm import utils
 import matplotlib.pyplot as plt
 import numpy as np
 import ROOT
-from typing import TYPE_CHECKING, Union
+from typing import Dict, Optional, TYPE_CHECKING, Union
 
+from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
@@ -145,6 +147,61 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
     # Save plot and cleanup
     plot_base.save_plot(analysis.output_info, fig,
                         f"jetH_delta_phi_{analysis.identifier}_width_signal_dominated_fit")
+    plt.close(fig)
+
+def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
+    """ Plot extracted values. """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    ep_colors = {
+        params.ReactionPlaneOrientation.inclusive: "black",
+        params.ReactionPlaneOrientation.in_plane: "C0",  # blue
+        params.ReactionPlaneOrientation.mid_plane: "C2",  # green
+        params.ReactionPlaneOrientation.out_of_plane: "C3",  # red
+    }
+
+    value_attribute_name = "widths_delta_phi.near_side"
+
+    # These are both used for labeling purposes and are identical for all analyses that are iterated over.
+    analysis_identifier: Optional[str] = None
+    jet_pt: Optional[analysis_objects.JetPtBin] = None
+    for displace_index, ep_orientation in enumerate(manager.selected_iterables["reaction_plane_orientation"]):
+        # Store the values to be plotted
+        values: Dict[analysis_objects.PtBin, analysis_objects.ExtractedObservable] = {}
+        for key_index, analysis in \
+                analysis_config.iterate_with_selected_objects(manager.analyses, reaction_plane_orientation = ep_orientation):
+            # Store each extracted value.
+            values[analysis.track_pt] = utils.recursive_getattr(analysis, value_attribute_name)
+            # These are both used for labeling purposes and are identical for all analyses that are iterated over.
+            if analysis_identifier is None:
+                analysis_identifier = analysis.identifier
+            if jet_pt is None:
+                jet_pt = analysis.jet_pt
+
+        # Plot the values
+        bin_centers = np.array([k.bin_center for k in values])
+        bin_centers = bin_centers + displace_index * 0.05
+        ax.errorbar(
+            bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
+            label = ep_orientation.display_str(), color = ep_colors[ep_orientation], marker = "o",
+        )
+
+    # Help out mypy...
+    assert analysis_identifier is not None
+    assert jet_pt is not None
+
+    # Labels.
+    # TODO: ALICE, Extraction range
+    ax.set_xlabel(labels.make_valid_latex_string(labels.track_pt_display_label()))
+    ax.set_ylabel("Width")
+    ax.set_title(f"Near-side widths for {labels.jet_pt_range_string(jet_pt)}")
+    ax.legend(loc = "upper right")
+
+    # Final adjustments
+    fig.tight_layout()
+    # Save plot and cleanup
+    plot_base.save_plot(manager.output_info, fig,
+                        f"jetH_delta_phi_{analysis.identifier}_widths")
     plt.close(fig)
 
 def plotYields(jetH):

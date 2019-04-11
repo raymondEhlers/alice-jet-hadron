@@ -7,7 +7,6 @@
 
 import coloredlogs
 import copy
-#import ctypes
 import dataclasses
 from dataclasses import dataclass
 import enlighten
@@ -2207,8 +2206,8 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 extracting.update()
 
         # Plot
-        #if self.processing_options["plot_widths"]:
-        #    plot_extracted.plotWidths(self)
+        if self.processing_options["plot_widths"]:
+            plot_extracted.plot_extracted_values(self)
 
         return True
 
