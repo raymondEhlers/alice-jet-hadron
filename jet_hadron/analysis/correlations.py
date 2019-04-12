@@ -2207,7 +2207,14 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         # Plot
         if self.processing_options["plot_widths"]:
-            plot_extracted.plot_extracted_values(self)
+            plot_extracted.near_side_widths(
+                analyses = self.analyses, selected_iterables = self.selected_iterables,
+                output_info = self.output_info,
+            )
+            plot_extracted.away_side_widths(
+                analyses = self.analyses, selected_iterables = self.selected_iterables,
+                output_info = self.output_info,
+            )
 
         return True
 

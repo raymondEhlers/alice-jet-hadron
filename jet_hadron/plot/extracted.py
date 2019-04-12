@@ -13,7 +13,7 @@ from pachyderm import utils
 import matplotlib.pyplot as plt
 import numpy as np
 import ROOT
-from typing import Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Union
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -150,8 +150,16 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
                         f"jetH_delta_phi_{analysis.identifier}_width_signal_dominated_fit")
     plt.close(fig)
 
-def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
-    """ Plot extracted values. """
+def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
+                      selected_iterables: Dict[str, Sequence[Any]],
+                      attribute_name: str,
+                      plot_labels: plot_base.PlotLabels,
+                      output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot extracted values.
+
+    Args:
+
+    """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
     # Specify plotting properties
@@ -176,17 +184,17 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
     combined_cyclers = sum(cyclers[1:-1], cyclers[0])
     ax.set_prop_cycle(combined_cyclers)
 
-    value_attribute_name = "widths_delta_phi.near_side"
-
     # Used for labeling purposes. The values that are used are identical for all analyses.
     inclusive_analysis: Optional["correlations.Correlations"] = None
-    for displace_index, ep_orientation in enumerate(manager.selected_iterables["reaction_plane_orientation"]):
+    for displace_index, ep_orientation in enumerate(selected_iterables["reaction_plane_orientation"]):
         # Store the values to be plotted
         values: Dict[analysis_objects.PtBin, analysis_objects.ExtractedObservable] = {}
         for key_index, analysis in \
-                analysis_config.iterate_with_selected_objects(manager.analyses, reaction_plane_orientation = ep_orientation):
+                analysis_config.iterate_with_selected_objects(
+                    analyses, reaction_plane_orientation = ep_orientation
+                ):
             # Store each extracted value.
-            values[analysis.track_pt] = utils.recursive_getattr(analysis, value_attribute_name)
+            values[analysis.track_pt] = utils.recursive_getattr(analysis, attribute_name)
             # These are both used for labeling purposes and are identical for all analyses that are iterated over.
             if ep_orientation == params.ReactionPlaneOrientation.inclusive and inclusive_analysis is None:
                 inclusive_analysis = analysis
@@ -204,6 +212,7 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
     assert inclusive_analysis is not None
 
     # Labels.
+    # TODO: Extraction limits
     # General
     text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
     text += "\n" + labels.system_label(
@@ -222,16 +231,43 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
     )
     # Axes and titles
     ax.set_xlabel(labels.make_valid_latex_string(labels.track_pt_display_label()))
-    ax.set_ylabel("Width")
-    ax.set_title(f"Near-side widths for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}")
+    ax.set_title(f"{plot_labels.y_label} for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}")
+    # Apply any specified labels
+    plot_labels.apply_labels(ax)
     ax.legend(loc = "center right", frameon = False)
 
     # Final adjustments
     fig.tight_layout()
     # Save plot and cleanup
-    plot_base.save_plot(manager.output_info, fig,
-                        f"jetH_delta_phi_{inclusive_analysis.identifier}_widths")
+    plot_base.save_plot(output_info, fig,
+                        f"jetH_delta_phi_{inclusive_analysis.identifier}_{attribute_name.replace('.', '_')}")
     plt.close(fig)
+
+def near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
+                     selected_iterables: Dict[str, Sequence[Any]],
+                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the delta phi near-side widths. """
+    _extracted_values(
+        analyses = analyses, selected_iterables = selected_iterables,
+        attribute_name = "widths_delta_phi.near_side",
+        plot_labels = plot_base.PlotLabels(
+            y_label = "Near-side width",
+        ),
+        output_info = output_info,
+    )
+
+def away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
+                     selected_iterables: Dict[str, Sequence[Any]],
+                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the delta phi away-side widths. """
+    _extracted_values(
+        analyses = analyses, selected_iterables = selected_iterables,
+        attribute_name = "widths_delta_phi.away_side",
+        plot_labels = plot_base.PlotLabels(
+            y_label = "Away-side width",
+        ),
+        output_info = output_info,
+    )
 
 def plotYields(jetH):
     """ Plot extracted yields. """
@@ -335,8 +371,6 @@ def createExtractedValuesLegend(collisionSystem, tag):
     leg.SetTextSize(0.03)
     leg.AddEntry("", "{0} #sqrt{{s_{{NN}}}} = 2.76 TeV{1}".format("Pb--Pb" if collisionSystem == params.CollisionSystem.kPbPb else "pp #otimes Pb--Pb", ", 0-10%" if collisionSystem == params.CollisionSystem.kPbPb else ""), "")
     leg.AddEntry("", "Anti-k_{T} full jets, R=0.2", "")
-
-    # TODO: Add extraction ranges
 
     return leg
 
