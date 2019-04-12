@@ -44,17 +44,18 @@ etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
 
 # Correlations analysis related configuration
 Correlations:
+    # These define the regions for projecting, fitting
     deltaEtaRanges:
         # NOTE: They are assumed to be symmetric with respect to eta.
         #       This leads to discontinuous selection ranges in the background.
         signalDominated: [0, 0.6]
         backgroundDominated: [0.8, 1.2]
     deltaPhiRanges:
-        # +/- 1 from 0
-        nearSide: [-1, 1]
+        # +/- pi/2 from 0. The values are multiplied by pi.
+        nearSide: [-0.5, 0.5]
+        # +/- pi/2 from pi. the values are multiplied by pi.
         # These values are defined relative to pi.
-        # +/- 1 from pi.
-        awaySide: [-1, 1]
+        awaySide: [-0.5, 0.5]
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false

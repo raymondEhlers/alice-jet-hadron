@@ -495,14 +495,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 *self.task_config["deltaEtaRanges"]["backgroundDominated"]
             )
         )
+        # These phi values are __not__ for extracting the yield ranges. They are for projecting, fitting, etc.
+        # The limits for yield ranges are specified elsewhere in the configuration.
+        near_side_values = self.task_config["deltaPhiRanges"]["nearSide"]
+        # Multiply the values by pi.
+        near_side_values = [np.pi * val for val in near_side_values]
         self.near_side_phi_region = analysis_objects.AnalysisBin(
             params.SelectedRange(
-                *self.task_config["deltaPhiRanges"]["nearSide"]
+                *near_side_values
             )
         )
-        # Interpret these values as defined relative to pi.
         away_side_values = self.task_config["deltaPhiRanges"]["awaySide"]
-        away_side_values = [np.pi + val for val in away_side_values]
+        # Multiply the values by pi and shift them by pi to the away side.
+        away_side_values = [np.pi + np.pi * val for val in away_side_values]
         self.away_side_phi_region = analysis_objects.AnalysisBin(
             params.SelectedRange(
                 *away_side_values
