@@ -735,6 +735,8 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
         h.x, h.y, yerr = h.errors,
         label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
     )
+    # Line for comparison
+    ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 
     # Labels.
     ax.set_xlabel(labels.make_valid_latex_string(hists.signal_dominated.axis.display_str()))
@@ -744,7 +746,7 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
     ax.set_title(fr"Subtracted 1D ${hists.signal_dominated.axis.display_str()}$,"
                  f" {analysis.reaction_plane_orientation.display_str()} event plane orient.,"
                  f" {jet_pt_label}, {track_pt_label}")
-    ax.legend(loc = "upper right")
+    ax.legend(loc = "upper right", frameon = False)
 
     # Final adjustments
     fig.tight_layout()
