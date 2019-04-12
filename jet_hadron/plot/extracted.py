@@ -8,11 +8,12 @@ Includes quantities such as widths and yields.
 """
 
 from cycler import cycler
+from fractions import Fraction
 import logging
 from pachyderm import utils
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Any, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Union
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -153,7 +154,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Dict[str, Sequence[Any]],
                       attribute_name: str,
                       plot_labels: plot_base.PlotLabels,
-                      output_info: analysis_objects.PlottingOutputWrapper) -> None:
+                      output_info: analysis_objects.PlottingOutputWrapper,
+                      projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
+                      extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
     """ Plot extracted values.
 
     Args:
@@ -223,6 +226,26 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     text += "\n" + labels.jet_finding()
     text += "\n" + labels.constituent_cuts()
     text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
+    # Deal with projection range, extraction range string.
+    # Attempt to put them on the same line if they are both defined.
+    # Otherwise, it will just be one of them.
+    projection_range_string = ""
+    if projection_range_func:
+        projection_range_string = projection_range_func(inclusive_analysis)
+    extraction_range_string = ""
+    if extraction_range_func:
+        extraction_range_string = extraction_range_func(inclusive_analysis)
+    if projection_range_string or extraction_range_string:
+        additional_text = ""
+        if projection_range_string:
+            if extraction_range_string:
+                additional_text += f"{projection_range_string}, {extraction_range_string}"
+            else:
+                additional_text += f"{projection_range_string}"
+        else:
+            additional_text += f"{extraction_range_string}"
+        text += "\n" + additional_text
+    # Finally, add the text to the axis.
     ax.text(
         0.97, 0.97, text, horizontalalignment = "right",
         verticalalignment = "top", multialignment = "right",
@@ -243,6 +266,12 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                         f"jetH_delta_phi_{inclusive_analysis.jet_pt_identifier}_{attribute_name.replace('.', '_')}")
     plt.close(fig)
 
+def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
+    """ Provides a string that describes the delta eta projection range for delta phi plots. """
+    return labels.make_valid_latex_string(
+        fr"$|\Delta\eta|<{inclusive_analysis.signal_dominated_eta_region.max}$"
+    )
+
 def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
@@ -255,6 +284,7 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side width",
         ),
         output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
     )
 
 def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
@@ -269,6 +299,7 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Away-side width",
         ),
         output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
     )
 
 def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
@@ -285,6 +316,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side yield",
         ),
         output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
     )
 
 def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
@@ -301,6 +333,21 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Away-side yield",
         ),
         output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
+    )
+
+def delta_eta_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
+    """ Provides a string that describes the delta phi projection range for delta eta plots. """
+    # The limit is almost certainly a multiple of pi, so we try to express it more naturally
+    # as a value like pi/2 or 3*pi/2
+    # This relies on this dividing cleanly. It usually seems  to work.
+    coefficient = Fraction(inclusive_analysis.near_side_phi_region.max / np.pi)
+    leading_coefficient = ""
+    if coefficient.numerator != 1:
+        leading_coefficient = f"{coefficient.numerator}"
+    value = fr"{leading_coefficient}\pi/{coefficient.denominator}"
+    return labels.make_valid_latex_string(
+        fr"$|\Delta\varphi|<{value}$"
     )
 
 def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
@@ -315,6 +362,7 @@ def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side width",
         ),
         output_info = output_info,
+        projection_range_func = delta_eta_plot_projection_range_string,
     )
 
 def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
@@ -331,5 +379,6 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side yield",
         ),
         output_info = output_info,
+        projection_range_func = delta_eta_plot_projection_range_string,
     )
 
