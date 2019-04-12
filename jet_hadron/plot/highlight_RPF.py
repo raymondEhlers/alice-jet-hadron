@@ -26,27 +26,31 @@ import matplotlib.pyplot as plt
 # Needed for 3D plots
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401. Needed for 3D plots, even if not directly called.
 import seaborn as sns
+from typing import cast, Tuple
 
 from pachyderm import histogram
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.plot import base as plot_base
 
-# Setup logger
 logger = logging.getLogger(__name__)
+
+# Typing helpers
+# (R, G, B, A)
+Color = Tuple[float, float, float, float]
 
 ##########
 # Plotting
 ##########
-def convertColorToMax255(color):
+def convertColorToMax255(color: float) -> int:
     """ Convert color to be in the range [0,255]. """
     return int(round(color * 255))
 
-def convertColorToMax1(color):
+def convertColorToMax1(color: float) -> float:
     """ Convert color to be in the range [0,1]. """
     return color / 255.0
 
-def overlayColors(foreground, background):
+def overlayColors(foreground: Color, background: Color) -> Color:
     """ Combine two colors together using an "overlay" method.
 
     Implemented using the formula from [colorblendy](http://colorblendy.com/). Specifically, see
@@ -57,12 +61,11 @@ def overlayColors(foreground, background):
         up and down.
 
     Args:
-        foreground (tuple): Foreground (in-front) (R,G,B), where each color is between [0, 1]
-        background (tuple): Background (below) (R,G,B), where each color is between [0, 1]
+        foreground: Foreground (in-front) (R, G, B, A), where each value is between [0, 1].
+        background: Background (below) (R, G, B, A), where each value is between [0, 1].
     Returns:
-        tuple: (R,G,B) overlay of colors
+        tuple: (R, G, B, A) overlay of the foreground and background colors.
     """
-
     output = []
     for fg, bg in zip(foreground, background):
         # Need to scale up to the 255 scale to use the formula
@@ -73,9 +76,10 @@ def overlayColors(foreground, background):
         overlayColor = convertColorToMax1(overlayColor)
         output.append(overlayColor)
 
-    return tuple(output)
+    output_color = cast(Color, tuple(output))
+    return output_color
 
-def screenColors(foreground, background):
+def screenColors(foreground: Color, background: Color) -> Color:
     """ Combine two colors together using a "screen" method.
 
     Implemented using the formula from [colorblendy](http://colorblendy.com/). Specifically, see
@@ -86,10 +90,10 @@ def screenColors(foreground, background):
         up and down.
 
     Args:
-        foreground (tuple): Foreground (in-front) (R,G,B), where each color is between [0, 1]
-        background (tuple): Background (below) (R,G,B), where each color is between [0, 1]
+        foreground: Foreground (in-front) (R, G, B, A), where each value is between [0, 1].
+        background: Background (below) (R, G, B, A), where each value is between [0, 1].
     Returns:
-        tuple: (R,G,B) overlay of colors
+        tuple: (R, G, B, A) overlay of the foreground and background colors.
     """
     output = []
     for fg, bg in zip(foreground, background):
@@ -98,12 +102,45 @@ def screenColors(foreground, background):
         bg = convertColorToMax255(bg)
         screenColor = 255 - (((255 - fg) * (255 - bg)) >> 8)
         # We then need to scale the color to be between 0 and 1.
-        screenColor = convertColorToMax1(screenColor)
-        output.append(screenColor)
+        converted_screen_color = convertColorToMax1(screenColor)
+        output.append(converted_screen_color)
 
-    return tuple(output)
+    output_color = cast(Color, tuple(output))
+    return output_color
 
-def highlightRegionOfSurface(surf, highlightColors, X, Y, phiRange, etaRange, useEdgeColors = False, useColorOverlay = False, useColorScreen = False):
+def mathematical_blending(foreground: Color, background: Color) -> Color:
+    """ Use mathematical blending as described in https://stackoverflow.com/a/29321264 .
+
+    Appears to look similar to ``screenColors(...)``
+
+    Args:
+        foreground: Foreground (in-front) (R, G, B, A), where each value is between [0, 1].
+        background: Background (below) (R, G, B, A), where each value is between [0, 1].
+    Returns:
+        tuple: (R, G, B, A) overlay of the foreground and background colors.
+    """
+    output = []
+    for i, (fg, bg) in enumerate(zip(foreground, background)):
+        # Need to scale up to the 255 scale to use the formula
+        fg = convertColorToMax255(fg)
+        bg = convertColorToMax255(bg)
+        # Blending parameter
+        t = 0.5
+        if i <= 2:
+            # R, G, or B value
+            screen_color = np.sqrt((1 - t) * fg ** 2 + t * bg ** 2)
+        else:
+            # Alpha
+            screen_color = (1 - t) * fg + t * bg
+
+        # We then need to scale the color to be between 0 and 1.
+        screen_color = convertColorToMax1(screen_color)
+        output.append(screen_color)
+
+    output_color = cast(Color, tuple(output))
+    return output_color
+
+def highlightRegionOfSurface(surf, highlightColors, X, Y, phiRange, etaRange, useEdgeColors = False, useColorOverlay = False, useColorScreen = False, use_mathematical_blending = False):
     """ Highlight a region of a surface plot.
 
     The colors of the selected region are changed from their default value on the surface plot to the selected
@@ -117,8 +154,10 @@ def highlightRegionOfSurface(surf, highlightColors, X, Y, phiRange, etaRange, us
         phiRange (float, float): Min, max phi of highlight region.
         etaRange (float, float): Min, max eta of highlight region.
         useEdgeColors (bool): Use edge colors instead of face colors. Default: False
-        useColorOverlay (bool): Combine the highlight color and existing color using overlayColors(). Default: False
-        useColorScreen (bool): Combine the highlight color and existing color using screenColors(). Default: False
+        useColorOverlay (bool): Combine the highlight color and existing color using ``overlayColors(...)``. Default: False
+        useColorScreen (bool): Combine the highlight color and existing color using ``screenColors(...)``. Default: False
+        use_mathematical_blending (bool): Combine the highlight color and the existing color using
+            ``mathematical_blending(...)``. Default: False
     Return:
         numpy.ndarray: Indices selected for highlighting
     """
@@ -148,6 +187,8 @@ def highlightRegionOfSurface(surf, highlightColors, X, Y, phiRange, etaRange, us
             colors[idx] = list(overlayColors(foreground = highlightColors, background = tuple(colors[idx])))
         elif useColorScreen:
             colors[idx] = list(screenColors(foreground = highlightColors, background = tuple(colors[idx])))
+        elif use_mathematical_blending:
+            colors[idx] = list(mathematical_blending(foreground = highlightColors, background = tuple(colors[idx])))
         else:
             colors[idx] = list(highlightColors)
 
@@ -295,7 +336,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
     handles = []
     for region in highlightRegions:
         handles.append(matplotlib.patches.Patch(color = region.color, label = region.label))
-    ax.legend(handles = handles)
+    ax.legend(handles = handles, frameon = False)
 
     # View options
     ax.view_init(*viewAngle)
