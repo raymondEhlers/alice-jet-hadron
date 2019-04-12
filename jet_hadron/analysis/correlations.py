@@ -2171,11 +2171,15 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         # Plot
         if self.processing_options["plot_yields"]:
-            plot_extracted.near_side_yields(
+            plot_extracted.delta_phi_near_side_yields(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
             )
-            plot_extracted.away_side_yields(
+            plot_extracted.delta_phi_away_side_yields(
+                analyses = self.analyses, selected_iterables = self.selected_iterables,
+                output_info = self.output_info,
+            )
+            plot_extracted.delta_eta_near_side_yields(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
             )
@@ -2214,11 +2218,15 @@ class CorrelationsManager(generic_class.EqualityMixin):
 
         # Plot
         if self.processing_options["plot_widths"]:
-            plot_extracted.near_side_widths(
+            plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
             )
-            plot_extracted.away_side_widths(
+            plot_extracted.delta_phi_away_side_widths(
+                analyses = self.analyses, selected_iterables = self.selected_iterables,
+                output_info = self.output_info,
+            )
+            plot_extracted.delta_eta_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
             )

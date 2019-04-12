@@ -243,9 +243,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                         f"jetH_delta_phi_{inclusive_analysis.jet_pt_identifier}_{attribute_name.replace('.', '_')}")
     plt.close(fig)
 
-def near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
-                     selected_iterables: Dict[str, Sequence[Any]],
-                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side widths. """
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -257,9 +257,9 @@ def near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
         output_info = output_info,
     )
 
-def away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
-                     selected_iterables: Dict[str, Sequence[Any]],
-                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side widths. """
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -271,9 +271,9 @@ def away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
         output_info = output_info,
     )
 
-def near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
-                     selected_iterables: Dict[str, Sequence[Any]],
-                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side yields. """
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -287,9 +287,9 @@ def near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
         output_info = output_info,
     )
 
-def away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
-                     selected_iterables: Dict[str, Sequence[Any]],
-                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -299,6 +299,36 @@ def away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
                 fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Away-side yield",
+        ),
+        output_info = output_info,
+    )
+
+def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the delta eta near-side widths. """
+    _extracted_values(
+        analyses = analyses, selected_iterables = selected_iterables,
+        attribute_name = "widths_delta_eta.near_side",
+        plot_labels = plot_base.PlotLabels(
+            y_label = "Near-side width",
+            title = "Near-side width",
+        ),
+        output_info = output_info,
+    )
+
+def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
+                               selected_iterables: Dict[str, Sequence[Any]],
+                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the delta eta near-side yields. """
+    _extracted_values(
+        analyses = analyses, selected_iterables = selected_iterables,
+        attribute_name = "yields_delta_eta.near_side",
+        plot_labels = plot_base.PlotLabels(
+            y_label = labels.make_valid_latex_string(
+                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
+            ),
+            title = "Near-side yield",
         ),
         output_info = output_info,
     )
