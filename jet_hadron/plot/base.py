@@ -28,9 +28,9 @@ pachyderm.plot.configure()
 
 class AnalysisColors:
     """ Exceedingly simple class to store analysis colors. """
-    signal = "C0"  # Blue from MPL
-    background = "C1"  # Orange from MPL
-    fit = "C4"  # Purple from MPL
+    signal = "tab:blue"  # "C0" in the default MPL color cycle
+    background = "tab:orange"  # "C1" in the default MPL color cycle
+    fit = "tab:purple"  # "C4" in the default MPL color cycle
 
 @dataclass
 class PlotLabels:
