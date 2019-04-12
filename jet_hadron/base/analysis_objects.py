@@ -482,7 +482,7 @@ class PhiBinsByPi:
 
     @classmethod
     def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> List[PhiBin]:
-        """ Convert input YAML list to set of ``PtBin``. """
+        """ Convert input YAML list to set of ``PhiBins``. """
         #logger.debug(f"Using representer, {data}")
         # Extract values
         values = [constructor.construct_object(v) for v in data.value]
