@@ -231,8 +231,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     )
     # Axes and titles
     ax.set_xlabel(labels.make_valid_latex_string(labels.track_pt_display_label()))
-    ax.set_title(f"{plot_labels.y_label} for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}")
     # Apply any specified labels
+    if plot_labels.title is not None:
+        plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}"
     plot_labels.apply_labels(ax)
     ax.legend(loc = "center right", frameon = False)
 
@@ -240,7 +241,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig,
-                        f"jetH_delta_phi_{inclusive_analysis.identifier}_{attribute_name.replace('.', '_')}")
+                        f"jetH_delta_phi_{inclusive_analysis.jet_pt_identifier}_{attribute_name.replace('.', '_')}")
     plt.close(fig)
 
 def near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
@@ -252,6 +253,7 @@ def near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
         attribute_name = "widths_delta_phi.near_side",
         plot_labels = plot_base.PlotLabels(
             y_label = "Near-side width",
+            title = "Near-side width",
         ),
         output_info = output_info,
     )
@@ -265,6 +267,7 @@ def away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
         attribute_name = "widths_delta_phi.away_side",
         plot_labels = plot_base.PlotLabels(
             y_label = "Away-side width",
+            title = "Away-side width",
         ),
         output_info = output_info,
     )
