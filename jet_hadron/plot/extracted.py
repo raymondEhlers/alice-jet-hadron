@@ -178,9 +178,8 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
 
     value_attribute_name = "widths_delta_phi.near_side"
 
-    # These are both used for labeling purposes and are identical for all analyses that are iterated over.
-    analysis_identifier: Optional[str] = None
-    jet_pt: Optional[analysis_objects.JetPtBin] = None
+    # Used for labeling purposes. The values that are used are identical for all analyses.
+    inclusive_analysis: Optional["correlations.Correlations"] = None
     for displace_index, ep_orientation in enumerate(manager.selected_iterables["reaction_plane_orientation"]):
         # Store the values to be plotted
         values: Dict[analysis_objects.PtBin, analysis_objects.ExtractedObservable] = {}
@@ -189,10 +188,8 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
             # Store each extracted value.
             values[analysis.track_pt] = utils.recursive_getattr(analysis, value_attribute_name)
             # These are both used for labeling purposes and are identical for all analyses that are iterated over.
-            if analysis_identifier is None:
-                analysis_identifier = analysis.identifier
-            if jet_pt is None:
-                jet_pt = analysis.jet_pt
+            if ep_orientation == params.ReactionPlaneOrientation.inclusive and inclusive_analysis is None:
+                inclusive_analysis = analysis
 
         # Plot the values
         bin_centers = np.array([k.bin_center for k in values])
@@ -204,21 +201,36 @@ def plot_extracted_values(manager: "correlations.CorrelationsManager") -> None:
         )
 
     # Help out mypy...
-    assert analysis_identifier is not None
-    assert jet_pt is not None
+    assert inclusive_analysis is not None
 
     # Labels.
-    # TODO: ALICE, Extraction range
+    # General
+    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
+    text += "\n" + labels.system_label(
+        energy = inclusive_analysis.collision_energy,
+        system = inclusive_analysis.collision_system,
+        activity = inclusive_analysis.event_activity
+    )
+    text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
+    text += "\n" + labels.jet_finding()
+    text += "\n" + labels.constituent_cuts()
+    text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
+    ax.text(
+        0.97, 0.97, text, horizontalalignment = "right",
+        verticalalignment = "top", multialignment = "right",
+        transform = ax.transAxes
+    )
+    # Axes and titles
     ax.set_xlabel(labels.make_valid_latex_string(labels.track_pt_display_label()))
     ax.set_ylabel("Width")
-    ax.set_title(f"Near-side widths for {labels.jet_pt_range_string(jet_pt)}")
-    ax.legend(loc = "upper right")
+    ax.set_title(f"Near-side widths for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}")
+    ax.legend(loc = "center right", frameon = False)
 
     # Final adjustments
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(manager.output_info, fig,
-                        f"jetH_delta_phi_{analysis.identifier}_widths")
+                        f"jetH_delta_phi_{inclusive_analysis.identifier}_widths")
     plt.close(fig)
 
 def plotYields(jetH):
