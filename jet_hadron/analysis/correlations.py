@@ -1128,11 +1128,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
             logger.info("Plotting RPF example region")
-            if self.processing_options["plotRPFHighlights"]:
-                plot_correlations.plot_RPF_fit_regions(
-                    self,
-                    filename = f"highlight_RPF_regions_{self.identifier}"
-                )
+        if self.processing_options["plotRPFHighlights"]:
+            plot_correlations.plot_RPF_fit_regions(
+                self,
+                filename = f"highlight_RPF_regions_{self.identifier}"
+            )
 
     def _setup_1d_projectors(self) -> None:
         """ Setup 2D -> 1D correlation projectors.

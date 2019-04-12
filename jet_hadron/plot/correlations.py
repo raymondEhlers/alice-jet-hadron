@@ -434,39 +434,54 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def define_highlight_regions():
+def define_highlight_regions(signal_dominated_eta_region: params.SelectedRange,
+                             background_dominated_eta_region: params.SelectedRange,
+                             near_side_phi_region: params.SelectedRange,
+                             ) -> Sequence[highlight_RPF.HighlightRegion]:
     """ Define regions to highlight.
 
     The user should modify or override this function if they want to define different ranges. By default,
-    we highlight.
+    we highlight the signal and background dominated regions.
+
+    Note:
+        The edge color is still that of the colormap, so there is still a hint of the original colormap, although
+        the facecolors are replaced by selected highlight colors
 
     Args:
-        None
+        signal_dominated_eta_region: Signal dominated eta range.
+        background_dominated_eta_region: Background dominated eta range.
     Returns:
-        list: highlightRegion objects, suitably defined for highlighting the signal and background regions.
+        list: ``highlightRegion`` objects, suitably defined for highlighting the signal and background regions.
     """
     # Select the highlighted regions.
     highlight_regions = []
-    # NOTE: The edge color is still that of the colormap, so there is still a hint of the origin
-    #       colormap, although the facecolors are replaced by selected highlight colors
-    palette = sns.color_palette()
 
     # Signal
-    # Blue used for the signal data color
-    # NOTE: Blue really doesn't look good with ROOT_kBird, so for that case, the
-    #       signal fit color, seaborn green, should be used.
-    signal_color = palette[0] + (1.0,)
-    signal_region = highlight_RPF.highlightRegion("Signal dom. region,\n" + r"$|\Delta\eta|<0.6$", signal_color)
-    signal_region.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
+    signal_color = matplotlib.colors.to_rgba(plot_base.AnalysisColors.signal)
+    signal_region = highlight_RPF.HighlightRegion(
+        "Signal,\n" + fr"$|\Delta\eta|<{signal_dominated_eta_region.max}$", signal_color
+    )
+    signal_region.addHighlightRegion(
+        phi_range = (-np.pi / 2, 3.0 * np.pi / 2),
+        eta_range = (-1 * signal_dominated_eta_region.max, signal_dominated_eta_region.max),
+    )
     highlight_regions.append(signal_region)
 
     # Background
-    # Red used for background data color
-    background_color = palette[2] + (1.0,)
-    background_phi_range = (-np.pi / 2, np.pi / 2)
-    background_region = highlight_RPF.highlightRegion("Background dom. region,\n" + r"$0.8<|\Delta\eta|<1.2$", background_color)
-    background_region.addHighlightRegion(background_phi_range, (-1.2, -0.8))
-    background_region.addHighlightRegion(background_phi_range, ( 0.8,  1.2))  # noqa: E201, E241
+    background_color = matplotlib.colors.to_rgba(plot_base.AnalysisColors.background)
+    background_phi_range = (near_side_phi_region.min, near_side_phi_region.max)
+    background_region = highlight_RPF.HighlightRegion(
+        "Background,\n" + fr"${background_dominated_eta_region.min}<|\Delta\eta|<{background_dominated_eta_region.max}$",
+        background_color
+    )
+    background_region.addHighlightRegion(
+        phi_range = background_phi_range,
+        eta_range = (-1 * background_dominated_eta_region.max, -1 * background_dominated_eta_region.min),
+    )
+    background_region.addHighlightRegion(
+        phi_range = background_phi_range,
+        eta_range = (background_dominated_eta_region.min, background_dominated_eta_region.max),
+    )
     highlight_regions.append(background_region)
 
     return highlight_regions
@@ -486,11 +501,18 @@ def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str)
 
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
-        # TODO: Determine if color overlays are better here!
+        # The best option for clarify of viewing seems to be to just replace the colors with the overlay colors.
+        # mathematical_blending and screenColors look similar and seem to be the next most promising option.
         (fig, ax) = highlight_RPF.plotRPFFitRegions(
             histogram.get_array_from_hist2D(hist),
-            highlightRegions = define_highlight_regions(),
-            useColorOverlay = False
+            highlightRegions = define_highlight_regions(
+                signal_dominated_eta_region = jet_hadron.signal_dominated_eta_region,
+                background_dominated_eta_region = jet_hadron.background_dominated_eta_region,
+                near_side_phi_region = jet_hadron.near_side_phi_region,
+            ),
+            useColorOverlay = False,
+            useColorScreen = False,
+            use_mathematical_blending = False,
         )
 
         # Add additional labeling

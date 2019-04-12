@@ -280,7 +280,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
     Args:
         hist (numpy.ndarray, numpy.ndarray, numpy.ndarray): Tuple of (x bin centers, y bin centers, array
             of hist data).  Useful to use in conjunction with getHistogramDataForSurfacePlot(hist).
-        highlightRegions (list): highlightRegion objects corresponding to the signal and background regions to
+        highlightRegions (list): ``HighlightRegion`` objects corresponding to the signal and background regions to
             be highlighted.
         colormap (colormap or str): Either a colormap or the name of a colormap to retrieve via `plt.get_cmap(colormap)`.
             Default: seaborn.cm.rocket.
@@ -347,7 +347,7 @@ def plotRPFFitRegions(hist, highlightRegions, colormap = sns.cm.rocket, useTrans
 ###################
 # Highlight regions
 ###################
-class highlightRegion(object):
+class HighlightRegion(object):
     """ Manages regions for highlighting.
 
     Args:
@@ -359,16 +359,16 @@ class highlightRegion(object):
         self.color = color
         self.regions = []
 
-    def addHighlightRegion(self, phiRange, etaRange):
+    def addHighlightRegion(self, phi_range: Tuple[float, float], eta_range: Tuple[float, float]):
         """ Add a region to this highlight object.
 
         Args:
-            phiRange (float, float): Tuple of min, max phi of highlight region.
-            etaRange (float, float): Tuple of min, max eta of highlight region.
+            phi_range: Tuple of min, max phi of highlight region.
+            eta_range: Tuple of min, max eta of highlight region.
         Returns:
             None. The `regions` list is modified.
         """
-        self.regions.append([phiRange, etaRange])
+        self.regions.append([phi_range, eta_range])
 
     def drawHighlights(self, highlightSurf, X, Y, **kwargs):
         """ Highlight the seleteced region(s) on the passed surface.
@@ -405,14 +405,14 @@ def defineHighlightRegions():
 
     # Signal
     signalColor = (1, 0, 0, 1.0,)
-    signalRegion = highlightRegion("Signal region", signalColor)
+    signalRegion = HighlightRegion("Signal region", signalColor)
     signalRegion.addHighlightRegion((-np.pi / 2, 3.0 * np.pi / 2), (-0.6, 0.6))
     highlightRegions.append(signalRegion)
 
     # Background
     backgroundColor = (0, 1, 0, 1.0,)
     backgroundPhiRange = (-np.pi / 2, np.pi / 2)
-    backgroundRegion = highlightRegion("Background region", backgroundColor)
+    backgroundRegion = HighlightRegion("Background region", backgroundColor)
     backgroundRegion.addHighlightRegion(backgroundPhiRange, (-1.2, -0.8))
     backgroundRegion.addHighlightRegion(backgroundPhiRange, ( 0.8,  1.2))  # noqa: E201, E241
     highlightRegions.append(backgroundRegion)
