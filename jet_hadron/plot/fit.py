@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-from typing import Any, Dict, List, Mapping, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Mapping, Sequence, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import histogram
 
@@ -123,7 +123,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
     for parameter in parameters:
         _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
 
-def _matrix_values(free_parameters: List[str],
+def _matrix_values(free_parameters: Sequence[str],
                    matrix: Dict[Tuple[str, str], float],
                    output_info: analysis_objects.PlottingOutputWrapper,
                    output_name: str) -> None:
