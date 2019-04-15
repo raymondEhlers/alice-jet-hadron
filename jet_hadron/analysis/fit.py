@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 from dataclasses import dataclass
+import iminuit.util
 import logging
 import numpy as np
 from pachyderm import histogram
 import pprint
 import scipy.optimize as optimization
-from typing import Sequence, Tuple
+from typing import Callable, Dict, List, Sequence, Tuple, Union
+
+import reaction_plane_fit.base
 
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
@@ -14,6 +17,9 @@ from jet_hadron.base.typing_helpers import Hist
 import ROOT
 
 logger = logging.getLogger(__name__)
+
+# Type helpers
+FitArguments = Dict[str, Union[bool, float, Tuple[float, float]]]
 
 def print_root_fit_parameters(fit) -> None:
     """ Print out all of the ROOT-based fit parameters. """
@@ -77,6 +83,73 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
+def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments: FitArguments) -> bool:
+    """ Validate the user provided fit arguments.
+
+    Args:
+        default_arguments: Default fit arguments.
+        user_arguments: User provided fit arguments to be valided.
+    Returns:
+        True if the user fit arguments that are valid (ie the specified fit variables are also set in the
+        default arguments).  It's up to the user to actually update the fit arguments.
+    Raises:
+        ValueError: If user provides arguments for a parameter that doesn't exist. (Usually a typo).
+    """
+    # Handle the user arguments
+    # First, ensure that all user passed arguments are already in the argument keys. If not, the user probably
+    # passed the wrong argument unintentionally.
+    for k, v in user_arguments.items():
+        # The second condition allows us to fix components that were not previously fixed.
+        if k not in default_arguments and k.replace("fix_", "") not in default_arguments:
+            raise ValueError(
+                f"User argument {k} (with value {v}) is not present in the fit arguments."
+                f" Possible arguments: {default_arguments}"
+            )
+
+    return True
+
+@dataclass
+class FitResult(reaction_plane_fit.base.FitResult):
+    """ Store the fit result.
+
+    Attributes:
+        x: x values where the fit result should be evaluated.
+        errors: Store the errors associated with the fit function.
+        n_fit_data_points: Number of data points used in the fit.
+        minimul_val: Minimum value of the fit when it coverages. This is the chi2 value for a
+            chi2 minimization fit.
+        nDOF: Number of degrees of freedom. Calculated on request from ``n_fit_data_points`` and ``free_parameters``.
+    """
+    x: np.array
+    errors: np.array
+    n_fit_data_points: int
+    minimum_val: float
+
+    @property
+    def nDOF(self) -> int:
+        return self.n_fit_data_points - len(self.free_parameters)
+
+class ChiSquared:
+    """ chi^2 cost function.
+
+    Implemented with some help from the iminuit advanced tutorial. Calling this class will calculate the chi2.
+
+    Args:
+        f: The fit function.
+        func_code: Function arguments derived from the fit function. They need to be separately specified
+            to allow iminuit to determine the proper arguments.
+        data: Data to be used for fitting.
+    """
+    def __init__(self, f: Callable[..., float], data: histogram.Histogram1D):
+        self.f = f
+        self.func_code: List[str] = iminuit.util.make_func_code(iminuit.util.describe(self.f)[1:])
+        #self.func_code = iminuit.util.make_func_code(iminuit.util.describe(self.f))
+        self.data = data
+
+    def __call__(self, *args: List[float]) -> float:
+        """ Calculate the chi2. """
+        return np.sum(np.power(self.data.y - self.f(self.data.x, *args), 2) / np.power(self.data.errors, 2))
+
 def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
                                                           fit_range: params.SelectedRange) -> Tuple[float, float]:
     """ Fit a pedestal to a histogram using ``scipy.optimize.curvefit``.
@@ -129,6 +202,94 @@ def gaussian(x: float, mu: float, sigma: float) -> float:
         Normalized gaussian value.
     """
     return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
+
+def pedestal_with_extended_gaussian(x: float, mu: float, sigma: float, amplitude: float, pedestal: float) -> float:
+    """ Pedestal + extended (unnormalized) gaussian
+
+    Args:
+        x: Indepenednt variable.
+        mu: Gaussian mean.
+        sigma: Gaussian width.
+        amplitude: Ampltiude of the gaussian.
+        pedestal: Pedestal value.
+    Returns:
+        Function value.
+    """
+    return pedestal + amplitude * gaussian(x = x, mu = mu, sigma = sigma)
+
+def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
+                                        fit_arguments: FitArguments,
+                                        use_minos: bool) -> FitResult:
+    """ Fit the gievn histogram to a pedestal + an extended gaussian.
+
+    Args:
+        h: Histogram to be fit.
+        fit_arguments: Arguments to override the default fit arguments.
+        use_minos: If True, minos errors will be calculated.
+    Returns:
+        Fit result from the fit.
+    """
+    # Required arguments for the fit:
+    arguments: FitArguments = {
+        "pedestal": 1, "limit_pedestal": (-0.5, 1000),
+        "amplitude": 1, "limit_amplitude": (0.05, 100),
+        "mu": 0, "limit_mu": (-0.5, 0.5),
+        "sigma": 0.15, "limit_sigma": (0.05, 0.8),
+        # We are using a chi squared fit, so the errordef should be 1.
+        "errordef": 1.0,
+    }
+    # Will raise an exception if the user fit arguments are invalid.
+    _validate_user_fit_arguments(arguments, fit_arguments)
+    # Now, we actually assign the user arguments. We assign them last so we can overwrite any default arguments
+    arguments.update(fit_arguments)
+
+    logger.debug(f"Minuit args: {arguments}")
+    cost_func = ChiSquared(f = pedestal_with_extended_gaussian, data = h)
+    minuit = iminuit.Minuit(cost_func, **arguments)
+
+    # Perform the fit
+    minuit.migrad()
+    # Run minos if requested.
+    if use_minos:
+        logger.info("Running MINOS. This may take a minute...")
+        minuit.minos()
+    # Just in case (doesn't hurt anything, but may help in a few cases).
+    minuit.hesse()
+
+    # Check that the fit is actually good
+    if not minuit.migrad_ok():
+        raise reaction_plane_fit.base.FitFailed("Minimization failed! The fit is invalid!")
+
+    # Create the fit result
+    fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
+    # We use the cost func because we want intentionally want to skip "x"
+    parameters: List[str] = iminuit.util.describe(cost_func)
+    # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
+    free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
+    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
+    #       It won't show up doing normal type checking, but seems to appear when checking the commit
+    fit_result = FitResult(  # type: ignore
+        parameters = parameters,
+        free_parameters = free_parameters,
+        fixed_parameters = fixed_parameters,
+        values_at_minimum = dict(minuit.values),
+        errors_on_parameters = dict(minuit.errors),
+        covariance_matrix = minuit.covariance,
+        x = h.x,
+        # These will be calculated below. It's easier to calculate once a FitResult already exists.
+        errors = np.array([]),
+        n_fit_data_points = len(h.x),
+        minimum_val = minuit.fval,
+    )
+
+    # Calculate errors.
+    fit_result.errors = reaction_plane_fit.base.calculate_function_errors(
+        func = pedestal_with_extended_gaussian,
+        fit_result = fit_result,
+        x = fit_result.x
+    )
+
+    return fit_result
 
 def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, float]:
     """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
