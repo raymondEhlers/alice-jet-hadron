@@ -1972,7 +1972,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                 logger.debug(f"Performing RPF for {inclusive_analysis.jet_pt_identifier}, {inclusive_analysis.track_pt_identifier}")
                 fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                 FitFunction = getattr(three_orientations, fit_type)
-                fit_obj = FitFunction(
+                fit_obj: three_orientations.ReactionPlaneFit = FitFunction(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
                     signal_region = analysis.signal_dominated_eta_region,
