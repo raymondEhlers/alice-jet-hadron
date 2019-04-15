@@ -130,7 +130,7 @@ class AliceLabel(enum.Enum):
     to_yaml = classmethod(yaml.enum_to_yaml)
 
     @classmethod
-    def from_yaml(cls, constructor, node):
+    def from_yaml(cls, constructor: yaml.Constructor, node: yaml.ruamel.yaml.nodes.ScalarNode) -> "AliceLabel":
         """ Decode YAML representer. """
         return cls(node.value)
 
@@ -170,7 +170,7 @@ class SelectedRange:
 
             >>> val == SelectedRange(min = 1, max = 5)
         """
-        # We construct the objects to cnovert the scalar nodes into floats
+        # We construct the objects to convert the scalar nodes into floats
         values = [constructor.construct_object(v) for v in data.value]
         return cls(*values)
 

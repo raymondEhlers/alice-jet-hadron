@@ -42,7 +42,7 @@ class ResponseNormalization(enum.Enum):
     to_yaml = classmethod(yaml.enum_to_yaml)
     from_yaml = classmethod(yaml.enum_from_yaml)
 
-def normalize_response_matrix(hist, response_normalization) -> None:
+def normalize_response_matrix(hist: Hist, response_normalization: ResponseNormalization) -> None:
     """ Normalize response matrix.
 
     In the case of normalizing each detector pt bin (usually on the x axis), we take all associated truth level
@@ -128,14 +128,14 @@ def _setup_access_bins(response_normalization: ResponseNormalization) -> Tuple[C
     if response_normalization == ResponseNormalization.normalize_each_detector_bin:
         axis = ROOT.TH1.GetYaxis
 
-        # Define helper funciton so we can properly set the order of the parameters.
-        def get_bin(hist: Hist, bin_of_interest: int, index: int):
+        # Define helper function so we can properly set the order of the parameters.
+        def get_bin(hist: Hist, bin_of_interest: int, index: int) -> int:
             return hist.GetBin(bin_of_interest, index)
     elif response_normalization == ResponseNormalization.normalize_each_truth_bin:
         axis = ROOT.TH1.GetXaxis
 
-        # Define helper funciton so we can properly set the order of the parameters.
-        def get_bin(hist: Hist, bin_of_interest: int, index: int):
+        # Define helper function so we can properly set the order of the parameters.
+        def get_bin(hist: Hist, bin_of_interest: int, index: int) -> int:
             return hist.GetBin(index, bin_of_interest)
     else:
         raise ValueError(f"RM Normalization value {response_normalization} not recognized")
