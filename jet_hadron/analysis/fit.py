@@ -165,6 +165,12 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
     Returns:
         Fit result from the fit.
     """
+    # Validation
+    # We are using a chi squared fit, so the errordef should be 1.
+    # We specify it first just in the case wants to override for some reason
+    arguments.update({
+        "errordef": 1.0,
+    })
     # Will raise an exception if the user fit arguments are invalid.
     _validate_user_fit_arguments(default_arguments = arguments, user_arguments = user_arguments)
     # Now, we actually assign the user arguments. We assign them last so we can overwrite any default arguments
@@ -303,8 +309,6 @@ def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
         "amplitude": 1, "limit_amplitude": (0.05, 100),
         "mu": 0, "limit_mu": (-0.5, 0.5),
         "sigma": 0.15, "limit_sigma": (0.05, 0.8),
-        # We are using a chi squared fit, so the errordef should be 1.
-        "errordef": 1.0,
     }
 
     # Perform the fit
