@@ -88,10 +88,20 @@ class FitResult(reaction_plane_fit.base.FitResult):
     """ Store the fit result.
 
     Attributes:
+        parameters (list): Names of the parameters used in the fit.
+        free_parameters (list): Names of the free parameters used in the fit.
+        fixed_parameters (list): Names of the fixed parameters used in the fit.
+        values_at_minimum (dict): Contains the values of the full RP fit function at the minimum. Keys are the
+            names of parameters, while values are the numerical values at convergence.
+        errors_on_parameters (dict): Contains the values of the errors associated with the parameters
+            determined via the fit.
+        covariance_matrix (dict): Contains the values of the covariance matrix. Keys are tuples
+            with (param_name_a, param_name_b), and the values are covariance between the specified parameters.
+            Note that fixed parameters are _not_ included in this matrix.
         x: x values where the fit result should be evaluated.
         errors: Store the errors associated with the fit function.
         n_fit_data_points: Number of data points used in the fit.
-        minimul_val: Minimum value of the fit when it coverages. This is the chi2 value for a
+        minimum_val: Minimum value of the fit when it coverages. This is the chi2 value for a
             chi2 minimization fit.
         nDOF: Number of degrees of freedom. Calculated on request from ``n_fit_data_points`` and ``free_parameters``.
     """
@@ -294,7 +304,7 @@ def pedestal_with_extended_gaussian(x: float, mu: float, sigma: float, amplitude
 def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
                                         fit_arguments: FitArguments,
                                         use_minos: bool = False) -> FitResult:
-    """ Fit the gievn histogram to a pedestal + an extended gaussian.
+    """ Fit the gievn histogram to a pedestal + an extended (unnormalized) gaussian.
 
     Args:
         h: Histogram to be fit.
@@ -331,14 +341,34 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
         (width, error)
     """
     restricted_range = (h.x > inputs.fit_range.min) & (h.x < inputs.fit_range.max)
-    width, covariance_matrix = optimization.curve_fit(
-        f = lambda x, w: gaussian(x, inputs.mean, w),
-        xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
-        sigma = h.errors[restricted_range],
+    restricted_hist = histogram.Histogram1D(
+        # We want the bin edges to be inclusive.
+        bin_edges = h.bin_edges[(h.bin_edges >= inputs.fit_range.min) & (h.bin_edges <= inputs.fit_range.max)],
+        y = h.y[restricted_range],
+        errors_squared = h.errors_squared[restricted_range]
     )
 
-    # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
-    error = float(np.sqrt(np.diag(covariance_matrix)))
+    user_arguments: FitArguments = {
+        # Testing this out...
+        "pedestal": 0, "fix_pedestal": True,
+        "amplitude": 1, "fix_amplitude": True,
+        # Specify the input width, mean
+        "sigma": inputs.initial_width,
+        # We choose for the mean to fixed.
+        "mu": inputs.mean, "fix_mu": True,
+    }
 
-    return float(width), error
+    fit_result = fit_pedestal_with_extended_gaussian(h = restricted_hist, fit_arguments = user_arguments)
+    #width, covariance_matrix = optimization.curve_fit(
+    #    f = lambda x, w: gaussian(x, inputs.mean, w),
+    #    xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
+    #    sigma = h.errors[restricted_range],
+    #)
+
+    ## Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+    #error = float(np.sqrt(np.diag(covariance_matrix)))
+
+    #return float(width), error
+
+    return fit_result.values_at_minimum["sigma"], fit_result.errors_on_parameters["sigma"]
 
