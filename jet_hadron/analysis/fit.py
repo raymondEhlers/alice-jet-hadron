@@ -83,31 +83,6 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
-def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments: FitArguments) -> bool:
-    """ Validate the user provided fit arguments.
-
-    Args:
-        default_arguments: Default fit arguments.
-        user_arguments: User provided fit arguments to be valided.
-    Returns:
-        True if the user fit arguments that are valid (ie the specified fit variables are also set in the
-        default arguments).  It's up to the user to actually update the fit arguments.
-    Raises:
-        ValueError: If user provides arguments for a parameter that doesn't exist. (Usually a typo).
-    """
-    # Handle the user arguments
-    # First, ensure that all user passed arguments are already in the argument keys. If not, the user probably
-    # passed the wrong argument unintentionally.
-    for k, v in user_arguments.items():
-        # The second condition allows us to fix components that were not previously fixed.
-        if k not in default_arguments and k.replace("fix_", "") not in default_arguments:
-            raise ValueError(
-                f"User argument {k} (with value {v}) is not present in the fit arguments."
-                f" Possible arguments: {default_arguments}"
-            )
-
-    return True
-
 @dataclass
 class FitResult(reaction_plane_fit.base.FitResult):
     """ Store the fit result.
@@ -149,6 +124,99 @@ class ChiSquared:
     def __call__(self, *args: List[float]) -> float:
         """ Calculate the chi2. """
         return np.sum(np.power(self.data.y - self.f(self.data.x, *args), 2) / np.power(self.data.errors, 2))
+
+def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments: FitArguments) -> bool:
+    """ Validate the user provided fit arguments.
+
+    Args:
+        default_arguments: Default fit arguments.
+        user_arguments: User provided fit arguments to be valided.
+    Returns:
+        True if the user fit arguments that are valid (ie the specified fit variables are also set in the
+        default arguments).  It's up to the user to actually update the fit arguments.
+    Raises:
+        ValueError: If user provides arguments for a parameter that doesn't exist. (Usually a typo).
+    """
+    # Handle the user arguments
+    # First, ensure that all user passed arguments are already in the argument keys. If not, the user probably
+    # passed the wrong argument unintentionally.
+    for k, v in user_arguments.items():
+        # The second condition allows us to fix components that were not previously fixed.
+        if k not in default_arguments and k.replace("fix_", "") not in default_arguments:
+            raise ValueError(
+                f"User argument {k} (with value {v}) is not present in the fit arguments."
+                f" Possible arguments: {default_arguments}"
+            )
+
+    return True
+
+def fit_with_chi_squared(fit_func: Callable[..., float],
+                         arguments: FitArguments, user_arguments: FitArguments,
+                         h: histogram.Histogram1D,
+                         use_minos: bool = False) -> FitResult:
+    """ Fit the gievn histogram to the given fit function using minuit.
+
+    Args:
+        fit_func: Function to be fit.
+        arguments: Required arguments for the fit.
+        user_arguments: Arguments to override the default fit arguments.
+        h: Histogram to be fit.
+        use_minos: If True, minos errors will be calculated.
+    Returns:
+        Fit result from the fit.
+    """
+    # Will raise an exception if the user fit arguments are invalid.
+    _validate_user_fit_arguments(default_arguments = arguments, user_arguments = user_arguments)
+    # Now, we actually assign the user arguments. We assign them last so we can overwrite any default arguments
+    arguments.update(user_arguments)
+
+    logger.debug(f"Minuit args: {arguments}")
+    cost_func = ChiSquared(f = fit_func, data = h)
+    minuit = iminuit.Minuit(cost_func, **arguments)
+
+    # Perform the fit
+    minuit.migrad()
+    # Run minos if requested.
+    if use_minos:
+        logger.info("Running MINOS. This may take a minute...")
+        minuit.minos()
+    # Just in case (doesn't hurt anything, but may help in a few cases).
+    minuit.hesse()
+
+    # Check that the fit is actually good
+    if not minuit.migrad_ok():
+        raise reaction_plane_fit.base.FitFailed("Minimization failed! The fit is invalid!")
+
+    # Create the fit result
+    fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
+    # We use the cost func because we want intentionally want to skip "x"
+    parameters: List[str] = iminuit.util.describe(cost_func)
+    # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
+    free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
+    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
+    #       It won't show up doing normal type checking, but seems to appear when checking the commit
+    fit_result = FitResult(  # type: ignore
+        parameters = parameters,
+        free_parameters = free_parameters,
+        fixed_parameters = fixed_parameters,
+        values_at_minimum = dict(minuit.values),
+        errors_on_parameters = dict(minuit.errors),
+        covariance_matrix = minuit.covariance,
+        x = h.x,
+        # These will be calculated below. It's easier to calculate once a FitResult already exists.
+        errors = np.array([]),
+        n_fit_data_points = len(h.x),
+        minimum_val = minuit.fval,
+    )
+
+    # Calculate errors.
+    fit_result.errors = reaction_plane_fit.base.calculate_function_errors(
+        func = pedestal_with_extended_gaussian,
+        fit_result = fit_result,
+        x = fit_result.x
+    )
+
+    return fit_result
 
 def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
                                                           fit_range: params.SelectedRange) -> Tuple[float, float]:
@@ -219,7 +287,7 @@ def pedestal_with_extended_gaussian(x: float, mu: float, sigma: float, amplitude
 
 def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
                                         fit_arguments: FitArguments,
-                                        use_minos: bool) -> FitResult:
+                                        use_minos: bool = False) -> FitResult:
     """ Fit the gievn histogram to a pedestal + an extended gaussian.
 
     Args:
@@ -229,7 +297,7 @@ def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
     Returns:
         Fit result from the fit.
     """
-    # Required arguments for the fit:
+    # Required arguments for the fit
     arguments: FitArguments = {
         "pedestal": 1, "limit_pedestal": (-0.5, 1000),
         "amplitude": 1, "limit_amplitude": (0.05, 100),
@@ -238,55 +306,12 @@ def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
         # We are using a chi squared fit, so the errordef should be 1.
         "errordef": 1.0,
     }
-    # Will raise an exception if the user fit arguments are invalid.
-    _validate_user_fit_arguments(arguments, fit_arguments)
-    # Now, we actually assign the user arguments. We assign them last so we can overwrite any default arguments
-    arguments.update(fit_arguments)
-
-    logger.debug(f"Minuit args: {arguments}")
-    cost_func = ChiSquared(f = pedestal_with_extended_gaussian, data = h)
-    minuit = iminuit.Minuit(cost_func, **arguments)
 
     # Perform the fit
-    minuit.migrad()
-    # Run minos if requested.
-    if use_minos:
-        logger.info("Running MINOS. This may take a minute...")
-        minuit.minos()
-    # Just in case (doesn't hurt anything, but may help in a few cases).
-    minuit.hesse()
-
-    # Check that the fit is actually good
-    if not minuit.migrad_ok():
-        raise reaction_plane_fit.base.FitFailed("Minimization failed! The fit is invalid!")
-
-    # Create the fit result
-    fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
-    # We use the cost func because we want intentionally want to skip "x"
-    parameters: List[str] = iminuit.util.describe(cost_func)
-    # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
-    free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
-    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
-    #       It won't show up doing normal type checking, but seems to appear when checking the commit
-    fit_result = FitResult(  # type: ignore
-        parameters = parameters,
-        free_parameters = free_parameters,
-        fixed_parameters = fixed_parameters,
-        values_at_minimum = dict(minuit.values),
-        errors_on_parameters = dict(minuit.errors),
-        covariance_matrix = minuit.covariance,
-        x = h.x,
-        # These will be calculated below. It's easier to calculate once a FitResult already exists.
-        errors = np.array([]),
-        n_fit_data_points = len(h.x),
-        minimum_val = minuit.fval,
-    )
-
-    # Calculate errors.
-    fit_result.errors = reaction_plane_fit.base.calculate_function_errors(
-        func = pedestal_with_extended_gaussian,
-        fit_result = fit_result,
-        x = fit_result.x
+    fit_result = fit_with_chi_squared(
+        fit_func = pedestal_with_extended_gaussian,
+        arguments = arguments, user_arguments = fit_arguments,
+        h = h, use_minos = use_minos
     )
 
     return fit_result
