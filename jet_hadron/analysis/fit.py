@@ -239,6 +239,31 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
     return fit_result
 
+def fit_pedestal_to_histogram(h: histogram.Histogram1D,
+                              fit_arguments: FitArguments, use_minos: bool = False) -> FitResult:
+    """ Fit the gievn histogram to a pedestal.
+
+    Args:
+        h: Histogram to be fit.
+        fit_arguments: Arguments to override the default fit arguments.
+        use_minos: If True, minos errors will be calculated.
+    Returns:
+        Fit result from the fit.
+    """
+    # Required arguments for the fit
+    arguments: FitArguments = {
+        "pedestal": 1, "limit_pedestal": (-0.5, 1000),
+    }
+
+    # Perform the fit
+    fit_result = fit_with_chi_squared(
+        fit_func = lambda x, pedestal: pedestal,
+        arguments = arguments, user_arguments = fit_arguments,
+        h = h, use_minos = use_minos,
+    )
+
+    return fit_result
+
 def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
                                                           fit_range: params.SelectedRange) -> Tuple[float, float]:
     """ Fit a pedestal to a histogram using ``scipy.optimize.curvefit``.
@@ -251,6 +276,7 @@ def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram
     Returns:
         (constant, error)
     """
+    # TODO: Update to use minuit!
     # For example, -1.2 < h.x < -0.8
     negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.max)
     # For example, 0.8 < h.x < 1.2
@@ -291,6 +317,33 @@ def gaussian(x: float, mu: float, sigma: float) -> float:
         Normalized gaussian value.
     """
     return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
+
+def fit_gaussian(h: histogram.Histogram1D,
+                 fit_arguments: FitArguments,
+                 use_minos: bool = False) -> FitResult:
+    """ Fit the gievn histogram to a normalized gaussian.
+
+    Args:
+        h: Histogram to be fit.
+        fit_arguments: Arguments to override the default fit arguments.
+        use_minos: If True, minos errors will be calculated.
+    Returns:
+        Fit result from the fit.
+    """
+    # Required arguments for the fit
+    arguments: FitArguments = {
+        "mu": 0, "limit_mu": (-0.5, 0.5),
+        "sigma": 0.15, "limit_sigma": (0.05, 0.8),
+    }
+
+    # Perform the fit
+    fit_result = fit_with_chi_squared(
+        fit_func = gaussian,
+        arguments = arguments, user_arguments = fit_arguments,
+        h = h, use_minos = use_minos
+    )
+
+    return fit_result
 
 def pedestal_with_extended_gaussian(x: float, mu: float, sigma: float, amplitude: float, pedestal: float) -> float:
     """ Pedestal + extended (unnormalized) gaussian
@@ -335,16 +388,18 @@ def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
 
     return fit_result
 
+#def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> FitResult:
 def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, float]:
-    """ Fit a guassian to a delta phi signal peak using ``scipy.optimize.curvefit``.
+    """ Fit a guassian to a signal peak using minuit.
 
     Args:
         h: Background subtracted histogram to be fit.
         inputs: Fit inputs in the form of a ``GaussianFitInputs`` dataclass. Must specify the mean, the initial width,
             and the fit range.
     Returns:
-        (width, error)
+        Result of the fit.
     """
+    # Restrict the range so that we only fit within the desired input.
     restricted_range = (h.x > inputs.fit_range.min) & (h.x < inputs.fit_range.max)
     restricted_hist = histogram.Histogram1D(
         # We want the bin edges to be inclusive.
@@ -363,17 +418,10 @@ def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInput
         "mu": inputs.mean, "fix_mu": True,
     }
 
+    # Perform the fit
+    #fit_result = fit_gaussian(h = restricted_hist, fit_arguments = user_arguments)
     fit_result = fit_pedestal_with_extended_gaussian(h = restricted_hist, fit_arguments = user_arguments)
-    #width, covariance_matrix = optimization.curve_fit(
-    #    f = lambda x, w: gaussian(x, inputs.mean, w),
-    #    xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = inputs.initial_width,
-    #    sigma = h.errors[restricted_range],
-    #)
-
-    ## Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
-    #error = float(np.sqrt(np.diag(covariance_matrix)))
-
-    #return float(width), error
 
     return fit_result.values_at_minimum["sigma"], fit_result.errors_on_parameters["sigma"]
+    #return fit_result
 
