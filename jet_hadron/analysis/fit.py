@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+""" Main jet-hadron correlations fit module.
+
+.. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
+"""
+
 from dataclasses import dataclass
 import iminuit.util
 import logging
@@ -227,7 +232,7 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
     # Calculate errors.
     fit_result.errors = reaction_plane_fit.base.calculate_function_errors(
-        func = pedestal_with_extended_gaussian,
+        func = fit_func,
         fit_result = fit_result,
         x = fit_result.x
     )
