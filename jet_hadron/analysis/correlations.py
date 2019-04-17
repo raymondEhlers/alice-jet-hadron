@@ -1731,7 +1731,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _fit_and_extract_delta_phi_widths(self) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
-        The widths are extracted by fitting the subtracted delta phi corerlations to gaussians.
+        The widths are extracted by fitting the subtracted delta phi correlations to gaussians.
         """
         # Setup
         subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
@@ -1747,7 +1747,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _fit_and_extract_delta_eta_widths(self) -> None:
         """ Extract delta eta near-side and away-side widths via a gaussian fit.
 
-        The widths are extracted by fitting the subtracted delta eta corerlations to gaussians.
+        The widths are extracted by fitting the subtracted delta eta correlations to gaussians.
         """
         # Fit and extract the widths.
         for (attribute_name, width_obj), (hist_attribute_name, subtracted) in \
