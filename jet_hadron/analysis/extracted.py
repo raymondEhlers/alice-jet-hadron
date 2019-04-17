@@ -8,6 +8,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Tuple, Union
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.analysis import fit
 
@@ -17,7 +18,17 @@ class ExtractedValue:
 
 @dataclass
 class ExtractedYield(ExtractedValue):
-    extraction_range: params.SelectedRange
+    value: analysis_objects.ExtractedObservable
+    central_value: float
+    extraction_limit: float
+
+    @property
+    def extraction_range(self) -> params.SelectedRange:
+        """ Helper to retrieve the extraction range. """
+        return params.SelectedRange(
+            min = self.central_value - self.extraction_limit,
+            max = self.central_value + self.extraction_limit
+        )
 
 @dataclass
 class ExtractedWidth(ExtractedValue):

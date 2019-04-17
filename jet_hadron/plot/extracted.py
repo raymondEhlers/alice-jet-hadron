@@ -325,7 +325,14 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
     """ Plot the delta phi near-side yields. """
     def near_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return analysis.yields_delta_phi.near_side
+        return analysis.yields_delta_phi.near_side.value
+
+    def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
+        """ Helper function to provide the yield extraction range. """
+        return labels.make_valid_latex_string(
+            r"\text{Yield extraction range:}"
+            fr" |\Delta\varphi| < {analysis.yields_delta_phi.near_side.extraction_range.max}"
+        )
 
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -339,6 +346,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_phi_near_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
+        #extraction_range_func = near_side_extraction_range,
     )
 
 def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
@@ -347,7 +355,15 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
     """ Plot the delta phi away-side yields. """
     def away_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return analysis.yields_delta_phi.away_side
+        return analysis.yields_delta_phi.away_side.value
+
+    def away_side_extraction_range(analysis: "correlations.Correlations") -> str:
+        """ Helper function to provide the yield extraction range. """
+        return labels.make_valid_latex_string(
+            r"\text{Yield extraction range:}"
+            fr" {analysis.yields_delta_phi.away_side.extraction_range.min} < |\Delta\varphi| <"
+            fr" {analysis.yields_delta_phi.away_side.extraction_range.max}"
+        )
 
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -361,6 +377,7 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_phi_away_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
+        #extraction_range_func = away_side_extraction_range,
     )
 
 def delta_eta_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
@@ -406,7 +423,14 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
     """ Plot the delta eta near-side yields. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return analysis.yields_delta_eta.near_side
+        return analysis.yields_delta_eta.near_side.value
+
+    def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
+        """ Helper function to provide the yield extraction range. """
+        return labels.make_valid_latex_string(
+            r"\text{Yield extraction range:}"
+            fr" |\Delta\eta| < {analysis.yields_delta_eta.near_side.extraction_range.max}"
+        )
 
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
@@ -420,5 +444,6 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_eta_near_side",
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
+        #extraction_range_func = near_side_extraction_range,
     )
 

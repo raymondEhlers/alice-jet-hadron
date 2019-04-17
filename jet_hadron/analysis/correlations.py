@@ -312,10 +312,10 @@ class DeltaEtaFitObjects:
 
 @dataclass
 class CorrelationYields:
-    near_side: analysis_objects.ExtractedObservable
-    away_side: analysis_objects.ExtractedObservable
+    near_side: extracted.ExtractedYield
+    away_side: extracted.ExtractedYield
 
-    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.ExtractedObservable]]:
+    def __iter__(self) -> Iterator[Tuple[str, extracted.ExtractedYield]]:
         for k, v in vars(self).items():
             yield k, v
 
@@ -484,12 +484,44 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         # Yields
         self.yields_delta_phi: CorrelationYields = CorrelationYields(
-            near_side = analysis_objects.ExtractedObservable(-1, -1),
-            away_side = analysis_objects.ExtractedObservable(-1, -1),
+            near_side = extracted.ExtractedYield(
+                properties = {
+                    # TODO: Name these or remove them
+                    "name": "",
+                },
+                value = analysis_objects.ExtractedObservable(-1, -1),
+                central_value = 0,
+                extraction_limit = self.task_config["delta_phi_yield_limit"],
+            ),
+            away_side = extracted.ExtractedYield(
+                properties = {
+                    # TODO: Name these or remove them
+                    "name": "",
+                },
+                value = analysis_objects.ExtractedObservable(-1, -1),
+                central_value = np.pi,
+                extraction_limit = self.task_config["delta_phi_yield_limit"],
+            ),
         )
         self.yields_delta_eta: CorrelationYields = CorrelationYields(
-            near_side = analysis_objects.ExtractedObservable(-1, -1),
-            away_side = analysis_objects.ExtractedObservable(-1, -1),
+            near_side = extracted.ExtractedYield(
+                properties = {
+                    # TODO: Name these or remove them
+                    "name": "",
+                },
+                value = analysis_objects.ExtractedObservable(-1, -1),
+                central_value = 0,
+                extraction_limit = self.task_config["delta_eta_yield_limit"],
+            ),
+            away_side = extracted.ExtractedYield(
+                properties = {
+                    # TODO: Name these or remove them
+                    "name": "",
+                },
+                value = analysis_objects.ExtractedObservable(-1, -1),
+                central_value = 0,
+                extraction_limit = self.task_config["delta_eta_yield_limit"],
+            ),
         )
         # Widths
         self.widths_delta_phi: CorrelationWidths = CorrelationWidths(
@@ -521,6 +553,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                         "width": 0.3, "limit_width": (0.05, 1.5),
                     },
                 ),
+                # Additional fit arguments.
                 fit_args = {},
             ),
         )
@@ -538,7 +571,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
                         "width": 0.15, "limit_width": (0.05, 1.0),
                     },
                 ),
-                #fit_func = fitting.pedestal_with_extended_gaussian,
                 # Additional fit arguments.
                 fit_args = {},
             ),
@@ -554,10 +586,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
                         "width": 0.3, "limit_width": (0.05, 1.5),
                     },
                 ),
+                # Additional fit arguments.
                 fit_args = {},
             ),
-            #near_side = analysis_objects.ExtractedObservable(-1, -1),
-            #away_side = analysis_objects.ExtractedObservable(-1, -1),
         )
 
         # Fit object
@@ -1641,21 +1672,20 @@ class Correlations(analysis_objects.JetHReactionPlane):
             utils.recursive_setattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist", subtracted_hist)
 
     def _extract_yield_from_hist(self, hist: histogram.Histogram1D,
-                                 central_value: float, yield_limit: float) -> analysis_objects.ExtractedObservable:
+                                 yield_range: params.SelectedRange) -> analysis_objects.ExtractedObservable:
         """ Helper function to actually extract a yield from a histogram.
 
         Yields are extracted within central_value +/- yield_limit.
 
         Args:
             hist: Histogram from which the yield should be extracted.
-            central_value: Central value from which the yield should be integrated.
-            yield_limit: Distance from the central value to include in the yield.
+            yield_range: Range over which the yield will be extracted.
         Returns:
             Extracted observable containing the yield and the error on the yield.
         """
         # Integrate the histogram to get the yield.
         yield_value, yield_error = hist.integral(
-            min_value = central_value - yield_limit + epsilon, max_value = central_value + yield_limit - epsilon,
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
         )
 
         # Scale by track pt bin width
@@ -1671,35 +1701,34 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Extract and store near-side and away-side yields. """
         # Delta phi yields
         logger.debug("Extracting delta phi yields.")
-        # Of the form (attribute_name, central_value)
-        delta_phi_regions = [
-            ("near_side", 0),
-            ("away_side", np.pi),
-        ]
-        for attribute_name, central_value in delta_phi_regions:
+        for attribute_name, yield_obj in self.yields_delta_phi:
             observable = self._extract_yield_from_hist(
                 hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
-                central_value = central_value,
-                yield_limit = self.task_config["delta_phi_yield_limit"],
+                yield_range = yield_obj.extraction_range,
             )
             # Store the extract yield
             logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}")
-            setattr(self.yields_delta_phi, attribute_name, observable)
+            yield_obj.value = observable
 
         # Delta eta yields
         logger.debug("Extracting delta eta yields.")
-        # Of the form (attribute_name, central_value)
-        delta_eta_regions = [
-            ("near_side", 0),
-            ("away_side", 0),
-        ]
-        for attribute_name, central_value in delta_eta_regions:
+        for (attribute_name, yield_obj), (correlation_attribute_name, correlation) in \
+                zip(self.yields_delta_eta, self.correlation_hists_delta_eta_subtracted):
+            # Sanity check
+            if attribute_name != correlation_attribute_name:
+                raise ValueError(
+                    "Issue extracting yield and hist together."
+                    f"Yield obj name: {attribute_name}, correlation obj name: {correlation_attribute_name}"
+                )
+
             observable = self._extract_yield_from_hist(
-                hist = utils.recursive_getattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist"),
-                central_value = central_value,
-                yield_limit = self.task_config["delta_eta_yield_limit"],
+                hist = correlation.hist,
+                yield_range = yield_obj.extraction_range,
             )
-            setattr(self.yields_delta_eta, attribute_name, observable)
+
+            # Store the extract yield
+            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}")
+            yield_obj.value = observable
 
     def _retrieve_widths_from_RPF(self) -> bool:
         """ Helper function to actually extract and store widths from the RP fit. """
