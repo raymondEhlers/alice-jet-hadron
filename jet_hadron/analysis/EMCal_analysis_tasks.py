@@ -38,7 +38,7 @@ class EMCalCorrectionsLabel(enum.Enum):
     # Handle YAML serialization
     @classmethod
     def to_yaml(cls, representer: yaml.Representer, data: yaml.T_EnumToYAML) -> yaml.ruamel.yaml.nodes.ScalarNode:
-        """ Encore YAML representation.
+        """ Encode the YAML representation.
 
         We want to write the name of the enumeration instead of the ``str()`` value.
         """

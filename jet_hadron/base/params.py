@@ -445,7 +445,7 @@ class QVector(enum.Enum):
         ret_val = _uppercase_first_letter(" ".join(temp_list))
         if self.name != "inclusive":
             ret_val += "%"
-        # rstrip() is to remove entra space after "Inclusive". Doesn't matter for the other values.
+        # rstrip() is to remove the extra space after "Inclusive". Doesn't matter for the other values.
         return ret_val.rstrip(" ")
 
     # Handle YAML serialization
