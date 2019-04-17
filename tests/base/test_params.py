@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" Tests for analysis params.
+""" Tests for analysis parameters.
 
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
@@ -15,16 +15,6 @@ from jet_hadron.base import analysis_objects
 
 # Setup logger
 logger = logging.getLogger(__name__)
-
-def get_range_from_bin_array(array):
-    """ Helper function to return bin indices from an array.
-
-    Args:
-        array (list): Array from which the bin indcies will be extracted.
-    Returns:
-        list: The bin indices
-    """
-    return range(len(array) - 1)
 
 class TestIteratePtBins:
     _track_pt_bins = [0.15, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 10.0]
