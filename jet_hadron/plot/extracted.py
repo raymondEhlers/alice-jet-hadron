@@ -60,7 +60,7 @@ def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
 
         # Plot the fit
         logger.debug(f"mean: {type(mean)}, width: {type(extracted_width.value)}")
-        gauss = fitting.gaussian(h.x, mu = mean, sigma = extracted_width.value)
+        gauss = fitting.gaussian(h.x, mean = mean, width = extracted_width.value)
         fit_plot = ax.plot(
             h.x, gauss,
             label = fr"Gaussian fit: $\mu = $ {mean:.2f}, $\sigma = $ {extracted_width.value:.2f}",
@@ -120,7 +120,7 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
         attribute_display_name = attribute_name.replace("_", " ").capitalize()
 
         # Plot the fit
-        gauss = fitting.gaussian(h.x, mu = mean, sigma = extracted_width.value)
+        gauss = fitting.gaussian(h.x, mean = mean, width = extracted_width.value)
         fit_plot = ax.plot(
             h.x, gauss,
             label = fr"{attribute_display_name} gaussian fit: $\mu = $ {mean:.2f}"

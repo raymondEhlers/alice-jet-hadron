@@ -46,6 +46,7 @@ from jet_hadron.plot import extracted as plot_extracted
 from jet_hadron.analysis import correlations_helpers
 from jet_hadron.analysis import fit as fitting
 from jet_hadron.analysis import generic_tasks
+from jet_hadron.analysis import extracted
 
 import ROOT
 
@@ -320,10 +321,10 @@ class CorrelationYields:
 
 @dataclass
 class CorrelationWidths:
-    near_side: analysis_objects.ExtractedObservable
-    away_side: analysis_objects.ExtractedObservable
+    near_side: extracted.ExtractedWidth
+    away_side: extracted.ExtractedWidth
 
-    def __iter__(self) -> Iterator[Tuple[str, analysis_objects.ExtractedObservable]]:
+    def __iter__(self) -> Iterator[Tuple[str, extracted.ExtractedWidth]]:
         for k, v in vars(self).items():
             yield k, v
 
@@ -368,6 +369,37 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.ran_projections: bool = False
         self.ran_fitting: bool = False
         self.ran_post_fit_processing: bool = False
+
+        # Useful information
+        # These values are only half the range (ie only the positive values).
+        self.signal_dominated_eta_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *self.task_config["deltaEtaRanges"]["signalDominated"]
+            )
+        )
+        self.background_dominated_eta_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *self.task_config["deltaEtaRanges"]["backgroundDominated"]
+            )
+        )
+        # These phi values are __not__ for extracting the yield ranges. They are for projecting, fitting, etc.
+        # The limits for yield ranges are specified elsewhere in the configuration.
+        near_side_values = self.task_config["deltaPhiRanges"]["nearSide"]
+        # Multiply the values by pi.
+        near_side_values = [np.pi * val for val in near_side_values]
+        self.near_side_phi_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *near_side_values
+            )
+        )
+        away_side_values = self.task_config["deltaPhiRanges"]["awaySide"]
+        # Multiply the values by pi and shift them by pi to the away side.
+        away_side_values = [np.pi + np.pi * val for val in away_side_values]
+        self.away_side_phi_region = analysis_objects.AnalysisBin(
+            params.SelectedRange(
+                *away_side_values
+            )
+        )
 
         # Relevant histograms
         # We need a field use with replace to successfully copy the dataclass. We just want a clean copy,
@@ -461,12 +493,71 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         # Widths
         self.widths_delta_phi: CorrelationWidths = CorrelationWidths(
-            near_side = analysis_objects.ExtractedObservable(-1, -1),
-            away_side = analysis_objects.ExtractedObservable(-1, -1),
+            near_side = extracted.ExtractedWidth(
+                properties = {
+                    # TODO: Name these or remove them
+                    "name": "",
+                    "fit_range": self.near_side_phi_region.range,
+                },
+                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                    fit_range = self.near_side_phi_region.range,
+                    user_arguments = {
+                        "mean": 0, "fix_mean": True,
+                        "width": 0.15, "limit_width": (0.05, 1.0),
+                    },
+                ),
+                # Additional fit arguments.
+                fit_args = {},
+            ),
+            away_side = extracted.ExtractedWidth(
+                properties = {
+                    "name": "",
+                    "fit_range": self.away_side_phi_region.range,
+                },
+                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                    fit_range = self.near_side_phi_region.range,
+                    user_arguments = {
+                        "mean": np.pi, "fix_mean": True,
+                        "width": 0.3, "limit_width": (0.05, 1.5),
+                    },
+                ),
+                fit_args = {},
+            ),
         )
         self.widths_delta_eta: CorrelationWidths = CorrelationWidths(
-            near_side = analysis_objects.ExtractedObservable(-1, -1),
-            away_side = analysis_objects.ExtractedObservable(-1, -1),
+            near_side = extracted.ExtractedWidth(
+                properties = {
+                    "name": "",
+                    # TODO: Possibly remove this
+                    "fit_range": self.signal_dominated_eta_region.range,
+                },
+                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                    fit_range = self.signal_dominated_eta_region.range,
+                    user_arguments = {
+                        "mean": 0, "fix_mean": True,
+                        "width": 0.15, "limit_width": (0.05, 1.0),
+                    },
+                ),
+                #fit_func = fitting.pedestal_with_extended_gaussian,
+                # Additional fit arguments.
+                fit_args = {},
+            ),
+            away_side = extracted.ExtractedWidth(
+                properties = {
+                    "name": "",
+                    "fit_range": self.signal_dominated_eta_region.range,
+                },
+                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                    fit_range = self.near_side_phi_region.range,
+                    user_arguments = {
+                        "mean": 0, "fix_mean": True,
+                        "width": 0.3, "limit_width": (0.05, 1.5),
+                    },
+                ),
+                fit_args = {},
+            ),
+            #near_side = analysis_objects.ExtractedObservable(-1, -1),
+            #away_side = analysis_objects.ExtractedObservable(-1, -1),
         )
 
         # Fit object
@@ -483,37 +574,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
         self.correlation_projectors: List[JetHCorrelationProjector] = []
 
-        # Useful information
-        # These values are only half the range (ie only the positive values).
-        self.signal_dominated_eta_region = analysis_objects.AnalysisBin(
-            params.SelectedRange(
-                *self.task_config["deltaEtaRanges"]["signalDominated"]
-            )
-        )
-        self.background_dominated_eta_region = analysis_objects.AnalysisBin(
-            params.SelectedRange(
-                *self.task_config["deltaEtaRanges"]["backgroundDominated"]
-            )
-        )
-        # These phi values are __not__ for extracting the yield ranges. They are for projecting, fitting, etc.
-        # The limits for yield ranges are specified elsewhere in the configuration.
-        near_side_values = self.task_config["deltaPhiRanges"]["nearSide"]
-        # Multiply the values by pi.
-        near_side_values = [np.pi * val for val in near_side_values]
-        self.near_side_phi_region = analysis_objects.AnalysisBin(
-            params.SelectedRange(
-                *near_side_values
-            )
-        )
-        away_side_values = self.task_config["deltaPhiRanges"]["awaySide"]
-        # Multiply the values by pi and shift them by pi to the away side.
-        away_side_values = [np.pi + np.pi * val for val in away_side_values]
-        self.away_side_phi_region = analysis_objects.AnalysisBin(
-            params.SelectedRange(
-                *away_side_values
-            )
-        )
-
         # Setup YAML
         self.yaml: yaml.ruamel.yaml.YAML
         self._setup_yaml()
@@ -529,6 +589,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     histogram,
                     analysis_objects,
                     this_module,
+                    extracted,
+                    fitting,
                 ]
             )
 
@@ -1642,28 +1704,31 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _retrieve_widths_from_RPF(self) -> bool:
         """ Helper function to actually extract and store widths from the RP fit. """
         logger.debug("Attempting to extract widths from the RPF fit.")
-        regions = ["near_side", "away_side"]
+        # TODO: Need to adapt to the new objects...
+        #       Use this to seed a new fit and then check that it's reasonable??
         # Retrieve the widths parameter and it's error
-        for region in regions:
+        for attribute_name, width_obj in self.widths_delta_phi:
             # Need to convert "near_side" -> "ns" to retrieve the parameters
-            short_name = "".join([s[0] for s in region.split("_")])
+            short_name = "".join([s[0] for s in attribute_name.split("_")])
             width_value = self.fit_object.fit_result.values_at_minimum.get(f"{short_name}_sigma", None)
             width_error = self.fit_object.fit_result.errors_on_parameters.get(f"{short_name}_sigma", None)
             # Only attempt to store the width if we were able to extract it.
             if width_value is None or width_error is None:
-                logger.debug(f"Could not extract width or error from RPF for {self.identifier}, {self.reaction_plane_orientation}")
+                logger.debug(
+                    f"Could not extract width or error from RPF for {self.identifier}, {self.reaction_plane_orientation}"
+                )
                 return False
             # Help out mypy...
             assert width_value is not None and width_error is not None
-            logger.debug(f"Extracted {region} width: {width_value}, error: {width_error}")
+            logger.debug(f"Extracted {attribute_name} width: {width_value}, error: {width_error}")
 
             # Store the output
             observable = analysis_objects.ExtractedObservable(value = width_value, error = width_error)
-            setattr(self.widths_delta_phi, region, observable)
+            setattr(self.widths_delta_phi, attribute_name, observable)
 
         return True
 
-    def _fit_and_extract_delta_phi_widths(self, delta_phi_regions: List[Tuple[str, fitting.GaussianFitInputs]]) -> None:
+    def _fit_and_extract_delta_phi_widths(self) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
         The widths are extracted by fitting the subtracted delta phi corerlations to gaussians.
@@ -1672,71 +1737,44 @@ class Correlations(analysis_objects.JetHReactionPlane):
         subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
 
         # Fit and extract the widths.
-        for attribute_name, inputs in delta_phi_regions:
-            width, width_error = fitting.fit_gaussian_to_histogram(
-                h = subtracted.hist, inputs = inputs,
+        for _, width_obj in self.widths_delta_phi:
+            fit_result = width_obj.fit_obj.fit(
+                h = subtracted.hist,
             )
-
             # Store the result
-            observable = analysis_objects.ExtractedObservable(
-                value = width,
-                error = width_error,
-            )
-            setattr(self.widths_delta_phi, attribute_name, observable)
+            width_obj.fit_result = fit_result
 
-    def _fit_and_extract_delta_eta_widths(self, delta_eta_regions: List[Tuple[str, fitting.GaussianFitInputs]]) -> None:
+    def _fit_and_extract_delta_eta_widths(self) -> None:
         """ Extract delta eta near-side and away-side widths via a gaussian fit.
 
         The widths are extracted by fitting the subtracted delta eta corerlations to gaussians.
         """
         # Fit and extract the widths.
-        for attribute_name, inputs in delta_eta_regions:
-            subtracted = getattr(self.correlation_hists_delta_eta_subtracted, attribute_name)
-            width, error = fitting.fit_gaussian_to_histogram(
-                h = subtracted.hist, inputs = inputs,
+        for (attribute_name, width_obj), (hist_attribute_name, subtracted) in \
+                zip(self.widths_delta_eta, self.correlation_hists_delta_eta_subtracted):
+            # Sanity check
+            assert attribute_name == hist_attribute_name
+            # Perform the fit.
+            fit_result = width_obj.fit_obj.fit(
+                h = subtracted.hist,
             )
 
             # Store the result
-            observable = analysis_objects.ExtractedObservable(
-                value = width,
-                error = error,
-            )
-            setattr(self.widths_delta_eta, attribute_name, observable)
+            width_obj.fit_result = fit_result
 
     def extract_widths(self) -> None:
         """ Extract and store near-side and away-side widths. """
+        # TODO: Load fits here?
         # Delta phi
-        # Of the form (attribute_name, mean, initial_width)
-        delta_phi_regions = [
-            ("near_side", fitting.GaussianFitInputs(
-                mean = 0, initial_width = 0.15,
-                fit_range = self.near_side_phi_region.range,
-            )),
-            ("away_side", fitting.GaussianFitInputs(
-                mean = np.pi, initial_width = 0.3,
-                fit_range = self.away_side_phi_region.range,
-            )),
-        ]
         # Attempt to retrieve the widths from the RPF.
         extracted_from_RPF = self._retrieve_widths_from_RPF()
         if not extracted_from_RPF:
             logger.debug("Extracting widths via Gaussian fits")
-            self._fit_and_extract_delta_phi_widths(delta_phi_regions)
+            self._fit_and_extract_delta_phi_widths()
 
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.
-        # Of the form (attribute_name, mean, initial_width)
-        delta_eta_regions = [
-            ("near_side", fitting.GaussianFitInputs(
-                mean = 0, initial_width = 0.15,
-                fit_range = self.signal_dominated_eta_region.range,
-            )),
-            ("away_side", fitting.GaussianFitInputs(
-                mean = np.pi, initial_width = 0.3,
-                fit_range = self.signal_dominated_eta_region.range,
-            )),
-        ]
-        self._fit_and_extract_delta_eta_widths(delta_eta_regions = delta_eta_regions)
+        self._fit_and_extract_delta_eta_widths()
 
     def generate_latex_for_analysis_note(self) -> bool:
         """ Write LaTeX to include plots in the analysis notes. """

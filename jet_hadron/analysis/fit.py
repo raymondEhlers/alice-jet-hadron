@@ -5,14 +5,18 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+import abc
+from abc import ABC
 from dataclasses import dataclass
 import iminuit.util
 import logging
 import numpy as np
 from pachyderm import histogram
+from pachyderm import yaml
 import pprint
 import scipy.optimize as optimization
-from typing import Callable, Dict, List, Sequence, Tuple, Union
+import sys
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 import reaction_plane_fit.base
 
@@ -25,6 +29,31 @@ logger = logging.getLogger(__name__)
 
 # Type helpers
 FitArguments = Dict[str, Union[bool, float, Tuple[float, float]]]
+
+this_module = sys.modules[__name__]
+
+## Map from fit function to the function that will define the cost function
+## and actually perform the fit.
+#_function_to_perform_fit_map: Dict[Callable[..., float], Callable[..., "FitResult"]] = {}
+#
+#def register_fit_function(fit_function: Callable[..., float]) -> Callable:
+#    """ Register the given fit function into the map to go from fit function to function which performs the fit.
+#
+#    """
+#    def register_perform_fit_function(f: Callable[..., "FitResult"]) -> Callable[..., "FitResult"]:
+#        _function_to_perform_fit_map[fit_function] = f
+#        return f
+#    return register_perform_fit_function
+#
+#def function_to_perform_fit(f: Callable[..., float]) -> Callable[..., "FitResult"]:
+#    """ Helper to determine the function to perform the fit for a given fit function.
+#
+#    Args:
+#        f: The fit function which will be used.
+#    Returns:
+#        The function to perform the fit using that fit function.
+#    """
+#    return _function_to_perform_fit_map[f]
 
 def print_root_fit_parameters(fit) -> None:
     """ Print out all of the ROOT-based fit parameters. """
@@ -310,17 +339,17 @@ class GaussianFitInputs:
     initial_width: float
     fit_range: params.SelectedRange
 
-def gaussian(x: float, mu: float, sigma: float) -> float:
+def gaussian(x: float, mean: float, width: float) -> float:
     """ Normalized gaussian.
 
     Args:
-        x: Indepenednt variable.
-        mu: Mean.
-        sigma: Width.
+        x: Independent variable.
+        mean: Mean.
+        width: Width.
     Returns:
         Normalized gaussian value.
     """
-    return 1 / np.sqrt(2 * np.pi * sigma ** 2) * np.exp(-1 / 2 * ((x - mu) / sigma) ** 2)
+    return 1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2)
 
 def fit_gaussian(h: histogram.Histogram1D,
                  fit_arguments: FitArguments,
@@ -336,8 +365,8 @@ def fit_gaussian(h: histogram.Histogram1D,
     """
     # Required arguments for the fit
     arguments: FitArguments = {
-        "mu": 0, "limit_mu": (-0.5, 0.5),
-        "sigma": 0.15, "limit_sigma": (0.05, 0.8),
+        "mean": 0, "limit_mean": (-0.5, 0.5),
+        "width": 0.15, "limit_width": (0.05, 0.8),
     }
 
     # Perform the fit
@@ -349,83 +378,210 @@ def fit_gaussian(h: histogram.Histogram1D,
 
     return fit_result
 
-def pedestal_with_extended_gaussian(x: float, mu: float, sigma: float, amplitude: float, pedestal: float) -> float:
+def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
     """ Pedestal + extended (unnormalized) gaussian
 
     Args:
-        x: Indepenednt variable.
-        mu: Gaussian mean.
-        sigma: Gaussian width.
-        amplitude: Ampltiude of the gaussian.
+        x: Independent variable.
+        mean: Gaussian mean.
+        width: Gaussian width.
+        amplitude: Amplitude of the gaussian.
         pedestal: Pedestal value.
     Returns:
         Function value.
     """
-    return pedestal + amplitude * gaussian(x = x, mu = mu, sigma = sigma)
+    return pedestal + amplitude * gaussian(x = x, mean = mean, width = width)
 
-def fit_pedestal_with_extended_gaussian(h: histogram.Histogram1D,
-                                        fit_arguments: FitArguments,
-                                        use_minos: bool = False) -> FitResult:
-    """ Fit the gievn histogram to a pedestal + an extended (unnormalized) gaussian.
+T_Fit = TypeVar("T_Fit", bound = "Fit")
 
-    Args:
-        h: Histogram to be fit.
-        fit_arguments: Arguments to override the default fit arguments.
-        use_minos: If True, minos errors will be calculated.
-    Returns:
-        Fit result from the fit.
+class Fit(ABC):
+    """ Class to direct fitting a histogram to a fit function.
+
+    This allows us to easily store the fit function right alongside the minimization.
+
+    Attributes:
+        fit_range: Range used for fitting the data. Values inside of this range will be used.
+        user_arguments: User arguments for the fit. Default: None.
+        fit_function: Function to be fit.
+        fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    # Required arguments for the fit
-    arguments: FitArguments = {
-        "pedestal": 1, "limit_pedestal": (-0.5, 1000),
-        "amplitude": 1, "limit_amplitude": (0.05, 100),
-        "mu": 0, "limit_mu": (-0.5, 0.5),
-        "sigma": 0.15, "limit_sigma": (0.05, 0.8),
-    }
+    @abc.abstractmethod
+    def __init__(self, fit_range: params.SelectedRange, user_arguments: Optional[FitArguments] = None):
+        self.fit_range: params.SelectedRange
+        self.user_arguments: FitArguments
+        self.fit_function: Callable[..., float]
+        self.fit_result: FitResult
 
-    # Perform the fit
-    fit_result = fit_with_chi_squared(
-        fit_func = pedestal_with_extended_gaussian,
-        arguments = arguments, user_arguments = fit_arguments,
-        h = h, use_minos = use_minos
-    )
+    def __call__(self, *args: float, **kwargs: float) -> float:
+        """ Call the fit function.
 
-    return fit_result
+        This is provided for convenience. This way, we can easily evaluate the function while
+        still storing the information necessary to perform the entire fit.
+        """
+        return self.fit_function(*args, **kwargs)
 
-#def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> FitResult:
-def fit_gaussian_to_histogram(h: histogram.Histogram1D, inputs: GaussianFitInputs) -> Tuple[float, float]:
-    """ Fit a guassian to a signal peak using minuit.
+    @abc.abstractmethod
+    def fit(self, h: histogram.Histogram1D,
+            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:
+        """ Fit the given histogram using the defined fit function.
 
-    Args:
-        h: Background subtracted histogram to be fit.
-        inputs: Fit inputs in the form of a ``GaussianFitInputs`` dataclass. Must specify the mean, the initial width,
-            and the fit range.
-    Returns:
-        Result of the fit.
+        Args:
+            h: Background subtracted histogram to be fit.
+            user_arguments: Additional user arguments (beyond those already specified when the object
+                was created). Default: None.
+            use_minos: If True, minos errors will be calculated. Default: False.
+        Returns:
+            Result of the fit.
+        """
+        ...
+
+    #def read_fit_results(self, filename: str, identifier: str, y: yaml.ruamel.yaml.YAML = None) -> bool:
+    #    """ Read the fit results from the specified filename using YAML.
+
+    #    We don't read the entire object from YAML because they we would have to deal with
+    #    unbound functions, etc. Instead, we read the fit results, with the expectation
+    #    that the fit object will be created independently, and then the results will be loaded.
+
+    #    Args:
+    #        filename: Name of the file under which the fit results are saved.
+    #        identifier: Identifier under which the fit will be read in the dict in the YAML file.
+    #        y: YAML object to be used for reading the result. If none is specified, one will be created automatically.
+    #    Returns:
+    #        True if the reading was successful. The results will be read into the fit object.
+    #    """
+    #    # Create the YAML object if necessary.
+    #    if y is None:
+    #        y = yaml.yaml(modules_to_register = [this_module])
+
+    #    with open(filename, "r") as f:
+    #        data = y.load(f)
+
+    #    # Assign the fit result.
+    #    self.fit_result = data[identifier]
+
+    #    return True
+
+    #def write_fit_results(self, filename: str, identifier: str, y: yaml.ruamel.yaml.YAML = None) -> bool:
+    #    """ Write all fit results to the specified filename using YAML.
+
+    #    We don't write the entire object from YAML because they we would have to deal with
+    #    unbound functions, etc. Instead, we write the fit results, with the expectation
+    #    that the fit object will be created independently, and then the results will be loaded.
+
+    #    Args:
+    #        filename: Name of the file under which the fit results will be saved.
+    #        identifier: Identifier under which the fit will be written in the dict in the YAML file.
+    #        y: YAML object to be used for writing the result. If none is specified, one will be created automatically.
+    #    Returns:
+    #        True if the writing was successful.
+    #    """
+    #    # Create the YAML object if necessary.
+    #    if y is None:
+    #        y = yaml.yaml(modules_to_register = [this_module])
+
+    #    output: Dict[str, FitResult] = {identifier: self.fit_result}
+    #    with open(filename, "w+") as f:
+    #        y.dump(output, f)
+
+    #    return True
+
+    @classmethod
+    def to_yaml(cls: Type[T_Fit], representer: yaml.Representer, obj: T_Fit) -> yaml.ruamel.yaml.nodes.SequenceNode:
+        """ Encode YAML representation. """
+        # Temporarily store the fit function and then set it to None so we can store
+        # the object without having to worry about the unbound function.
+        #temp_func = obj.fit_function
+        # mypy doesn't like that we're setting this to None, so we tell it to ignore this
+        # temporary swap.
+        #obj.fit_function = None  # type: ignore
+        members = vars(obj)
+        members["fit_function"] = None
+        representation = representer.represent_mapping(
+            f"!{cls.__name__}", members
+        )
+        # Restore the fit function so that the object continues to operate as normal.
+        #obj.fit_function = temp_func
+
+        # Finally, return the represented object.
+        return representation
+
+    @classmethod
+    def from_yaml(cls: Type[T_Fit], constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "Fit":
+        """ Decode YAML representation. """
+        members = {constructor.construct_object(key_node): constructor.construct_object(value_node) for key_node, value_node in data.value}
+        # This is always going to be None, so we just ignore it.
+        members.pop("fit_function")
+        # The fit result isn't set through the constructor, so we grab it and then
+        # set it after creating the object.
+        fit_result = members.pop("fit_result")
+
+        # Finally, create the object, set the properties as needed, and return it.
+        obj = cls(**members)
+        obj.fit_result = fit_result
+        return obj
+
+class FitPedestalWithExtendedGaussian(Fit):
+    """ Fit a pedestal + extended (unnormalized) gaussian to a signal peak using iminuit.
+
+    Attributes:
+        fit_range: Range used for fitting the data. Values inside of this range will be used.
+        user_arguments: User arguments for the fit. Default: None.
+        fit_function: Function to be fit.
+        fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    # Restrict the range so that we only fit within the desired input.
-    restricted_range = (h.x > inputs.fit_range.min) & (h.x < inputs.fit_range.max)
-    restricted_hist = histogram.Histogram1D(
-        # We want the bin edges to be inclusive.
-        bin_edges = h.bin_edges[(h.bin_edges >= inputs.fit_range.min) & (h.bin_edges <= inputs.fit_range.max)],
-        y = h.y[restricted_range],
-        errors_squared = h.errors_squared[restricted_range]
-    )
+    def __init__(self, fit_range: params.SelectedRange, user_arguments: Optional[FitArguments] = None):
+        # Validation
+        if user_arguments is None:
+            user_arguments = {}
+        self.fit_range = fit_range
+        self.user_arguments: FitArguments = user_arguments
+        self.fit_function: Callable[..., float] = pedestal_with_extended_gaussian
+        self.fit_result: FitResult
 
-    user_arguments: FitArguments = {
-        # Testing this out...
-        "pedestal": 0, "fix_pedestal": True,
-        "amplitude": 1, "fix_amplitude": True,
-        # Specify the input width, mean
-        "sigma": inputs.initial_width,
-        # We choose for the mean to fixed.
-        "mu": inputs.mean, "fix_mu": True,
-    }
+    def fit(self, h: histogram.Histogram1D,
+            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:
+        """ Fit a gaussian to a signal peak using iminuit.
 
-    # Perform the fit
-    #fit_result = fit_gaussian(h = restricted_hist, fit_arguments = user_arguments)
-    fit_result = fit_pedestal_with_extended_gaussian(h = restricted_hist, fit_arguments = user_arguments)
+        Args:
+            h: Background subtracted histogram to be fit.
+            user_arguments: Additional user arguments (beyond those already specified when the object
+                was created). Default: None.
+            use_minos: If True, minos errors will be calculated. Default: False.
+        Returns:
+            Result of the fit. The user is responsible for storing it in the fit.
+        """
+        # Validation
+        if user_arguments is None:
+            user_arguments = {}
+        # Copy the user arguments so that we don't modify the arguments passed to the class if when we update them.
+        user_fit_arguments = dict(self.user_arguments)
+        # Update with any additional user provided arguments
+        user_fit_arguments.update(user_arguments)
 
-    return fit_result.values_at_minimum["sigma"], fit_result.errors_on_parameters["sigma"]
-    #return fit_result
+        # Restrict the range so that we only fit within the desired input.
+        restricted_range = (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+        restricted_hist = histogram.Histogram1D(
+            # We need the bin edges to be inclusive.
+            bin_edges = h.bin_edges[(h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)],
+            y = h.y[restricted_range],
+            errors_squared = h.errors_squared[restricted_range]
+        )
+
+        # Perform the fit
+        # Default arguments required for the fit
+        arguments: FitArguments = {
+            "pedestal": 1, "limit_pedestal": (-0.5, 1000),
+            "amplitude": 1, "limit_amplitude": (0.05, 100),
+            "mean": 0, "limit_mean": (-0.5, 0.5),
+            "width": 0.15, "limit_width": (0.05, 0.8),
+        }
+
+        # Perform the fit by minimizing the chi squared
+        fit_result = fit_with_chi_squared(
+            fit_func = self.fit_function,
+            arguments = arguments, user_arguments = user_fit_arguments,
+            h = restricted_hist, use_minos = use_minos
+        )
+
+        return fit_result
 
