@@ -155,7 +155,8 @@ class SelectedRange:
             yield k, v
 
     @classmethod
-    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "SelectedRange":
+    def from_yaml(cls, constructor: yaml.Constructor,
+                  data: Union[yaml.ruamel.yaml.nodes.MappingNode, yaml.ruamel.yaml.nodes.SequenceNode]) -> "SelectedRange":
         """ Decode YAML representer.
 
         Expected block is of the form:
@@ -164,15 +165,34 @@ class SelectedRange:
 
             val: !SelectedRange [1, 5]
 
+        or alternatively (which will be used when YAML is dumping the object):
+
+        .. code-block:: yaml
+
+            val: !SelectedRange
+                min: 1
+                max: 5
+
         which will yield:
 
         .. code-block:: python
 
             >>> val == SelectedRange(min = 1, max = 5)
         """
-        # We convert the ``MappingNode`` into a dictionary of arguments to the object.
+        # We've just passed a list, so just reconstruct it assuming that the arguments are in order.
+        # This is usually used when manually defined by a user in the configuration file.
+        if isinstance(data, yaml.ruamel.yaml.nodes.SequenceNode):
+            values = [constructor.construct_object(v) for v in data.value]
+            return cls(*values)
+
+        # Otherwise, we should have received a MappingNode. This is usually used when YAML has
+        # written the object. In this case, we convert the ``MappingNode`` into a dictionary of
+        # arguments to the object.
         # NOTE: Just calling ``dict(...)`` would not be sufficient because the nodes wouldn't be converted
-        arguments = {constructor.construct_object(key_node): constructor.construct_object(value_node) for key_node, value_node in data.value}
+        arguments = {
+            constructor.construct_object(key_node): constructor.construct_object(value_node)
+            for key_node, value_node in data.value
+        }
         return cls(**arguments)
 
 @dataclass(frozen = True)

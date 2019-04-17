@@ -6,6 +6,7 @@
 """
 
 import logging
+from io import StringIO
 import numpy as np
 import pytest
 from pachyderm import yaml
@@ -325,3 +326,24 @@ def test_yaml_round_trip(logging_mixin, dump_to_string_and_retrieve, obj):
 
     # Check that the objects are the same.
     assert obj == result_obj
+
+def test_selected_range_alternative_from_yaml(logging_mixin):
+    """ Test the alternative mode for constructing a ``SelectedRange``.
+
+    For this mode, we just pass a list of values, with the minimum value first instead
+    of specifying the keyword arguments. This is a nice short hand when writing config
+    files by hand.
+    """
+    # Setup
+    # YAML object
+    y = yaml.yaml(modules_to_register = [params])
+    input_string = "r: !SelectedRange [-5, 15]"
+    expected_obj = params.SelectedRange(min = -5, max = 15)
+    s = StringIO()
+    s.write(input_string)
+    s.seek(0)
+    obj = y.load(s)
+
+    # Check that the objects are the same.
+    assert obj["r"] == expected_obj
+
