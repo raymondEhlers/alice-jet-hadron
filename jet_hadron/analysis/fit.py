@@ -417,7 +417,8 @@ class Fit(ABC):
         """ Encode YAML representation. """
         # ``RoundTripRepresenter`` doesn't represent objects directly, so we grab a dict of the
         # members to store those in YAML.
-        members = vars(obj)
+        # NOTE: We must make a copy of the vars. Otherwise, the original object will be modified.
+        members = dict(vars(obj))
         # We can't store unbound functions, so we instead set it to the function name
         # (we won't really use this name, but it's useful to store what was used, and
         # we can at least warn if it changed).
@@ -514,10 +515,10 @@ class FitPedestalWithExtendedGaussian(Fit):
         # Perform the fit
         # Default arguments required for the fit
         arguments: FitArguments = {
-            "pedestal": 1, "limit_pedestal": (-0.5, 1000),
-            "amplitude": 1, "limit_amplitude": (0.05, 100),
-            "mean": 0, "limit_mean": (-0.5, 0.5),
-            "width": 0.15, "limit_width": (0.05, 0.8),
+            "pedestal": 1, "limit_pedestal": (-0.5, 1000), "error_pedestal": 0.1 * 1,
+            "amplitude": 1, "limit_amplitude": (0.05, 100), "error_amplitude": 0.1 * 1,
+            "mean": 0, "limit_mean": (-0.5, 0.5), "error_mean": 0.05,
+            "width": 0.15, "limit_width": (0.05, 0.8), "error_width": 0.1 * 0.15,
         }
 
         # Perform the fit by minimizing the chi squared
