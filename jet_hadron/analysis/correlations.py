@@ -1722,9 +1722,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             assert width_value is not None and width_error is not None
             logger.debug(f"Extracted {attribute_name} width: {width_value}, error: {width_error}")
 
-            # Store the output
-            observable = analysis_objects.ExtractedObservable(value = width_value, error = width_error)
-            setattr(self.widths_delta_phi, attribute_name, observable)
+            # Store the output as seed values for the final fit.
+            width_obj.fit_obj.user_arguments["width"] = width_value
+            width_obj.fit_obj.user_arguments["error_width"] = width_error
 
         return True
 
@@ -1767,10 +1767,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # TODO: Load fits here?
         # Delta phi
         # Attempt to retrieve the widths from the RPF.
-        extracted_from_RPF = self._retrieve_widths_from_RPF()
-        if not extracted_from_RPF:
-            logger.debug("Extracting widths via Gaussian fits")
-            self._fit_and_extract_delta_phi_widths()
+        self._retrieve_widths_from_RPF()
+        logger.debug("Extracting widths via Gaussian fits")
+        self._fit_and_extract_delta_phi_widths()
 
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.

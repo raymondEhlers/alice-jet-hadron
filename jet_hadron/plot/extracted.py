@@ -20,8 +20,6 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
-# Careful to watch out for import loops...
-from jet_hadron.analysis import fit as fitting
 
 if TYPE_CHECKING:
     from jet_hadron.analysis import correlations
@@ -106,27 +104,21 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
         label = f"{correlation.type.display_str()}",
     )
 
-    # Of the form (attribute_name, mean)
-    delta_phi_regions = [
-        ("near_side", 0.0),
-        ("away_side", np.pi),
-    ]
-    for attribute_name, mean in delta_phi_regions:
+    # Plot the fit.
+    for attribute_name, width_obj in analysis.widths_delta_phi:
         # Setup
-        # Extracted width
-        extracted_width: analysis_objects.ExtractedObservable = getattr(analysis.widths_delta_phi, attribute_name)
         # Convert the attribute name to display better. Ex: "near_side" -> "Near side"
         attribute_display_name = attribute_name.replace("_", " ").capitalize()
 
         # Plot the fit
-        gauss = fitting.gaussian(h.x, mean = mean, width = extracted_width.value)
+        gauss = width_obj.fit_obj(h.x, **width_obj.fit_result.values_at_minimum)
         fit_plot = ax.plot(
             h.x, gauss,
-            label = fr"{attribute_display_name} gaussian fit: $\mu = $ {mean:.2f}"
-                    fr", $\sigma = $ {extracted_width.value:.2f}",
+            label = fr"{attribute_display_name} gaussian fit: $\mu = $ {width_obj.mean:.2f}"
+                    fr", $\sigma = $ {width_obj.width:.2f}",
         )
         # Fill in the error band.
-        error = extracted_width.error * np.ones(len(h.x))
+        error = width_obj.fit_obj.calculate_errors(x = h.x)
         ax.fill_between(
             h.x, gauss - error, gauss + error,
             facecolor = fit_plot[0].get_color(), alpha = 0.5,
