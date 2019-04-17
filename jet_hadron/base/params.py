@@ -155,7 +155,7 @@ class SelectedRange:
             yield k, v
 
     @classmethod
-    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.SequenceNode) -> "SelectedRange":
+    def from_yaml(cls, constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "SelectedRange":
         """ Decode YAML representer.
 
         Expected block is of the form:
@@ -170,9 +170,10 @@ class SelectedRange:
 
             >>> val == SelectedRange(min = 1, max = 5)
         """
-        # We construct the objects to convert the scalar nodes into floats
-        values = [constructor.construct_object(v) for v in data.value]
-        return cls(*values)
+        # We convert the ``MappingNode`` into a dictionary of arguments to the object.
+        # NOTE: Just calling ``dict(...)`` would not be sufficient because the nodes wouldn't be converted
+        arguments = {constructor.construct_object(key_node): constructor.construct_object(value_node) for key_node, value_node in data.value}
+        return cls(**arguments)
 
 @dataclass(frozen = True)
 class ReactionPlaneBinInformation:
