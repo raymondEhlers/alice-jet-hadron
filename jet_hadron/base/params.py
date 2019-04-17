@@ -249,9 +249,7 @@ class CollisionSystem(enum.Enum):
 class EventActivity(enum.Enum):
     """ Define the event activity.
 
-    Object value are of the form (index, (centLow, centHigh)), where index is the expected
-    enumeration index, and cent{low,high} define the low and high values of the centrality.
-    -1 is defined as the full range!
+    Values are ranges of the centrality bin, where -1 is defined as the full range!
     """
     inclusive = SelectedRange(min = -1, max = -1)
     central = SelectedRange(min = 0, max = 10)
@@ -366,7 +364,7 @@ class LeadingHadronBias(generic_class.EqualityMixin):
                 "value": self.value
             }
 
-        raise NotImplementedError("Display string for leading hadron bias {self} is not implemented.")
+        raise NotImplementedError(f"Display string for leading hadron bias {self} is not implemented.")
 
 @dataclass
 class SelectedAnalysisOptions:
