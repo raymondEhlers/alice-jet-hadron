@@ -517,7 +517,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_obj = fitting.FitPedestalWithExtendedGaussian(
                     fit_range = self.near_side_phi_region.range,
                     user_arguments = {
-                        "mean": np.pi, "fix_mean": True,
+                        "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
                         "width": 0.3, "limit_width": (0.05, 1.5),
                     },
                 ),
@@ -1948,7 +1948,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     analysis.write_delta_eta_fit_results()
                 else:
                     # Load from file.
-                    logger.debug("Reading delta eta fit information from file.")
+                    logger.info("Reading delta eta fit information from file.")
                     analysis.init_delta_eta_fit_information()
 
                 if self.processing_options["plot_delta_eta_fit"]:
