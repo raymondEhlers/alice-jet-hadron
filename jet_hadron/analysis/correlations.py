@@ -515,7 +515,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     "fit_range": self.away_side_phi_region.range,
                 },
                 fit_obj = fitting.FitPedestalWithExtendedGaussian(
-                    fit_range = self.near_side_phi_region.range,
+                    fit_range = self.away_side_phi_region.range,
                     user_arguments = {
                         "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
                         "width": 0.3, "limit_width": (0.05, 1.5),
