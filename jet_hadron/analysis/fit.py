@@ -43,11 +43,13 @@ def print_root_fit_parameters(fit) -> None:
 def fit_1d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[float]) -> ROOT.TF1:
     """ Alternative to determine the mixed event normalization.
 
-    A lienar function is fit to the dPhi mixed event normalization for some predefined range.
+    A linear function is fit to the dPhi mixed event normalization for some predefined range.
 
     Args:
         hist: 1D mixed event histogram to be fit.
         delta_phi_limits: Min and max fit limits in delta phi.
+    Returns:
+        The ROOT fit function.
     """
     fit_func = ROOT.TF1("mixedEventNormalization1D", "[0] + 0.0*x", delta_phi_limits[0], delta_phi_limits[1])
 
@@ -64,12 +66,14 @@ def fit_1d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
 def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[float], delta_eta_limits: Sequence[float]) -> ROOT.TF2:
     """ Alternative to determine the mixed event normalization.
 
-    A lienar function is fit to the dPhi-dEta mixed event normalization for some predefined range.
+    A linear function is fit to the dPhi-dEta mixed event normalization for some predefined range.
 
     Args:
         hist: 2D mixed event histogram to be fit.
         delta_phi_limits: Min and max fit limits in delta phi.
         delta_eta_limits: Min and max fit limits in delta eta.
+    Returns:
+        The ROOT fit function.
     """
     fit_func = ROOT.TF2(
         "mixedEventNormalization2D",
@@ -145,7 +149,7 @@ def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments
 
     Args:
         default_arguments: Default fit arguments.
-        user_arguments: User provided fit arguments to be valided.
+        user_arguments: User provided fit arguments to be validated.
     Returns:
         True if the user fit arguments that are valid (ie the specified fit variables are also set in the
         default arguments).  It's up to the user to actually update the fit arguments.
@@ -169,7 +173,7 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
                          arguments: FitArguments, user_arguments: FitArguments,
                          h: histogram.Histogram1D,
                          use_minos: bool = False) -> FitResult:
-    """ Fit the gievn histogram to the given fit function using minuit.
+    """ Fit the given histogram to the given fit function using iminuit.
 
     Args:
         fit_func: Function to be fit.
@@ -210,7 +214,7 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
     # Create the fit result
     fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
-    # We use the cost func because we want intentionally want to skip "x"
+    # We use the cost function because we want intentionally want to skip "x"
     parameters: List[str] = iminuit.util.describe(cost_func)
     # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
     free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
@@ -241,7 +245,7 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
 def fit_pedestal_to_histogram(h: histogram.Histogram1D,
                               fit_arguments: FitArguments, use_minos: bool = False) -> FitResult:
-    """ Fit the gievn histogram to a pedestal.
+    """ Fit the given histogram to a pedestal.
 
     Args:
         h: Histogram to be fit.
@@ -321,7 +325,7 @@ def gaussian(x: float, mu: float, sigma: float) -> float:
 def fit_gaussian(h: histogram.Histogram1D,
                  fit_arguments: FitArguments,
                  use_minos: bool = False) -> FitResult:
-    """ Fit the gievn histogram to a normalized gaussian.
+    """ Fit the given histogram to a normalized gaussian.
 
     Args:
         h: Histogram to be fit.
