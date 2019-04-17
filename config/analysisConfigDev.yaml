@@ -113,17 +113,17 @@ Correlations:
                   range: !SelectedRange [20, 40]
 CorrelationsManager:
     processing_options:
-        fit_correlations: true
-        plot_RPF: true
-        plot_delta_eta_fit: true
-        subtract_correlations: true
-        plot_subtracted_correlations: true
+        fit_correlations: false
+        plot_RPF: false
+        plot_delta_eta_fit: false
+        subtract_correlations: false
+        plot_subtracted_correlations: false
         # Yields
         extract_yields: true
-        plot_yields: false
+        plot_yields: true
         # Widths
         extract_widths: true
-        plot_widths: false
+        plot_widths: true
     reaction_plane_fit:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
