@@ -9,8 +9,10 @@ which is really quite clever!
 """
 
 from io import StringIO
+from pachyderm import yaml
 import pytest
 import ruamel.yaml
+from typing import Any
 
 @pytest.fixture
 def check_JetHBase_object():
@@ -221,3 +223,33 @@ taskName:
     data = yaml.load(test_yaml)
     return (data, "taskName")
 
+@pytest.fixture
+def dump_to_string_and_retrieve():
+    """ Dump the given input object via YAML and then retrieve it for comparison.
+
+    This function is provided via fixture to allow for use in multiple tests modules.
+    """
+    def func(input_object: Any, y: yaml.ruamel.yaml.YAML = None) -> Any:
+        """ Dump the given input object via YAML and then retrieve it for comparison.
+
+        Args:
+            input_object: Object to be dumped and retrieved.
+            y: YAML object to use for the dumping. If not specified, one will be created.
+        Returns:
+            The dumped and then retrieved object.
+        """
+        # Create a YAML object if necessary
+        if y is None:
+            from pachyderm import yaml
+            y = yaml.yaml()
+
+        # Dump to a string
+        s = StringIO()
+        y.dump([input_object], s)
+        s.seek(0)
+        # And then load from the string. Note the implicit unpacking
+        output_object, = y.load(s)
+
+        return output_object
+
+    return func

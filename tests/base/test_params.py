@@ -6,7 +6,9 @@
 """
 
 import logging
+import numpy as np
 import pytest
+from pachyderm import yaml
 
 from jet_hadron.base import params
 from jet_hadron.base import analysis_objects
@@ -303,3 +305,33 @@ def test_qvector_strings(logging_mixin, qvector, expected):
     assert qvector.display_str() == expected["display_str"]
     assert qvector.value_range == expected["range"]
 
+# Integration tests
+@pytest.mark.parametrize("obj", [
+    params.SelectedRange(min = -5, max = 15),
+    params.ReactionPlaneBinInformation(bin = 1, center = 0, width = np.pi / 6),
+    params.CollisionEnergy.five_zero_two,
+    params.CollisionSystem.embedPythia,
+    params.EventActivity.semi_central,
+    params.LeadingHadronBiasType.track,
+    params.LeadingHadronBias(type = params.LeadingHadronBiasType.cluster, value = 6.0),
+    params.SelectedAnalysisOptions(
+        collision_system = params.CollisionSystem.PbPb, collision_energy = params.CollisionEnergy.two_seven_six,
+        event_activity = params.EventActivity.central, leading_hadron_bias = params.LeadingHadronBiasType.track,
+    ),
+    params.ReactionPlaneOrientation.out_of_plane,
+    params.QVector.bottom10,
+], ids = ["SelectedRange", "ReactionPlaneBinInformation", "CollisionEnergy", "CollisionSystem",
+          "EventActivity", "LeadingHadronBiasType", "LeadingHadronBias", "SelectedAnalysisOptions",
+          "ReactionPlaneOrientation", "QVector"])
+def test_yaml_round_trip(logging_mixin, dump_to_string_and_retrieve, obj):
+    """ Integrations tests for writing to and reading from YAML. """
+    # Setup
+    # YAML object
+    y = yaml.yaml(modules_to_register = [params])
+    logger.debug(f"obj: {obj}")
+
+    # Dump and retrieve the object.
+    result_obj = dump_to_string_and_retrieve(input_object = obj, y = y)
+
+    # Check that the objects are the same.
+    assert obj == result_obj
