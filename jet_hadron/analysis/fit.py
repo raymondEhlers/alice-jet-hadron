@@ -32,29 +32,6 @@ FitArguments = Dict[str, Union[bool, float, Tuple[float, float]]]
 
 this_module = sys.modules[__name__]
 
-## Map from fit function to the function that will define the cost function
-## and actually perform the fit.
-#_function_to_perform_fit_map: Dict[Callable[..., float], Callable[..., "FitResult"]] = {}
-#
-#def register_fit_function(fit_function: Callable[..., float]) -> Callable:
-#    """ Register the given fit function into the map to go from fit function to function which performs the fit.
-#
-#    """
-#    def register_perform_fit_function(f: Callable[..., "FitResult"]) -> Callable[..., "FitResult"]:
-#        _function_to_perform_fit_map[fit_function] = f
-#        return f
-#    return register_perform_fit_function
-#
-#def function_to_perform_fit(f: Callable[..., float]) -> Callable[..., "FitResult"]:
-#    """ Helper to determine the function to perform the fit for a given fit function.
-#
-#    Args:
-#        f: The fit function which will be used.
-#    Returns:
-#        The function to perform the fit using that fit function.
-#    """
-#    return _function_to_perform_fit_map[f]
-
 def print_root_fit_parameters(fit) -> None:
     """ Print out all of the ROOT-based fit parameters. """
     output_parameters = []
@@ -435,72 +412,19 @@ class Fit(ABC):
         """
         ...
 
-    #def read_fit_results(self, filename: str, identifier: str, y: yaml.ruamel.yaml.YAML = None) -> bool:
-    #    """ Read the fit results from the specified filename using YAML.
-
-    #    We don't read the entire object from YAML because they we would have to deal with
-    #    unbound functions, etc. Instead, we read the fit results, with the expectation
-    #    that the fit object will be created independently, and then the results will be loaded.
-
-    #    Args:
-    #        filename: Name of the file under which the fit results are saved.
-    #        identifier: Identifier under which the fit will be read in the dict in the YAML file.
-    #        y: YAML object to be used for reading the result. If none is specified, one will be created automatically.
-    #    Returns:
-    #        True if the reading was successful. The results will be read into the fit object.
-    #    """
-    #    # Create the YAML object if necessary.
-    #    if y is None:
-    #        y = yaml.yaml(modules_to_register = [this_module])
-
-    #    with open(filename, "r") as f:
-    #        data = y.load(f)
-
-    #    # Assign the fit result.
-    #    self.fit_result = data[identifier]
-
-    #    return True
-
-    #def write_fit_results(self, filename: str, identifier: str, y: yaml.ruamel.yaml.YAML = None) -> bool:
-    #    """ Write all fit results to the specified filename using YAML.
-
-    #    We don't write the entire object from YAML because they we would have to deal with
-    #    unbound functions, etc. Instead, we write the fit results, with the expectation
-    #    that the fit object will be created independently, and then the results will be loaded.
-
-    #    Args:
-    #        filename: Name of the file under which the fit results will be saved.
-    #        identifier: Identifier under which the fit will be written in the dict in the YAML file.
-    #        y: YAML object to be used for writing the result. If none is specified, one will be created automatically.
-    #    Returns:
-    #        True if the writing was successful.
-    #    """
-    #    # Create the YAML object if necessary.
-    #    if y is None:
-    #        y = yaml.yaml(modules_to_register = [this_module])
-
-    #    output: Dict[str, FitResult] = {identifier: self.fit_result}
-    #    with open(filename, "w+") as f:
-    #        y.dump(output, f)
-
-    #    return True
-
     @classmethod
     def to_yaml(cls: Type[T_Fit], representer: yaml.Representer, obj: T_Fit) -> yaml.ruamel.yaml.nodes.SequenceNode:
         """ Encode YAML representation. """
-        # Temporarily store the fit function and then set it to None so we can store
-        # the object without having to worry about the unbound function.
-        #temp_func = obj.fit_function
-        # mypy doesn't like that we're setting this to None, so we tell it to ignore this
-        # temporary swap.
-        #obj.fit_function = None  # type: ignore
+        # ``RoundTripRepresenter`` doesn't represent objects directly, so we grab a dict of the
+        # members to store those in YAML.
         members = vars(obj)
-        members["fit_function"] = None
+        # We can't store unbound functions, so we instead set it to the function name
+        # (we won't really use this name, but it's useful to store what was used, and
+        # we can at least warn if it changed).
+        members["fit_function"] = obj.fit_function.__name__
         representation = representer.represent_mapping(
             f"!{cls.__name__}", members
         )
-        # Restore the fit function so that the object continues to operate as normal.
-        #obj.fit_function = temp_func
 
         # Finally, return the represented object.
         return representation
@@ -508,16 +432,36 @@ class Fit(ABC):
     @classmethod
     def from_yaml(cls: Type[T_Fit], constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "Fit":
         """ Decode YAML representation. """
-        members = {constructor.construct_object(key_node): constructor.construct_object(value_node) for key_node, value_node in data.value}
-        # This is always going to be None, so we just ignore it.
-        members.pop("fit_function")
+        # First, we construct the class member objects.
+        members = {
+            constructor.construct_object(key_node): constructor.construct_object(value_node)
+            for key_node, value_node in data.value
+        }
+        # Then we deal with members which require special handling:
         # The fit result isn't set through the constructor, so we grab it and then
         # set it after creating the object.
         fit_result = members.pop("fit_result")
+        # The fit function will be set in the fit constructor, so we don't need to use this
+        # value to setup the object. However, since this contains the name of the function,
+        # we can use it to check if the name of the function that is set in the constructor
+        # is the same as the one that we stored. (If they are different, this isn't necessarily
+        # a problem, as we sometimes rename functions, but regardless it's good to be notified
+        # if that's the case).
+        fit_function_name = members.pop("fit_function")
 
-        # Finally, create the object, set the properties as needed, and return it.
+        # Finally, create the object and set the properties as needed.
         obj = cls(**members)
         obj.fit_result = fit_result
+        # Sanity check on the fit function name (see above).
+        if fit_function_name != obj.fit_function.__name__:
+            logger.warning(
+                "The stored fit function name from YAML doesn't match the name of the fit function"
+                "created in the fit object."
+                f"Stored name: {fit_function_name}, object created fit function: {obj.fit_function}."
+                "This may indicate a problem (but is fine if the same function was just renamed)."
+            )
+
+        # Now that the object is fully constructed, we can return it.
         return obj
 
 class FitPedestalWithExtendedGaussian(Fit):
