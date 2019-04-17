@@ -532,7 +532,7 @@ class FitPedestalWithExtendedGaussian(Fit):
         # Perform the fit
         # Default arguments required for the fit
         arguments: FitArguments = {
-            "pedestal": 1, "limit_pedestal": (-0.5, 1000), "error_pedestal": 0.1 * 1,
+            "pedestal": 0, "limit_pedestal": (-1000, 1000), "error_pedestal": 0.1,
             "amplitude": 1, "limit_amplitude": (0.05, 100), "error_amplitude": 0.1 * 1,
             "mean": 0, "limit_mean": (-0.5, 0.5), "error_mean": 0.05,
             "width": 0.15, "limit_width": (0.05, 0.8), "error_width": 0.1 * 0.15,
