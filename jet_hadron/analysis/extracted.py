@@ -36,15 +36,16 @@ class ExtractedWidth(ExtractedValue):
 
     @fit_result.setter
     def fit_result(self, result) -> None:
+        """ Helper to simplify setting the fit result. """
         self.fit_obj.fit_result = result
 
     @property
-    def width(self) -> Tuple[float, float]:
+    def width(self) -> float:
         """ Helper to retrieve the width and the error on the width. """
-        return self.fit_result.values_at_minimum["sigma"], self.fit_result.errors_on_parameters["sigma"]
+        return self.fit_result.values_at_minimum["width"]
 
     @property
     def mean(self) -> float:
         """ Helper to retrieve the mean (should be fixed). """
-        return self.fit_result.values_at_minimum["mu"]
+        return self.fit_result.values_at_minimum["mean"]
 
