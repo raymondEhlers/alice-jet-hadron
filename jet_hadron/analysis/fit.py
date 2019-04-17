@@ -106,8 +106,8 @@ class FitResult(reaction_plane_fit.base.FitResult):
         parameters (list): Names of the parameters used in the fit.
         free_parameters (list): Names of the free parameters used in the fit.
         fixed_parameters (list): Names of the fixed parameters used in the fit.
-        values_at_minimum (dict): Contains the values of the full RP fit function at the minimum. Keys are the
-            names of parameters, while values are the numerical values at convergence.
+        values_at_minimum (dict): Contains the values of the fit function at the minimum. Keys are the names
+            of parameters, while values are the numerical values at convergence.
         errors_on_parameters (dict): Contains the values of the errors associated with the parameters
             determined via the fit.
         covariance_matrix (dict): Contains the values of the covariance matrix. Keys are tuples
@@ -116,8 +116,8 @@ class FitResult(reaction_plane_fit.base.FitResult):
         x: x values where the fit result should be evaluated.
         errors: Store the errors associated with the fit function.
         n_fit_data_points: Number of data points used in the fit.
-        minimum_val: Minimum value of the fit when it coverages. This is the chi2 value for a
-            chi2 minimization fit.
+        minimum_val: Minimum value of the fit when it coverages. This is the chi squared value for a
+            chi squared minimization fit.
         nDOF: Number of degrees of freedom. Calculated on request from ``n_fit_data_points`` and ``free_parameters``.
     """
     x: np.array
@@ -132,7 +132,7 @@ class FitResult(reaction_plane_fit.base.FitResult):
 class ChiSquared:
     """ chi^2 cost function.
 
-    Implemented with some help from the iminuit advanced tutorial. Calling this class will calculate the chi2.
+    Implemented with some help from the iminuit advanced tutorial. Calling this class will calculate the chi squared.
 
     Args:
         f: The fit function.
