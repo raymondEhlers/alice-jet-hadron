@@ -10,7 +10,6 @@ Includes quantities such as widths and yields.
 from cycler import cycler
 from fractions import Fraction
 import logging
-from pachyderm import utils
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Union
@@ -146,12 +145,19 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
 
 def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Dict[str, Sequence[Any]],
-                      attribute_name: str,
+                      extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
                       plot_labels: plot_base.PlotLabels,
+                      output_name: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
                       projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                       extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
     """ Plot extracted values.
+
+    Note:
+        It's best to fully define the ``extract_value_func`` function even though it can often be easily accomplished
+        with a lambda because only a full function definition can use explicit type checking. Since this function uses
+        a variety of different sources for the data, this type checking is particularly helpful. So writing a full
+        function with full typing is strongly preferred to ensure that we get it right.
 
     Args:
 
@@ -160,7 +166,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     fig, ax = plt.subplots(figsize = (8, 6))
     # Specify plotting properties
     # color, marker, fill marker or not
-    # NOTE: Fill marker is specified when plotting becuase of a matplotlib bug
+    # NOTE: Fill marker is specified when plotting because of a matplotlib bug
     # NOTE: This depends on iterating over the EP orientation in the exact manner specified below.
     ep_plot_properties = {
         # black, diamond, no fill
@@ -176,7 +182,8 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     plot_property_values = list(ep_plot_properties.values())
     for i, prop in enumerate(["color", "marker", "fillstyle"]):
         cyclers.append(cycler(prop, [p[i] for p in plot_property_values]))
-    # We skip the fillstyle because apprently it doesn't work with the cycler at the moment due to a bug...
+    # We skip the fillstyle because apparently it doesn't work with the cycler at the moment due to a bug...
+    # They didn't implement their add operation to handle 0, so we have to give it the explicit start value.
     combined_cyclers = sum(cyclers[1:-1], cyclers[0])
     ax.set_prop_cycle(combined_cyclers)
 
@@ -190,7 +197,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                     analyses, reaction_plane_orientation = ep_orientation
                 ):
             # Store each extracted value.
-            values[analysis.track_pt] = utils.recursive_getattr(analysis, attribute_name)
+            values[analysis.track_pt] = extract_value_func(analysis)
             # These are both used for labeling purposes and are identical for all analyses that are iterated over.
             if ep_orientation == params.ReactionPlaneOrientation.inclusive and inclusive_analysis is None:
                 inclusive_analysis = analysis
@@ -201,7 +208,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         ax.errorbar(
             bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
             label = ep_orientation.display_str(), linestyle = "",
-            fillstyle = "none" if ep_orientation == params.ReactionPlaneOrientation.inclusive else "full",
+            fillstyle = ep_plot_properties[ep_orientation][2],
         )
 
     # Help out mypy...
@@ -257,7 +264,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig,
-                        f"jetH_delta_phi_{inclusive_analysis.jet_pt_identifier}_{attribute_name.replace('.', '_')}")
+                        f"{output_name}_{inclusive_analysis.jet_pt_identifier}")
     plt.close(fig)
 
 def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
@@ -270,13 +277,21 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side widths. """
+    def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Simple helper function to extract the delta phi near-side widths """
+        return analysis_objects.ExtractedObservable(
+            value = analysis.widths_delta_phi.near_side.width,
+            error = analysis.widths_delta_phi.near_side.fit_result.errors_on_parameters["width"]
+        )
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "widths_delta_phi.near_side",
+        extract_value_func = near_side_widths,
         plot_labels = plot_base.PlotLabels(
             y_label = "Near-side width",
             title = "Near-side width",
         ),
+        output_name = "widths_delta_phi_near_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
@@ -285,13 +300,21 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side widths. """
+    def away_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Simple helper function to extract the delta phi away-side widths """
+        return analysis_objects.ExtractedObservable(
+            value = analysis.widths_delta_phi.away_side.width,
+            error = analysis.widths_delta_phi.away_side.fit_result.errors_on_parameters["width"]
+        )
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "widths_delta_phi.away_side",
+        extract_value_func = away_side_widths,
         plot_labels = plot_base.PlotLabels(
             y_label = "Away-side width",
             title = "Away-side width",
         ),
+        output_name = "widths_delta_phi_away_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
@@ -300,15 +323,20 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side yields. """
+    def near_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return analysis.yields_delta_phi.near_side
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "yields_delta_phi.near_side",
+        extract_value_func = near_side_yields,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
                 fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Near-side yield",
         ),
+        output_name = "yields_delta_phi_near_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
@@ -317,15 +345,20 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
+    def away_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return analysis.yields_delta_phi.away_side
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "yields_delta_phi.away_side",
+        extract_value_func = away_side_yields,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
                 fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Away-side yield",
         ),
+        output_name = "yields_delta_phi_away_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
@@ -348,13 +381,21 @@ def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side widths. """
+    def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return analysis_objects.ExtractedObservable(
+            value = analysis.widths_delta_phi.near_side.width,
+            error = analysis.widths_delta_phi.near_side.fit_result.errors_on_parameters["width"]
+        )
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "widths_delta_eta.near_side",
+        extract_value_func = near_side_widths,
         plot_labels = plot_base.PlotLabels(
             y_label = "Near-side width",
             title = "Near-side width",
         ),
+        output_name = "widths_delta_eta_near_side",
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
     )
@@ -363,15 +404,20 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Dict[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side yields. """
+    def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return analysis.yields_delta_eta.near_side
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        attribute_name = "yields_delta_eta.near_side",
+        extract_value_func = near_side_widths,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
                 fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Near-side yield",
         ),
+        output_name = "yields_delta_eta_near_side",
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
     )
