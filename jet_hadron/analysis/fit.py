@@ -397,6 +397,23 @@ class Fit(ABC):
         """
         return self.fit_function(*args, **kwargs)
 
+    def calculate_errors(self, x: Optional[np.ndarray] = None) -> np.ndarray:
+        """ Calculate the errors on the fit function for the given x values.
+
+        Args:
+            x: x values where the fit function error should be evaluated. If not specified,
+                the x values over which the fit was performed will be used.
+        Returns:
+            The fit function error calculated at each x value.
+        """
+        if x is None:
+            x = self.fit_result.x
+        return reaction_plane_fit.base.calculate_function_errors(
+            func = self.fit_function,
+            fit_result = self.fit_result,
+            x = x,
+        )
+
     @abc.abstractmethod
     def fit(self, h: histogram.Histogram1D,
             user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:

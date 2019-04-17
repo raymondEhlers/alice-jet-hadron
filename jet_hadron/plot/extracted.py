@@ -37,18 +37,18 @@ def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
 
-    # Plot only the near side for now because the away-side doesn't have a gaussian shape
-    # Of the form (attribute_name, mean)
-    attribute_names = [
-        ("near_side", 0.0),
-    ]
-    for attribute_name, mean in attribute_names:
+    for (attribute_name, width_obj), (correlation_attribute_name, correlation) in \
+            zip(analysis.widths_delta_eta, analysis.correlation_hists_delta_eta_subtracted):
         # Setup
-        # Correlation
-        correlation: Union["correlations.DeltaEtaNearSide"] = \
-            getattr(analysis.correlation_hists_delta_eta_subtracted, attribute_name)
-        # Extracted width
-        extracted_width: analysis_objects.ExtractedObservable = getattr(analysis.widths_delta_eta, attribute_name)
+        # Sanity check
+        if attribute_name != correlation_attribute_name:
+            raise ValueError(
+                "Issue extracting width and hist together."
+                f"Width obj name: {attribute_name}, hist obj name: {correlation_attribute_name}"
+            )
+        # Plot only the near side for now because the away-side doesn't have a gaussian shape
+        if attribute_name == "away_side":
+            continue
 
         # Plot the data.
         h = correlation.hist
@@ -59,14 +59,13 @@ def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
         )
 
         # Plot the fit
-        logger.debug(f"mean: {type(mean)}, width: {type(extracted_width.value)}")
-        gauss = fitting.gaussian(h.x, mean = mean, width = extracted_width.value)
+        gauss = width_obj.fit_obj(h.x, **width_obj.fit_result.values_at_minimum)
         fit_plot = ax.plot(
             h.x, gauss,
-            label = fr"Gaussian fit: $\mu = $ {mean:.2f}, $\sigma = $ {extracted_width.value:.2f}",
+            label = fr"Gaussian fit: $\mu = $ {width_obj.mean:.2f}, $\sigma = $ {width_obj.width:.2f}",
         )
         # Fill in the error band.
-        error = extracted_width.error * np.ones(len(h.x))
+        error = width_obj.fit_obj.calculate_errors(x = h.x)
         ax.fill_between(
             h.x, gauss - error, gauss + error,
             facecolor = fit_plot[0].get_color(), alpha = 0.5,
