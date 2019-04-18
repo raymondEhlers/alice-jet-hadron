@@ -101,13 +101,13 @@ def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
         )
 
         # Plot the fit
-        gauss = width_obj.fit_obj(h.x, **width_obj.fit_result.values_at_minimum)
+        gauss = width_obj.fit_object(h.x, **width_obj.fit_result.values_at_minimum)
         fit_plot = ax.plot(
             h.x, gauss,
             label = fr"Gaussian fit: $\mu = $ {width_obj.mean:.2f}, $\sigma = $ {width_obj.width:.2f}",
         )
         # Fill in the error band.
-        error = width_obj.fit_obj.calculate_errors(x = h.x)
+        error = width_obj.fit_object.calculate_errors(x = h.x)
         ax.fill_between(
             h.x, gauss - error, gauss + error,
             facecolor = fit_plot[0].get_color(), alpha = 0.5,
@@ -154,18 +154,18 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
         # Convert the attribute name to display better. Ex: "near_side" -> "Near side"
         attribute_display_name = attribute_name.replace("_", " ").capitalize()
         # We only want to plot the fit over the range that it was fit.
-        restricted_range = (h.x > width_obj.fit_obj.fit_range.min) & (h.x < width_obj.fit_obj.fit_range.max)
+        restricted_range = (h.x > width_obj.fit_object.fit_range.min) & (h.x < width_obj.fit_object.fit_range.max)
         x = h.x[restricted_range]
 
         # Plot the fit
-        gauss = width_obj.fit_obj(x, **width_obj.fit_result.values_at_minimum)
+        gauss = width_obj.fit_object(x, **width_obj.fit_result.values_at_minimum)
         fit_plot = ax.plot(
             x, gauss,
             label = fr"{attribute_display_name} gaussian fit: $\mu = $ {width_obj.mean:.2f}"
                     fr", $\sigma = $ {width_obj.width:.2f}",
         )
         # Fill in the error band.
-        error = width_obj.fit_obj.calculate_errors(x = x)
+        error = width_obj.fit_object.calculate_errors(x = x)
         ax.fill_between(
             x, gauss - error, gauss + error,
             facecolor = fit_plot[0].get_color(), alpha = 0.5,

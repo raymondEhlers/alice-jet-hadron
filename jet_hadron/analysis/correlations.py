@@ -487,19 +487,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         _delta_phi_yield_limit = self.task_config["delta_phi_yield_limit"] * np.pi
         self.yields_delta_phi: CorrelationYields = CorrelationYields(
             near_side = extracted.ExtractedYield(
-                properties = {
-                    # TODO: Name these or remove them
-                    "name": "",
-                },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = 0,
                 extraction_limit = _delta_phi_yield_limit,
             ),
             away_side = extracted.ExtractedYield(
-                properties = {
-                    # TODO: Name these or remove them
-                    "name": "",
-                },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = np.pi,
                 extraction_limit = _delta_phi_yield_limit,
@@ -507,19 +499,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         self.yields_delta_eta: CorrelationYields = CorrelationYields(
             near_side = extracted.ExtractedYield(
-                properties = {
-                    # TODO: Name these or remove them
-                    "name": "",
-                },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = 0,
                 extraction_limit = self.task_config["delta_eta_yield_limit"],
             ),
             away_side = extracted.ExtractedYield(
-                properties = {
-                    # TODO: Name these or remove them
-                    "name": "",
-                },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = 0,
                 extraction_limit = self.task_config["delta_eta_yield_limit"],
@@ -528,12 +512,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Widths
         self.widths_delta_phi: CorrelationWidths = CorrelationWidths(
             near_side = extracted.ExtractedWidth(
-                properties = {
-                    # TODO: Name these or remove them
-                    "name": "",
-                    "fit_range": self.near_side_phi_region.range,
-                },
-                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_range = self.near_side_phi_region.range,
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
@@ -544,11 +523,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_args = {},
             ),
             away_side = extracted.ExtractedWidth(
-                properties = {
-                    "name": "",
-                    "fit_range": self.away_side_phi_region.range,
-                },
-                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_range = self.away_side_phi_region.range,
                     user_arguments = {
                         "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
@@ -561,12 +536,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         self.widths_delta_eta: CorrelationWidths = CorrelationWidths(
             near_side = extracted.ExtractedWidth(
-                properties = {
-                    "name": "",
-                    # TODO: Possibly remove this
-                    "fit_range": self.signal_dominated_eta_region.range,
-                },
-                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_range = self.signal_dominated_eta_region.range,
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
@@ -577,11 +547,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_args = {},
             ),
             away_side = extracted.ExtractedWidth(
-                properties = {
-                    "name": "",
-                    "fit_range": self.signal_dominated_eta_region.range,
-                },
-                fit_obj = fitting.FitPedestalWithExtendedGaussian(
+                fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_range = self.near_side_phi_region.range,
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
@@ -612,7 +578,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._setup_yaml()
 
     def _setup_yaml(self) -> yaml.ruamel.yaml.YAML:
-        """ Setup yaml object to read and write. """
+        """ Setup YAML object to read and write. """
         try:
             return self.yaml
         except AttributeError:
@@ -1735,8 +1701,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _retrieve_widths_from_RPF(self) -> bool:
         """ Helper function to actually extract and store widths from the RP fit. """
         logger.debug("Attempting to extract widths from the RPF fit.")
-        # TODO: Need to adapt to the new objects...
-        #       Use this to seed a new fit and then check that it's reasonable??
         # Retrieve the widths parameter and it's error
         for attribute_name, width_obj in self.widths_delta_phi:
             # Need to convert "near_side" -> "ns" to retrieve the parameters
@@ -1754,8 +1718,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(f"Extracted {attribute_name} width: {width_value}, error: {width_error}")
 
             # Store the output as seed values for the final fit.
-            width_obj.fit_obj.user_arguments["width"] = width_value
-            width_obj.fit_obj.user_arguments["error_width"] = width_error
+            width_obj.fit_object.user_arguments["width"] = width_value
+            width_obj.fit_object.user_arguments["error_width"] = width_error
 
         return True
 
@@ -1769,7 +1733,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Fit and extract the widths.
         for _, width_obj in self.widths_delta_phi:
-            fit_result = width_obj.fit_obj.fit(
+            fit_result = width_obj.fit_object.fit(
                 h = subtracted.hist,
             )
             # Store the result
@@ -1786,7 +1750,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Sanity check
             assert attribute_name == hist_attribute_name
             # Perform the fit.
-            fit_result = width_obj.fit_obj.fit(
+            fit_result = width_obj.fit_object.fit(
                 h = subtracted.hist,
             )
 
@@ -1795,12 +1759,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def extract_widths(self) -> None:
         """ Extract and store near-side and away-side widths. """
-        # TODO: Load fits here?
         # Delta phi
-        # Attempt to retrieve the widths from the RPF.
+        # Attempt to retrieve the widths from the RPF. These will be used to determine the initial
+        # value for the new fits.
+        # TODO: Convert RPF result to full result.
         self._retrieve_widths_from_RPF()
         logger.debug("Extracting widths via Gaussian fits")
         self._fit_and_extract_delta_phi_widths()
+        # Compare the extracted widths with those from the RPF to see if they've diverged.
 
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.
