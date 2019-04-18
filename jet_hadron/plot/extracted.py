@@ -12,7 +12,9 @@ from fractions import Fraction
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from pachyderm import histogram
+from pachyderm.utils import epsilon
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -28,6 +30,49 @@ logger = logging.getLogger(__name__)
 # Typing helpers
 Correlations = Union["correlations.DeltaPhiSignalDominated",
                      "correlations.DeltaEtaNearSide", "correlations.DeltaEtaAwaySide"]
+
+def _find_pi_coefficient(value: float, target_denominator: int = 12) -> str:
+    """ Convert a given value to a string with coefficients of pi.
+
+    For example, for a given value of 4.71..., it will return "3 * \\pi / 2."
+
+    Args:
+        value: Value for which we want the pi coefficient.
+        target_denominator: Maximum denominator. We will try to round to a fraction that is close
+            to a fraction where this is the maximum denominator. Default: 12, which will work for
+            both fractions that are factors of 3 and 4.
+    Returns:
+        LaTeX string containing the coefficient with pi.
+    """
+    # Since any value we pass here is almost certainly a multiple of pi, we try to express it
+    # more naturally as a value like pi/2 or 3*pi/2
+    # We use a rounding trick to try to account for floating point rounding issues.
+    # See: https://stackoverflow.com/a/11269128
+    coefficient = Fraction(int(round(value / np.pi * target_denominator)), target_denominator)
+    leading_coefficient = ""
+    if coefficient.numerator != 1:
+        leading_coefficient = f"{coefficient.numerator}"
+    s = fr"{leading_coefficient}\pi/{coefficient.denominator}"
+    return s
+
+def _find_extraction_range_min_and_max_in_hist(h: histogram.Histogram1D,
+                                               extraction_range: params.SelectedRange) -> Tuple[float, float]:
+    """ Find the min and max given the extraction range subject to the binning of the hist.
+
+    The idea is that if the hist has bins every 0.1, and our limits are [0.02, 0.58], then the actual limits
+    are [0.0, 0.6].
+
+    Args:
+        h: Histogram whose binning will be used.
+        extraction_range: Extraction range that is used with the histogram.
+    Returns:
+        The extraction range based on the histogram binning.
+    """
+    min_value = h.bin_edges[h.find_bin(extraction_range.min + epsilon)]
+    # We need a +1 on the upper limit because the integral is inclusive of the upper bin.
+    max_value = h.bin_edges[h.find_bin(extraction_range.max - epsilon) + 1]
+    logger.debug(f"extraction_range: {extraction_range}, min_value: {min_value}, max_value: {max_value}")
+    return min_value, max_value
 
 def delta_eta_with_gaussian(analysis: "correlations.Correlations") -> None:
     """ Plot the subtracted delta eta near-side. """
@@ -215,7 +260,6 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     assert inclusive_analysis is not None
 
     # Labels.
-    # TODO: Extraction limits
     # General
     text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
     text += "\n" + labels.system_label(
@@ -328,10 +372,17 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         return analysis.yields_delta_phi.near_side.value
 
     def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
-        """ Helper function to provide the yield extraction range. """
+        """ Helper function to provide the yield extraction range.
+
+        We want to extract the value from the hist itself in case the binning is off (it shouldn't be).
+        """
+        # Setup
+        min_value, max_value = _find_extraction_range_min_and_max_in_hist(
+            h = analysis.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            extraction_range = analysis.yields_delta_phi.near_side.extraction_range,
+        )
         return labels.make_valid_latex_string(
-            r"\text{Yield extraction range:}"
-            fr" |\Delta\varphi| < {analysis.yields_delta_phi.near_side.extraction_range.max}"
+            r"\text{Yield extraction range:}\:|\Delta\varphi| < " + f"{_find_pi_coefficient(max_value)}"
         )
 
     _extracted_values(
@@ -346,7 +397,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_phi_near_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
-        #extraction_range_func = near_side_extraction_range,
+        extraction_range_func = near_side_extraction_range,
     )
 
 def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
@@ -358,11 +409,20 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
         return analysis.yields_delta_phi.away_side.value
 
     def away_side_extraction_range(analysis: "correlations.Correlations") -> str:
-        """ Helper function to provide the yield extraction range. """
+        """ Helper function to provide the yield extraction range.
+
+        We want to extract the value from the hist itself in case the binning is off (it shouldn't be).
+        """
+        # Setup
+        min_value, max_value = _find_extraction_range_min_and_max_in_hist(
+            h = analysis.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            extraction_range = analysis.yields_delta_phi.away_side.extraction_range,
+        )
         return labels.make_valid_latex_string(
-            r"\text{Yield extraction range:}"
-            fr" {analysis.yields_delta_phi.away_side.extraction_range.min} < |\Delta\varphi| <"
-            fr" {analysis.yields_delta_phi.away_side.extraction_range.max}"
+            r"\text{Yield extraction range:}\:"
+            fr" {_find_pi_coefficient(min_value)}"
+            r" < |\Delta\varphi| <"
+            fr" {_find_pi_coefficient(max_value)}"
         )
 
     _extracted_values(
@@ -377,19 +437,14 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_phi_away_side",
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
-        #extraction_range_func = away_side_extraction_range,
+        extraction_range_func = away_side_extraction_range,
     )
 
 def delta_eta_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
     """ Provides a string that describes the delta phi projection range for delta eta plots. """
     # The limit is almost certainly a multiple of pi, so we try to express it more naturally
     # as a value like pi/2 or 3*pi/2
-    # This relies on this dividing cleanly. It usually seems  to work.
-    coefficient = Fraction(inclusive_analysis.near_side_phi_region.max / np.pi)
-    leading_coefficient = ""
-    if coefficient.numerator != 1:
-        leading_coefficient = f"{coefficient.numerator}"
-    value = fr"{leading_coefficient}\pi/{coefficient.denominator}"
+    value = _find_pi_coefficient(value = inclusive_analysis.near_side_phi_region.max)
     return labels.make_valid_latex_string(
         fr"$|\Delta\varphi|<{value}$"
     )
@@ -426,10 +481,19 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         return analysis.yields_delta_eta.near_side.value
 
     def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
-        """ Helper function to provide the yield extraction range. """
+        """ Helper function to provide the yield extraction range.
+
+        We want to extract the value from the hist itself in case the binning is off (it shouldn't be).
+        """
+        # Setup
+        min_value, max_value = _find_extraction_range_min_and_max_in_hist(
+            h = analysis.correlation_hists_delta_eta_subtracted.near_side.hist,
+            extraction_range = analysis.yields_delta_eta.near_side.extraction_range,
+        )
+        # Due to floating point rounding issues, we need to apply our rounding trick here.
         return labels.make_valid_latex_string(
-            r"\text{Yield extraction range:}"
-            fr" |\Delta\eta| < {analysis.yields_delta_eta.near_side.extraction_range.max}"
+            r"\text{Yield extraction range:}\:"
+            fr" |\Delta\eta| < {int(round(max_value * 10)) / 10}"
         )
 
     _extracted_values(
@@ -444,6 +508,6 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         output_name = "yields_delta_eta_near_side",
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
-        #extraction_range_func = near_side_extraction_range,
+        extraction_range_func = near_side_extraction_range,
     )
 

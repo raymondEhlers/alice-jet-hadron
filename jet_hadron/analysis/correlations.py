@@ -483,6 +483,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             ),
         )
         # Yields
+        # Multiply by pi (the value is defined such that this is expected).
+        _delta_phi_yield_limit = self.task_config["delta_phi_yield_limit"] * np.pi
         self.yields_delta_phi: CorrelationYields = CorrelationYields(
             near_side = extracted.ExtractedYield(
                 properties = {
@@ -491,7 +493,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = 0,
-                extraction_limit = self.task_config["delta_phi_yield_limit"],
+                extraction_limit = _delta_phi_yield_limit,
             ),
             away_side = extracted.ExtractedYield(
                 properties = {
@@ -500,7 +502,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 },
                 value = analysis_objects.ExtractedObservable(-1, -1),
                 central_value = np.pi,
-                extraction_limit = self.task_config["delta_phi_yield_limit"],
+                extraction_limit = _delta_phi_yield_limit,
             ),
         )
         self.yields_delta_eta: CorrelationYields = CorrelationYields(

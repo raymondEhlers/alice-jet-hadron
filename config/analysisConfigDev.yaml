@@ -53,7 +53,7 @@ Correlations:
     deltaPhiRanges:
         # +/- pi/2 from 0. The values are multiplied by pi.
         nearSide: [-0.5, 0.5]
-        # +/- pi/2 from pi. the values are multiplied by pi.
+        # +/- pi/2 from pi. The values are multiplied by pi.
         # These values are defined relative to pi.
         awaySide: [-0.5, 0.5]
     mixedEventNormalizationOptions:
@@ -65,7 +65,10 @@ Correlations:
     1d_rebin_factor_delta_phi: 1
     mixed_events_with_EP_dependence: false
     use_broader_high_pt_mixed_events: true
-    delta_phi_yield_limit: 1.0
+    # Should be +/- pi/3 from the central value.
+    # This value will multiplied by pi.
+    delta_phi_yield_limit: 0.33333
+    # This value is just 0.6 (ie corresponding to the signal dominated region).
     delta_eta_yield_limit: 0.6
     processingOptions:
         # 2D
