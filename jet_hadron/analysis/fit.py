@@ -15,7 +15,7 @@ from pachyderm import histogram
 from pachyderm import yaml
 import pprint
 import sys
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 import reaction_plane_fit.base
 
@@ -23,6 +23,9 @@ from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
 
 import ROOT
+
+if TYPE_CHECKING:
+    from jet_hadron.analysis import extracted
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +130,69 @@ class FitResult(reaction_plane_fit.base.FitResult):
     @property
     def nDOF(self) -> int:
         return self.n_fit_data_points - len(self.free_parameters)
+
+def RPF_result_to_width_fit_result(rpf_result: reaction_plane_fit.base.FitResult,
+                                   short_name: str,
+                                   subtracted_hist: histogram.Histogram1D,
+                                   width_obj: "extracted.ExtractedWidth") -> bool:
+    """ Convert from a RPF fit result into a width fit result
+
+    Note:
+        This uses a chi squared cost function to calculate the minimum value for the width aspect of the fit.
+
+    Args:
+        rpf_result: Result from the reaction plane fit.
+        short_name: Shortened version of the attribute name. Should be "ns" (for near side) or "as" (for away side).
+        subtracted_hist: Subtracted histogram which this is supposed to fit.
+        width_obj: Width object where the fit result will be stored.
+    Returns:
+        True if the fit result was successfully extracted.
+    """
+    # NOTE: This function is just a work in progress!!
+
+    # Create chi squared object to calculate the minimum value.
+    cost_func = ChiSquared(f = width_obj.fit_object.fit_function, data = subtracted_hist)
+    # We want the func_code because it describe will then exclude the x parameter (which is what we want)
+    parameters = cost_func.func_code
+    fixed_parameters = ["mean", "pedestal"]
+    free_parameters = ["width", "amplitude"]
+    # Map between our new width fit parameters and those of the RPF.
+    parameter_name_map = {
+        "width": f"{short_name}_sigma",
+        "amplitude": f"{short_name}_amplitude",
+    }
+    # Need to carefully grab the available values corresponding to the parameters or free_parameters, respectively.
+    # NOTE: We cannot just iterate over the dict(s) themselves and check if the keys are in parameters because
+    #       the parameters are de-duplicated, and thus the order can be wrong. In particular, for signal fits,
+    #       B of the background fit ends up at the end of the dict because all of the other parameters are already
+    #       defined for the signal fit. This approach won't have a problem with this, because we retrieve the values
+    #       in the order of the parameters of the current fit component.
+    # NOTE: The RPF will only have values for the free parameters in our width fit.
+    values_at_minimum = {p: rpf_result.values_at_minimum[parameter_name_map[p]] for p in free_parameters}
+    errors_on_parameters = {p: rpf_result.errors_on_parameters[parameter_name_map[p]] for p in free_parameters}
+    covariance_matrix = {
+        (a, b): rpf_result.covariance_matrix[(a, b)] for a in free_parameters for b in free_parameters
+    }
+
+    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
+    #       It won't show up doing normal type checking, but seems to appear when checking the commit
+    width_obj.fit_object.fit_result = FitResult(  # type: ignore
+        parameters = parameters,
+        free_parameters = free_parameters,
+        fixed_parameters = fixed_parameters,
+        values_at_minimum = values_at_minimum,
+        errors_on_parameters = errors_on_parameters,
+        covariance_matrix = covariance_matrix,
+        x = subtracted_hist.x,
+        # This will be determine and set below.
+        errors = np.array([]),
+        n_fit_data_points = len(subtracted_hist.x),
+        minimum_val = cost_func(list(values_at_minimum.values())),
+    )
+
+    width_obj.fit_object.calculate_errors(x = subtracted_hist.x)
+
+    return True
 
 class ChiSquared:
     """ chi^2 cost function.
