@@ -14,7 +14,6 @@ import numpy as np
 from pachyderm import histogram
 from pachyderm import yaml
 import pprint
-import scipy.optimize as optimization
 import sys
 from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, Union
 
@@ -249,126 +248,6 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
     return fit_result
 
-def fit_pedestal_to_histogram(h: histogram.Histogram1D,
-                              fit_arguments: FitArguments, use_minos: bool = False) -> FitResult:
-    """ Fit the given histogram to a pedestal.
-
-    Args:
-        h: Histogram to be fit.
-        fit_arguments: Arguments to override the default fit arguments.
-        use_minos: If True, minos errors will be calculated.
-    Returns:
-        Fit result from the fit.
-    """
-    # Required arguments for the fit
-    arguments: FitArguments = {
-        "pedestal": 1, "limit_pedestal": (-0.5, 1000),
-    }
-
-    # Perform the fit
-    fit_result = fit_with_chi_squared(
-        fit_func = lambda x, pedestal: pedestal,
-        arguments = arguments, user_arguments = fit_arguments,
-        h = h, use_minos = use_minos,
-    )
-
-    return fit_result
-
-def fit_pedestal_to_delta_eta_background_dominated_region(h: histogram.Histogram1D,
-                                                          fit_range: params.SelectedRange) -> Tuple[float, float]:
-    """ Fit a pedestal to a histogram using ``scipy.optimize.curvefit``.
-
-    The initial value of the fit will be determined by the minimum y value of the histogram.
-
-    Args:
-        h: Histogram to be fit.
-        fit_range: Min and max values within which the fit will be performed.
-    Returns:
-        (constant, error)
-    """
-    # TODO: Update to use minuit!
-    # For example, -1.2 < h.x < -0.8
-    negative_restricted_range = (h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.max)
-    # For example, 0.8 < h.x < 1.2
-    positive_restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
-    restricted_range = negative_restricted_range | positive_restricted_range
-    constant, covariance_matrix = optimization.curve_fit(
-        f = lambda x, c: c,
-        xdata = h.x[restricted_range], ydata = h.y[restricted_range], p0 = np.min(h.y[restricted_range]),
-        sigma = h.errors[restricted_range],
-    )
-
-    # Error reference: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
-    error = float(np.sqrt(np.diag(covariance_matrix)))
-
-    return float(constant), error
-
-@dataclass
-class GaussianFitInputs:
-    """ Storage for Gaussian fit inputs.
-
-    Attributes:
-        mean: Mean value of the Gaussian.
-        initial_width: Initial value of the Gaussian fit.
-        fit_range: Min and max values within which the fit will be performed.
-    """
-    mean: float
-    initial_width: float
-    fit_range: params.SelectedRange
-
-def gaussian(x: float, mean: float, width: float) -> float:
-    """ Normalized gaussian.
-
-    Args:
-        x: Independent variable.
-        mean: Mean.
-        width: Width.
-    Returns:
-        Normalized gaussian value.
-    """
-    return 1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2)
-
-def fit_gaussian(h: histogram.Histogram1D,
-                 fit_arguments: FitArguments,
-                 use_minos: bool = False) -> FitResult:
-    """ Fit the given histogram to a normalized gaussian.
-
-    Args:
-        h: Histogram to be fit.
-        fit_arguments: Arguments to override the default fit arguments.
-        use_minos: If True, minos errors will be calculated.
-    Returns:
-        Fit result from the fit.
-    """
-    # Required arguments for the fit
-    arguments: FitArguments = {
-        "mean": 0, "limit_mean": (-0.5, 0.5),
-        "width": 0.15, "limit_width": (0.05, 0.8),
-    }
-
-    # Perform the fit
-    fit_result = fit_with_chi_squared(
-        fit_func = gaussian,
-        arguments = arguments, user_arguments = fit_arguments,
-        h = h, use_minos = use_minos
-    )
-
-    return fit_result
-
-def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
-    """ Pedestal + extended (unnormalized) gaussian
-
-    Args:
-        x: Independent variable.
-        mean: Gaussian mean.
-        width: Gaussian width.
-        amplitude: Amplitude of the gaussian.
-        pedestal: Pedestal value.
-    Returns:
-        Function value.
-    """
-    return pedestal + amplitude * gaussian(x = x, mean = mean, width = width)
-
 T_Fit = TypeVar("T_Fit", bound = "Fit")
 
 class Fit(ABC):
@@ -382,10 +261,12 @@ class Fit(ABC):
         fit_function: Function to be fit.
         fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    @abc.abstractmethod
     def __init__(self, fit_range: params.SelectedRange, user_arguments: Optional[FitArguments] = None):
-        self.fit_range: params.SelectedRange
-        self.user_arguments: FitArguments
+        # Validation
+        if user_arguments is None:
+            user_arguments = {}
+        self.fit_range = fit_range
+        self.user_arguments: FitArguments = user_arguments
         self.fit_function: Callable[..., float]
         self.fit_result: FitResult
 
@@ -414,10 +295,9 @@ class Fit(ABC):
             x = x,
         )
 
-    @abc.abstractmethod
     def fit(self, h: histogram.Histogram1D,
             user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:
-        """ Fit the given histogram using the defined fit function.
+        """ Fit the given histogram to the stored fit function using iminuit.
 
         Args:
             h: Background subtracted histogram to be fit.
@@ -425,7 +305,37 @@ class Fit(ABC):
                 was created). Default: None.
             use_minos: If True, minos errors will be calculated. Default: False.
         Returns:
-            Result of the fit.
+            Result of the fit. The user is responsible for storing it in the fit.
+        """
+        # Validation
+        if user_arguments is None:
+            user_arguments = {}
+        # Copy the user arguments so that we don't modify the arguments passed to the class if when we update them.
+        user_fit_arguments = dict(self.user_arguments)
+        # Update with any additional user provided arguments
+        user_fit_arguments.update(user_arguments)
+
+        # Setup the fit
+        hist_for_fit, arguments = self._setup(h = h)
+
+        # Perform the fit by minimizing the chi squared
+        fit_result = fit_with_chi_squared(
+            fit_func = self.fit_function,
+            arguments = arguments, user_arguments = user_fit_arguments,
+            h = hist_for_fit, use_minos = use_minos
+        )
+
+        return fit_result
+
+    @abc.abstractmethod
+    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
+        """ Setup the histogram and arguments for the fit.
+
+        Args:
+            h: Background subtracted histogram to be fit.
+        Returns:
+            Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
+                restricted or otherwise modified here.
         """
         ...
 
@@ -482,6 +392,113 @@ class Fit(ABC):
         # Now that the object is fully constructed, we can return it.
         return obj
 
+class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
+    """ Fit a pedestal to the background dominated region of a delta eta hist.
+
+    The initial value of the fit will be determined by the minimum y value of the histogram.
+
+    Attributes:
+        fit_range: Range used for fitting the data. Values inside of this range will be used.
+        user_arguments: User arguments for the fit. Default: None.
+        fit_function: Function to be fit.
+        fit_result: Result of the fit. Only valid after the fit has been performed.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Finally, setup the fit function
+        # NOTE: We specify 0 * x so that we can get proper array evaluation. If there's no
+        #       explicit x dependence, it will only return a single value.
+        self.fit_function: Callable[..., float] = lambda x, pedestal: 0 * x + pedestal
+
+    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
+        """ Setup the histogram and arguments for the fit.
+
+        Args:
+            h: Background subtracted histogram to be fit.
+        Returns:
+            Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
+                restricted or otherwise modified here.
+        """
+        restricted_range = (
+            # For example, -1.2 < h.x < -0.8
+            (h.x < -1 * self.fit_range.min) & (h.x > -1 * self.fit_range.max)
+            # For example, 0.8 < h.x < 1.2
+            | (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+        )
+        # Same conditions as above, but we need the bin edges to be inclusive.
+        bin_edges_restricted_range = (
+            (h.bin_edges <= -1 * self.fit_range.min) & (h.bin_edges >= -1 * self.fit_range.max)
+            | (h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)
+        )
+        restricted_hist = histogram.Histogram1D(
+            bin_edges = h.bin_edges[bin_edges_restricted_range],
+            y = h.y[restricted_range],
+            errors_squared = h.errors_squared[restricted_range]
+        )
+
+        # Default arguments
+        # Use the minimum of the histogram as the starting value.
+        min_hist = np.min(restricted_hist.y)
+        arguments: FitArguments = {
+            "pedestal": min_hist, "error_pedestal": min_hist * 0.1,
+            "limit_pedestal": (-1000, 1000),
+        }
+
+        return restricted_hist, arguments
+
+def gaussian(x: float, mean: float, width: float) -> float:
+    """ Normalized gaussian.
+
+    Args:
+        x: Independent variable.
+        mean: Mean.
+        width: Width.
+    Returns:
+        Normalized gaussian value.
+    """
+    return 1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2)
+
+def fit_gaussian(h: histogram.Histogram1D,
+                 fit_arguments: FitArguments,
+                 use_minos: bool = False) -> FitResult:
+    """ Fit the given histogram to a normalized gaussian.
+
+    Args:
+        h: Histogram to be fit.
+        fit_arguments: Arguments to override the default fit arguments.
+        use_minos: If True, minos errors will be calculated.
+    Returns:
+        Fit result from the fit.
+    """
+    # Required arguments for the fit
+    arguments: FitArguments = {
+        "mean": 0, "limit_mean": (-0.5, 0.5),
+        "width": 0.15, "limit_width": (0.05, 0.8),
+    }
+
+    # Perform the fit
+    fit_result = fit_with_chi_squared(
+        fit_func = gaussian,
+        arguments = arguments, user_arguments = fit_arguments,
+        h = h, use_minos = use_minos
+    )
+
+    return fit_result
+
+def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
+    """ Pedestal + extended (unnormalized) gaussian
+
+    Args:
+        x: Independent variable.
+        mean: Gaussian mean.
+        width: Gaussian width.
+        amplitude: Amplitude of the gaussian.
+        pedestal: Pedestal value.
+    Returns:
+        Function value.
+    """
+    return pedestal + amplitude * gaussian(x = x, mean = mean, width = width)
+
 class FitPedestalWithExtendedGaussian(Fit):
     """ Fit a pedestal + extended (unnormalized) gaussian to a signal peak using iminuit.
 
@@ -491,35 +508,20 @@ class FitPedestalWithExtendedGaussian(Fit):
         fit_function: Function to be fit.
         fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    def __init__(self, fit_range: params.SelectedRange, user_arguments: Optional[FitArguments] = None):
-        # Validation
-        if user_arguments is None:
-            user_arguments = {}
-        self.fit_range = fit_range
-        self.user_arguments: FitArguments = user_arguments
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Finally, setup the fit function
         self.fit_function: Callable[..., float] = pedestal_with_extended_gaussian
-        self.fit_result: FitResult
 
-    def fit(self, h: histogram.Histogram1D,
-            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:
-        """ Fit a gaussian to a signal peak using iminuit.
+    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
+        """ Setup the histogram and arguments for the fit.
 
         Args:
             h: Background subtracted histogram to be fit.
-            user_arguments: Additional user arguments (beyond those already specified when the object
-                was created). Default: None.
-            use_minos: If True, minos errors will be calculated. Default: False.
         Returns:
-            Result of the fit. The user is responsible for storing it in the fit.
+            Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
+                restricted or otherwise modified here.
         """
-        # Validation
-        if user_arguments is None:
-            user_arguments = {}
-        # Copy the user arguments so that we don't modify the arguments passed to the class if when we update them.
-        user_fit_arguments = dict(self.user_arguments)
-        # Update with any additional user provided arguments
-        user_fit_arguments.update(user_arguments)
-
         # Restrict the range so that we only fit within the desired input.
         restricted_range = (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
         restricted_hist = histogram.Histogram1D(
@@ -529,7 +531,6 @@ class FitPedestalWithExtendedGaussian(Fit):
             errors_squared = h.errors_squared[restricted_range]
         )
 
-        # Perform the fit
         # Default arguments required for the fit
         arguments: FitArguments = {
             "pedestal": 0, "limit_pedestal": (-1000, 1000), "error_pedestal": 0.1,
@@ -538,12 +539,5 @@ class FitPedestalWithExtendedGaussian(Fit):
             "width": 0.15, "limit_width": (0.05, 0.8), "error_width": 0.1 * 0.15,
         }
 
-        # Perform the fit by minimizing the chi squared
-        fit_result = fit_with_chi_squared(
-            fit_func = self.fit_function,
-            arguments = arguments, user_arguments = user_fit_arguments,
-            h = restricted_hist, use_minos = use_minos
-        )
-
-        return fit_result
+        return restricted_hist, arguments
 
