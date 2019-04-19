@@ -37,7 +37,7 @@ FitObjects = Mapping[Any, rpf.fit.ReactionPlaneFit]
 
 @dataclass
 class ParameterInfo:
-    """ Simple helper class to store inforamtion about each fit parameter for plotting.
+    """ Simple helper class to store information about each fit parameter for plotting.
 
     Attributes:
         name: Name of the parameter in the fit. Used to extract it from the stored fit result.
@@ -370,7 +370,7 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
-            f"# of analyis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+            f"# of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
         )
 
     x = rp_fit.fit_result.x
@@ -428,7 +428,7 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
-            f"# of analyis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+            f"# of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
         )
 
     x = rp_fit.fit_result.x
