@@ -458,33 +458,6 @@ def gaussian(x: float, mean: float, width: float) -> float:
     """
     return 1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2)
 
-def fit_gaussian(h: histogram.Histogram1D,
-                 fit_arguments: FitArguments,
-                 use_minos: bool = False) -> FitResult:
-    """ Fit the given histogram to a normalized gaussian.
-
-    Args:
-        h: Histogram to be fit.
-        fit_arguments: Arguments to override the default fit arguments.
-        use_minos: If True, minos errors will be calculated.
-    Returns:
-        Fit result from the fit.
-    """
-    # Required arguments for the fit
-    arguments: FitArguments = {
-        "mean": 0, "limit_mean": (-0.5, 0.5),
-        "width": 0.15, "limit_width": (0.05, 0.8),
-    }
-
-    # Perform the fit
-    fit_result = fit_with_chi_squared(
-        fit_func = gaussian,
-        arguments = arguments, user_arguments = fit_arguments,
-        h = h, use_minos = use_minos
-    )
-
-    return fit_result
-
 def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
     """ Pedestal + extended (unnormalized) gaussian
 
