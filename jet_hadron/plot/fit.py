@@ -301,8 +301,6 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
     Returns:
         None. The axes are modified in place.
     """
-    #x = rp_fit.fit_result.x
-    #for (fit_type, component), ax in zip(rp_fit.components.items(), axes):
     for (key_index, analysis), ax in zip(ep_analyses, axes):
         hists = analysis.correlation_hists_delta_phi_subtracted
         h = hists.signal_dominated.hist
@@ -311,6 +309,16 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
             label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
+        )
+
+        # Plot the background uncertainty separately.
+        background_error = analysis.fit_object.calculate_background_function_errors(h.x)
+        ax.fill_between(
+            h.x,
+            h.y - background_error,
+            h.y + background_error,
+            label = "RP background uncertainty",
+            color = plot_base.AnalysisColors.fit,
         )
 
         # Label RP orientation
@@ -782,6 +790,15 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
     ax.errorbar(
         h.x, h.y, yerr = h.errors,
         label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
+    )
+    # Plot the background uncertainty separately.
+    background_error = analysis.fit_object.calculate_background_function_errors(h.x)
+    ax.fill_between(
+        h.x,
+        h.y - background_error,
+        h.y + background_error,
+        label = "RP background uncertainty",
+        color = plot_base.AnalysisColors.fit,
     )
     # Line for comparison
     ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
