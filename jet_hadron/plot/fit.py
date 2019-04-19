@@ -571,10 +571,14 @@ def delta_eta_fit(analysis: "correlations.Correlations") -> None:
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # Plot both the near side and the away side.
-    attribute_names = ["near_side", "away_side"]
-    for attribute_name in attribute_names:
+    for (attribute_name, correlation), (fit_attribute_name, fit_object) in \
+            zip(analysis.correlation_hists_delta_eta, analysis.fit_objects_delta_eta):
+        if attribute_name != fit_attribute_name:
+            raise ValueError(
+                "Issue extracting hist and pedestal fit object together."
+                f"Correlation obj name: {attribute_name}, pedestal fit obj name: {fit_attribute_name}"
+            )
         # Setup an individual hist
-        correlation = getattr(analysis.correlation_hists_delta_eta, attribute_name)
         h = histogram.Histogram1D.from_existing_hist(correlation.hist)
         label = correlation.type.display_str()
 
@@ -599,33 +603,34 @@ def delta_eta_fit(analysis: "correlations.Correlations") -> None:
         )
 
         # Next, plot the pedestal following the same format
-        fit_result = getattr(analysis.fit_objects_delta_eta, attribute_name)
         # First plot the restricted values
         # We have to plot the fit data in two separate halves to prevent the lines
         # from being connected across the region where were don't fit.
         # Plot the left half
         pedestal_plot = ax.plot(
             h.x[negative_restricted_range],
-            fit_result.value * np.ones(len(h.x[negative_restricted_range])),
+            fit_object(h.x[negative_restricted_range], **fit_object.fit_result.values_at_minimum),
             label = "Pedestal",
         )
         # And then the right half
         ax.plot(
             h.x[positive_restricted_range],
-            fit_result.value * np.ones(len(h.x[positive_restricted_range])),
+            fit_object(h.x[positive_restricted_range], **fit_object.fit_result.values_at_minimum),
             color = pedestal_plot[0].get_color(),
         )
         # Then plot the errors over the entire range.
+        fit_values = fit_object(h.x, **fit_object.fit_result.values_at_minimum)
+        fit_errors = fit_object.calculate_errors(h.x)
         ax.fill_between(
             h.x,
-            (fit_result.value - fit_result.error) * np.ones(len(h.x)),
-            (fit_result.value + fit_result.error) * np.ones(len(h.x)),
+            fit_values - fit_errors,
+            fit_values + fit_errors,
             facecolor = pedestal_plot[0].get_color(), alpha = 0.7,
         )
         # Then plot over the entire range using a dashed line.
         ax.plot(
             h.x,
-            fit_result.value * np.ones(len(h.x)),
+            fit_values,
             linestyle = "--",
             color = pedestal_plot[0].get_color(),
         )

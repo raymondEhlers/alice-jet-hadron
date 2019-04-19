@@ -297,16 +297,11 @@ class CorrelationHistogramsDeltaEta:
             yield k, v
 
 @dataclass
-class PedestalFitResult:
-    value: float
-    error: float
-
-@dataclass
 class DeltaEtaFitObjects:
-    near_side: PedestalFitResult
-    away_side: PedestalFitResult
+    near_side: fitting.PedestalForDeltaEtaBackgroundDominatedRegion
+    away_side: fitting.PedestalForDeltaEtaBackgroundDominatedRegion
 
-    def __iter__(self) -> Iterator[Tuple[str, PedestalFitResult]]:
+    def __iter__(self) -> Iterator[Tuple[str, fitting.PedestalForDeltaEtaBackgroundDominatedRegion]]:
         for k, v in vars(self).items():
             yield k, v
 
@@ -562,8 +557,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Fit object
         self.fit_object: rpf.fit.FitComponent
         self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
-            near_side = PedestalFitResult(value = -1, error = -1),
-            away_side = PedestalFitResult(value = -1, error = -1),
+            near_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
+                fit_range = self.background_dominated_eta_region.range
+            ),
+            away_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
+                fit_range = self.background_dominated_eta_region.range
+            ),
         )
 
         # Other relevant analysis information
@@ -1540,17 +1539,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def fit_delta_eta_correlations(self) -> None:
         """ Fit a pedestal to the background dominated region of the delta eta correlations. """
-        attribute_names = ["near_side", "away_side"]
-        for attribute_name in attribute_names:
-            correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
-            constant, error = fitting.fit_pedestal_to_delta_eta_background_dominated_region(
-                h = histogram.Histogram1D.from_existing_hist(correlation.hist),
-                fit_range = self.background_dominated_eta_region.range,
+        for (attribute_name, fit_object), (correlation_attribute_name, correlation) in \
+                zip(self.fit_objects_delta_eta, self.correlation_hists_delta_eta):
+            if attribute_name != correlation_attribute_name:
+                raise ValueError(
+                    "Issue extracting pedestal fit object and hist together."
+                    f"Pedestal fit obj name: {attribute_name}, correlation obj name: {correlation_attribute_name}"
+                )
+            # Fit the pedestal
+            fit_result = fit_object.fit(
+                h = histogram.Histogram1D.from_existing_hist(correlation.hist)
             )
-
             # Store the result
-            fit_result = PedestalFitResult(value = constant, error = error)
-            setattr(self.fit_objects_delta_eta, attribute_name, fit_result)
+            fit_object.fit_result = fit_result
 
     def subtract_background_fit_function_from_signal_dominated(self) -> None:
         """ Subtract the background function extract from a fit from the signal dominated hist.
@@ -1620,19 +1621,17 @@ class Correlations(analysis_objects.JetHReactionPlane):
         Returns:
             None. The subtracted hist is stored.
         """
-        attribute_names = ["near_side", "away_side"]
         # We will use the near-side pedestal for _both_ the near-side and away-side
         fit_object = self.fit_objects_delta_eta.near_side
-        for attribute_name in attribute_names:
+        for attribute_name, correlation in self.correlation_hists_delta_eta:
             # Retrieve the hist
-            correlation = getattr(self.correlation_hists_delta_eta, attribute_name)
             correlation_hist = histogram.Histogram1D.from_existing_hist(correlation.hist)
 
             # Determine the pedestal representing the background.
             background_hist = histogram.Histogram1D(
                 bin_edges = correlation_hist.bin_edges,
-                y = fit_object.value * np.ones(len(correlation_hist.x)),
-                errors_squared = (fit_object.error * np.ones(len(correlation_hist.x))) ** 2,
+                y = fit_object(correlation_hist.x, fit_object.fit_result.values_at_minimum["pedestal"]),
+                errors_squared = fit_object.calculate_errors(x = correlation_hist.x) ** 2,
             )
 
             # Subtract and store the output
