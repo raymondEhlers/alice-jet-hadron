@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pachyderm import histogram
 from pachyderm.utils import epsilon
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -170,6 +170,28 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
             x, gauss - error, gauss + error,
             facecolor = fit_plot[0].get_color(), alpha = 0.5,
         )
+
+        # This means that we extracted values from the RP fit. Let's also plot them for comparison
+        if width_obj.fit_args != {}:
+            args = dict(width_obj.fit_result.values_at_minimum)
+            args.update({
+                # Help out mypy...
+                k: cast(float, v) for k, v in width_obj.fit_args.items() if "error_" not in k
+            })
+            rpf_gauss = width_obj.fit_object(x, **args)
+            rp_fit_plot = ax.plot(
+                x, rpf_gauss,
+                label = fr"RPF {attribute_display_name} gaussian fit: $\mu = $ {width_obj.mean:.2f}"
+                        fr", $\sigma = $ {width_obj.fit_args['width']:.2f}",
+            )
+            # Fill in the error band.
+            # NOTE: Strictly speaking, this error band isn't quite right (since it is dependent on the fit result
+            # of the actual width fit), but I think it's fine for these purposes.
+            error = width_obj.fit_object.calculate_errors(x = x)
+            ax.fill_between(
+                x, rpf_gauss - error, rpf_gauss + error,
+                facecolor = rp_fit_plot[0].get_color(), alpha = 0.1,
+            )
 
     # Labels.
     ax.set_xlabel(labels.make_valid_latex_string(correlation.axis.display_str()))

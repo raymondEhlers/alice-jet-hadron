@@ -1717,13 +1717,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(f"Extracted {attribute_name} width: {width_value}, error: {width_error}")
 
             # Store the output as seed values for the final fit.
-            width_obj.fit_object.user_arguments["width"] = width_value
-            width_obj.fit_object.user_arguments["error_width"] = width_error
+            width_obj.fit_args["width"] = width_value
+            width_obj.fit_args["error_width"] = width_error
 
             # If the widths are there, then the amplitudes are too. We can also take advantage of them to seed the fit.
-            width_obj.fit_object.user_arguments["amplitude"] = \
+            width_obj.fit_args["amplitude"] = \
                 self.fit_object.fit_result.values_at_minimum[f"{short_name}_amplitude"]
-            width_obj.fit_object.user_arguments["error_amplitude"] = \
+            width_obj.fit_args["error_amplitude"] = \
                 self.fit_object.fit_result.errors_on_parameters[f"{short_name}_amplitude"]
 
         return True
@@ -1774,7 +1774,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         if retrieved_seed_widths_from_RPF:
             for attribute_name, width_obj in self.widths_delta_phi:
                 for attr in ["width", "amplitude"]:
-                    rpf_value = width_obj.fit_object.user_arguments[attr]
+                    rpf_value = width_obj.fit_args[attr]
                     width_fit_value = width_obj.fit_result.values_at_minimum[attr]
                     # Help out mypy...
                     assert isinstance(rpf_value, float) and isinstance(width_fit_value, float)
