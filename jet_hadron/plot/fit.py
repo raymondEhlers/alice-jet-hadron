@@ -92,7 +92,6 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
     )
     prefix = "fit_parameter"
     parameters = [
-        # TODO: Add the rest of the parameters.
         ParameterInfo(
             name = "v2_t",
             output_name = f"{prefix}_v2t",
@@ -118,7 +117,51 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             output_name = f"{prefix}_v4a",
             labels = plot_base.PlotLabels(title = r"Associated hadron $v_{4}$", x_label = pt_assoc_label),
         ),
+        ParameterInfo(
+            name = "BG",
+            output_name = f"{prefix}_background",
+            labels = plot_base.PlotLabels(title = r"Effective RPF background", x_label = pt_assoc_label),
+        ),
     ]
+
+    # Plot the signal parameters (but only if they exist).
+    fit_obj = next(iter(fit_objects.values()))
+    if "ns_amplitude" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "ns_amplitude",
+                output_name = f"{prefix}_ns_amplitude",
+                labels = plot_base.PlotLabels(title = r"Near side gaussian amplitude", x_label = pt_assoc_label),
+            )
+        )
+    if "ns_sigma" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "ns_sigma",
+                output_name = f"{prefix}_ns_sigma",
+                labels = plot_base.PlotLabels(
+                    title = r"Near side $\sigma$", x_label = pt_assoc_label, y_label = r"$\sigma_{\text{ns}}$",
+                ),
+            )
+        )
+    if "as_amplitude" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "as_amplitude",
+                output_name = f"{prefix}_as_amplitude",
+                labels = plot_base.PlotLabels(title = r"Away side gaussian amplitude", x_label = pt_assoc_label),
+            )
+        )
+    if "as_sigma" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "as_sigma",
+                output_name = f"{prefix}_as_sigma",
+                labels = plot_base.PlotLabels(
+                    title = r"Away side $\sigma$", x_label = pt_assoc_label, y_label = r"$\sigma_{\text{as}}$"
+                ),
+            )
+        )
 
     for parameter in parameters:
         _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
