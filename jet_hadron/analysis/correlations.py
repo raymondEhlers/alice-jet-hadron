@@ -1761,11 +1761,32 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Delta phi
         # Attempt to retrieve the widths from the RPF. These will be used to determine the initial
         # value for the new fits.
-        # TODO: Convert RPF result to full result.
-        self._retrieve_widths_from_RPF()
+        retrieved_seed_widths_from_RPF = self._retrieve_widths_from_RPF()
         logger.debug("Extracting widths via Gaussian fits")
         self._fit_and_extract_delta_phi_widths()
         # Compare the extracted widths with those from the RPF to see if they've diverged.
+        if retrieved_seed_widths_from_RPF:
+            for attribute_name, width_obj in self.widths_delta_phi:
+                rpf_width = width_obj.fit_object.user_arguments["width"]
+                width_fit_width = width_obj.fit_result.values_at_minimum["width"]
+                # Help out mypy...
+                assert isinstance(rpf_width, float) and isinstance(width_fit_width, float)
+                percent_difference = (width_fit_width - rpf_width) / rpf_width
+                logger.info(
+                    f"{attribute_name} width:"
+                    f" From RPF: {rpf_width:.4f},"
+                    f" From new fit: {width_fit_width:.4f},"
+                    f" Percent difference: {percent_difference:.4f}"
+                )
+                # Warn if greater than 4% difference
+                if percent_difference > 0.04:
+                    logger.warn(f"Percent difference greater than 5%! Value: {percent_difference}")
+
+                if percent_difference > 0.1:
+                    raise RuntimeError(
+                        "Percent difference greater than 10%! Probably a fitting problem which needs to be investigated!"
+                        f" Value: {percent_difference}"
+                    )
 
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.
