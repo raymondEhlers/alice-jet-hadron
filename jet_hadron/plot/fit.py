@@ -401,6 +401,7 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig,
                         f"jetH_delta_phi_{inclusive_analysis.identifier}_rp_subtracted")
+    plt.close(fig)
 
 def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
     """ Plot the RP fit components on a given set of axes.
@@ -416,12 +417,12 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
     if len(rp_fit.components) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of fit components."
-            f"# of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+            f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
         )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
-            f"# of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+            f" # of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
         )
 
     x = rp_fit.fit_result.x
@@ -474,12 +475,12 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
     if len(rp_fit.components) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of fit components."
-            f"# of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+            f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
         )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
-            f"# of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
+            f" # of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
         )
 
     x = rp_fit.fit_result.x
@@ -746,6 +747,9 @@ def delta_eta_fit_subtracted(analysis: "correlations.Correlations") -> None:
                             f"jetH_delta_eta_{analysis.identifier}_{attribute_name}_subtracted")
         # Reset for the next iteration of the loop
         ax.clear()
+
+    # Final cleanup
+    plt.close(fig)
 
 def signal_dominated_with_background_function(analysis: "correlations.Correlations") -> None:
     """ Plot the signal dominated hist with the background function. """
