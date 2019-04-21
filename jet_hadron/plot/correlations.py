@@ -19,8 +19,8 @@ from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
-# NOTE: This is not standard for the plot packageto rely on the analysis package
-#       However, it is convenient (and it doens't cause an import loops), so we tolerate it.
+# NOTE: This is not standard for the plot package to rely on the analysis package.
+#       However, here it's convenient (and it doesn't cause an import loops), so we tolerate it.
 from jet_hadron.analysis import correlations_helpers
 
 import ROOT
@@ -304,19 +304,6 @@ def delta_eta_unsubtracted(hists: "correlations.CorrelationHistogramsDeltaEta",
     output_name = f"jetH_delta_eta_{identifier}_near_away_side_comparison"
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
-
-def plot1DCorrelationsWithFits(jet_hadron):
-    canvas = ROOT.TCanvas("canvas1D", "canvas1D")
-
-    histsWithFits = [[jet_hadron.dPhi, jet_hadron.dPhiFit], [jet_hadron.dPhiSubtracted, jet_hadron.dPhiSubtractedFit],
-                     [jet_hadron.dEtaNS, jet_hadron.dEtaNSFit], [jet_hadron.dEtaNSSubtracted, jet_hadron.dEtaNSSubtractedFit]]
-
-    for histCollection, fitCollection in histsWithFits:
-        for (name, observable), fit in zip(histCollection.items(), fitCollection.values()):
-            # Create scaled hist and plot it
-            observable.hist.Draw("")
-            fit.Draw("same")
-            plot_base.save_plot(jet_hadron.output_info, canvas, observable.hist.GetName())
 
 def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
                   our_hist: histogram.Histogram1D,

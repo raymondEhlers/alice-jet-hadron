@@ -1504,9 +1504,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
             # Write the properly scaled projections
             self._write_1d_correlations()
-
-            # Ensure that the next step in the chain is run
-            self.processing_options["fit1DCorrelations"] = True
         else:
             # Initialize the 1D correlations from the file
             logger.info("Loading 1D correlations from file")
@@ -1796,8 +1793,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     if percent_difference > 0.1:
                         raise RuntimeError(
                             f"{attr} percent difference greater than 10%!"
-                            "Probably a fitting problem which needs to be investigated!"
-                            f" Value: {percent_difference}"
+                            " Probably a fitting problem which needs to be investigated!"
+                            f" Value: {percent_difference:.4f}"
                         )
 
         # Delta eta

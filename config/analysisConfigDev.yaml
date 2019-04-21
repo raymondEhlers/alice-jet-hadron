@@ -80,10 +80,6 @@ Correlations:
         generate1DCorrelations: false
         plot1DCorrelations: false
         plot1DCorrelationsWithROOT: false
-        # Fit and subtract
-        fit1DCorrelations: true
-        plot1DCorrelationsWithFits: true
-        subtract1DCorrelations: true
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
