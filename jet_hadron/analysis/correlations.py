@@ -2118,11 +2118,16 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     analysis.ran_fitting = True
                 fitting.update()
 
-        if self.processing_options["plot_RPF"]:
+        if self.processing_options["plot_RPF_summary"]:
             # Fit parameters
             plot_fit.fit_parameters_vs_assoc_pt(
                 fit_objects = self.fit_objects,
                 selected_analysis_options = self.selected_analysis_options,
+                reference_data_path = os.path.join(
+                    "inputData",
+                    "{collision_system}", "{collision_energy}",
+                    "aliceEllipticFlow.yaml",
+                ),
                 output_info = self.output_info,
             )
 

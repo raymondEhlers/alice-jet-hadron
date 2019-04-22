@@ -12,9 +12,10 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import histogram
+from pachyderm import yaml
 
 import reaction_plane_fit as rpf
 import reaction_plane_fit.base
@@ -34,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 # Typing helpers
 FitObjects = Mapping[Any, rpf.fit.ReactionPlaneFit]
+ReferenceData = Mapping[str, Mapping[str, histogram.Histogram1D]]
 
 @dataclass
 class ParameterInfo:
@@ -43,13 +45,17 @@ class ParameterInfo:
         name: Name of the parameter in the fit. Used to extract it from the stored fit result.
         output_name: Name under which the plot will be stored.
         labels: Title and axis labels for the plot.
+        plot_reference_data_func: Function to handle plotting provided reference data. Optional.
     """
     name: str
     output_name: str
     labels: plot_base.PlotLabels
+    plot_reference_data_func: Optional[Callable[..., None]] = None
 
 def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
                                     parameter: ParameterInfo,
+                                    reference_data: ReferenceData,
+                                    selected_analysis_options: params.SelectedAnalysisOptions,
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Implementation to plot the fit parameters vs associated track pt.  """
     fig, ax = plt.subplots(figsize = (8, 6))
@@ -67,26 +73,69 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
     ax.errorbar(
         bin_centers, parameter_values, yerr = parameter_values_errors,
         marker = "o", linestyle = "",
+        label = parameter.labels.title,
     )
+
+    if parameter.plot_reference_data_func:
+        parameter.plot_reference_data_func(
+            reference_data, ax,
+            selected_analysis_options,
+        )
 
     # Labeling
     parameter.labels.apply_labels(ax)
+    ax.legend(loc = "upper left", frameon = False)
     # Final adjustments
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig, parameter.output_name)
     plt.close(fig)
 
+def _reference_v2_a_data(reference_data: ReferenceData,
+                         ax: matplotlib.axes.Axes,
+                         selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+    # Determine the centrality key (because they don't map cleanly onto our centrality ranges)
+    reference_data_centrality_map = {
+        params.EventActivity.central: "0-5",
+        params.EventActivity.semi_central: "30-40",
+    }
+    centrality_label = reference_data_centrality_map[selected_analysis_options.event_activity]
+    # Retrieve the data
+    hist = reference_data["ptDependent"][centrality_label]
+
+    # Plot and label it on the existing axis.
+    ax.errorbar(
+        hist.x, hist.y, yerr = hist.errors,
+        marker = "o", linestyle = "",
+        label = fr"ALICE {centrality_label}\% " + labels.make_valid_latex_string("v_{2}") + r"\{2, $| \Delta\eta |>1$\}",
+    )
+
 def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                                selected_analysis_options: params.SelectedAnalysisOptions,
+                               reference_data_path: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the extracted fit parameters.
 
     Args:
         fit_objects: Fit objects whose parameters will be plotted.
         selected_analysis_options: Selected analysis options to be used for labeling.
+        reference_data_path: Path to the reference data.
         output_info: Output information.
     """
+    # Extract data from the reference dataset. We extract it here to save file IO.
+    reference_data_path = reference_data_path.format(
+        **dict(selected_analysis_options),
+        #collision_energy = selected_analysis_options.collision_energy
+    )
+    try:
+        reference_data: Mapping[str, Mapping[str, histogram.Histogram1D]] = {}
+        with open(reference_data_path, "r") as f:
+            y = yaml.yaml(modules_to_register = [histogram])
+            reference_data = y.load(f)
+    except IOError:
+        # We will just work with the empty reference data.
+        pass
+
     pt_assoc_label = labels.make_valid_latex_string(
         f"{labels.track_pt_display_label()} ({labels.momentum_units_label_gev()})"
     )
@@ -101,6 +150,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             name = "v2_a",
             output_name = f"{prefix}_v2a",
             labels = plot_base.PlotLabels(title = r"Associated hadron $v_{2}$", x_label = pt_assoc_label),
+            plot_reference_data_func = _reference_v2_a_data,
         ),
         ParameterInfo(
             name = "v3",
@@ -164,7 +214,11 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
         )
 
     for parameter in parameters:
-        _plot_fit_parameter_vs_assoc_pt(fit_objects = fit_objects, parameter = parameter, output_info = output_info)
+        _plot_fit_parameter_vs_assoc_pt(
+            fit_objects = fit_objects, parameter = parameter,
+            reference_data = reference_data, selected_analysis_options = selected_analysis_options,
+            output_info = output_info
+        )
 
 def _matrix_values(free_parameters: Sequence[str],
                    matrix: Dict[Tuple[str, str], float],

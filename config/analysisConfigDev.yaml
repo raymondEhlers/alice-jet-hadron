@@ -121,6 +121,7 @@ CorrelationsManager:
     processing_options:
         fit_correlations: false
         plot_RPF: false
+        plot_RPF_summary: false
         plot_delta_eta_fit: false
         subtract_correlations: false
         plot_subtracted_correlations: false
