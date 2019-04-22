@@ -65,7 +65,7 @@ Correlations:
     mixedEventNormalizationOptions:
         etaRange: [-0.3, 0.3]
         compareOptions: false
-    joelsCorrelationsFilePath: "inputData/2.76/central/clusterBias10/joelsCorrelations"
+    joelsCorrelationsFilePath: "inputData/PbPb/2.76/central/clusterBias10/joelsCorrelations"
     2d_rebin_factors: [2, 1]
     1d_rebin_factor_delta_eta: 1
     1d_rebin_factor_delta_phi: 1
