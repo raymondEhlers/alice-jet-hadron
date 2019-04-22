@@ -1738,7 +1738,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         subtracted = self.correlation_hists_delta_phi_subtracted.signal_dominated
 
         # Fit and extract the widths.
-        for _, width_obj in self.widths_delta_phi:
+        for attribute_name, width_obj in self.widths_delta_phi:
+            logger.debug(
+                f"Extracting delta phi {attribute_name} width for {self.identifier}, {self.reaction_plane_orientation}"
+            )
             fit_result = width_obj.fit_object.fit(
                 h = subtracted.hist,
             )
@@ -1753,6 +1756,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Fit and extract the widths.
         for (attribute_name, width_obj), (hist_attribute_name, subtracted) in \
                 zip(self.widths_delta_eta, self.correlation_hists_delta_eta_subtracted):
+            logger.debug(
+                f"Extracting delta eta {attribute_name} width for {self.identifier}, {self.reaction_plane_orientation}"
+            )
             # Sanity check
             assert attribute_name == hist_attribute_name
             # Perform the fit.
@@ -2057,11 +2063,11 @@ class CorrelationsManager(generic_class.EqualityMixin):
                         raise RuntimeError(f"Fit failed for {inclusive_analysis.identifier}")
 
                     # Write out the fit results
-                    logger.debug(f"Writing RPF to {rpf_filename}")
+                    logger.info(f"Writing RPF to {rpf_filename}")
                     fit_obj.write_fit_results(filename = rpf_filename)
                 else:
                     # Load from file.
-                    logger.debug(f"Loading RPF from {rpf_filename}")
+                    logger.info(f"Loading RPF from {rpf_filename}")
                     fit_obj.read_fit_results(filename = rpf_filename)
 
                 # Store the fit results in the manager.
