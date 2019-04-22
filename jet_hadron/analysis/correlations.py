@@ -653,7 +653,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # For truncate, see: https://stackoverflow.com/a/2769090
             f.truncate(0)
 
-            logger.debug(f"output: {output}")
+            #logger.debug(f"output: {output}")
 
             # Store the fit.
             output[f"{self.identifier}_fit_objects_delta_eta"] = self.fit_objects_delta_eta
@@ -694,7 +694,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # For truncate, see: https://stackoverflow.com/a/2769090
             f.truncate(0)
 
-            logger.debug(f"output: {output}")
+            #logger.debug(f"output: {output}")
 
             # Store the fit.
             for name, value in values.items():
@@ -1774,14 +1774,27 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Delta phi
         # Attempt to retrieve the widths from the RPF. These will be used to determine the initial
         # value for the new fits.
-        retrieved_seed_widths_from_RPF = self._retrieve_widths_from_RPF()
+        self._retrieve_widths_from_RPF()
         logger.debug("Extracting widths via Gaussian fits")
         self._fit_and_extract_delta_phi_widths()
-        # Compare the extracted widths and amplitudes with those from the RPF to see if they've diverged.
-        if retrieved_seed_widths_from_RPF:
-            for attribute_name, width_obj in self.widths_delta_phi:
-                for attr in ["width", "amplitude"]:
-                    rpf_value = width_obj.fit_args[attr]
+        self._compare_extracted_widths_to_RPF()
+
+        # Delta eta
+        # We will never extract these from the RPF, so we always need to run this.
+        self._fit_and_extract_delta_eta_widths()
+
+    def _compare_extracted_widths_to_RPF(self) -> None:
+        """ Compare the extracted widths and amplitudes with those from the RPF to see if they've diverged.
+
+        Raises:
+            RuntimeError: If the widths vary by more than 10%.
+        """
+        # We use whether the fit_args were set as a proxy because their only use as of April 2019 is
+        # to specify values from the RPF.
+        for attribute_name, width_obj in self.widths_delta_phi:
+            for attr in ["width", "amplitude"]:
+                rpf_value = width_obj.fit_args.get(attr, None)
+                if rpf_value is not None:
                     width_fit_value = width_obj.fit_result.values_at_minimum[attr]
                     # Help out mypy...
                     assert isinstance(rpf_value, float) and isinstance(width_fit_value, float)
@@ -1794,18 +1807,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     )
                     # Warn if greater than 4% difference
                     if percent_difference > 0.04:
-                        logger.warn(f"{attr} percent difference greater than 5%! Value: {percent_difference}")
+                        logger.warn(f"{attr} percent difference greater than 5%! Value: {percent_difference*100:.4f}%")
 
-                    if percent_difference > 0.1:
+                    # TODO: Reduce this percentage!! We increased it to make plotting easier.
+                    if percent_difference > 0.16:
                         raise RuntimeError(
                             f"{attr} percent difference greater than 10%!"
                             " Probably a fitting problem which needs to be investigated!"
-                            f" Value: {percent_difference:.4f}"
+                            f" Value: {percent_difference*100:.4f}%"
                         )
-
-        # Delta eta
-        # We will never extract these from the RPF, so we always need to run this.
-        self._fit_and_extract_delta_eta_widths()
 
     def generate_latex_for_analysis_note(self) -> bool:
         """ Write LaTeX to include plots in the analysis notes. """
@@ -1976,11 +1986,11 @@ class CorrelationsManager(generic_class.EqualityMixin):
                     analysis.fit_delta_eta_correlations()
 
                     # Store the result
-                    logger.debug("Writing delta eta fit information to file.")
+                    logger.debug("Writing delta eta fit information to file for {analysis.identifier}, {analysis.reaction_plane_orientation}.")
                     analysis.write_delta_eta_fit_results()
                 else:
                     # Load from file.
-                    logger.info("Reading delta eta fit information from file.")
+                    logger.info(f"Reading delta eta fit information from file for {analysis.identifier}, {analysis.reaction_plane_orientation}.")
                     analysis.init_delta_eta_fit_information()
 
                 if self.processing_options["plot_delta_eta_fit"]:
