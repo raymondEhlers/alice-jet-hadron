@@ -2004,7 +2004,7 @@ class CorrelationsManager(generic_class.EqualityMixin):
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
         with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
-                                            unit = "delta phi hists") as fitting:
+                                            unit = "associated pt bins") as fitting:
             resolution_parameters = self.task_config["reaction_plane_fit"]["resolution_parameters"]
             # To successfully fit, we need all histograms from a given reaction plane orientation.
             for ep_analyses in \
