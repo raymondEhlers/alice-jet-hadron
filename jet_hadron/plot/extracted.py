@@ -190,7 +190,7 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
             error = width_obj.fit_object.calculate_errors(x = x)
             ax.fill_between(
                 x, rpf_gauss - error, rpf_gauss + error,
-                facecolor = rp_fit_plot[0].get_color(), alpha = 0.1,
+                facecolor = rp_fit_plot[0].get_color(), alpha = 0.5,
             )
 
     # Labels.
