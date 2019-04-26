@@ -7,6 +7,7 @@
 
 from dataclasses import dataclass
 import logging
+import numpy as np
 import os
 from typing import List, Optional, Sequence, Union
 
@@ -164,11 +165,76 @@ def save_plot_impl(fig: matplotlib.figure.Figure,
         filenames.append(filename)
     return filenames
 
+def error_boxes(ax: matplotlib.axes.Axes,
+                x_data: np.ndarray, y_data: np.ndarray,
+                y_errors: np.ndarray, x_errors: np.ndarray = None,
+                **kwargs: Union[str, float]) -> matplotlib.collections.PatchCollection:
+    """ Plot error boxes for the given data.
+
+    Inpsired by: https://matplotlib.org/gallery/statistics/errorbars_and_boxes.html and
+    https://github.com/HDembinski/pyik/blob/217ae25bbc316c7a209a1a4a1ce084f6ca34276b/pyik/mplext.py#L138
+
+    Args:
+        ax: Axis onto which the rectangles will be drawn.
+        x_data: x location of the data.
+        y_data: y location of the data.
+        y_errors: y errors of the data. The array can either be of length n, or of length (n, 2)
+            for asymmetric errors.
+        x_errors: x errors of the data. The array can either be of length n, or of length (n, 2)
+            for asymmetric errors. Default: None. This corresponds to boxes that are 10% of the
+            distance between the two given point and the previous one.
+    """
+    # Validation
+    if x_errors is None:
+        # Default to 10% of the distance between the two points.
+        x_errors = (x_data[1:] - x_data[:-1]) * 0.1
+        # Use the last width for the final point. (This is a bit of a hack).
+        x_errors = np.append(x_errors, x_errors[-1])
+        logger.debug(f"x_errors: {x_errors}")
+
+    # Validate input data.
+    if len(x_data) != len(y_data):
+        raise ValueError("Length of x_data and y_data doesn't match! x_data: {len(x_data)}, y_data: {len(y_data)}")
+    if len(x_errors.T) != len(x_data):
+        raise ValueError("Length of x_data and x_errors doesn't match! x_data: {len(x_data)}, x_errors: {len(x_errors)}")
+    if len(y_errors.T) != len(y_data):
+        raise ValueError("Length of y_data and y_errors doesn't match! y_data: {len(y_data)}, y_errors: {len(y_errors)}")
+
+    # Default arguments
+    if "alpha" not in kwargs:
+        kwargs["alpha"] = 0.5
+
+    # Create the rectangles
+    error_boxes = []
+    # We need to transpose the errors, because they are expected to be of the shape (n, 2).
+    # NOTE: It will still work as expected if they are only of length n.
+    for x, y, xerr, yerr in zip(x_data, y_data, x_errors.T, y_errors.T):
+        # For the errors, we want to support symmetric and asymmetric errors.
+        # Thus, for asymmetric errors, we sum up the distance, but for symmetric
+        # errors, we want to take * 2 of the error.
+        xerr = np.atleast_1d(xerr)
+        yerr = np.atleast_1d(yerr)
+        logger.debug(f"yerr: {yerr}")
+        r = matplotlib.patches.Rectangle(
+            (x - xerr[0], y - yerr[0]),
+            xerr.sum() if len(xerr) == 2 else xerr * 2,
+            yerr.sum() if len(yerr) == 2 else yerr * 2,
+        )
+        error_boxes.append(r)
+
+    # Create the patch collection and add it to the given axis.
+    patch_collection = matplotlib.collections.PatchCollection(
+        error_boxes, **kwargs,
+    )
+    ax.add_collection(patch_collection)
+
+    return patch_collection
+
 # ROOT 6 default color scheme
 # Colors extracted from [TColor::SetPalette()](https://root.cern.ch/doc/master/TColor_8cxx_source.html#l02209):
 # Added to matplotlib as "ROOT_kBird"
 # Color entries are of the form (r, g, b)
-# Creation of the colorscheme inspired by: https://github.com/matplotlib/matplotlib/blob/master/examples/images_contours_and_fields/custom_cmap.py
+# Creation of the color scheme inspired by: https://github.com/matplotlib/matplotlib/blob/master/examples/images_contours_and_fields/custom_cmap.py
 bird_root = matplotlib.colors.LinearSegmentedColormap.from_list(
     name = "ROOT_kBird", N = 256,
     colors = [
