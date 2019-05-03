@@ -5,10 +5,8 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
 """
 
-import coloredlogs
 import copy
 from dataclasses import dataclass
-import enlighten
 import enum
 import logging
 import numpy as np
@@ -17,13 +15,13 @@ import pprint
 import sys
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Union
 
-from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm import utils
 from pachyderm.utils import epsilon
 
 from jet_hadron.base import analysis_config
+from jet_hadron.base import analysis_manager
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
@@ -774,7 +772,7 @@ class ResponseMatrix(ResponseMatrixBase):
 
         return True
 
-class ResponseManager(generic_class.EqualityMixin):
+class ResponseManager(analysis_manager.Manager):
     """ Analysis manager for creating response(s).
 
     Attributes:
@@ -785,34 +783,10 @@ class ResponseManager(generic_class.EqualityMixin):
         analyses: Response matrix analysis objects.
         pt_hard_bins: Pt hard analysis objects for pt hard binned analyses (optional).
     """
-    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
-        # Base configuration
-        self.config_filename = config_filename
-        self.selected_analysis_options = selected_analysis_options
-        self.task_name = "ResponseManager"
-        # Retrieve YAML config for manager configuration
-        # NOTE: We don't store the overridden selected_analysis_options because in principle they depend
-        #       on the selected task. In practice, such options are unlikely to vary between the manager
-        #       and the analysis tasks. However, the validation cannot handle the overridden options
-        #       (because the leading hadron bias enum is converting into the object). So we just use
-        #       the overridden option in formatting the output prefix (where it is required to determine
-        #       the right path), and then passed the non-overridden values to the analysis objects.
-        self.config, overridden_selected_analysis_options = analysis_config.read_config_using_selected_options(
-            task_name = self.task_name,
-            config_filename = self.config_filename,
-            selected_analysis_options = self.selected_analysis_options
-        )
-        # Determine the formatting options needed for the output prefix
-        formatting_options = analysis_config.determine_formatting_options(
-            task_name = self.task_name, config = self.config,
-            selected_analysis_options = overridden_selected_analysis_options
-        )
-        # Additional helper variables
-        self.task_config = self.config[self.task_name]
-        self.output_info = analysis_objects.PlottingOutputWrapper(
-            # Format to ensure that the selected analysis options are filled in.
-            output_prefix = self.config["outputPrefix"].format(**formatting_options),
-            printing_extensions = self.config["printingExtensions"],
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: Any):
+        super().__init__(
+            config_filename = config_filename, selected_analysis_options = selected_analysis_options,
+            manager_task_name = "ResponseManager", **kwargs
         )
 
         # Create the actual response matrix objects.
@@ -849,9 +823,6 @@ class ResponseManager(generic_class.EqualityMixin):
                 f" Selected iterables: {self.selected_iterables['pt_hard_bins']},"
                 f" pt hard analysis iterables: {pt_hard_iterables}"
             )
-
-        # Monitor the progress of the analysis.
-        self.progress_manager = enlighten.get_manager()
 
     def construct_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct ResponseMatrix objects based on iterables in a configuration file. """
@@ -901,9 +872,9 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Setup the response matrix analysis objects and run the response matrix projectors
         # By the time that this step is complete, we should have all histograms.
-        with self.progress_manager.counter(total = len(self.analyses),
-                                           desc = "Configuring and projecting:",
-                                           unit = "responses") as setting_up:
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Configuring and projecting:",
+                                            unit = "responses") as setting_up:
             for pt_hard_bin in self.selected_iterables["pt_hard_bin"]:
                 logger.debug(f"pt_hard_bin: {pt_hard_bin}")
                 input_hists[pt_hard_bin] = {}
@@ -929,9 +900,9 @@ class ResponseManager(generic_class.EqualityMixin):
                     setting_up.update()
 
         # Setup the pt hard bin analysis objects.
-        with self.progress_manager.counter(total = len(self.pt_hard_bins),
-                                           desc = "Setting up: ",
-                                           unit = "pt hard bins") as setting_up:
+        with self._progress_manager.counter(total = len(self.pt_hard_bins),
+                                            desc = "Setting up: ",
+                                            unit = "pt hard bins") as setting_up:
             for key_index, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
                 pt_hard_bin.setup(input_hists = input_hists[key_index.pt_hard_bin])
 
@@ -952,9 +923,9 @@ class ResponseManager(generic_class.EqualityMixin):
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
         # Remove outliers and scale the projected histograms according to their pt hard bins.
-        with self.progress_manager.counter(total = len(self.pt_hard_bins),
-                                           desc = "Processing:",
-                                           unit = "pt hard bins") as processing:
+        with self._progress_manager.counter(total = len(self.pt_hard_bins),
+                                            desc = "Processing:",
+                                            unit = "pt hard bins") as processing:
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
                 # Scale the pt hard spectra
@@ -993,9 +964,9 @@ class ResponseManager(generic_class.EqualityMixin):
 
         # Now merge the scaled histograms into the final response matrix results.
         # +1 for the final pt hard spectra.
-        with self.progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
-                                           desc = "Projecting:",
-                                           unit = "EP dependent final responses") as processing:
+        with self._progress_manager.counter(total = len(self.selected_iterables["reaction_plane_orientation"]) + 1,
+                                            desc = "Projecting:",
+                                            unit = "EP dependent final responses") as processing:
             # First merge the pt hard bin quantities.
             pt_hard_analysis.merge_pt_hard_binned_analyses(
                 analyses = analysis_config.iterate_with_selected_objects(
@@ -1060,9 +1031,9 @@ class ResponseManager(generic_class.EqualityMixin):
     def _run_final_processing(self) -> None:
         """ Run final post processing steps. """
         # Final post processing steps
-        with self.progress_manager.counter(total = len(self.final_responses),
-                                           desc = "Final processing:",
-                                           unit = "responses") as processing:
+        with self._progress_manager.counter(total = len(self.final_responses),
+                                            desc = "Final processing:",
+                                            unit = "responses") as processing:
             for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
                 # Create the response matrix errors
                 analysis.response_matrix_errors = analysis.create_response_matrix_errors()
@@ -1156,9 +1127,9 @@ class ResponseManager(generic_class.EqualityMixin):
         # +1 for the final pt hard spectra.
         # +1 for particle level spectra
         # *2 for response matrix, response spectra
-        with self.progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1 + 1,
-                                           desc = "Plotting:",
-                                           unit = "responses") as plotting:
+        with self._progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1 + 1,
+                                            desc = "Plotting:",
+                                            unit = "responses") as plotting:
 
             # Plot pt hard spectra
             # Pull out the dict because we need to know the length of the objects,
@@ -1275,9 +1246,9 @@ class ResponseManager(generic_class.EqualityMixin):
         #
         # If we are starting from reading histograms, we start from step 3.
         steps = 4 if self.task_config["read_hists_from_root_file"] else 6
-        with self.progress_manager.counter(total = steps,
-                                           desc = "Overall processing progress:",
-                                           unit = "") as overall_progress:
+        with self._progress_manager.counter(total = steps,
+                                            desc = "Overall processing progress:",
+                                            unit = "") as overall_progress:
             # We only need to perform the projecting and pt hard dependent part of the analysis
             # if we don't already have the histograms saved.
             if self.task_config["read_hists_from_root_file"]:
@@ -1314,41 +1285,24 @@ class ResponseManager(generic_class.EqualityMixin):
             self._package_and_write_final_responses()
             overall_progress.update()
 
-        # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython)
-        # Otherwise, IPython will act very strangely and is basically impossible to use.
-        self.progress_manager.stop()
-
         return True
 
-def run_from_terminal():
+def run_from_terminal() -> ResponseManager:
+    """ Driver function for running the correlations analysis. """
     # Basic setup
-    # This replaces ``logging.basicConfig(...)``.
-    coloredlogs.install(
-        level = logging.DEBUG,
-        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
-    )
-    # Quiet down the matplotlib logging
-    logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down some pachyderm modules
     logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
     logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
     # Turn off stats box
     ROOT.gStyle.SetOptStat(0)
 
-    # Setup the analysis
-    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
-        task_name = "Response matrix"
+    # Setup and run the analysis
+    manager: ResponseManager = analysis_manager.run_helper(
+        manager_class = ResponseManager, task_name = "Response matrix",
     )
-    selected_analysis_options, _ = analysis_config.validate_arguments(selected_args = terminal_args)
-    analysis_manager = ResponseManager(
-        config_filename = config_filename,
-        selected_analysis_options = selected_analysis_options,
-    )
-    # Finally run the analysis.
-    analysis_manager.run()
 
     # Return it for convenience.
-    return analysis_manager
+    return manager
 
 if __name__ == "__main__":
     run_from_terminal()

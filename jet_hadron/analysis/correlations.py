@@ -5,11 +5,9 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-import coloredlogs
 import copy
 import dataclasses
 from dataclasses import dataclass
-import enlighten
 import enum
 import inspect
 import IPython
@@ -23,7 +21,6 @@ from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional,
 #       line options
 from jet_hadron.base.typing_helpers import Hist
 
-from pachyderm import generic_class
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
@@ -36,6 +33,7 @@ from reaction_plane_fit import fit as rpf_fit
 from reaction_plane_fit import three_orientations
 
 from jet_hadron.base import analysis_config
+from jet_hadron.base import analysis_manager
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
@@ -1893,37 +1891,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         return True
 
-class CorrelationsManager(generic_class.EqualityMixin):
-    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
-        self.config_filename = config_filename
-        self.selected_analysis_options = selected_analysis_options
-        self.task_name = "CorrelationsManager"
-        # Retrieve YAML config for manager configuration
-        # NOTE: We don't store the overridden selected_analysis_options because in principle they depend
-        #       on the selected task. In practice, such options are unlikely to vary between the manager
-        #       and the analysis tasks. However, the validation cannot handle the overridden options
-        #       (because the leading hadron bias enum is converting into the object). So we just use
-        #       the overridden option in formatting the output prefix (where it is required to determine
-        #       the right path), and then passed the non-overridden values to the analysis objects.
-        self.config, overridden_selected_analysis_options = analysis_config.read_config_using_selected_options(
-            task_name = self.task_name,
-            config_filename = self.config_filename,
-            selected_analysis_options = self.selected_analysis_options
+class CorrelationsManager(analysis_manager.Manager):
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: str):
+        super().__init__(
+            config_filename = config_filename, selected_analysis_options = selected_analysis_options,
+            manager_task_name = "CorrelationsManager", **kwargs,
         )
-        # Determine the formatting options needed for the output prefix
-        formatting_options = analysis_config.determine_formatting_options(
-            task_name = self.task_name, config = self.config,
-            selected_analysis_options = overridden_selected_analysis_options
-        )
-        # Additional helper variables
-        self.task_config = self.config[self.task_name]
-        self.output_info = analysis_objects.PlottingOutputWrapper(
-            # Format to ensure that the selected analysis options are filled in.
-            output_prefix = self.config["outputPrefix"].format(**formatting_options),
-            printing_extensions = self.config["printingExtensions"],
-        )
-        # For convenience since it is frequently accessed.
-        self.processing_options = self.task_config["processing_options"]
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]
@@ -1944,9 +1917,6 @@ class CorrelationsManager(generic_class.EqualityMixin):
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options
         )
-
-        # Keep track of processing progress
-        self._progress_manager = enlighten.get_manager()
 
     def construct_correlations_from_configuration_file(self) -> analysis_config.ConstructedObjects:
         """ Construct Correlations objects based on iterables in a configuration file. """
@@ -2372,10 +2342,6 @@ class CorrelationsManager(generic_class.EqualityMixin):
             self.extract_widths()
             overall_progress.update()
 
-        # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython)
-        # Otherwise, IPython will act very strangely and is basically impossible to use.
-        self._progress_manager.stop()
-
         return True
 
 def write_analyses(manager: CorrelationsManager, output_filename: str) -> None:
@@ -2410,34 +2376,20 @@ def write_analyses(manager: CorrelationsManager, output_filename: str) -> None:
     with open(output_filename, "w") as f:
         y.dump(analyses, f)
 
-def run_from_terminal():
+def run_from_terminal() -> CorrelationsManager:
     """ Driver function for running the correlations analysis. """
     # Basic setup
-    coloredlogs.install(
-        level = logging.DEBUG,
-        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
-    )
-    # Quiet down the matplotlib logging
-    logging.getLogger("matplotlib").setLevel(logging.INFO)
     # Quiet down pachyderm
     logging.getLogger("pachyderm").setLevel(logging.INFO)
     # Quiet down reaction_plane_fit
     logging.getLogger("reaction_plane_fit").setLevel(logging.INFO)
-
     # Turn off stats box
     ROOT.gStyle.SetOptStat(0)
 
-    # Setup the analysis
-    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
-        task_name = "Correlations"
+    # Setup and run the analysis
+    manager: CorrelationsManager = analysis_manager.run_helper(
+        manager_class = CorrelationsManager, task_name = "Correlations",
     )
-    selected_analysis_options, _ = analysis_config.validate_arguments(selected_args = terminal_args)
-    analysis_manager = CorrelationsManager(
-        config_filename = config_filename,
-        selected_analysis_options = selected_analysis_options,
-    )
-    # Finally run the analysis.
-    analysis_manager.run()
 
     # Quiet down IPython.
     logging.getLogger("parso").setLevel(logging.INFO)
@@ -2445,7 +2397,7 @@ def run_from_terminal():
     IPython.embed()
 
     # Return the manager for convenience.
-    return analysis_manager
+    return manager
 
 if __name__ == "__main__":
     run_from_terminal()
