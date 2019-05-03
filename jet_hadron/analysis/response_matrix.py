@@ -60,7 +60,7 @@ class ResponseMakerJetsSparse(enum.Enum):
     leading_particle_PbPb = 5
 
 class JetHPerformanceResponseSparse(enum.Enum):
-    """ Define the axes of the JetHPerformance response matrix sprase. """
+    """ Define the axes of the JetHPerformance response matrix sparse. """
     det_level_jet_pt = 0
     part_level_jet_pt = 1
     det_level_jet_area = 2
@@ -135,7 +135,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
     Stores the response matrix histograms. Often used for final response matrix histograms
     after the intermediate steps are fully projected.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         # Update the centrality range in the input.
         self.input_list_name = self.input_list_name.format(
@@ -399,7 +399,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
 
         return response_matrix_errors
 
-    def normalize_response_matrix(self):
+    def normalize_response_matrix(self) -> None:
         """ Normalize the response matrix. """
         response_matrix_helpers.normalize_response_matrix(
             hist = self.response_matrix,
@@ -411,7 +411,7 @@ class ResponseMatrix(ResponseMatrixBase):
 
     Stores the response matrix histograms, as well as the methods to process the response matrix.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         # Pt hard bins are optional.
         self.pt_hard_bin = kwargs.get("pt_hard_bin", None)

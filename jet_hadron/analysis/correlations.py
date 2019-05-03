@@ -105,7 +105,7 @@ class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
         This class inherits from the base class just to add the possibility of disabling the
         task based on the configuration.
     """
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Only run if it's enabled.
         self.enabled = self.task_config["enabled"]
@@ -116,7 +116,7 @@ class PlotGeneralHistograms(generic_tasks.PlotTaskHists):
         else:
             logger.info("General hists disabled. Skipping setup.")
 
-    def run(self, *args, **kwargs) -> bool:
+    def run(self, *args: Any, **kwargs: Any) -> bool:
         if self.enabled:
             return super().run(*args, **kwargs)
         else:
@@ -334,7 +334,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         track_pt: Track pt bin.
         ...
     """
-    def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args, **kwargs):
+    def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         # Basic information
         # Analysis parameters
@@ -721,7 +721,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     logger.debug(f"Writing hist {hist} with name {observable.name}")
                     hist.Write(observable.name)
 
-    def _write_hists_to_yaml(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]):
+    def _write_hists_to_yaml(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
         """ Write hists to YAML. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
@@ -1017,7 +1017,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         mixed_event_projector.projection_axes.append(delta_eta_axis)
         self.sparse_projectors.append(mixed_event_projector)
 
-    def _setup_projectors(self):
+    def _setup_projectors(self) -> None:
         """ Setup the projectors for the analysis. """
         # NOTE: It's best to define the projector right before utilizing it. Here, this runs as the last
         #       step of the setup, and then these projectors are executed immediately.
@@ -1033,12 +1033,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
             jet_pt = self.jet_pt,
         )
 
-    def setup(self, input_hists):
+    def setup(self, input_hists: Optional[Dict[str, Any]] = None) -> bool:
         """ Setup the correlations object. """
         # Setup the input hists and projectors
-        super().setup(input_hists = input_hists)
+        return super().setup(input_hists = input_hists)
 
-    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Tuple[int, int] = None) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Optional[Tuple[int, int]] = None) -> None:
         """ Perform post creation processing for 2D correlations. """
         correlations_helpers.post_projection_processing_for_2d_correlation(
             hist = hist, normalization_factor = normalization_factor, title_label = title_label,
@@ -1423,11 +1423,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     track_pt = self.track_pt,
                 )
 
-    def _post_1d_projection_scaling(self):
+    def _post_1d_projection_scaling(self) -> None:
         """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
         # Since the histograms are always referencing the same root object, the stored hists
         # will also be updated.
         for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+            # Help out mypy...
+            assert isinstance(hists, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
             for _, observable in hists:
                 logger.debug(f"hist: {observable}")
                 correlations_helpers.scale_by_bin_width(observable.hist)
