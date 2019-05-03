@@ -26,7 +26,7 @@ from jet_hadron.analysis import correlations_helpers
 import ROOT
 
 if TYPE_CHECKING:
-    from jet_hadron.anaylsis import correlations
+    from jet_hadron.analysis import correlations
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -136,9 +136,14 @@ def _plot_all_1d_correlations_with_matplotlib(jet_hadron: "correlations.Correlat
     Note:
         We don't want to scale the histogram any further here because it's already been fully scaled!
     """
+    # Not ideal, but it's much more convenient to import it here. Importing it at the top
+    # of the file would cause an import loop.
+    from jet_hadron.analysis import correlations
     fig, ax = plt.subplots()
-    for correlation_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
-        for _, observable in correlation_groups:
+    for correlations_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
+        # Help out mypy...
+        assert isinstance(correlations_groups, (correlations.CorrelationHistogramsDeltaPhi, correlations.CorrelationHistogramsDeltaEta))
+        for _, observable in correlations_groups:
             # Draw the 1D histogram.
             h = histogram.Histogram1D.from_existing_hist(observable.hist)
             ax.errorbar(
@@ -167,8 +172,13 @@ def _plot_all_1d_correlations_with_ROOT(jet_hadron: "correlations.Correlations")
     Note:
         We don't want to scale the histogram any further here because it's already been fully scaled!
     """
+    # Not ideal, but it's much more convenient to import it here. Importing it at the top
+    # of the file would cause an import loop.
+    from jet_hadron.analysis import correlations
     canvas = ROOT.TCanvas("canvas1D", "canvas1D")
     for correlations_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
+        # Help out mypy...
+        assert isinstance(correlations_groups, (correlations.CorrelationHistogramsDeltaPhi, correlations.CorrelationHistogramsDeltaEta))
         for _, observable in correlations_groups:
             # Draw the 1D histogram.
             observable.hist.Draw("")
@@ -421,9 +431,9 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def define_highlight_regions(signal_dominated_eta_region: params.SelectedRange,
-                             background_dominated_eta_region: params.SelectedRange,
-                             near_side_phi_region: params.SelectedRange,
+def define_highlight_regions(signal_dominated_eta_region: analysis_objects.AnalysisBin,
+                             background_dominated_eta_region: analysis_objects.AnalysisBin,
+                             near_side_phi_region: analysis_objects.AnalysisBin,
                              ) -> Sequence[highlight_RPF.HighlightRegion]:
     """ Define regions to highlight.
 
@@ -552,5 +562,5 @@ def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str)
                   transform = ax.transAxes)
 
         # Finish up
-        plot_base.save_plot(jet_hadron, fig, filename)
+        plot_base.save_plot(jet_hadron.output_info, fig, filename)
         plt.close(fig)
