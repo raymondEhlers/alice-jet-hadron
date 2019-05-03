@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 # Setup logger
 logger = logging.getLogger(__name__)
 
-def plot_2d_correlations(jet_hadron):
+def plot_2d_correlations(jet_hadron: "correlations.Correlations") -> None:
     """ Plot the 2D correlations. """
     canvas = ROOT.TCanvas("canvas2D", "canvas2D")
 
@@ -130,7 +130,7 @@ def plot_1d_correlations(jet_hadron: "correlations.Correlations", plot_with_ROOT
             jet_hadron = jet_hadron, output_name = signal_background_output_name
         )
 
-def _plot_all_1d_correlations_with_matplotlib(jet_hadron) -> None:
+def _plot_all_1d_correlations_with_matplotlib(jet_hadron: "correlations.Correlations") -> None:
     """ Plot all 1D correlations in a very basic way with matplotlib.
 
     Note:
@@ -310,7 +310,7 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
                   their_hist: histogram.Histogram1D,
                   ratio: histogram.Histogram1D,
                   title: str, x_label: str, y_label: str,
-                  output_name: str):
+                  output_name: str) -> None:
     """ Compare our hist and their hist. """
     fig, ax = plt.subplots(2, 1, sharex = True, gridspec_kw = {"height_ratios": [3, 1]}, figsize = (8, 6))
 
@@ -343,11 +343,11 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
                               lin_space: np.ndarray,       peak_finding_hist_array: np.ndarray,  # noqa: E241
                               lin_space_rebin: np.ndarray, peak_finding_hist_array_rebin: np.ndarray,
                               # CWT
-                              peak_locations, peak_locations_rebin,
+                              peak_locations: np.ndarray, peak_locations_rebin: np.ndarray,
                               # Moving Average
                               max_moving_avg: float, max_moving_avg_rebin: float,
                               # Smoothed gaussian
-                              lin_space_resample: np.ndarray, smoothed_array: np.ndarray, max_smoothed_moving_avg,
+                              lin_space_resample: np.ndarray, smoothed_array: np.ndarray, max_smoothed_moving_avg: float,
                               # Linear fits
                               max_linear_fit_1d: float, max_linear_fit_1d_rebin: float,
                               max_linear_fit_2d: float, max_linear_fit_2d_rebin: float) -> None:

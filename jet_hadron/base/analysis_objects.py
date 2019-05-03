@@ -11,7 +11,7 @@ import enum
 import logging
 import numpy as np
 import re
-from typing import Any, Dict, List, Mapping, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -163,12 +163,12 @@ class JetHBase(generic_class.EqualityMixin):
     """
     def __init__(self,
                  task_name: str, config_filename: str,
-                 config: Mapping, task_config: Mapping,
+                 config: yaml.DictLike, task_config: yaml.DictLike,
                  collision_energy: params.CollisionEnergy,
                  collision_system: params.CollisionSystem,
                  event_activity: params.EventActivity,
                  leading_hadron_bias: Union[params.LeadingHadronBias, params.LeadingHadronBiasType],
-                 *args, **kwargs):
+                 *args: Any, **kwargs: Any) -> None:
         # Store the configuration
         self.task_name = task_name
         self.config_filename = config_filename
@@ -247,7 +247,7 @@ class JetHBinnedAnalysis(JetHBase):
         eta_bins: List of eta bins.
         phi_bins: List of phi bins.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         # First initialize the base class.
         super().__init__(*args, **kwargs)
 
@@ -266,11 +266,11 @@ class JetHReactionPlane(JetHBinnedAnalysis):
     """
     def __init__(self,
                  reaction_plane_orientation: params.ReactionPlaneOrientation,
-                 *args, **kwargs):
+                 *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.reaction_plane_orientation = reaction_plane_orientation
 
-    def _retrieve_histograms(self, input_hists: Dict[str, Any] = None) -> bool:
+    def _retrieve_histograms(self, input_hists: Optional[Dict[str, Any]] = None) -> bool:
         """ Retrieve histograms from a ROOT file.
 
         Args:
@@ -297,7 +297,7 @@ class JetHReactionPlane(JetHBinnedAnalysis):
         """ Setup projectors needed for the analysis. """
         raise NotImplementedError("Must implement the projectors setup in the derived class.")
 
-    def setup(self, input_hists: Dict[str, Any] = None) -> bool:
+    def setup(self, input_hists: Optional[Dict[str, Any]] = None) -> bool:
         """ Setup the jet-hadron analysis object.
 
         This will handle retrieving histograms and setup the projectors, but further setup is dependent

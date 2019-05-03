@@ -36,7 +36,7 @@ class ExtractedWidth:
         return self.fit_object.fit_result
 
     @fit_result.setter
-    def fit_result(self, result) -> None:
+    def fit_result(self, result: fit.FitResult) -> None:
         """ Helper to simplify setting the fit result. """
         self.fit_object.fit_result = result
 

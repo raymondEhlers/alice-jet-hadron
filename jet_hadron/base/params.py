@@ -12,7 +12,7 @@ import enum
 import logging
 import numpy as np
 import re
-from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, Iterable, Iterator, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 from pachyderm import generic_class
 from pachyderm import yaml
@@ -281,9 +281,10 @@ class EventActivity(enum.Enum):
         """ Return the event activity range.
 
         Returns:
-            SelectedRange : namedtuple containing the mix and max of the range.
+            The min and max of the event activity range.
         """
-        return self.value
+        # Help out mypy...
+        return cast(SelectedRange, self.value)
 
     def __str__(self) -> str:
         """ Name of the event activity range. """
@@ -447,8 +448,13 @@ class QVector(enum.Enum):
 
     @property
     def value_range(self) -> SelectedRange:
-        """ Return the Q vector range. """
-        return self.value
+        """ Return the Q vector range.
+
+        Returns:
+            The min and max of the event activity range.
+        """
+        # Help out mypy...
+        return cast(SelectedRange, self.value)
 
     def __str__(self) -> str:
         """ Returns the name of the selection range. """

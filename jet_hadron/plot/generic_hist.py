@@ -63,7 +63,7 @@ class HistPlotter:
     step_plot: bool = True
     processing: Dict[str, Any] = None  # type: ignore
 
-    def __post_init__(self, hist: Hist):
+    def __post_init__(self, hist: Hist) -> None:
         """ Final object initialization. """
         # Dataclass fields don't always seem to play well with YAML. So we just do our final initialization here.
         if self.hist_names is None:

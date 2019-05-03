@@ -11,7 +11,7 @@ import os
 import scipy
 import scipy.signal
 import scipy.interpolate
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from pachyderm import histogram
 from pachyderm import utils
@@ -47,7 +47,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
         The bin + epsilon on the lower bin is not strictly necessary, but it is used for consistency.
 
     Note:
-        This bin + epsilon techinque is frequently used when determining projector bin ends.
+        This bin + epsilon technique is frequently used when determining projector bin ends.
 
     Args:
         hist: Histogram containing the number of triggers.
@@ -61,7 +61,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
         f"Find bin({jet_pt.range.max} - epsilon): "
         f"{hist.FindBin(jet_pt.range.max - epsilon)}"
     )
-    number_of_triggers = hist.Integral(
+    number_of_triggers: int = hist.Integral(
         hist.FindBin(jet_pt.range.min + epsilon),
         hist.FindBin(jet_pt.range.max - epsilon)
     )
@@ -72,7 +72,7 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
 def post_projection_processing_for_2d_correlation(hist: Hist, normalization_factor: float, title_label: str,
                                                   jet_pt: analysis_objects.JetPtBin,
                                                   track_pt: analysis_objects.TrackPtBin,
-                                                  rebin_factors: Tuple[int, int] = None) -> None:
+                                                  rebin_factors: Optional[Tuple[int, int]] = None) -> None:
     """ Basic post processing tasks for a new 2D correlation observable.
 
     Args:
@@ -105,12 +105,12 @@ def _calculate_bin_width_scale_factor(hist: Hist, additional_scale_factor: float
 
     Args:
         hist: Hist to use for calculating the scale factor.
-        additional_scale_factor: An additional scale factor to include in the caluclation.
+        additional_scale_factor: An additional scale factor to include in the calculation.
     Returns:
         The bin width scale factor for the hist.
     """
     # The first bin should always exist!
-    bin_width_scale_factor = hist.GetXaxis().GetBinWidth(1)
+    bin_width_scale_factor: float = hist.GetXaxis().GetBinWidth(1)
     # Because of a ROOT quirk, even a TH1* hist has a Y and Z axis, with 1 bin
     # each. This bin has bin width 1, so it doesn't change anything if we multiply
     # by that bin width. So we just do it for all histograms.
@@ -202,7 +202,7 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     # Using moving average looking at window half of the size of the delta phi axis (ie looking 5 bins
     # ahead if there 10 bins in the axis).
     moving_avg = utils.moving_average(peak_finding_hist_array, n = mixed_event.GetXaxis().GetNbins() // 2)
-    max_moving_avg = max(moving_avg)
+    max_moving_avg: float = np.max(moving_avg)
 
     # Finally determine the mixed event normalziation.
     mixed_event_normalization = max_moving_avg
@@ -218,7 +218,25 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     return mixed_event_normalization
 
 def compare_mixed_event_normalization_options(mixed_event: Hist,
-                                              eta_limits: Tuple[float, float]) -> tuple:
+                                              eta_limits: Tuple[float, float]) -> Tuple[Hist,
+                                                                                        # Basic data
+                                                                                        np.ndarray, np.ndarray,
+                                                                                        np.ndarray, np.ndarray,
+                                                                                        # CWT
+                                                                                        np.ndarray,
+                                                                                        np.ndarray,
+                                                                                        # Moving Average
+                                                                                        float,
+                                                                                        float,
+                                                                                        # Smoothed gaussian
+                                                                                        np.ndarray,
+                                                                                        np.ndarray,
+                                                                                        float,
+                                                                                        # Linear fits
+                                                                                        float,
+                                                                                        float,
+                                                                                        float,
+                                                                                        float]:
     """ Compare mixed event normalization options.
 
     The large window over which the normalization is extracted seems to be important to avoid fluctatuions.
@@ -248,7 +266,7 @@ def compare_mixed_event_normalization_options(mixed_event: Hist,
     # Determine max via the moving average
     # This is what is implemented in the mixed event normalization, but in principle, this could change.
     # Since it's easy to calculate, we do it by hand again here.
-    max_moving_avg = max(utils.moving_average(peak_finding_hist_array, n = 36))
+    max_moving_avg = np.max(utils.moving_average(peak_finding_hist_array, n = 36))
 
     # Create rebinned hist
     # The rebinned hist may be less susceptible to noise, so it should be compared.
@@ -270,8 +288,8 @@ def compare_mixed_event_normalization_options(mixed_event: Hist,
     # Using CWT
     # See: https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.signal.find_peaks_cwt.html
     # and: https://stackoverflow.com/a/42285002
-    peak_locations = scipy.signal.find_peaks_cwt(peak_finding_hist_array, widths = np.arange(20, 50, .1))
-    peak_locations_rebin = scipy.signal.find_peaks_cwt(peak_finding_hist_array_rebin, widths = np.arange(10, 25, .05))
+    peak_locations: np.ndarray = scipy.signal.find_peaks_cwt(peak_finding_hist_array, widths = np.arange(20, 50, .1))
+    peak_locations_rebin: np.ndarray = scipy.signal.find_peaks_cwt(peak_finding_hist_array_rebin, widths = np.arange(10, 25, .05))
     logger.info(f"peak_locations: {peak_locations}, values: {peak_finding_hist_array[peak_locations]}")
 
     # Using gaussian smoothing
@@ -288,11 +306,11 @@ def compare_mixed_event_normalization_options(mixed_event: Hist,
     #logger.debug("max_smoothed: {}".format(max_smoothed))
     # Moving average on smoothed curve
     smoothed_moving_avg = utils.moving_average(smoothed_array, n = int(len(smoothed_array) // 2))
-    max_smoothed_moving_avg = max(smoothed_moving_avg)
+    max_smoothed_moving_avg = np.max(smoothed_moving_avg)
 
     # Moving average with rebin
     moving_avg_rebin = utils.moving_average(peak_finding_hist_array_rebin, n = 18)
-    max_moving_avg_rebin = max(moving_avg_rebin)
+    max_moving_avg_rebin = np.max(moving_avg_rebin)
 
     # Fit using TF1 over some range
     # Fit the deltaPhi away side

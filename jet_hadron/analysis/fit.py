@@ -15,7 +15,7 @@ from pachyderm import histogram
 from pachyderm import yaml
 import pprint
 import sys
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 import reaction_plane_fit.base
 
@@ -34,7 +34,7 @@ FitArguments = Dict[str, Union[bool, float, Tuple[float, float]]]
 
 this_module = sys.modules[__name__]
 
-def print_root_fit_parameters(fit) -> None:
+def print_root_fit_parameters(fit: Any) -> None:
     """ Print out all of the ROOT-based fit parameters. """
     output_parameters = []
     for i in range(0, fit.GetNpar()):
@@ -469,7 +469,7 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
         fit_function: Function to be fit.
         fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Finally, setup the fit function
         # NOTE: We specify 0 * x so that we can get proper array evaluation. If there's no
@@ -547,7 +547,7 @@ class FitPedestalWithExtendedGaussian(Fit):
         fit_function: Function to be fit.
         fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Finally, setup the fit function
         self.fit_function: Callable[..., float] = pedestal_with_extended_gaussian

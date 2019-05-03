@@ -12,7 +12,7 @@ import enum
 import logging
 import os
 import pprint  # noqa: F401
-from typing import Any, Dict, Iterator, List, Mapping, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Type, TypeVar, Union
 
 from pachyderm import generic_class
 from pachyderm import histogram
@@ -30,8 +30,8 @@ PlotConfigurations = Dict[str, Union[plot_generic_hist.HistPlotter, Any]]
 InputHists = Dict[str, Union[Hist, Any]]
 
 def iterate_over_plot_configurations(plot_configurations: PlotConfigurations,
-                                     path_to_plot_configuration: List = None,
-                                     **kwargs) -> Iterator[Tuple[str, plot_generic_hist.HistPlotter, List[str]]]:
+                                     path_to_plot_configuration: Optional[List[str]] = None,
+                                     **kwargs: Any) -> Iterator[Tuple[str, plot_generic_hist.HistPlotter, List[str]]]:
     """ Iterate over the provided plot configurations.
 
     This generator searches through the provided plot configurations recursively to find every
@@ -107,7 +107,7 @@ def _determine_hists_for_plot_configurations(plot_configurations: PlotConfigurat
                     # If we do find a match in the input hists dict, go the next level of recursion.
                     # NOTE: We ignore the typing here because mypy doesn't like the recursive redefinition of
                     #       plot_configurations.
-                    _determine_hists_for_plot_configurations(  # type: ignore
+                    _determine_hists_for_plot_configurations(
                         plot_configurations = config,
                         input_hists = input_hists[hists_name]
                     )
@@ -166,7 +166,7 @@ class PlotTaskHists(analysis_objects.JetHBase):
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, task_label: enum.Enum, *args, **kwargs):
+    def __init__(self, task_label: enum.Enum, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         # Basic labeling of the task.
         self.task_label = task_label
@@ -321,7 +321,7 @@ class TaskManager(ABC, generic_class.EqualityMixin):
         tasks: Dictionary of ``PlotTaskHists`` objects indexed by the selected analysis
             options used for each partiuclar object.
     """
-    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs):
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: Any):
         self.config_filename = config_filename
         self.selected_analysis_options = selected_analysis_options
 

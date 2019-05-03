@@ -7,7 +7,7 @@
 
 import argparse
 import logging
-from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from pachyderm import generic_config
 # Provided for convenience of analysis classes
@@ -79,9 +79,10 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
     return config
 
 def determine_selected_options_from_kwargs(
-        args: List[Any] = None,
+        args: Optional[List[Any]] = None,
         description: str = "Jet-hadron {task_name}.",
-        add_options_function = None, **kwargs: str) -> Tuple[str, params.SelectedAnalysisOptions, argparse.Namespace]:
+        add_options_function: Optional[Callable[[argparse.ArgumentParser], Any]] = None,
+        **kwargs: str) -> Tuple[str, params.SelectedAnalysisOptions, argparse.Namespace]:
     """ Determine the selected analysis options from the command line arguments.
 
     Defaults are equivalent to None or False so values can be added in the validation
@@ -95,7 +96,7 @@ def determine_selected_options_from_kwargs(
         kwargs (dict): Additional arguments to format the help description. Often contains ``task_name``
             to specify the task name.
     Returns:
-        tuple: (config_filename, energy, collision_system, event_activity, bias_type, argparse.namespace).
+        tuple: (config_filename, energy, collision_system, event_activity, bias_type, argparse.Namespace).
             The args are return for handling custom arguments added with add_options_function.
     """
     # Make sure there is always a task name
@@ -189,7 +190,7 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
 
 def read_config_using_selected_options(task_name: str, config_filename: str,
                                        selected_analysis_options: params.SelectedAnalysisOptions,
-                                       additional_classes_to_register: Sequence[Any] = None) -> Tuple[generic_config.DictLike, params.SelectedAnalysisOptions]:
+                                       additional_classes_to_register: Optional[Sequence[Any]] = None) -> Tuple[generic_config.DictLike, params.SelectedAnalysisOptions]:
     """ Read the YAML config and override the values using the task config.
 
     This function provides separate functionality for a class to determine its
@@ -270,8 +271,8 @@ def determine_formatting_options(task_name: str, config: generic_config.DictLike
 def construct_from_configuration_file(task_name: str, config_filename: str,
                                       selected_analysis_options: params.SelectedAnalysisOptions,
                                       obj: Any,
-                                      additional_possible_iterables: Dict[str, Any] = None,
-                                      additional_classes_to_register: List[Any] = None) -> ConstructedObjects:
+                                      additional_possible_iterables: Optional[Dict[str, Any]] = None,
+                                      additional_classes_to_register: Optional[List[Any]] = None) -> ConstructedObjects:
     """ This is the main driver function to create an analysis object from a configuration.
 
     Args:
@@ -362,7 +363,7 @@ def construct_from_configuration_file(task_name: str, config_filename: str,
 
     return (KeyIndex, returned_iterables, objects)
 
-def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: Dict[str, Any] = None) -> ConstructedObjects:
+def create_from_terminal(obj: Any, task_name: str, additional_possible_iterables: Optional[Dict[str, Any]] = None) -> ConstructedObjects:
     """ Main function to create an object from the terminal.
 
     Note:

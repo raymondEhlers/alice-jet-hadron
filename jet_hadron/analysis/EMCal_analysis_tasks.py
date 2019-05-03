@@ -8,6 +8,7 @@
 import enum
 import logging
 import os
+from typing import Any
 
 from pachyderm import yaml
 
@@ -58,7 +59,7 @@ class PlotEMCalCorrections(generic_tasks.PlotTaskHists):
         args (list): Additional arguments to pass along to the base config class.
         kwargs (dict): Additional arguments to pass along to the base config class.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Access task_label, but don't pop it, because we need to pass it to the base class for assignment.
         task_label = kwargs["task_label"]
         # Add the task label to the output prefix

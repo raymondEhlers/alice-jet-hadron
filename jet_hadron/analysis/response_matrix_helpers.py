@@ -7,7 +7,7 @@
 
 import enum
 import numpy as np
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, cast, Tuple
 
 from pachyderm import yaml
 
@@ -130,13 +130,17 @@ def _setup_access_bins(response_normalization: ResponseNormalization) -> Tuple[C
 
         # Define helper function so we can properly set the order of the parameters.
         def get_bin(hist: Hist, bin_of_interest: int, index: int) -> int:
-            return hist.GetBin(bin_of_interest, index)
+            return cast(
+                int, hist.GetBin(bin_of_interest, index)
+            )
     elif response_normalization == ResponseNormalization.normalize_each_truth_bin:
         axis = ROOT.TH1.GetXaxis
 
         # Define helper function so we can properly set the order of the parameters.
         def get_bin(hist: Hist, bin_of_interest: int, index: int) -> int:
-            return hist.GetBin(index, bin_of_interest)
+            return cast(
+                int, hist.GetBin(index, bin_of_interest)
+            )
     else:
         raise ValueError(f"RM Normalization value {response_normalization} not recognized")
 

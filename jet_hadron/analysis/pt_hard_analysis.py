@@ -7,7 +7,7 @@
 
 from dataclasses import dataclass
 import logging
-from typing import Any, Dict, Iterator, Mapping, Tuple
+from typing import Any, cast, Dict, Iterator, Mapping, Optional, Tuple
 
 from pachyderm import histogram
 from pachyderm import projectors
@@ -51,7 +51,7 @@ class PtHardAnalysisBase(analysis_objects.JetHBase):
     Note:
         This contains no inherent pt hard information. It will just store the final spectra.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         # Create the most basic pt hard hist - the spectra.
         self.pt_hard_spectra: Hist
         # Then, initialize the base class.
@@ -62,7 +62,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
 
     These analysis objects will interact with standard analysis objects to scale them.
     """
-    def __init__(self, pt_hard_bin, *args, **kwargs):
+    def __init__(self, pt_hard_bin: analysis_objects.PtHardBin, *args: Any, **kwargs: Any):
         # First, initialize the base class
         super().__init__(*args, **kwargs)
 
@@ -87,7 +87,7 @@ class PtHardAnalysis(analysis_objects.JetHBase):
         self.scale_factor: float = 0.0
         self.number_of_events: int = 0
 
-    def _retrieve_histograms(self, input_hists: Mapping[str, Any] = None) -> bool:
+    def _retrieve_histograms(self, input_hists: Optional[Mapping[str, Any]] = None) -> bool:
         """ Retrieve relevant histogram information.
 
         Args:
@@ -139,9 +139,9 @@ class PtHardAnalysis(analysis_objects.JetHBase):
 
     def _extract_number_of_events(self) -> int:
         """ Extract number of accepted events in the pt hard bin."""
-        return self.n_events.GetBinContent(1)
+        return cast(int, self.n_events.GetBinContent(1))
 
-    def setup(self, input_hists: Mapping[str, Any] = None) -> bool:
+    def setup(self, input_hists: Optional[Mapping[str, Any]] = None) -> bool:
         """ Setup the pt hard bin objects.
 
         Note:
@@ -183,8 +183,8 @@ class PtHardAnalysis(analysis_objects.JetHBase):
 
     def run(self, average_number_of_events: float,
             outliers_removal_axis: projectors.TH1AxisType,
-            hists: Mapping[str, Hist] = None,
-            analyses: Mapping[str, analysis_objects.JetHBase] = None,
+            hists: Optional[Mapping[str, Hist]] = None,
+            analyses: Optional[Mapping[str, analysis_objects.JetHBase]] = None,
             hist_attribute_name: str = "") -> bool:
         """ Run the pt hard analysis.
 
@@ -254,8 +254,8 @@ def _get_hists_from_analysis_objects(analyses: Mapping[str, analysis_objects.Jet
     return hists
 
 def merge_pt_hard_binned_analyses(analyses: Iterator[Tuple[Any, analysis_objects.JetHBase]],
-                                  hist_attribute_name,
-                                  output_analysis_object) -> None:
+                                  hist_attribute_name: str,
+                                  output_analysis_object: Any) -> None:
     """ Merge together all scaled histograms.
 
     Args:
