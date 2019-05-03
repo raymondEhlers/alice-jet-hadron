@@ -65,7 +65,7 @@ setup(
             "jetHResponse = jet_hadron.analysis.response_matrix:run_from_terminal",
             "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_corrections_hists_from_terminal",
             "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_embedding_hists_from_terminal",
-            "plotRPFRegions = jet_hadron.plot.highlight_RPF:runFromTerminal"
+            "plotRPFRegions = jet_hadron.plot.highlight_RPF:run_from_terminal"
         ],
     },
 

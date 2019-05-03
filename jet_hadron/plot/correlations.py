@@ -448,7 +448,7 @@ def define_highlight_regions(signal_dominated_eta_region: params.SelectedRange,
     signal_region = highlight_RPF.HighlightRegion(
         "Signal,\n" + fr"$|\Delta\eta|<{signal_dominated_eta_region.max}$", signal_color
     )
-    signal_region.addHighlightRegion(
+    signal_region.add_highlight_region(
         phi_range = (-np.pi / 2, 3.0 * np.pi / 2),
         eta_range = (-1 * signal_dominated_eta_region.max, signal_dominated_eta_region.max),
     )
@@ -461,11 +461,11 @@ def define_highlight_regions(signal_dominated_eta_region: params.SelectedRange,
         "Background,\n" + fr"${background_dominated_eta_region.min}<|\Delta\eta|<{background_dominated_eta_region.max}$",
         background_color
     )
-    background_region.addHighlightRegion(
+    background_region.add_highlight_region(
         phi_range = background_phi_range,
         eta_range = (-1 * background_dominated_eta_region.max, -1 * background_dominated_eta_region.min),
     )
-    background_region.addHighlightRegion(
+    background_region.add_highlight_region(
         phi_range = background_phi_range,
         eta_range = (background_dominated_eta_region.min, background_dominated_eta_region.max),
     )
@@ -490,15 +490,15 @@ def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str)
         # Perform the plotting
         # The best option for clarify of viewing seems to be to just replace the colors with the overlay colors.
         # mathematical_blending and screenColors look similar and seem to be the next most promising option.
-        (fig, ax) = highlight_RPF.plotRPFFitRegions(
+        (fig, ax) = highlight_RPF.plot_RPF_fit_regions(
             histogram.get_array_from_hist2D(hist),
-            highlightRegions = define_highlight_regions(
+            highlight_regions = define_highlight_regions(
                 signal_dominated_eta_region = jet_hadron.signal_dominated_eta_region,
                 background_dominated_eta_region = jet_hadron.background_dominated_eta_region,
                 near_side_phi_region = jet_hadron.near_side_phi_region,
             ),
-            useColorOverlay = False,
-            useColorScreen = False,
+            use_color_overlay = False,
+            use_color_screen = False,
             use_mathematical_blending = False,
         )
 
