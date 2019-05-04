@@ -15,7 +15,7 @@ from pachyderm import histogram
 from pachyderm import yaml
 import pprint
 import sys
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 import reaction_plane_fit.base
 
@@ -174,9 +174,8 @@ def RPF_result_to_width_fit_result(rpf_result: reaction_plane_fit.base.FitResult
         (a, b): rpf_result.covariance_matrix[(a, b)] for a in free_parameters for b in free_parameters
     }
 
-    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
-    #       It won't show up doing normal type checking, but seems to appear when checking the commit
-    width_obj.fit_object.fit_result = FitResult(  # type: ignore
+    # Store the result
+    width_obj.fit_object.fit_result = FitResult(
         parameters = parameters,
         free_parameters = free_parameters,
         fixed_parameters = fixed_parameters,
@@ -213,7 +212,10 @@ class ChiSquared:
 
     def __call__(self, *args: List[float]) -> float:
         """ Calculate the chi2. """
-        return np.sum(np.power(self.data.y - self.f(self.data.x, *args), 2) / np.power(self.data.errors, 2))
+        return cast(
+            float,
+            np.sum(np.power(self.data.y - self.f(self.data.x, *args), 2) / np.power(self.data.errors, 2))
+        )
 
 def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments: FitArguments) -> bool:
     """ Validate the user provided fit arguments.
@@ -289,9 +291,8 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
     parameters: List[str] = iminuit.util.describe(cost_func)
     # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
     free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
-    # NOTE: mypy doesn't parse this properly some reason. It appears to reverse the inherited arguments for some reason...
-    #       It won't show up doing normal type checking, but seems to appear when checking the commit
-    fit_result = FitResult(  # type: ignore
+    # Store the result
+    fit_result = FitResult(
         parameters = parameters,
         free_parameters = free_parameters,
         fixed_parameters = fixed_parameters,
@@ -458,6 +459,23 @@ class Fit(ABC):
         # Now that the object is fully constructed, we can return it.
         return obj
 
+def pedestal(x: float, pedestal: float) -> float:
+    """ Pedestal function.
+
+    Note:
+        If we defined this via a lambda (which would be trivial), we wouldn't be able to specify the types.
+        So we define it separately.
+
+    Args:
+        x: Independent variable.
+        pedestal: Pedestal value.
+    Returns:
+        The pedestal value.
+    """
+    # NOTE: We specify 0 * x so we can get proper array evaluation. If there's no explicit x
+    #       dependence, it will only return a single value.
+    return 0 * x + pedestal
+
 class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
     """ Fit a pedestal to the background dominated region of a delta eta hist.
 
@@ -472,9 +490,7 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Finally, setup the fit function
-        # NOTE: We specify 0 * x so that we can get proper array evaluation. If there's no
-        #       explicit x dependence, it will only return a single value.
-        self.fit_function: Callable[..., float] = lambda x, pedestal: 0 * x + pedestal
+        self.fit_function = pedestal
 
     def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
         """ Setup the histogram and arguments for the fit.
@@ -522,7 +538,10 @@ def gaussian(x: float, mean: float, width: float) -> float:
     Returns:
         Normalized gaussian value.
     """
-    return 1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2)
+    return cast(
+        float,
+        1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2),
+    )
 
 def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
     """ Pedestal + extended (unnormalized) gaussian
@@ -550,7 +569,7 @@ class FitPedestalWithExtendedGaussian(Fit):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Finally, setup the fit function
-        self.fit_function: Callable[..., float] = pedestal_with_extended_gaussian
+        self.fit_function = pedestal_with_extended_gaussian
 
     def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
         """ Setup the histogram and arguments for the fit.
