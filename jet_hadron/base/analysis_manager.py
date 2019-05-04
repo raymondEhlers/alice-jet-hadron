@@ -136,12 +136,14 @@ def run_helper(manager_class: Type[_T], **kwargs: str) -> _T:
     (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(  # type: ignore
         **kwargs,
     )
+    # Validate the given terminal arguments
+    selected_analysis_options, _ = analysis_config.validate_arguments(selected_args = terminal_args)
     # We don't necessarily need to pass the kwargs, as the task_name should be specified by the
     # inheriting manager rather than passed. But it also doesn't hurt to pass the values, and it
     # makes mypy happy.
     analysis_manager = manager_class(
         config_filename = config_filename,
-        selected_analysis_options = terminal_args,
+        selected_analysis_options = selected_analysis_options,
         **kwargs,
     )
     # Finally run the analysis.
