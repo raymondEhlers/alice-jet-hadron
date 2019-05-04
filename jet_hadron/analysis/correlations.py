@@ -1900,7 +1900,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]
-        self.selected_iterables: Dict[str, Sequence[Any]]
+        self.selected_iterables: Mapping[str, Sequence[Any]]
         (self.key_index, self.selected_iterables, self.analyses) = self.construct_correlations_from_configuration_file()
 
         # Store the fits.

@@ -237,7 +237,7 @@ def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations
     return ", ".join(labels)
 
 def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
-                      selected_iterables: Dict[str, Sequence[Any]],
+                      selected_iterables: Mapping[str, Sequence[Any]],
                       extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
                       plot_labels: plot_base.PlotLabels,
                       output_name: str,
@@ -365,7 +365,7 @@ def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Cor
     )
 
 def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -388,7 +388,7 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
     )
 
 def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side widths. """
     def away_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -411,7 +411,7 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
     )
 
 def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side yields. """
     def near_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -448,7 +448,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
     )
 
 def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
     def away_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -497,7 +497,7 @@ def delta_eta_plot_projection_range_string(inclusive_analysis: "correlations.Cor
     )
 
 def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -520,7 +520,7 @@ def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
     )
 
 def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
-                               selected_iterables: Dict[str, Sequence[Any]],
+                               selected_iterables: Mapping[str, Sequence[Any]],
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side yields. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
