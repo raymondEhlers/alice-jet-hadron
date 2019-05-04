@@ -210,6 +210,32 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
                         f"jetH_delta_phi_{analysis.identifier}_width_signal_dominated_fit")
     plt.close(fig)
 
+def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations",
+                                  projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
+                                  extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
+                                  ) -> str:
+    """ Determine the projection range and extraction range label.
+
+    We attempt to put them on the same line if they are both defined. Otherwise, it will just be one of them.
+
+    Args:
+        inclusive_analysis: Inclusive correlations analysis object for labeling purposes.
+        projection_range_func: Function which will provide the projection range of the extracted value given
+            the inclusive object.
+        extraction_range_func: Function which will provide the extraction range of the extracted value given
+            the inclusive object.
+    Returns:
+        The properly formatted label potentially containing the projection and extraction range(s).
+    """
+    labels = []
+    for f in [projection_range_func, extraction_range_func]:
+        if f:
+            res = f(inclusive_analysis)
+            if res:
+                labels.append(res)
+
+    return ", ".join(labels)
+
 def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Dict[str, Sequence[Any]],
                       extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
@@ -227,7 +253,17 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         function with full typing is strongly preferred to ensure that we get it right.
 
     Args:
-
+        analyses: Correlation analyses.
+        selected_iterables: Iterables that were used in constructing the analysis objects. We use them to iterate
+            over some iterators in a particular order (particularly the reaction plane orientation).
+        extract_value_func: Function to retrieve the extracted value and error.
+        plot_labels: Titles and axis labels for the plot.
+        output_name: Base of name under which the plot will be stored.
+        output_info: Information needed to determine where to store the plot.
+        projection_range_func: Function which will provide the projection range of the extracted value given
+            the inclusive object. Default: None.
+        extraction_range_func: Function which will provide the extraction range of the extracted value given
+            the inclusive object. Default: None.
     """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
@@ -294,24 +330,13 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     text += "\n" + labels.constituent_cuts()
     text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
     # Deal with projection range, extraction range string.
-    # Attempt to put them on the same line if they are both defined.
-    # Otherwise, it will just be one of them.
-    projection_range_string = ""
-    if projection_range_func:
-        projection_range_string = projection_range_func(inclusive_analysis)
-    extraction_range_string = ""
-    if extraction_range_func:
-        extraction_range_string = extraction_range_func(inclusive_analysis)
-    if projection_range_string or extraction_range_string:
-        additional_text = ""
-        if projection_range_string:
-            if extraction_range_string:
-                additional_text += f"{projection_range_string}, {extraction_range_string}"
-            else:
-                additional_text += f"{projection_range_string}"
-        else:
-            additional_text += f"{extraction_range_string}"
-        text += "\n" + additional_text
+    additional_label = _proj_and_extract_range_label(
+        inclusive_analysis = inclusive_analysis,
+        projection_range_func = projection_range_func,
+        extraction_range_func = extraction_range_func,
+    )
+    if additional_label:
+        text += "\n" + additional_label
     # Finally, add the text to the axis.
     ax.text(
         0.97, 0.97, text, horizontalalignment = "right",
