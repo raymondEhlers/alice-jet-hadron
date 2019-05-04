@@ -13,7 +13,7 @@ repos:
       rev: v0.701
       hooks:
           - id: mypy
-            args: ["--ignore-missing-imports"]
+            args: ["--ignore-missing-imports", "--strict"]
     - repo: https://github.com/pre-commit/pygrep-hooks
       rev: v1.3.0
       hooks:
