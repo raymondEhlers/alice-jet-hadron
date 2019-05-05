@@ -51,7 +51,7 @@ class TestTrackPtString:
 
         for pt_bin, expected_min, expected_max in zip(pt_bins, self.track_pt_bins[:-1], self.track_pt_bins[1:]):
             logger.debug(f"Checking bin {pt_bin}, {pt_bin.range}, {type(pt_bin)}")
-            assert labels.track_pt_range_string(pt_bin) == r"$%(lower)s < p_{\mathrm{T}}^{\mathrm{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
+            assert labels.track_pt_range_string(pt_bin) == r"$%(lower)s < p_{\text{T}}^{\text{assoc}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
 
 class TestJetPtString:
     # NOTE: The -1 is important for the final bin to be understood correctly as the last bin!
@@ -74,7 +74,7 @@ class TestJetPtString:
 
         for pt_bin, expected_min, expected_max in zip(pt_bins, self.jet_pt_bins[:-2], self.jet_pt_bins[1:-1]):
             logger.debug(f"Checking bin {pt_bin}, {pt_bin.range}, {type(pt_bin)}")
-            assert labels.jet_pt_range_string(pt_bin) == r"$%(lower)s < p_{\mathrm{T,jet}}^{\mathrm{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
+            assert labels.jet_pt_range_string(pt_bin) == r"$%(lower)s < p_{\text{T,jet}}^{\text{ch+ne}} < %(upper)s\:\mathrm{GeV/\mathit{c}}$" % {"lower": expected_min, "upper": expected_max}
 
     def test_jet_pt_string_for_last_pt_bin(self, logging_mixin):
         """ Test the jet pt string generation function for the last jet pt bin.
@@ -89,7 +89,7 @@ class TestJetPtString:
                 self.jet_pt_bins[pt_bin + 1]
             )
         )
-        assert labels.jet_pt_range_string(jet_pt_bin) == r"$%(lower)s < p_{\mathrm{T,jet}}^{\mathrm{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": self.jet_pt_bins[-2]}
+        assert labels.jet_pt_range_string(jet_pt_bin) == r"$%(lower)s < p_{\text{T,jet}}^{\text{ch+ne}}\:\mathrm{GeV/\mathit{c}}$" % {"lower": self.jet_pt_bins[-2]}
 
 @pytest.mark.parametrize("energy, system, activity, expected", [
     (2.76, "pp", "inclusive", r"$\mathrm{pp}\:\sqrt{s_{\mathrm{NN}}} = 2.76\:\mathrm{TeV}$"),
@@ -105,8 +105,8 @@ def test_system_label(logging_mixin, energy, system, activity, expected):
     assert labels.system_label(energy = energy, system = system, activity = activity) == expected
 
 @pytest.mark.parametrize("upper_label, expected", [
-    ("", r"p_{\mathrm{T,jet}}^{\mathrm{}}"),
-    (r"det", r"p_{\mathrm{T,jet}}^{\mathrm{det}}")
+    ("", r"p_{\text{T,jet}}^{\text{}}"),
+    (r"det", r"p_{\text{T,jet}}^{\text{det}}")
 ], ids = ["Base test", "Superscript"])
 def test_jet_pt_display_string(logging_mixin, upper_label, expected):
     """ Test for generating jet pt labels. """
@@ -120,7 +120,7 @@ def test_jet_pt_display_string(logging_mixin, upper_label, expected):
 
 def test_track_pt_display_string(logging_mixin):
     """ Test for generating the track pt label. """
-    labels.track_pt_display_label() == r"p_{\mathrm{T,jet}}^{\mathrm{assoc}}"
+    labels.track_pt_display_label() == r"p_{\text{T,jet}}^{\text{assoc}}"
 
 def test_gev_momentum_units_label(logging_mixin):
     """ Test generating GeV/c label in latex. """
