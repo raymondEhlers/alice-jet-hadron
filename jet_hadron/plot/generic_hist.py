@@ -341,12 +341,12 @@ class HistPlotter:
         # Define and fill kwargs
         kwargs = {}
 
-        # Set the z axis normalization via this parituclar function
-        # Will be called when creating the arugments
+        # Set the z axis normalization via this particular function
+        # Will be called when creating the arguments
         normalizationFunction = matplotlib.colors.Normalize
         if self.logz:
             normalizationFunction = matplotlib.colors.LogNorm
-        # Evalute
+        # Evaluate
         kwargs["norm"] = normalizationFunction(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array))
         logger.debug("min: {}, max: {}".format(np.nanmin(hist_array), np.nanmax(hist_array)))
         # Colormap is the default from sns.heatmap
@@ -389,7 +389,7 @@ class HistPlotter:
             else:
                 logger.debug("Plotting with imshow ")
 
-                # This imshow is quite similar to rplt.imshow (it is locaed in
+                # This imshow is quite similar to rplt.imshow (it is located in
                 # ``plotting.root2matplotlib.imshow``), which can be seen here:
                 # https://github.com/rootpy/rootpy/blob/master/rootpy/plotting/root2matplotlib.py#L743
                 # However, we don't copy it directly because we want to set the 0s to nan so they won't
@@ -397,7 +397,7 @@ class HistPlotter:
                 extent = [np.amin(X), np.amax(X),
                           np.amin(Y), np.amax(Y)]
 
-                #logger.debug("Extent: {}, binEdges[1]: {}".format(extent, binEdges[1]))
+                #logger.debug(f"Extent: {extent}, binEdges[1]: {binEdges[1]}")
                 axFromPlot = plt.imshow(hist_array.T,
                                         extent = extent,
                                         interpolation = "nearest",
@@ -455,7 +455,7 @@ class HistPlotter:
             if self.step_plot:
                 # Step plots look like histograms. They plot some value for some width
                 # According to the documentation, it is basically a thin wrapper around plt.plot() with
-                # some modified options. An additional 0 neds to be appended to the end of the data so
+                # some modified options. An additional 0 needs to be appended to the end of the data so
                 # the arrays are the same length (this appears to be imposed as an mpl requirement), but
                 # it is not meaningful.
                 ax.step(
