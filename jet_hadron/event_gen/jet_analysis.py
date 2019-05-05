@@ -70,28 +70,55 @@ def max_constituent_pt(jet: PseudoJet) -> float:
             max_pt = c.pt
     return max_pt
 
-def match_jets(particle_level_jets: np.ndarray, detector_level_jets: np.ndarray, R: float) -> List[Tuple[int, int]]:
-    """
+def match_jets(particle_level_jets: np.ndarray, detector_level_jets: np.ndarray, matching_distance: float) -> List[Tuple[int, int]]:
+    """ Match particle and detector level jets geometrically.
+
+    Matching is performed via KDTrees. The particle level jet is required to match the
+    detector level jet and vice-versa.
 
     Args:
-
+        particle_level_jets: Particle level jets.
+        detector_level_jets: Detector level jets.
+        matching_distance: Maximum matching distance between jets. Default guidance is
+            to use 0.6 * R.
     Returns:
+        List of pairs of (particle level index, detector level index).
     """
+    # Extract the jet locations from the PSeudoJets.
     part_level_positions = np.array([(j.eta, j.phi) for j in particle_level_jets])
     det_level_positions = np.array([(j.eta, j.phi) for j in detector_level_jets])
     logger.debug(f"part_level_positions: {part_level_positions}, det_level_positions: {det_level_positions}")
+
+    # Construct the KDTress. They default to using the L^2 norm (ie our expected distance measure).
     part_level_tree = KDTree(part_level_positions)
     det_level_tree = KDTree(det_level_positions)
+    # Perform the actual matching.
+    part_level_matches = part_level_tree.query_ball_tree(det_level_tree, r = matching_distance)
+    det_level_matches = det_level_tree.query_ball_tree(part_level_tree, r = matching_distance)
 
-    part_level_matches = part_level_tree.query_ball_tree(det_level_tree, r = 0.6 * R)
-    det_level_matches = det_level_tree.query_ball_tree(part_level_tree, r = 0.6 * R)
-
+    # Only keep the closest match where the particle level jet points to the detector level
+    # jet and vise-versa.
     indices = []
     for i, part_match in enumerate(part_level_matches):
+        min_distance = 1000
+        min_distance_index = -1
         for det_match in det_level_matches:
             for m in det_match:
                 if m in part_match:
-                    indices.append((i, m))
+                    # Calculate the distance
+                    dist = np.sqrt(
+                        (part_level_positions[i][0] - det_level_positions[m][0]) ** 2
+                        + (part_level_positions[i][1] - det_level_positions[m][1]) ** 2
+                    )
+                    logger.debug(f"part_level_index: {i}, Potential match: {m}, distance: {dist}")
+                    if dist < min_distance:
+                        logger.debug(f"Found match! Previous min_distance: {min_distance}")
+                        min_distance = dist
+                        min_distance_index = m
+
+        if min_distance_index != -1:
+            logger.debug(f"Final match: {i}, {min_distance_index}")
+            indices.append((i, min_distance_index))
 
     logger.debug(f"part_level_matches: {part_level_matches}, det_level_matches: {det_level_matches}")
     logger.debug(f"indices: {indices}")
@@ -212,7 +239,7 @@ class STARJetAnalysis(JetAnalysis):
         if len(particle_level_jets) == 0 or len(detector_level_jets) == 0:
             return False
 
-        matches = match_jets(particle_level_jets, detector_level_jets, R = self.jet_radius)
+        matches = match_jets(particle_level_jets, detector_level_jets, matching_distance = 0.6 * self.jet_radius)
 
         for (part_index, det_index) in matches:
             logger.debug(f"part_level: {particle_level_jets[part_index]}, det_level: {detector_level_jets[det_index]}")
