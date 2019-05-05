@@ -84,6 +84,8 @@ setup(
         "reaction_plane_fit",
         "coloredlogs",
         "enlighten",
+        "numpythia",
+        "pyjet",
     ],
 
     # Include additional files

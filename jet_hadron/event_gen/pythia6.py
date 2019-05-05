@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import pyjet.utils
 from typing import Any, Iterable, Optional, Tuple
 
 from jet_hadron.event_gen import generator
@@ -128,6 +129,10 @@ class Pythia6(generator.Generator):
         # or other kinds of event information."
         filtered_array = particles_array[(particles_array["status_code"] != 0) & (particles_array["status_code"] <= 10)]
 
+        # Convert from (E, px, py, pz) -> (pT, eta, phi, mass)
+        filtered_array = pyjet.utils.ep2ptepm(filtered_array)
+
+        # TODO: Add event properties
         return filtered_array
 
     def __call__(self, n_events: int) -> Iterable[generator.Event]:
