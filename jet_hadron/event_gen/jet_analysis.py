@@ -24,6 +24,7 @@ from jet_hadron.event_gen import pythia6 as gen_pythia6
 # Type helpers
 PseudoJet: pyjet._libpyjet.PseudoJet = pyjet._libpyjet.PseudoJet
 DTYPE_PT = np.dtype([("pT", np.float64), ("eta", np.float64), ("phi", np.float64), ("m", np.float64)])
+# Stores particle and detector level jets.
 DTYPE_JETS = np.dtype(
     [(f"{label}_{name}", dtype) for label in ["part", "det"] for name, dtype in DTYPE_PT.descr]
 )
@@ -136,27 +137,39 @@ def match_jets(particle_level_jets: np.ndarray, detector_level_jets: np.ndarray,
     return indices
 
 class JetAnalysis:
-    def __init__(self, generator: generator.Generator, jet_radius: float = 0.4):
+    """ Direct the generation and processing of events from a generator through jet finding to final processing.
+
+    Args:
+        generator: Generator object.
+        identifier: String by which the analysis should be identified.
+        jet_radius: Jet finding parameter.
+
+    Attributes:
+        generator: Generator object.
+        identifier: String by which the analysis should be identified.
+        jet_radius: Jet finding parameter.
+        jets: Array of jets found from particles from the generator.
+        _progress_manager: Used to display processing progress.
+    """
+    def __init__(self, generator: generator.Generator, identifier: str, jet_radius: float = 0.4):
         self.generator = generator
+        self.identifier = identifier
         self.jet_radius = jet_radius
+
+        # Output variables
+        self.jets: np.ndarray = []
 
         # Monitor the progress of the analysis.
         self._progress_manager = enlighten.get_manager()
 
-        # Trees
-        #self.event_tree: ROOT.TTree
-        #self.jet_tree: ROOT.TTree
-
-    def _setup_event_tree(self) -> None:
-        """ Setup an event branch in an existing TTree.
-
-        """
-        #self.event_tree = ROOT.TTree("event_tree", "Event level properties")
-        #self.event_tree
-
     def setup(self) -> bool:
-        """ Setup the generator and the outputs. """
-        # Setup the tree
+        """ Setup the generator and the outputs.
+
+        If use of TTress is desired, a separate tree for the event level properties and a flat tree
+        for all of the jets is probably recommended. Precisely what will be done depends on the user requirements.
+        """
+        ...
+
         return True
 
     def _process_event(self, event: generator.Event) -> bool:
@@ -167,12 +180,22 @@ class JetAnalysis:
         Returns:
             True if the event was successfully processed.
         """
-        # TODO: Fill this in a bit
         # Jet finding
-        find_jets(event)
+        particle_level_jets = find_jets(event)
 
-        # Save the result
-        ...
+        # Store the jet properties
+        for jet in particle_level_jets:
+            self.jets.append(
+                np.array(
+                    (
+                        jet.pt,
+                        jet.eta,
+                        jet.phi,
+                        jet.mass
+                    ),
+                    dtype = DTYPE_PT,
+                )
+            )
 
         return True
 
@@ -209,10 +232,21 @@ class JetAnalysis:
 
     def finalize(self) -> None:
         """ Finalize the analysis. """
-        ...
+        # Finally, convert to a proper numpy array. It's only converted here because it's not efficient to expand
+        # existing numpy arrays.
+        self.jets = np.array(self.jets, dtype = DTYPE_JETS)
+
+        # And save out the tree so we don't have to calculate it again later.
+        filename = self.identifier
+        if not filename.endswith(".npy"):
+            filename += ".npy"
+        with open(filename, "wb") as f:
+            np.save(f, self.jets)
 
 class STARJetAnalysis(JetAnalysis):
-    """
+    """ Find and analyze jets using STAR Au--Au data taking conditions.
+
+    This allows us to simulate.
 
     Args:
         event_activity: Centrality selection for determining the momentum resolution.
@@ -228,7 +262,6 @@ class STARJetAnalysis(JetAnalysis):
 
         # Output
         self.jets: np.ndarray = []
-        self.response: np.ndarray = []
 
     def setup(self) -> bool:
         """
@@ -360,7 +393,6 @@ class STARJetAnalysis(JetAnalysis):
 
         for (part_index, det_index) in matches:
             logger.debug(f"part_level: {particle_level_jets[part_index]}, det_level: {detector_level_jets[det_index]}")
-            self.response.append((detector_level_jets[det_index].pt, particle_level_jets[part_index].pt))
             self.jets.append(
                 np.array(
                     (
@@ -382,24 +414,20 @@ class STARJetAnalysis(JetAnalysis):
 
     def finalize(self) -> None:
         """ Finalize the analysis. """
-        # Finally, convert to a proper numpy array.
-        self.jets = np.array(self.jets, dtype = DTYPE_JETS)
-        #self.response = np.array(self.response)
-        #print(f"number of jets in response: {len(self.response)}")
         print(f"number of jets in tree: {len(self.jets)}")
-        #logger.debug(f"self.response: {self.response}")
-        print(f"self.jets: {self.jets}")
-        print(f"particle_level_jet pt: {self.jets['part_pT']}")
-        print(f"self.jets.dtype: {self.jets.dtype}")
+        # Finally, convert to a proper numpy array. It's only converted here because it's not efficient to expand
+        # existing numpy arrays.
+        self.jets = np.array(self.jets, dtype = DTYPE_JETS)
+
+        # And save out the tree so we don't have to calculate it again later.
+        with open("jets.npy", "wb") as f:
+            np.save(f, self.jets)
 
         # Create histogram
         h, x_edges, y_edges = np.histogram2d(
             self.jets["det_pT"], self.jets["part_pT"],
             bins = (60, 60), range = ((0, 60), (0, 60))
         )
-
-        with open("jets.npy", "wb") as f:
-            np.save(f, self.jets)
 
         # Plot
         output_info = analysis_objects.PlottingOutputWrapper(
@@ -427,7 +455,7 @@ class STARJetAnalysis(JetAnalysis):
         plot_base.save_plot(output_info, fig, "response")
 
 def run_jet_analysis() -> None:
-    """ """
+    """ Run the jet analysis. """
     # TODO: Dask!
     # Pt hard bins: [5, 10, 15, 20, 25, 35, 45]
     analysis = STARJetAnalysis(
@@ -437,6 +465,7 @@ def run_jet_analysis() -> None:
             random_seed = 10,
             pt_hard = (20, 30),
         ),
+        identifier = "STAR_jets",
         jet_radius = 0.4,
     )
 
