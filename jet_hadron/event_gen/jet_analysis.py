@@ -420,7 +420,10 @@ class STARJetAnalysis(JetAnalysis):
         self.jets = np.array(self.jets, dtype = DTYPE_JETS)
 
         # And save out the tree so we don't have to calculate it again later.
-        with open("jets.npy", "wb") as f:
+        filename = self.identifier
+        if not filename.endswith(".npy"):
+            filename += ".npy"
+        with open(filename, "wb") as f:
             np.save(f, self.jets)
 
         # Create histogram
@@ -456,25 +459,31 @@ class STARJetAnalysis(JetAnalysis):
 
 def run_jet_analysis() -> None:
     """ Run the jet analysis. """
-    # TODO: Dask!
     # Pt hard bins: [5, 10, 15, 20, 25, 35, 45]
-    analysis = STARJetAnalysis(
-        event_activity = params.EventActivity.semi_central,
-        generator = gen_pythia6.Pythia6(
-            sqrt_s = 200,
-            random_seed = 10,
-            pt_hard = (20, 30),
-        ),
-        identifier = "STAR_jets",
-        jet_radius = 0.4,
-    )
+    analyses = []
+    pt_hard_bins = [5, 10, 15, 20, 25, 35, 45]
+    for low_bin, high_bin in zip(pt_hard_bins[:-1], pt_hard_bins[1:]):
+        analysis = STARJetAnalysis(
+            event_activity = params.EventActivity.semi_central,
+            generator = gen_pythia6.Pythia6(
+                sqrt_s = 200,
+                random_seed = 10,
+                pt_hard = (low_bin, high_bin),
+            ),
+            identifier = f"STAR_jets_ptHard_{low_bin}_{high_bin}",
+            jet_radius = 0.4,
+        )
+        analyses.append(analysis)
 
     # Setup and run the analysis
-    res = analysis.setup()
-    if not res:
-        raise RuntimeError("Setup failed!")
-    analysis.event_loop(n_events = 10000)
-    analysis.finalize()
+    for analysis in analyses:
+        res = analysis.setup()
+        if not res:
+            raise RuntimeError("Setup failed!")
+
+    for analysis in analyses:
+        analysis.event_loop(n_events = 10)
+        analysis.finalize()
 
 if __name__ == "__main__":
     run_jet_analysis()
