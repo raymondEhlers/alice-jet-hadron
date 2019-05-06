@@ -238,13 +238,13 @@ def test_leading_hadron_bias_type(logging_mixin, bias, expected):
             "display_str": ""}),
     ("track", 5,
         {"str": "trackBias5",
-            "display_str": r"p_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}} > 5\:\mathrm{GeV}/\mathit{c}"}),
+            "display_str": r"p_{\text{T}}^{\text{lead\:track%(additional_label)s}} > 5\:\mathrm{GeV}/\mathit{c}"}),
     ("cluster", 6,
         {"str": "clusterBias6",
-            "display_str": r"E_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}} > 6\:\mathrm{GeV}"}),
+            "display_str": r"E_{\text{T}}^{\text{lead\:clus%(additional_label)s}} > 6\:\mathrm{GeV}"}),
     ("both", 10,
         {"str": "bothBias10",
-            "display_str": r"p_{\mathrm{T}}^{\mathrm{lead\:track%(additional_label)s}}\mathit{c}\mathrm{,}\:E_{\mathrm{T}}^{\mathrm{lead\:clus%(additional_label)s}} > 10\:\mathrm{GeV}"})
+            "display_str": r"p_{\text{T}}^{\text{lead\:track%(additional_label)s}}\mathit{c}\mathrm{,}\:E_{\text{T}}^{\text{lead\:clus%(additional_label)s}} > 10\:\mathrm{GeV}"})
 ], ids = ["NA", "NAPassedWrongValue", "track", "cluster", "both"])
 def test_leading_hadron_bias(logging_mixin, type, value, additional_label, expected):
     """ Test the leading hadron bias class. """

@@ -60,7 +60,7 @@ def et_display_label(lower_label: str = "T", upper_label: str = "") -> str:
     Returns:
         Properly formatted E_T string.
     """
-    return r"E_{\mathrm{%(lower_label)s}}^{\mathrm{%(upper_label)s}}" % {
+    return r"E_{\text{%(lower_label)s}}^{\text{%(upper_label)s}}" % {
         "lower_label": lower_label,
         "upper_label": upper_label,
     }
