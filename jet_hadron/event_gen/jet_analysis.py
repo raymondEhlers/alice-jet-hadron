@@ -23,6 +23,10 @@ from jet_hadron.event_gen import pythia6 as gen_pythia6
 
 # Type helpers
 PseudoJet: pyjet._libpyjet.PseudoJet = pyjet._libpyjet.PseudoJet
+DTYPE_PT = np.dtype([("pT", np.float64), ("eta", np.float64), ("phi", np.float64), ("m", np.float64)])
+DTYPE_JETS = np.dtype(
+    [(f"{label}_{name}", dtype) for label in ["part", "det"] for name, dtype in DTYPE_PT.descr]
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,9 +143,20 @@ class JetAnalysis:
         # Monitor the progress of the analysis.
         self._progress_manager = enlighten.get_manager()
 
+        # Trees
+        #self.event_tree: ROOT.TTree
+        #self.jet_tree: ROOT.TTree
+
+    def _setup_event_tree(self) -> None:
+        """ Setup an event branch in an existing TTree.
+
+        """
+        #self.event_tree = ROOT.TTree("event_tree", "Event level properties")
+        #self.event_tree
+
     def setup(self) -> bool:
         """ Setup the generator and the outputs. """
-        # Setup the tree / hists
+        # Setup the tree
         return True
 
     def _process_event(self, event: generator.Event) -> bool:
@@ -212,6 +227,7 @@ class STARJetAnalysis(JetAnalysis):
         self.efficiency_sampling: List[int] = []
 
         # Output
+        self.jets: np.ndarray = []
         self.response: np.ndarray = []
 
     def setup(self) -> bool:
@@ -345,21 +361,45 @@ class STARJetAnalysis(JetAnalysis):
         for (part_index, det_index) in matches:
             logger.debug(f"part_level: {particle_level_jets[part_index]}, det_level: {detector_level_jets[det_index]}")
             self.response.append((detector_level_jets[det_index].pt, particle_level_jets[part_index].pt))
+            self.jets.append(
+                np.array(
+                    (
+                        particle_level_jets[part_index].pt,
+                        particle_level_jets[part_index].eta,
+                        particle_level_jets[part_index].phi,
+                        particle_level_jets[part_index].mass,
+                        detector_level_jets[det_index].pt,
+                        detector_level_jets[det_index].eta,
+                        detector_level_jets[det_index].phi,
+                        detector_level_jets[det_index].mass,
+                    ),
+                    dtype = DTYPE_JETS,
+                )
+            )
 
         # Store data
         return True
 
     def finalize(self) -> None:
         """ Finalize the analysis. """
-        self.response = np.array(self.response)
-        print(f"number of jets: {len(self.response)}")
+        # Finally, convert to a proper numpy array.
+        self.jets = np.array(self.jets, dtype = DTYPE_JETS)
+        #self.response = np.array(self.response)
+        #print(f"number of jets in response: {len(self.response)}")
+        print(f"number of jets in tree: {len(self.jets)}")
         #logger.debug(f"self.response: {self.response}")
+        print(f"self.jets: {self.jets}")
+        print(f"particle_level_jet pt: {self.jets['part_pT']}")
+        print(f"self.jets.dtype: {self.jets.dtype}")
 
         # Create histogram
         h, x_edges, y_edges = np.histogram2d(
-            self.response[:, 0], self.response[:, 1],
+            self.jets["det_pT"], self.jets["part_pT"],
             bins = (60, 60), range = ((0, 60), (0, 60))
         )
+
+        with open("jets.npy", "wb") as f:
+            np.save(f, self.jets)
 
         # Plot
         output_info = analysis_objects.PlottingOutputWrapper(
