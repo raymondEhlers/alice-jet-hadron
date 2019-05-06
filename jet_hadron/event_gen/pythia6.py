@@ -8,7 +8,7 @@ from jet_hadron.event_gen import generator
 
 import ROOT
 
-DTYPE_EP = np.dtype([('E', np.float64), ('px', np.float64), ('py', np.float64), ('pz', np.float64)])
+DTYPE_EP = np.dtype([("E", np.float64), ("px", np.float64), ("py", np.float64), ("pz", np.float64)])
 
 class Pythia6(generator.Generator):
     """ PYTHIA 6 event generator.
@@ -95,8 +95,12 @@ class Pythia6(generator.Generator):
         return True
 
     def _format_output(self) -> generator.Event:
-        """
+        """ Convert the output from the generator for into a format suitable for further processing.
 
+        Args:
+            None.
+        Returns:
+            Event level information and the input particles.
         """
         # Setup
         status_dtype = DTYPE_EP.descr + [("status_code", np.int32)]
@@ -109,9 +113,9 @@ class Pythia6(generator.Generator):
         # Store the particles from pythia. Unfortunately, we have to loop here, so the performance probably
         # isn't going to be amazing.
         # The Pythia particles are 1 indexed, so we start at 1.
-        # NOTE: output_index == pythia_index - 1, but we define both for convenience
+        # NOTE: output_index := pythia_index - 1, but we define both for convenience
         for output_index, pythia_index in enumerate(range(1, n_particles + 1)):
-            # E, px, py, py, KS (status code)
+            # Format: E, px, py, py, KS (status code)
             particles_array[output_index] = np.array(
                 (
                     self.generator.GetP(pythia_index, 4),
@@ -132,8 +136,13 @@ class Pythia6(generator.Generator):
         # Convert from (E, px, py, pz) -> (pT, eta, phi, mass)
         filtered_array = pyjet.utils.ep2ptepm(filtered_array)
 
-        # TODO: Add event properties
-        return filtered_array
+        # Determine event properties
+        event_properties = generator.EventProperties(
+            cross_section = self.generator.GetPARI(1),
+            pt_hard = self.generator.GetVINT(47),
+        )
+
+        return event_properties, filtered_array
 
     def __call__(self, n_events: int) -> Iterable[generator.Event]:
         """ Generate an event with Pythia 6.
@@ -141,9 +150,8 @@ class Pythia6(generator.Generator):
         Args:
             n_events: Number of events to generate.
         Returns:
-            Output particles from a particular event.
+            Generator to provide the requested number of events.
         """
-        # TODO: Event properties...
         for i in range(n_events):
             # Call Pyevnt()
             self.generator.GenerateEvent()

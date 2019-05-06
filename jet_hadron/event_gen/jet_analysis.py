@@ -8,6 +8,7 @@
 import enlighten
 import logging
 import numpy as np
+import os
 import pyjet
 from scipy.spatial import KDTree
 from typing import Any, List, Sequence, Tuple
@@ -28,6 +29,7 @@ DTYPE_PT = np.dtype([("pT", np.float64), ("eta", np.float64), ("phi", np.float64
 DTYPE_JETS = np.dtype(
     [(f"{label}_{name}", dtype) for label in ["part", "det"] for name, dtype in DTYPE_PT.descr]
 )
+DTYPE_EVENT_PROPERTIES = np.dtype([("cross_section", np.float64), ("pt_hard", np.float64)])
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,28 @@ def fields_view(arr: np.ndarray, fields: Sequence[str]) -> np.ndarray:
     """
     new_dtype = np.dtype({name: arr.dtype.fields[name] for name in fields})
     return np.ndarray(arr.shape, new_dtype, arr, 0, arr.strides)
+
+def save_tree(output_info: analysis_objects.PlottingOutputWrapper,
+              arr: np.ndarray, output_name: str) -> str:
+    """ Write the tree stored in a numpy array to a file.
+
+    Args:
+        output_index: Output information.
+        arr: Tree stored in an array to write out.
+        output_name: Filename under which the tree should be saved, but without the file extension.
+    Returns:
+        The filename under which the tree was written.
+    """
+    # Determine filename
+    if not output_name.endswith(".npy"):
+        output_name += ".npy"
+    full_path = os.path.join(output_info.output_prefix, output_name)
+
+    # Write
+    with open(full_path, "wb") as f:
+        np.save(f, arr)
+
+    return full_path
 
 def find_jets(input_array: np.ndarray, algorithm: str = "antikt", R: float = 0.4, min_jet_pt: float = 2) -> np.array:
     """ Perform jet finding use FastJet.
@@ -157,7 +181,15 @@ class JetAnalysis:
         self.jet_radius = jet_radius
 
         # Output variables
+        # They start out as lists, but will be converted to numpy arrays when finalized.
         self.jets: np.ndarray = []
+        self.events: np.ndarray = []
+
+        # Output info
+        self.output_info = analysis_objects.PlottingOutputWrapper(
+            output_prefix = ".",
+            printing_extensions = ["pdf"],
+        )
 
         # Monitor the progress of the analysis.
         self._progress_manager = enlighten.get_manager()
@@ -180,32 +212,32 @@ class JetAnalysis:
         Returns:
             True if the event was successfully processed.
         """
+        # Setup
+        event_properties, event_particles = event
+
         # Jet finding
-        particle_level_jets = find_jets(event)
+        particle_level_jets = find_jets(event_particles)
 
         # Store the jet properties
         for jet in particle_level_jets:
             self.jets.append(
-                np.array(
-                    (
-                        jet.pt,
-                        jet.eta,
-                        jet.phi,
-                        jet.mass
-                    ),
-                    dtype = DTYPE_PT,
-                )
+                np.array((jet.pt, jet.eta, jet.phi, jet.mass), dtype = DTYPE_PT)
             )
+
+        # Store the event properties
+        self.events.append(
+            np.array((event_properties.cross_section, event_properties.pt_hard), dtype = DTYPE_EVENT_PROPERTIES)
+        )
 
         return True
 
-    def event_loop(self, n_events: int) -> bool:
+    def event_loop(self, n_events: int) -> int:
         """ Loop over the generator to generate events.
 
         Args:
             n_events: Number of events to generate.
         Returns:
-            True if the generation was run successfully.
+            Number of accepted events.
         """
         n_accepted = 0
         with self._progress_manager.counter(total = n_events,
@@ -228,20 +260,29 @@ class JetAnalysis:
         # Otherwise, IPython will act very strangely and is basically impossible to use.
         self._progress_manager.stop()
 
-        return True
+        return n_accepted
 
-    def finalize(self) -> None:
+    def finalize(self, n_events_accepted: int) -> None:
         """ Finalize the analysis. """
         # Finally, convert to a proper numpy array. It's only converted here because it's not efficient to expand
         # existing numpy arrays.
         self.jets = np.array(self.jets, dtype = DTYPE_JETS)
+        self.events = np.array(self.events, dtype = DTYPE_EVENT_PROPERTIES)
 
         # And save out the tree so we don't have to calculate it again later.
-        filename = self.identifier
-        if not filename.endswith(".npy"):
-            filename += ".npy"
-        with open(filename, "wb") as f:
-            np.save(f, self.jets)
+        self.save_tree(arr = self.jets, output_name = self.identifier + "_jets")
+
+    def save_tree(self, *args: Any, **kwargs: Any) -> str:
+        """ Helper for saving a tree to file.
+
+        Args:
+            output_index: Output information.
+            arr: Tree stored in an array to write out.
+            output_name: Filename under which the tree should be saved, but without the file extension.
+        Returns:
+            The filename under which the tree was written.
+        """
+        return save_tree(self.output_info, *args, **kwargs)
 
 class STARJetAnalysis(JetAnalysis):
     """ Find and analyze jets using STAR Au--Au data taking conditions.
@@ -261,7 +302,10 @@ class STARJetAnalysis(JetAnalysis):
         self.efficiency_sampling: List[int] = []
 
         # Output
-        self.jets: np.ndarray = []
+        self.output_info = analysis_objects.PlottingOutputWrapper(
+            output_prefix = "output/AuAu/200",
+            printing_extensions = ["pdf"],
+        )
 
     def setup(self) -> bool:
         """
@@ -366,8 +410,11 @@ class STARJetAnalysis(JetAnalysis):
         Returns:
             True if the event was successfully processed.
         """
+        # Setup
+        event_properties, event_particles = event
+
         # Acceptance cuts
-        particle_level_particles = event[np.abs(event["eta"]) < 1]
+        particle_level_particles = event_particles[np.abs(event_particles["eta"]) < 1]
 
         # Apply efficiency.
         detector_level_particles = self._apply_STAR_detector_effects(particle_level_particles)
@@ -391,6 +438,7 @@ class STARJetAnalysis(JetAnalysis):
 
         matches = match_jets(particle_level_jets, detector_level_jets, matching_distance = 0.6 * self.jet_radius)
 
+        # Store data
         for (part_index, det_index) in matches:
             logger.debug(f"part_level: {particle_level_jets[part_index]}, det_level: {detector_level_jets[det_index]}")
             self.jets.append(
@@ -408,23 +456,27 @@ class STARJetAnalysis(JetAnalysis):
                     dtype = DTYPE_JETS,
                 )
             )
+        # Store event properties
+        self.events.append(
+            np.array((event_properties.cross_section, event_properties.pt_hard), dtype = DTYPE_EVENT_PROPERTIES)
+        )
 
-        # Store data
         return True
 
-    def finalize(self) -> None:
+    def finalize(self, n_events_accepted: int) -> None:
         """ Finalize the analysis. """
-        print(f"number of jets in tree: {len(self.jets)}")
+        # Sanity check
+        assert len(self.events) == n_events_accepted
+
+        print(f"number of accepted events: {len(self.events)}, jets in tree: {len(self.jets)}")
         # Finally, convert to a proper numpy array. It's only converted here because it's not efficient to expand
         # existing numpy arrays.
         self.jets = np.array(self.jets, dtype = DTYPE_JETS)
+        self.events = np.array(self.events, dtype = DTYPE_EVENT_PROPERTIES)
 
         # And save out the tree so we don't have to calculate it again later.
-        filename = self.identifier
-        if not filename.endswith(".npy"):
-            filename += ".npy"
-        with open(filename, "wb") as f:
-            np.save(f, self.jets)
+        self.save_tree(arr = self.jets, output_name = self.identifier + "_jets")
+        self.save_tree(arr = self.events, output_name = self.identifier + "_event_properties")
 
         # Create histogram
         h, x_edges, y_edges = np.histogram2d(
@@ -433,10 +485,6 @@ class STARJetAnalysis(JetAnalysis):
         )
 
         # Plot
-        output_info = analysis_objects.PlottingOutputWrapper(
-            output_prefix = "output/AuAu/200",
-            printing_extensions = ["pdf"],
-        )
         import matplotlib
         import matplotlib.pyplot as plt
         # Fix normalization
@@ -455,7 +503,10 @@ class STARJetAnalysis(JetAnalysis):
         ax.set_ylabel(labels.make_valid_latex_string(labels.jet_pt_display_label("part")))
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0, wspace = 0)
-        plot_base.save_plot(output_info, fig, "response")
+        plot_base.save_plot(
+            self.output_info, fig,
+            f"response_{self.identifier}"
+        )
 
 def run_jet_analysis() -> None:
     """ Run the jet analysis. """
@@ -482,8 +533,8 @@ def run_jet_analysis() -> None:
             raise RuntimeError("Setup failed!")
 
     for analysis in analyses:
-        analysis.event_loop(n_events = 10)
-        analysis.finalize()
+        n_events_accepted = analysis.event_loop(n_events = 200)
+        analysis.finalize(n_events_accepted)
 
 if __name__ == "__main__":
     run_jet_analysis()

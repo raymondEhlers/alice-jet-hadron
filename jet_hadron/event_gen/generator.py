@@ -6,15 +6,22 @@
 """
 
 import abc
+from dataclasses import dataclass
 import numpy as np
 import secrets
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Tuple
 
 # Type helpers
-Event: np.ndarray = np.ndarray
+#Event: Tuple["EventProperties", np.ndarray] = Tuple["EventProperties", np.ndarray]
+Event = Tuple["EventProperties", np.ndarray]
+
+@dataclass
+class EventProperties:
+    cross_section: float
+    pt_hard: float
 
 class Generator(abc.ABC):
-    """
+    """ Base generator class.
 
     Attributes:
         generator: The event generator object.
