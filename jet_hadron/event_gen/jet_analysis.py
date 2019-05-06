@@ -12,6 +12,11 @@ import pyjet
 from scipy.spatial import KDTree
 from typing import Any, List, Sequence, Tuple
 
+from pachyderm import histogram
+
+from jet_hadron.base import labels
+from jet_hadron.base import params
+from jet_hadron.plot import base as plot_base
 from jet_hadron.event_gen import generator
 from jet_hadron.event_gen import pythia6 as gen_pythia6
 
@@ -21,7 +26,7 @@ PseudoJet: pyjet._libpyjet.PseudoJet = pyjet._libpyjet.PseudoJet
 logger = logging.getLogger(__name__)
 
 def fields_view(arr: np.ndarray, fields: Sequence[str]) -> np.ndarray:
-    """ Provide a view of a selection of fields of a structured array.
+    """ Provides a view of a selection of fields of a structured array.
 
     Code from: https://stackoverflow.com/a/21819324
 
@@ -136,11 +141,16 @@ class JetAnalysis:
     def setup(self) -> bool:
         """ Setup the generator and the outputs. """
         # Setup the tree / hists
-
         return True
 
     def _process_event(self, event: generator.Event) -> bool:
-        """ """
+        """ Process each event.
+
+        Args:
+            event: Event level information and the input particles.
+        Returns:
+            True if the event was successfully processed.
+        """
         # TODO: Fill this in a bit
         # Jet finding
         find_jets(event)
@@ -151,8 +161,12 @@ class JetAnalysis:
         return True
 
     def event_loop(self, n_events: int) -> bool:
-        """
+        """ Loop over the generator to generate events.
 
+        Args:
+            n_events: Number of events to generate.
+        Returns:
+            True if the generation was run successfully.
         """
         n_accepted = 0
         with self._progress_manager.counter(total = n_events,
@@ -184,20 +198,77 @@ class JetAnalysis:
 class STARJetAnalysis(JetAnalysis):
     """
 
+    Args:
+        event_activity: Centrality selection for determining the momentum resolution.
     """
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, event_activity: params.EventActivity, *args: Any, **kwargs: Any):
         # Setup base class
         super().__init__(*args, **kwargs)
 
         # Efficiency hists
-        self.efficiency_hists: List[np.ndarray]
+        self.event_activity = event_activity
+        self.efficiency_hists: List[np.ndarray] = []
+        self.efficiency_sampling: List[int] = []
 
         # Output
         self.response: np.ndarray = []
 
-    def _apply_STAR_detector_effects(self, particles: np.ndarray) -> np.ndarray:
+    def setup(self) -> bool:
         """
 
+        """
+        # Setup the efficiency histograms
+        # Distribution to sample for determining which efficiency hist to use.
+        # Based on year 14 ZDC rates (plot from Dan).
+        # 0 = 0-33 kHz -> 1/9
+        # 1 = 33-66 kHz -> 5/9
+        # 2 = 66-100 kHz -> 3/9
+        self.efficiency_sampling: List[int] = [
+            0,
+            1, 1, 1, 1, 1,
+            2, 2, 2
+        ]
+
+        # Retrieve the efficiency histograms
+        hists = histogram.get_histograms_in_file(filename = "inputData/AuAu/200/y14_efficiency_dca1.root")
+
+        centrality_index_map = {
+            # 0-10% in most analyses.
+            # 0 = 0-5%, 1 = 5-10%
+            params.EventActivity.central: list(range(0, 2)),
+            # 20-50% in Joel's STAR analysis.
+            # 4 = 20-25%, 5 = 25-30%, 6 = 30-35%, 7 = 35-40%, 8 = 40-45%, 9 = 45-50%
+            params.EventActivity.semi_central: list(range(4, 10)),
+        }
+
+        for interation_rate_index in range(3):
+            centrality_hists = []
+            for centrality_index in centrality_index_map[self.event_activity]:
+                h_root = hists[f"efficiency_lumi_{interation_rate_index}_cent_{centrality_index}"]
+                _, _, h_temp = histogram.get_array_from_hist2D(h_root, set_zero_to_NaN = False)
+                centrality_hists.append(h_temp)
+
+            # Average the efficiency over the centrality bins.
+            final_efficiency_hist = sum(centrality_hists) / len(centrality_hists)
+            self.efficiency_hists.append(final_efficiency_hist)
+
+            if interation_rate_index == 0:
+                # h_root was set from the last iteration, so we take advantage of it.
+                # Take advantage of the last iteration
+                self.efficiency_pt_bin_edges = histogram.get_bin_edges_from_axis(h_root.GetXaxis())
+                self.efficiency_eta_bin_edges = histogram.get_bin_edges_from_axis(h_root.GetYaxis())
+
+        return True
+
+    def _apply_STAR_detector_effects(self, particles: np.ndarray) -> np.ndarray:
+        """ Apply the STAR detector effects.
+
+        In particular, applies the momentum resolution and efficiency.
+
+        Args:
+            particles: Input particles.
+        Returns:
+            "Detector level" particles.
         """
         detector_level = np.copy(particles)
         # STAR momentum resolution
@@ -208,9 +279,54 @@ class STARJetAnalysis(JetAnalysis):
             detector_level["pT"] * (0.005 + 0.0025 * detector_level["pT"]),
         )
 
-        # TODO: STAR tracking efficiency
+        # STAR tracking efficiency.
+        # Determine the expected efficiency based on the particle pt and eta, and then drop the particle
+        # if the tracking efficiency is less than a flat random distribution.
+        random_values = np.random.rand(len(particles))
+        # Need to decide which efficiency histogram to use. See the definition of the efficiency_sampling
+        # for further information on how and why these values are used.
+        efficiency_hist = self.efficiency_hists[np.random.choice(self.efficiency_sampling)]
+        # Assuming ROOT histograms.
+        #x_axis = efficiency_hist.GetXaxis()
+        #y_axis = efficiency_hist.GetYaxis()
+        #keep_particles = np.array([
+        #    efficiency_hist.GetBinContent(x_axis.FindBin(part["pt"]), y_axis.FindBin(part["eta"])) < rand
+        #    for part, rand in zip(detector_level, random_values)
+        #])
 
-        return particles
+        # Assuming numpy arrays
+        # NOTE: This should be more efficient than the ROOT solution...
+        # This means that if we have the bin edges [0, 1, 2], and we pass value 1.5, it will return
+        # index 2, but we want to return bin 1, so we subtract one from the result. For more, see
+        # ``histogram.Histogram1D.find_bin(...)``.
+        pt_index = np.searchsorted(self.efficiency_pt_bin_edges, detector_level["pT"], side = "right") - 1
+        # We could have particles over 5 GeV, so we assume that the efficiency is flat above 5 GeV and
+        # assign any of the particles above 5 GeV to the last efficiency bin.
+        max_pt_index = efficiency_hist.shape[0]
+        # - 1 because because the efficiency hist values are 0 indexed.
+        pt_index[pt_index == max_pt_index] = max_pt_index - 1
+        eta_index = np.searchsorted(self.efficiency_eta_bin_edges, detector_level["eta"], side = "right") - 1
+        # Since we have an eta cut at 1, we don't need to check for particles outside of this range.
+        #print(f"pt: {pt_index}, eta: {eta_index}")
+        #print(f"len(pt): {len(pt_index)}, len(eta): {len(eta_index)}")
+        #print(f"pt_bins: {self.efficiency_pt_bin_edges}, eta_bins: {self.efficiency_eta_bin_edges}")
+        #print(f"len(pt_bins): {len(self.efficiency_pt_bin_edges)}, len(eta_bins): {len(self.efficiency_eta_bin_edges)}")
+        #print(f"shape: {efficiency_hist.shape}")
+        #print(f"hist: {efficiency_hist}")
+        #print(f"len(random_values): {len(random_values)}")
+        #print(f"detector_level_pt: {detector_level['pT']}, detector_level_eta: {detector_level['eta']}")
+        #if len(detector_level["eta"]) > 50:
+        #    print(f"50th pt : {detector_level['pT'][50-1:50+2]}, {pt_index[50-1:50+2]}")
+        #    print(f"50th eta: {detector_level['eta'][50-1:50+2]}, {eta_index[50-1:50+2]}")
+        #    IPython.embed()
+        keep_particles_mask = efficiency_hist[pt_index, eta_index] > random_values
+        #print(f"efficiency_hist values: {efficiency_hist[pt_index, eta_index]}")
+        #print(f"random_values: {random_values}")
+        #print(f"keep_particles_mask: {keep_particles_mask}")
+        #print(f"len(keep_particles_mask): {len(keep_particles_mask)}")
+        detector_level = detector_level[keep_particles_mask]
+
+        return detector_level
 
     def _process_event(self, event: generator.Event) -> bool:
         """
@@ -251,7 +367,8 @@ class STARJetAnalysis(JetAnalysis):
     def finalize(self) -> None:
         """ Finalize the analysis. """
         self.response = np.array(self.response)
-        #print(f"self.response: {self.response}")
+        print(f"number of jets: {len(self.response)}")
+        #logger.debug(f"self.response: {self.response}")
 
         # Create histogram
         h, x_edges, y_edges = np.histogram2d(
@@ -273,6 +390,9 @@ class STARJetAnalysis(JetAnalysis):
             norm = matplotlib.colors.Normalize(vmin = np.nanmin(h), vmax = np.nanmax(h)),
         )
         fig.colorbar(resp)
+
+        ax.set_xlabel(labels.make_valid_latex_string(labels.jet_pt_display_label("det")))
+        ax.set_ylabel(labels.make_valid_latex_string(labels.jet_pt_display_label("part")))
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0, wspace = 0)
         fig.savefig("response.pdf")
@@ -280,7 +400,9 @@ class STARJetAnalysis(JetAnalysis):
 def run_jet_analysis() -> None:
     """ """
     # TODO: Dask!
+    # Pt hard bins: [5, 10, 15, 20, 25, 35, 45]
     analysis = STARJetAnalysis(
+        event_activity = params.EventActivity.semi_central,
         generator = gen_pythia6.Pythia6(
             sqrt_s = 200,
             random_seed = 10,
