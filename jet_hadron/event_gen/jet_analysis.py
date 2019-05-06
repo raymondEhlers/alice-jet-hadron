@@ -434,12 +434,16 @@ class STARJetAnalysis(JetAnalysis):
         # Only keep detector level jets with an additional 4 GeV particle bias.
         max_const_pt = np.array([max_constituent_pt(j) for j in detector_level_jets])
         detector_level_jets = detector_level_jets[max_const_pt > 4.]
-
-        # Match jets
+        # Avoid computing the matches if we don't have anything to match
         if len(particle_level_jets) == 0 or len(detector_level_jets) == 0:
             return False
 
+        # Match jets
         matches = match_jets(particle_level_jets, detector_level_jets, matching_distance = 0.6 * self.jet_radius)
+        # Require a match to continue. We include this condition explicitly because we don't want to record
+        # the event properties in this case.
+        if not matches:
+            return False
 
         # Store data
         for (part_index, det_index) in matches:
