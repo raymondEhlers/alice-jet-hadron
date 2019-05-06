@@ -14,6 +14,7 @@ from typing import Any, List, Sequence, Tuple
 
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
@@ -270,7 +271,9 @@ class STARJetAnalysis(JetAnalysis):
         Returns:
             "Detector level" particles.
         """
+        # Make a copy so that we don't propagate the changes to the particle level particles.
         detector_level = np.copy(particles)
+
         # STAR momentum resolution
         # Modeled by a gaussian width of parameters provided by Hanseul (from Nick originally).
         # Functionally, it goes as sigma_pt / pt = (0.005 + 0.0025 * pt)
@@ -286,51 +289,33 @@ class STARJetAnalysis(JetAnalysis):
         # Need to decide which efficiency histogram to use. See the definition of the efficiency_sampling
         # for further information on how and why these values are used.
         efficiency_hist = self.efficiency_hists[np.random.choice(self.efficiency_sampling)]
-        # Assuming ROOT histograms.
-        #x_axis = efficiency_hist.GetXaxis()
-        #y_axis = efficiency_hist.GetYaxis()
-        #keep_particles = np.array([
-        #    efficiency_hist.GetBinContent(x_axis.FindBin(part["pt"]), y_axis.FindBin(part["eta"])) < rand
-        #    for part, rand in zip(detector_level, random_values)
-        #])
 
-        # Assuming numpy arrays
-        # NOTE: This should be more efficient than the ROOT solution...
+        # Determine the efficiency histogram indices.
         # This means that if we have the bin edges [0, 1, 2], and we pass value 1.5, it will return
         # index 2, but we want to return bin 1, so we subtract one from the result. For more, see
         # ``histogram.Histogram1D.find_bin(...)``.
-        pt_index = np.searchsorted(self.efficiency_pt_bin_edges, detector_level["pT"], side = "right") - 1
+        efficiency_pt_index = np.searchsorted(self.efficiency_pt_bin_edges, detector_level["pT"], side = "right") - 1
+        efficiency_eta_index = np.searchsorted(self.efficiency_eta_bin_edges, detector_level["eta"], side = "right") - 1
+        # Deal with particles outside of the efficiency histograms
         # We could have particles over 5 GeV, so we assume that the efficiency is flat above 5 GeV and
         # assign any of the particles above 5 GeV to the last efficiency bin.
-        max_pt_index = efficiency_hist.shape[0]
         # - 1 because because the efficiency hist values are 0 indexed.
-        pt_index[pt_index == max_pt_index] = max_pt_index - 1
-        eta_index = np.searchsorted(self.efficiency_eta_bin_edges, detector_level["eta"], side = "right") - 1
+        efficiency_pt_index[efficiency_pt_index >= efficiency_hist.shape[0]] = efficiency_hist.shape[0] - 1
         # Since we have an eta cut at 1, we don't need to check for particles outside of this range.
-        #print(f"pt: {pt_index}, eta: {eta_index}")
-        #print(f"len(pt): {len(pt_index)}, len(eta): {len(eta_index)}")
-        #print(f"pt_bins: {self.efficiency_pt_bin_edges}, eta_bins: {self.efficiency_eta_bin_edges}")
-        #print(f"len(pt_bins): {len(self.efficiency_pt_bin_edges)}, len(eta_bins): {len(self.efficiency_eta_bin_edges)}")
-        #print(f"shape: {efficiency_hist.shape}")
-        #print(f"hist: {efficiency_hist}")
-        #print(f"len(random_values): {len(random_values)}")
-        #print(f"detector_level_pt: {detector_level['pT']}, detector_level_eta: {detector_level['eta']}")
-        #if len(detector_level["eta"]) > 50:
-        #    print(f"50th pt : {detector_level['pT'][50-1:50+2]}, {pt_index[50-1:50+2]}")
-        #    print(f"50th eta: {detector_level['eta'][50-1:50+2]}, {eta_index[50-1:50+2]}")
-        #    IPython.embed()
-        keep_particles_mask = efficiency_hist[pt_index, eta_index] > random_values
-        #print(f"efficiency_hist values: {efficiency_hist[pt_index, eta_index]}")
-        #print(f"random_values: {random_values}")
-        #print(f"keep_particles_mask: {keep_particles_mask}")
-        #print(f"len(keep_particles_mask): {len(keep_particles_mask)}")
+
+        # Keep any particles where the efficiency is higher than the random value.
+        keep_particles_mask = efficiency_hist[efficiency_pt_index, efficiency_eta_index] > random_values
         detector_level = detector_level[keep_particles_mask]
 
         return detector_level
 
     def _process_event(self, event: generator.Event) -> bool:
-        """
+        """ Process the generated event.
 
+        Args:
+            event: Event level information and the input particles.
+        Returns:
+            True if the event was successfully processed.
         """
         # Acceptance cuts
         particle_level_particles = event[np.abs(event["eta"]) < 1]
@@ -377,6 +362,10 @@ class STARJetAnalysis(JetAnalysis):
         )
 
         # Plot
+        output_info = analysis_objects.PlottingOutputWrapper(
+            output_prefix = "output/AuAu/200",
+            printing_extensions = ["pdf"],
+        )
         import matplotlib
         import matplotlib.pyplot as plt
         # Fix normalization
@@ -395,7 +384,7 @@ class STARJetAnalysis(JetAnalysis):
         ax.set_ylabel(labels.make_valid_latex_string(labels.jet_pt_display_label("part")))
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0, wspace = 0)
-        fig.savefig("response.pdf")
+        plot_base.save_plot(output_info, fig, "response")
 
 def run_jet_analysis() -> None:
     """ """
