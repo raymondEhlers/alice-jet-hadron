@@ -150,29 +150,3 @@ class Pythia6(generator.Generator):
 
             yield self._format_output()
 
-class Pythia6Perugia(Pythia6):
-    def _customize_tune(self) -> None:
-        """ Use the Perugia 2012 tune.
-
-        Can alternatively be set via the tune number 370.
-        """
-        # Set the individual parameters
-        self.generator.SetMSTJ(11, 5)
-        self.generator.SetPARJ(1, 0.085)
-        self.generator.SetPARJ(2, 0.20)
-        self.generator.SetPARJ(3, 0.92)
-        self.generator.SetPARJ(4, 0.043)
-        self.generator.SetPARJ(6, 1.0)
-        self.generator.SetPARJ(7, 1.0)
-        self.generator.SetPARJ(11, 0.35)
-        self.generator.SetPARJ(12, 0.40)
-        self.generator.SetPARJ(13, 0.54)
-        self.generator.SetPARJ(21, 0.33)
-        self.generator.SetPARJ(25, 0.70)
-        self.generator.SetPARJ(26, 0.135)
-        self.generator.SetPARJ(41, 0.45)
-        self.generator.SetPARJ(42, 1.0)
-        self.generator.SetPARJ(45, 0.86)
-        self.generator.SetPARJ(46, 1.0)
-        self.generator.SetPARJ(47, 1.0)
-
