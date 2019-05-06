@@ -420,7 +420,10 @@ class STARJetAnalysis(JetAnalysis):
         detector_level_particles = self._apply_STAR_detector_effects(particle_level_particles)
 
         # Apply particle selections
-        # Only keep detector level particles above 2 GeV
+        # Only keep particles above 2 GeV. This is performed at the detector level to match the STAR
+        # analysis, and then we also apply it to the detector level because we take that fragmentation
+        # bias in the ALICE analysis against which we are comparing.
+        particle_level_particles = particle_level_particles[particle_level_particles["pT"] > 2]
         detector_level_particles = detector_level_particles[detector_level_particles["pT"] > 2]
 
         # Jet finding
