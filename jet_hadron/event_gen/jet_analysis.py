@@ -33,7 +33,7 @@ DTYPE_EVENT_PROPERTIES = np.dtype([("cross_section", np.float64), ("pt_hard", np
 
 logger = logging.getLogger(__name__)
 
-def fields_view(arr: np.ndarray, fields: Sequence[str]) -> np.ndarray:
+def view_fields(arr: np.ndarray, fields: Sequence[str]) -> np.ndarray:
     """ Provides a view of a selection of fields of a structured array.
 
     Code from: https://stackoverflow.com/a/21819324
@@ -520,6 +520,10 @@ def run_jet_analysis() -> None:
     # Pt hard bins: [5, 10, 15, 20, 25, 35, 45]
     analyses = []
     pt_hard_bins = [5, 10, 15, 20, 25, 35, 45]
+    # Everything below could be wrapped into a function for use with multiprocessing
+    # Unfortunately, it doesn't work because of ROOT...
+    # See: https://root-forum.cern.ch/t/file-closing-running-python-multiprocess/16213
+    # Note that moving the initialization of ROOT until later can help.
     for low_bin, high_bin in zip(pt_hard_bins[:-1], pt_hard_bins[1:]):
         analysis = STARJetAnalysis(
             event_activity = params.EventActivity.semi_central,

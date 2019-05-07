@@ -6,8 +6,6 @@ from typing import Any, Iterable, Optional, Tuple
 
 from jet_hadron.event_gen import generator
 
-import ROOT
-
 DTYPE_EP = np.dtype([("E", np.float64), ("px", np.float64), ("py", np.float64), ("pz", np.float64)])
 
 class Pythia6(generator.Generator):
@@ -30,6 +28,10 @@ class Pythia6(generator.Generator):
     """
     def __init__(self, tune_number: int = 370,
                  pt_hard: Tuple[Optional[float], Optional[float]] = (None, None), *args: Any, **kwargs: Any):
+        # Lazy load ROOT here in an attempt to enable multiprocessing.
+        # Unfortunately, it still doesn't appear to work, but I'll leave it here in hopes
+        # that it will work some day...
+        import ROOT
         # Before anything else, ensure that the Pythia6 library. Otherwise, it will crash.
         # LHAPDF is required to be loaded to use Perguia 2012
         ROOT.gSystem.Load("liblhapdf")
