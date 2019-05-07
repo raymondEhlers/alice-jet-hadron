@@ -121,7 +121,6 @@ class ResponseHistograms:
     """ The main histograms for a response matrix. """
     jet_spectra: Hist
     unmatched_jet_spectra: Hist
-    #sample_task_jet_spectra: Hist
 
     def __iter__(self) -> Iterator[Tuple[str, Hist]]:
         for k, v in vars(self).items():
@@ -289,8 +288,11 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             hist.SetBinError(1, 0)
 
         # Sanity check
-        if particle_level_spectra_config["normalize_by_n_jets"] and particle_level_spectra_config["normalize_at_selected_jet_pt_bin"]:
-            raise RuntimeError("Cannot request normalization by both n jets and at a selected pt bin. Please check your configuration.")
+        if particle_level_spectra_config["normalize_by_n_jets"] and \
+                particle_level_spectra_config["normalize_at_selected_jet_pt_bin"]:
+            raise RuntimeError(
+                "Cannot request normalization by both n jets and at a selected pt bin. Please check your configuration."
+            )
 
         # Scale by N_{jets}
         # The number of entries should be equal to the number of jets. However, it's not a straightforward
@@ -951,7 +953,9 @@ class ResponseManager(analysis_manager.Manager):
                     # will share the same cut index.
                     hists = [utils.recursive_getattr(ep_analysis, hist_info.attribute_name)
                              for ep_analysis in ep_analyses.values()]
-                    logger.debug(f"Running pt hard analysis for attribute_name: {hist_info.attribute_name}, hists: {hists}")
+                    logger.debug(
+                        f"Running pt hard analysis for attribute_name: {hist_info.attribute_name}, hists: {hists}"
+                    )
                     pt_hard_bin.run(
                         average_number_of_events = average_number_of_events,
                         outliers_removal_axis = hist_info.outliers_removal_axis,
@@ -1075,7 +1079,10 @@ class ResponseManager(analysis_manager.Manager):
         """
         logger.debug("Comparing sum of EP orientations with sum of EP orientations.")
         # Take all orientations except for the inclusive.
-        ep_analyses = {k: v for k, v in self.final_responses.items() if k.reaction_plane_orientation != params.ReactionPlaneOrientation.inclusive}
+        ep_analyses = {
+            k: v for k, v in self.final_responses.items()
+            if k.reaction_plane_orientation != params.ReactionPlaneOrientation.inclusive
+        }
         inclusive = next(iter(self.final_responses.values()))
 
         # Sum the particle level spectra from the selected EP orientations.
@@ -1221,12 +1228,17 @@ class ResponseManager(analysis_manager.Manager):
         output_filename = os.path.join(self.output_info.output_prefix, "final_responses.root")
         with histogram.RootOpen(output_filename, mode = "RECREATE"):
             for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
-                hist = analysis.response_matrix.Clone(f"{analysis.response_matrix.GetName()}_{analysis.reaction_plane_orientation}")
+                hist = analysis.response_matrix.Clone(
+                    f"{analysis.response_matrix.GetName()}_{analysis.reaction_plane_orientation}"
+                )
                 hist.Write()
 
     def run(self) -> bool:
         """ Run the response matrix analyses. """
-        logger.debug(f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)}, analyses: {pprint.pformat(self.analyses)}")
+        logger.debug(
+            f"key_index: {self.key_index}, selected_option_names: {list(self.selected_iterables)},"
+            f"analyses: {pprint.pformat(self.analyses)}"
+        )
 
         # We need to determine the input information
         histogram_info_for_processing: Dict[str, pt_hard_analysis.PtHardHistogramInformation] = {}
