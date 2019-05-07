@@ -885,37 +885,3 @@ EMCalEmbedding:
         iterables:
             reaction_plane_orientation: false
             pt_hard_bin: *PtHardBins10Bins
-
-# Save some time by skipping these bins for analysis
-skipPtBins:
-    jet: [0, 2, 3]
-    track: []
-
-fitOptions:
-    # If false, instead used the stored fit information
-    performFit: false
-    # Whether to draw the minuit QA plots
-    drawMinuitQAPlots: true
-    # Plot summed of each EP angle fit summed together as a cross-check of all anlges
-    plotSummedFitCrosscheck: false
-    # Perform a signal + background fit instead of just a background fit
-    includeSignalInFit: true
-    # Fit all angles signal.
-    # Note that this precludes fitting the signal in the other EP angles
-    allAnglesSignal: true
-    # Fit the background using all angles
-    # This should be fairly uncommon, but compliments the signal option
-    allAnglesBackground: false
-    # If true, plot minimal labeling for the all angles subtracted hist.
-    # Used for display next two the 4 panel fit plot
-    minimalLabelsForAllAnglesSubtracted: true
-    # Whether the fit should be included
-    includeFitError: true
-    # Whether it should be recalculated
-    calculateFitError: false
-    # Which bins should be used with log likelihood
-    # instead of Chi2
-    logLikelihoodTrackPtBins:
-        # Of the form `jetPtBin: trackPtBin`
-        1: [8]
-        2: [5, 6, 7, 8]
