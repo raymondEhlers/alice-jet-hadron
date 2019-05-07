@@ -270,7 +270,7 @@ class JetAnalysis:
         self.events = np.array(self.events, dtype = DTYPE_EVENT_PROPERTIES)
 
         # And save out the tree so we don't have to calculate it again later.
-        self.save_tree(arr = self.jets, output_name = self.identifier + "_jets")
+        self.save_tree(arr = self.jets, output_name = "jets")
 
     def save_tree(self, *args: Any, **kwargs: Any) -> str:
         """ Helper for saving a tree to file.
@@ -303,9 +303,11 @@ class STARJetAnalysis(JetAnalysis):
 
         # Output
         self.output_info = analysis_objects.PlottingOutputWrapper(
-            output_prefix = "output/AuAu/200",
+            output_prefix = os.path.join("trains", "AuAu", "200", str(self.identifier)),
             printing_extensions = ["pdf"],
         )
+        if not os.path.exists(self.output_info.output_prefix):
+            os.makedirs(self.output_info.output_prefix)
 
     def setup(self) -> bool:
         """ Setup the analysis.
@@ -483,15 +485,15 @@ class STARJetAnalysis(JetAnalysis):
         self.events = np.array(self.events, dtype = DTYPE_EVENT_PROPERTIES)
 
         # And save out the tree so we don't have to calculate it again later.
-        self.save_tree(arr = self.jets, output_name = self.identifier + "_jets")
-        self.save_tree(arr = self.events, output_name = self.identifier + "_event_properties")
+        self.save_tree(arr = self.jets, output_name = "jets")
+        self.save_tree(arr = self.events, output_name = "event_properties")
 
+        # Create the response matrix and plot it as a cross check.
         # Create histogram
         h, x_edges, y_edges = np.histogram2d(
             self.jets["det_pT"], self.jets["part_pT"],
             bins = (60, 60), range = ((0, 60), (0, 60))
         )
-
         # Plot
         import matplotlib
         import matplotlib.pyplot as plt
@@ -507,13 +509,14 @@ class STARJetAnalysis(JetAnalysis):
         )
         fig.colorbar(resp)
 
+        # Final labeling and presentation
         ax.set_xlabel(labels.make_valid_latex_string(labels.jet_pt_display_label("det")))
         ax.set_ylabel(labels.make_valid_latex_string(labels.jet_pt_display_label("part")))
         fig.tight_layout()
         fig.subplots_adjust(hspace = 0, wspace = 0, right = 0.99)
         plot_base.save_plot(
             self.output_info, fig,
-            f"response_{self.identifier}"
+            f"response"
         )
 
         plt.close(fig)
@@ -527,7 +530,7 @@ def run_jet_analysis() -> None:
     # Unfortunately, it doesn't work because of ROOT...
     # See: https://root-forum.cern.ch/t/file-closing-running-python-multiprocess/16213
     # Note that moving the initialization of ROOT until later can help.
-    for low_bin, high_bin in zip(pt_hard_bins[:-1], pt_hard_bins[1:]):
+    for i, (low_bin, high_bin) in enumerate(zip(pt_hard_bins[:-1], pt_hard_bins[1:]), start = 1):
         analysis = STARJetAnalysis(
             event_activity = params.EventActivity.semi_central,
             generator = gen_pythia6.Pythia6(
@@ -535,7 +538,7 @@ def run_jet_analysis() -> None:
                 random_seed = 10,
                 pt_hard = (low_bin, high_bin),
             ),
-            identifier = f"STAR_jets_ptHard_{low_bin}_{high_bin}",
+            identifier = i,
             jet_radius = 0.4,
         )
         analyses.append(analysis)
