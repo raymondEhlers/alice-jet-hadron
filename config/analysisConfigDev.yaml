@@ -98,15 +98,21 @@ Correlations:
             #track_pt_bin: *TrackPtBins11h
             # NOTE: The individual binning is numbered from the bin 0.15 - 0.5 as bin 1.
             track_pt_bin:
-                #- !TrackPtBin
-                #  bin: 4
-                #  range: !SelectedRange [1.5, 2.0]
+                - !TrackPtBin
+                  bin: 2
+                  range: !SelectedRange [0.5, 1.0]
+                - !TrackPtBin
+                  bin: 3
+                  range: !SelectedRange [1.0, 1.5]
+                - !TrackPtBin
+                  bin: 4
+                  range: !SelectedRange [1.5, 2.0]
                 - !TrackPtBin
                   bin: 5
                   range: !SelectedRange [2.0, 3.0]
-                #- !TrackPtBin
-                #  bin: 6
-                #  range: !SelectedRange [3.0, 4.0]
+                - !TrackPtBin
+                  bin: 6
+                  range: !SelectedRange [3.0, 4.0]
                 #- !TrackPtBin
                 #  bin: 7
                 #  range: !SelectedRange [4.0, 5.0]
@@ -130,7 +136,9 @@ CorrelationsManager:
         plot_yields: true
         # Widths
         extract_widths: true
+        extract_delta_eta_widths: false
         plot_widths: true
+        plot_delta_eta_widths: false
     reaction_plane_fit:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
