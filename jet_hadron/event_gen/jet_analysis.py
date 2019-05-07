@@ -308,8 +308,9 @@ class STARJetAnalysis(JetAnalysis):
         )
 
     def setup(self) -> bool:
-        """
+        """ Setup the analysis.
 
+        The main task is to setup the efficiency histograms.
         """
         # Setup the efficiency histograms
         # Distribution to sample for determining which efficiency hist to use.
@@ -509,11 +510,13 @@ class STARJetAnalysis(JetAnalysis):
         ax.set_xlabel(labels.make_valid_latex_string(labels.jet_pt_display_label("det")))
         ax.set_ylabel(labels.make_valid_latex_string(labels.jet_pt_display_label("part")))
         fig.tight_layout()
-        fig.subplots_adjust(hspace = 0, wspace = 0)
+        fig.subplots_adjust(hspace = 0, wspace = 0, right = 0.99)
         plot_base.save_plot(
             self.output_info, fig,
             f"response_{self.identifier}"
         )
+
+        plt.close(fig)
 
 def run_jet_analysis() -> None:
     """ Run the jet analysis. """
