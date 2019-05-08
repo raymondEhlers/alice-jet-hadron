@@ -451,9 +451,9 @@ class Fit(ABC):
         if fit_function_name != obj.fit_function.__name__:
             logger.warning(
                 "The stored fit function name from YAML doesn't match the name of the fit function"
-                "created in the fit object."
-                f"Stored name: {fit_function_name}, object created fit function: {obj.fit_function}."
-                "This may indicate a problem (but is fine if the same function was just renamed)."
+                " created in the fit object."
+                f" Stored name: {fit_function_name}, object created fit function: {obj.fit_function}."
+                " This may indicate a problem (but is fine if the same function was just renamed)."
             )
 
         # Now that the object is fully constructed, we can return it.
