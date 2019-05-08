@@ -193,7 +193,6 @@ class JetHBase(generic_class.EqualityMixin):
             output_prefix = config["outputPrefix"],
             printing_extensions = config["printingExtensions"],
         )
-        self.output_prefix = config["outputPrefix"]
         self.output_filename = config["outputFilename"]
 
         # Convert the ALICE label if necessary

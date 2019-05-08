@@ -71,8 +71,6 @@ class Manager(generic_class.EqualityMixin, abc.ABC):
             output_prefix = self.config["outputPrefix"].format(**formatting_options),
             printing_extensions = self.config["printingExtensions"],
         )
-        # For convenience since it is frequently accessed.
-        self.processing_options = self.task_config["processing_options"]
 
         # Monitor the progress of the analysis.
         self._progress_manager = enlighten.get_manager()

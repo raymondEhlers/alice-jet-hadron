@@ -218,6 +218,7 @@ class CollisionEnergy(enum.Enum):
     """
     two_seven_six = 2.76
     five_zero_two = 5.02
+    zero_point_two = 0.2
 
     def __str__(self) -> str:
         """ Returns a string of the value. """
@@ -244,6 +245,7 @@ class CollisionSystem(enum.Enum):
     embedPythia = r"PYTHIA \bigotimes %(embedded_additional_label)s Pb \textendash Pb"
     pPb = r"pPb"
     PbPb = r"Pb \textendash Pb"
+    AuAu = r"Au \textemdash Au"
 
     def __str__(self) -> str:
         """ Return a string of the name of the system. """

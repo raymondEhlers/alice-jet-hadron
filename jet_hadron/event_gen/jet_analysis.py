@@ -5,16 +5,22 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+import abc
 import enlighten
 import logging
 import numpy as np
 import os
 import pyjet
 from scipy.spatial import KDTree
-from typing import Any, List, Sequence, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
+
+# NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
+#       line options
+from jet_hadron.base.typing_helpers import Hist  # noqa: F401
 
 from pachyderm import histogram
 
+from jet_hadron.base import analysis_manager
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
@@ -122,7 +128,6 @@ def match_jets(particle_level_jets: np.ndarray, detector_level_jets: np.ndarray,
     # Extract the jet locations from the PSeudoJets.
     part_level_positions = np.array([(j.eta, j.phi) for j in particle_level_jets])
     det_level_positions = np.array([(j.eta, j.phi) for j in detector_level_jets])
-    logger.debug(f"part_level_positions: {part_level_positions}, det_level_positions: {det_level_positions}")
 
     # Construct the KDTress. They default to using the L^2 norm (ie our expected distance measure).
     part_level_tree = KDTree(part_level_positions)
@@ -145,18 +150,17 @@ def match_jets(particle_level_jets: np.ndarray, detector_level_jets: np.ndarray,
                         (part_level_positions[i][0] - det_level_positions[m][0]) ** 2
                         + (part_level_positions[i][1] - det_level_positions[m][1]) ** 2
                     )
-                    logger.debug(f"part_level_index: {i}, Potential match: {m}, distance: {dist}")
+                    #logger.debug(f"part_level_index: {i}, Potential match: {m}, distance: {dist}")
                     if dist < min_distance:
-                        logger.debug(f"Found match! Previous min_distance: {min_distance}")
+                        #logger.debug(f"Found match! Previous min_distance: {min_distance}")
                         min_distance = dist
                         min_distance_index = m
 
         if min_distance_index != -1:
-            logger.debug(f"Final match: {i}, {min_distance_index}")
             indices.append((i, min_distance_index))
 
-    logger.debug(f"part_level_matches: {part_level_matches}, det_level_matches: {det_level_matches}")
-    logger.debug(f"indices: {indices}")
+    #logger.debug(f"part_level_matches: {part_level_matches}, det_level_matches: {det_level_matches}")
+    #logger.debug(f"indices: {indices}")
 
     return indices
 
@@ -167,6 +171,7 @@ class JetAnalysis:
         generator: Generator object.
         identifier: String by which the analysis should be identified.
         jet_radius: Jet finding parameter.
+        output_prefix: Prefix where data will be stored.
 
     Attributes:
         generator: Generator object.
@@ -175,7 +180,7 @@ class JetAnalysis:
         jets: Array of jets found from particles from the generator.
         _progress_manager: Used to display processing progress.
     """
-    def __init__(self, generator: generator.Generator, identifier: str, jet_radius: float = 0.4):
+    def __init__(self, generator: generator.Generator, identifier: str, jet_radius: float = 0.4, output_prefix: str = "."):
         self.generator = generator
         self.identifier = identifier
         self.jet_radius = jet_radius
@@ -187,12 +192,9 @@ class JetAnalysis:
 
         # Output info
         self.output_info = analysis_objects.PlottingOutputWrapper(
-            output_prefix = ".",
+            output_prefix = output_prefix,
             printing_extensions = ["pdf"],
         )
-
-        # Monitor the progress of the analysis.
-        self._progress_manager = enlighten.get_manager()
 
     def setup(self) -> bool:
         """ Setup the generator and the outputs.
@@ -231,7 +233,7 @@ class JetAnalysis:
 
         return True
 
-    def event_loop(self, n_events: int) -> int:
+    def event_loop(self, n_events: int, progress_manager: enlighten._manager.Manager) -> int:
         """ Loop over the generator to generate events.
 
         Args:
@@ -240,9 +242,8 @@ class JetAnalysis:
             Number of accepted events.
         """
         n_accepted = 0
-        with self._progress_manager.counter(total = n_events,
-                                            desc = "Generating",
-                                            unit = "events") as progress:
+        with progress_manager.counter(total = n_events,
+                                      desc = "Generating", unit = "events") as progress:
             for event in self.generator(n_events = n_events):
                 # Process event
                 result = self._process_event(event)
@@ -254,11 +255,7 @@ class JetAnalysis:
                 # Update the progress bar
                 progress.update()
 
-        print(f"n_accepted: {n_accepted}")
-
-        # Disable enlighten so that it won't mess with any later steps (such as exploration with IPython).
-        # Otherwise, IPython will act very strangely and is basically impossible to use.
-        self._progress_manager.stop()
+        logger.info(f"n_accepted: {n_accepted}")
 
         return n_accepted
 
@@ -302,8 +299,10 @@ class STARJetAnalysis(JetAnalysis):
         self.efficiency_sampling: List[int] = []
 
         # Output
+        # Start with the output_prefix from the base class
+        output_prefix = self.output_info.output_prefix.format(collision_energy_in_GeV = self.generator.sqrt_s)
         self.output_info = analysis_objects.PlottingOutputWrapper(
-            output_prefix = os.path.join("trains", "AuAu", "200", str(self.identifier)),
+            output_prefix = os.path.join(output_prefix, str(self.identifier)),
             printing_extensions = ["pdf"],
         )
         if not os.path.exists(self.output_info.output_prefix):
@@ -450,7 +449,6 @@ class STARJetAnalysis(JetAnalysis):
 
         # Store data
         for (part_index, det_index) in matches:
-            logger.debug(f"part_level: {particle_level_jets[part_index]}, det_level: {detector_level_jets[det_index]}")
             self.jets.append(
                 np.array(
                     (
@@ -478,7 +476,7 @@ class STARJetAnalysis(JetAnalysis):
         # Sanity check
         assert len(self.events) == n_events_accepted
 
-        print(f"number of accepted events: {len(self.events)}, jets in tree: {len(self.jets)}")
+        logger.info(f"number of accepted events: {len(self.events)}, jets in tree: {len(self.jets)}")
         # Finally, convert to a proper numpy array. It's only converted here because it's not efficient to expand
         # existing numpy arrays.
         self.jets = np.array(self.jets, dtype = DTYPE_JETS)
@@ -521,37 +519,132 @@ class STARJetAnalysis(JetAnalysis):
 
         plt.close(fig)
 
-def run_jet_analysis() -> None:
-    """ Run the jet analysis. """
-    # Pt hard bins: [5, 10, 15, 20, 25, 35, 45]
-    analyses = []
-    pt_hard_bins = [5, 10, 15, 20, 25, 35, 45]
-    # Everything below could be wrapped into a function for use with multiprocessing
-    # Unfortunately, it doesn't work because of ROOT...
-    # See: https://root-forum.cern.ch/t/file-closing-running-python-multiprocess/16213
-    # Note that moving the initialization of ROOT until later can help.
-    for i, (low_bin, high_bin) in enumerate(zip(pt_hard_bins[:-1], pt_hard_bins[1:]), start = 1):
-        analysis = STARJetAnalysis(
-            event_activity = params.EventActivity.semi_central,
-            generator = gen_pythia6.Pythia6(
-                sqrt_s = 200,
-                random_seed = 10,
-                pt_hard = (low_bin, high_bin),
-            ),
-            identifier = i,
-            jet_radius = 0.4,
+class JetAnalysisManager(analysis_manager.Manager, abc.ABC):
+    """ Manage running ``JetAnalysis`` objects.
+
+    Args:
+        config_filename: Path to the configuration filename.
+        selected_analysis_options: Selected analysis options.
+        manager_task_name: Name of the analysis manager task name in the config.
+    """
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions,
+                 manager_task_name: str = "JetAnalysisManager", **kwargs: str):
+        # Initialize the base class
+        super().__init__(
+            config_filename = config_filename, selected_analysis_options = selected_analysis_options,
+            manager_task_name = manager_task_name, **kwargs,
         )
-        analyses.append(analysis)
+
+        # Basic configuration
+        self.pt_hard_bins = self.task_config["pt_hard_bins"]
+        self.n_events_to_generate = self.task_config["n_events_to_generate"]
+        self.random_seed = self.task_config.get("random_seed", None)
+        self.jet_radius = self.task_config["jet_radius"]
+
+        # Create the jet analyses. Note that we are just constructing the objects
+        # directly instead of using KeyIndex objects. We don't need the additional
+        # complexity.
+        self.analyses: Dict[analysis_objects.PtHardBin, JetAnalysis] = {}
+        self._create_analysis_tasks()
+
+    @abc.abstractmethod
+    def _create_analysis_tasks(self) -> None:
+        """ Create the actual analysis tasks."""
+        ...
+
+    def run(self) -> bool:
+        """ Setup and run the jet analyses. """
+        # Everything in this function could be wrapped into a function for use with dask. Better would be to
+        # include the object creation there. Unfortunately, regardless of these efforts, dask won't work here
+        # because of ROOT...
+        # See: https://root-forum.cern.ch/t/file-closing-running-python-multiprocess/16213
+        # Note that moving the initialization of ROOT until later can help, but
+        # it's not enough - loading libraries into the tasks seems to be a problem.
+
+        # Steps to the analysis
+        # 1. Setup
+        # 2. Generate and finalize.
+        with self._progress_manager.counter(total = 2,
+                                            desc = "Overall processing progress",
+                                            unit = "") as analysis_progress:
+            with self._progress_manager.counter(total = len(self.analyses), leave = False,
+                                                desc = "Setting up",
+                                                unit = "pt hard binned analysis") as setup_progress:
+                for analysis in self.analyses.values():
+                    res = analysis.setup()
+                    if not res:
+                        raise RuntimeError("Setup failed!")
+
+                    setup_progress.update()
+
+            analysis_progress.update()
+
+            with self._progress_manager.counter(total = len(self.analyses),
+                                                desc = "Running",
+                                                unit = "jet analyses") as running_progress:
+                for label, analysis in self.analyses.items():
+                    logger.info(f"Analyzing {label.name} {label}")
+                    n_events_accepted = analysis.event_loop(
+                        n_events = self.n_events_to_generate,
+                        progress_manager = self._progress_manager
+                    )
+                    analysis.finalize(n_events_accepted)
+
+                    running_progress.update()
+
+            analysis_progress.update()
+
+        return True
+
+class STARJetAnalysisManager(JetAnalysisManager):
+    """ Analysis manager for the jet finding analysis with STAR detector conditions.
+
+    Args:
+        config_filename: Path to the configuration filename.
+        selected_analysis_options: Selected analysis options.
+        manager_task_name: Name of the analysis manager task name in the config.
+    """
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: str):
+        # Initialize the base class
+        super().__init__(
+            config_filename = config_filename, selected_analysis_options = selected_analysis_options,
+            manager_task_name = "STARJetAnalysisManager", **kwargs,
+        )
+
+    def _create_analysis_tasks(self) -> None:
+        """ Create the actual analysis tasks. """
+        for pt_hard_bin in self.pt_hard_bins:
+            analysis = STARJetAnalysis(
+                event_activity = self.selected_analysis_options.event_activity,
+                generator = gen_pythia6.Pythia6(
+                    # Energy is specified in TeV in ``params.CollisionEnergy``, but PYTHIA
+                    # expects it to be in GeV.
+                    sqrt_s = self.selected_analysis_options.collision_energy.value * 1000,
+                    random_seed = self.random_seed,
+                    pt_hard = (pt_hard_bin.min, pt_hard_bin.max),
+                ),
+                identifier = pt_hard_bin.bin,
+                jet_radius = self.jet_radius,
+                output_prefix = self.output_info.output_prefix,
+            )
+            self.analyses[pt_hard_bin] = analysis
+
+def run_STAR_jet_analysis_from_terminal() -> STARJetAnalysisManager:
+    """ Driver function for running the STAR jet analysis. """
+    # Basic setup
+    # Quiet down some pachyderm modules
+    logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
+    logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
 
     # Setup and run the analysis
-    for analysis in analyses:
-        res = analysis.setup()
-        if not res:
-            raise RuntimeError("Setup failed!")
+    manager: STARJetAnalysisManager = analysis_manager.run_helper(
+        manager_class = STARJetAnalysisManager, task_name = "STARJetAnalysisManager",
+        description = "STAR Jet Analysis Manager",
+    )
 
-    for analysis in analyses:
-        n_events_accepted = analysis.event_loop(n_events = 200)
-        analysis.finalize(n_events_accepted)
+    # Return it for convenience.
+    return manager
 
 if __name__ == "__main__":
-    run_jet_analysis()
+    run_STAR_jet_analysis_from_terminal()
+
