@@ -411,11 +411,11 @@ def _plot_response_matrix(hist: Hist,
     if plot_errors_hist:
         output_name += "_errors"
     x_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": labels.jet_pt_display_label(upper_label = r"\mathrm{det}"),
+        "pt_label": labels.jet_pt_display_label(upper_label = r"\text{det}"),
         "units_label": labels.momentum_units_label_gev(),
     }
     y_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": labels.jet_pt_display_label(upper_label = r"\mathrm{part}"),
+        "pt_label": labels.jet_pt_display_label(upper_label = r"\text{part}"),
         "units_label": labels.momentum_units_label_gev(),
     }
 

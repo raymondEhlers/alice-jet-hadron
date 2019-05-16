@@ -15,6 +15,10 @@ import pprint
 import sys
 from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Union
 
+# NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
+#       line options
+from jet_hadron.base.typing_helpers import Hist
+
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm import utils
@@ -24,7 +28,6 @@ from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_manager
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.base.typing_helpers import Hist
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import response_matrix as plot_response_matrix
 
@@ -1152,9 +1155,9 @@ class ResponseManager(analysis_manager.Manager):
                 for plot_with_ROOT in [False, True]:
                     plot_response_matrix.plot_response_spectra(
                         plot_labels = plot_base.PlotLabels(
-                            title = r"$p_{\mathrm{T}}$ hard spectra",
-                            x_label = r"$p_{\mathrm{T}}^{\mathrm{hard}}$",
-                            y_label = r"$\frac{\mathrm{d}N}{\mathrm{d}p_{\mathrm{T}}}$",
+                            title = r"$p_{\text{T}}$ hard spectra",
+                            x_label = r"$p_{\text{T}}^{\text{hard}}$",
+                            y_label = r"$\frac{\text{d}N}{\text{d}p_{\text{T}}}$",
                         ),
                         output_name = "pt_hard_spectra",
                         merged_analysis = merged_pt_hard_analysis,
@@ -1206,10 +1209,10 @@ class ResponseManager(analysis_manager.Manager):
                         plot_response_matrix.plot_response_spectra(
                             plot_labels = plot_base.PlotLabels(
                                 title = hist_info.description,
-                                x_label = r"$p_{\mathrm{T,jet}}^{\mathrm{%(label)s}}$" % {
+                                x_label = r"$p_{\text{T,jet}}^{\text{%(label)s}}$" % {
                                     "label": base_label,
                                 },
-                                y_label = r"$\frac{\mathrm{d}N}{\mathrm{d}p_{\mathrm{T}}}$",
+                                y_label = r"$\frac{\text{d}N}{\text{d}p_{\text{T}}}$",
                             ),
                             output_name = f"{base_label}_level_{output_label}",
                             merged_analysis = self.final_responses[
@@ -1305,6 +1308,8 @@ def run_from_terminal() -> ResponseManager:
     # Quiet down some pachyderm modules
     logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
     logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
+    # Run in batch mode
+    ROOT.gROOT.SetBatch(True)
     # Turn off stats box
     ROOT.gStyle.SetOptStat(0)
 
