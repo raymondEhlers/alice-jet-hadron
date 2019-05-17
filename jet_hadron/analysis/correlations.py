@@ -666,10 +666,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
             f"{self.identifier}_yields_delta_eta": self.yields_delta_eta,
         })
 
-    def write_widths_to_YAML(self) -> None:
-        """ Write widths to YAML. """
+    def write_delta_phi_widths_to_YAML(self) -> None:
+        """ Write delta phi widths to YAML. """
         self._write_extracted_values_to_YAML(values = {
             f"{self.identifier}_widths_delta_phi": self.widths_delta_phi,
+        })
+
+    def write_delta_eta_widths_to_YAML(self) -> None:
+        """ Write delta eta widths to YAML. """
+        self._write_extracted_values_to_YAML(values = {
             f"{self.identifier}_widths_delta_eta": self.widths_delta_eta,
         })
 
@@ -795,15 +800,24 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self.yields_delta_phi = stored_data[f"{self.identifier}_yields_delta_phi"]
             self.yields_delta_eta = stored_data[f"{self.identifier}_yields_delta_eta"]
 
-    def init_widths_from_file(self) -> None:
-        """ Initialize widths from a YAML file. """
+    def init_delta_phi_widths_from_file(self) -> None:
+        """ Initialize delta phi widths from a YAML file. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
         with open(filename, "r") as f:
             stored_data = y.load(f)
 
-            # Load the fit from file.
+            # Load the widths from file.
             self.widths_delta_phi = stored_data[f"{self.identifier}_widths_delta_phi"]
+
+    def init_delta_eta_widths_from_file(self) -> None:
+        """ Initialize delta eta widths from a YAML file. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "r") as f:
+            stored_data = y.load(f)
+
+            # Load the widths from file.
             self.widths_delta_eta = stored_data[f"{self.identifier}_widths_delta_eta"]
 
     def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
@@ -1769,8 +1783,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Store the result
             width_obj.fit_result = fit_result
 
-    def extract_widths(self) -> None:
-        """ Extract and store near-side and away-side widths. """
+    def extract_delta_phi_widths(self) -> None:
+        """ Extract and store delta phi near-side and away-side widths. """
         # Delta phi
         # Attempt to retrieve the widths from the RPF. These will be used to determine the initial
         # value for the new fits.
@@ -1779,6 +1793,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._fit_and_extract_delta_phi_widths()
         self._compare_extracted_widths_to_RPF()
 
+    def extract_delta_eta_widths(self) -> None:
+        """ Extract and store delta eta near-side and away-side widths. """
         # Delta eta
         # We will never extract these from the RPF, so we always need to run this.
         self._fit_and_extract_delta_eta_widths()
@@ -1807,15 +1823,16 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     )
                     # Warn if greater than 4% difference
                     if percent_difference > 0.04:
-                        logger.warn(f"{attr} percent difference greater than 5%! Value: {percent_difference*100:.4f}%")
+                        logger.warning(f"{attr} percent difference greater than 5%! Value: {percent_difference*100:.4f}%")
 
-                    # TODO: Reduce this percentage!! We increased it to make plotting easier.
-                    if percent_difference > 0.16:
-                        raise RuntimeError(
-                            f"{attr} percent difference greater than 10%!"
-                            " Probably a fitting problem which needs to be investigated!"
-                            f" Value: {percent_difference*100:.4f}%"
-                        )
+                    # TODO: Re-enable this check...
+                    if percent_difference > 0.1:
+                        #raise RuntimeError(
+                        #    f"{attr} percent difference greater than 10%!"
+                        #    " Probably a fitting problem which needs to be investigated!"
+                        #    f" Value: {percent_difference*100:.4f}%"
+                        #)
+                        pass
 
     def generate_latex_for_analysis_note(self) -> bool:
         """ Write LaTeX to include plots in the analysis notes. """
@@ -1958,7 +1975,7 @@ class CorrelationsManager(analysis_manager.Manager):
                     analysis.fit_delta_eta_correlations()
 
                     # Store the result
-                    logger.debug("Writing delta eta fit information to file for {analysis.identifier}, {analysis.reaction_plane_orientation}.")
+                    logger.debug(f"Writing delta eta fit information to file for {analysis.identifier}, {analysis.reaction_plane_orientation}.")
                     analysis.write_delta_eta_fit_results()
                 else:
                     # Load from file.
@@ -2257,28 +2274,42 @@ class CorrelationsManager(analysis_manager.Manager):
                 if not analysis.ran_post_fit_processing:
                     raise RuntimeError("Must run the post fit processing step before extracting widths!")
 
-                if self.processing_options["extract_widths"]:
+                if self.processing_options["extract_delta_phi_widths"]:
                     # Extract and store the yields.
-                    analysis.extract_widths()
+                    analysis.extract_delta_phi_widths()
 
                     # Save the extracted values
-                    analysis.write_widths_to_YAML()
+                    analysis.write_delta_phi_widths_to_YAML()
                 else:
                     # Load from file.
-                    analysis.init_widths_from_file()
+                    analysis.init_delta_phi_widths_from_file()
+
+                if self.processing_options["extract_delta_eta_widths"]:
+                    if self.processing_options["use_stored_delta_eta_widths"]:
+                        # Load from file.
+                        analysis.init_delta_eta_widths_from_file()
+                    else:
+                        # Extract and store the yields.
+                        analysis.extract_delta_eta_widths()
+
+                        # Save the extracted values
+                        analysis.write_delta_eta_widths_to_YAML()
 
                 # Plots related to the widths
-                if self.processing_options["plot_widths"]:
-                    # Plot the gaussian fits used to extract the delta eta widths.
-                    plot_extracted.delta_eta_with_gaussian(analysis)
+                if self.processing_options["plot_delta_phi_widths"]:
+                    # Plot the gaussian fits used to extract the delta phi widths.
                     # Same for delta phi.
                     plot_extracted.delta_phi_with_gaussians(analysis)
+                if self.processing_options["plot_delta_eta_widths"]:
+                    # Plot the gaussian fits used to extract the delta phi widths.
+                    # Same for delta eta.
+                    plot_extracted.delta_eta_with_gaussian(analysis)
 
                 # Update progress
                 extracting.update()
 
         # Plot
-        if self.processing_options["plot_widths"]:
+        if self.processing_options["plot_delta_phi_widths"]:
             plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
@@ -2287,6 +2318,7 @@ class CorrelationsManager(analysis_manager.Manager):
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
             )
+        if self.processing_options["plot_delta_eta_widths"]:
             plot_extracted.delta_eta_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 output_info = self.output_info,
