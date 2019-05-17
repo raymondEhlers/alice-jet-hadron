@@ -123,6 +123,12 @@ Correlations:
                 - !JetPtBin
                   bin: 2
                   range: !SelectedRange [20, 40]
+# Default to 2.76 central resolution parmeters
+resolution_parameters:
+    R22: 0.5713
+    R42: &R42 0.2972
+    R62: 0
+    R82: 0
 CorrelationsManager:
     processing_options:
         fit_correlations: false
@@ -144,15 +150,6 @@ CorrelationsManager:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
         fit_type: "InclusiveSignalFit"
-        # Event plane resolution parameters
-        resolution_parameters:
-            R22: 0.5713
-            R42: &R42 0.2972
-            # Temporarily set to R{4,2} to estimate possible contributions
-            R62: 0
-            R82: 0
-            #R62: *R42
-            #R82: *R42
         fit_params:
             jetPtBiased_20_40:
                 trackPt_2.0_3.0:
@@ -193,6 +190,19 @@ CorrelationsManager:
             trainNumber: 3360
         5.02:
             trainNumber: 4358
+        # Event plane resolution parameters
+        central:
+            resolution_parameters:
+                R22: 0.5713
+                R42: 0.2972
+                R62: 0
+                R82: 0
+        semi_central:
+            resolution_parameters:
+                R22: 0.7275
+                R42: 0.4424
+                R62: 0
+                R82: 0
 
 GeneralHists:
     enabled: false

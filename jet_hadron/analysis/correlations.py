@@ -1996,7 +1996,7 @@ class CorrelationsManager(analysis_manager.Manager):
         with self._progress_manager.counter(total = number_of_fits,
                                             desc = "Reaction plane fitting:",
                                             unit = "associated pt bins") as fitting:
-            resolution_parameters = self.task_config["reaction_plane_fit"]["resolution_parameters"]
+            resolution_parameters = self.config["resolution_parameters"]
             # To successfully fit, we need all histograms from a given reaction plane orientation.
             for ep_analyses in \
                     analysis_config.iterate_with_selected_objects_in_order(
