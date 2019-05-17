@@ -1914,6 +1914,8 @@ class CorrelationsManager(analysis_manager.Manager):
             config_filename = config_filename, selected_analysis_options = selected_analysis_options,
             manager_task_name = "CorrelationsManager", **kwargs,
         )
+        # For convenience since it is frequently accessed.
+        self.processing_options = self.task_config["processing_options"]
 
         # Create the actual analysis objects.
         self.analyses: Mapping[Any, Correlations]
