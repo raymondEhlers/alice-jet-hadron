@@ -1990,6 +1990,71 @@ class CorrelationsManager(analysis_manager.Manager):
                 # Update progress
                 fitting.update()
 
+    def _setup_reaction_plane_fit_inputs(self, ep_analyses: List[Tuple[Any, Correlations]]
+                                         ) -> Tuple[Dict[str, Any], Correlations, Any, Dict[str, Any], bool]:
+        """ Setup the reaction plane fit inputs and input data.
+
+        Args:
+            ep_analyses: Event plane dependent correlation analysis objects.
+        Returns:
+            input_hists, inclusive_analysis, fit_key_index, user_arguments, use_log_likelihood. ``input_hists`` is a dict
+            of input data properly formatted for input to the RPF, ``inclusive_analysis`` is the inclusive analysis,
+            ``fit_key_index`` is the ``key_index`` to use for the fit object, ``user_arguments`` are any additional
+            user arguments for the RPF, and ``use_log_likelihood`` is True if log likelihood should be used for the
+            RPF.
+        """
+        # Setup the input data
+        input_hists: rpf.fit.InputData = {
+            "signal": {},
+            "background": {},
+        }
+        # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
+        inclusive_analysis: Correlations
+
+        for key_index, analysis in ep_analyses:
+            # Sanity checks
+            if analysis.ran_projections is False:
+                raise ValueError("Hists must be projected before running the fit.")
+
+            # Setup the input data
+            if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                inclusive_analysis = analysis
+            key = str(analysis.reaction_plane_orientation)
+            # Include the signal for inclusive orientations, but background for others.
+            if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                input_hists["signal"][key] = analysis.correlation_hists_delta_phi.signal_dominated
+            else:
+                input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
+
+        # Determine the key index for the fit object.
+        # We want all iterables except the one that we selected on (the reaction plane orientations).
+        fit_key_index = self.fit_key_index(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
+
+        # Determine the user arguments.
+        user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+            .get(inclusive_analysis.jet_pt_identifier, {}) \
+            .get(inclusive_analysis.track_pt_identifier, {}).get("args", {})
+        use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+            .get(inclusive_analysis.jet_pt_identifier, {}) \
+            .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
+
+        return input_hists, inclusive_analysis, fit_key_index, user_arguments, use_log_likelihood
+
+    def _store_reaction_plane_fit_components_in_analysis_objects(self, fit_key_index: Any,
+                                                                 ep_analyses: List[Tuple[Any, Correlations]]) -> None:
+        """ Helper to store the reaction plane fit result components in analysis objects for easy access.
+
+        Args:
+            fit_key_index: ``KeyIndex`` for fit object.
+            ep_analyses: Event plane dependent correlation analysis objects.
+        Returns:
+            None.
+        """
+        for index, fit_component in self.fit_objects[fit_key_index].components.items():
+            for key_index, analysis in ep_analyses:
+                if str(key_index.reaction_plane_orientation) in index.orientation:
+                    analysis.fit_object = fit_component
+
     def _reaction_plane_fit(self) -> None:
         """ Fit the delta phi correlations using the reaction plane fit. """
         number_of_fits = int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
@@ -2004,54 +2069,29 @@ class CorrelationsManager(analysis_manager.Manager):
                         analysis_iterables = self.selected_iterables,
                         selection = "reaction_plane_orientation",
                     ):
-                # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
-                inclusive_analysis: Correlations
-                # Setup the input data
-                input_hists: rpf.fit.InputData = {
-                    "signal": {},
-                    "background": {},
-                }
-                for key_index, analysis in ep_analyses:
-                    # Sanity checks
-                    if analysis.ran_projections is False:
-                        raise ValueError("Hists must be projected before running the fit.")
-
-                    # Setup the input data
-                    if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-                        inclusive_analysis = analysis
-                    key = str(analysis.reaction_plane_orientation)
-                    # Include the signal for inclusive orientations, but background for others.
-                    if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-                        input_hists["signal"][key] = analysis.correlation_hists_delta_phi.signal_dominated
-                    else:
-                        input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
-
-                # Determine the key index for the fit object.
-                # We want all iterables except the one that we selected on (the reaction plane orientations).
-                fit_key_index = self.fit_key_index(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
-
-                # Determine the user arguments.
-                user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(inclusive_analysis.jet_pt_identifier, {}) \
-                    .get(inclusive_analysis.track_pt_identifier, {}).get("args", {})
-                use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
-                    .get(inclusive_analysis.jet_pt_identifier, {}) \
-                    .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
+                # Setup the reaction plane fit inputs
+                input_hists, inclusive_analysis, fit_key_index, \
+                    user_arguments, use_log_likelihood = self._setup_reaction_plane_fit_inputs(ep_analyses)
 
                 # Setup the fit
-                logger.debug(f"Performing RPF for {inclusive_analysis.jet_pt_identifier}, {inclusive_analysis.track_pt_identifier}")
+                logger.debug(
+                    f"Performing RPF for {inclusive_analysis.jet_pt_identifier},"
+                    f" {inclusive_analysis.track_pt_identifier}"
+                )
                 fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                 FitFunction = getattr(three_orientations, fit_type)
                 fit_obj: three_orientations.ReactionPlaneFit = FitFunction(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
-                    signal_region = analysis.signal_dominated_eta_region,
-                    background_region = analysis.background_dominated_eta_region,
+                    signal_region = inclusive_analysis.signal_dominated_eta_region,
+                    background_region = inclusive_analysis.background_dominated_eta_region,
                     #use_minos = True,
                 )
 
                 # Now, perform the fit (or load in the fit result).
-                rpf_filename = os.path.join(self.output_info.output_prefix, f"RPFitResult_{inclusive_analysis.identifier}.yaml")
+                rpf_filename = os.path.join(
+                    self.output_info.output_prefix, f"RPFitResult_{inclusive_analysis.identifier}.yaml"
+                )
                 if self.processing_options["fit_correlations"]:
                     # Perform the fit.
                     fit_success, fit_data, _ = fit_obj.fit(
@@ -2075,10 +2115,9 @@ class CorrelationsManager(analysis_manager.Manager):
                 # This main object has access to the entire result.
                 self.fit_objects[fit_key_index] = fit_obj
                 # Store the results relevant to each component in the individual analysis.
-                for index, fit_component in fit_obj.components.items():
-                    for key_index, analysis in ep_analyses:
-                        if str(key_index.reaction_plane_orientation) in index.orientation:
-                            analysis.fit_object = fit_component
+                self._store_reaction_plane_fit_components_in_analysis_objects(
+                    fit_key_index = fit_key_index, ep_analyses = ep_analyses
+                )
 
                 # Plot the result
                 if self.processing_options["plot_RPF"]:
