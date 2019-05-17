@@ -452,7 +452,7 @@ class Fit(ABC):
             logger.warning(
                 "The stored fit function name from YAML doesn't match the name of the fit function"
                 " created in the fit object."
-                f" Stored name: {fit_function_name}, object created fit function: {obj.fit_function}."
+                f" Stored name: {fit_function_name}, object created fit function: {obj.fit_function.__name__}."
                 " This may indicate a problem (but is fine if the same function was just renamed)."
             )
 
