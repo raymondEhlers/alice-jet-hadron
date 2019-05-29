@@ -57,7 +57,7 @@ class PtHardAnalysisBase(analysis_objects.JetHBase):
         # Then, initialize the base class.
         super().__init__(*args, **kwargs)
 
-class PtHardAnalysis(analysis_objects.JetHBase):
+class PtHardAnalysis(PtHardAnalysisBase):
     """ A pt hard bin analysis object.
 
     These analysis objects will interact with standard analysis objects to scale them.
