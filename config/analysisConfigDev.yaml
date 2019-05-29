@@ -423,7 +423,7 @@ PtHardFinal:
         # ResponseMaker
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}"
         # JetHPerformance
-        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/{task_name}"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}"
         iterables:
             # Technically this is true, although not very helpful. However, we must have at least
             # one iterator, so this allows us to do so with minimal change.
@@ -524,14 +524,14 @@ ResponseFinal:
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}/RP{reaction_plane_orientation}"
         # JetHPerformance
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         aliceLabel: final
         iterables:
             reaction_plane_orientation: true
 ResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: true
+    read_hists_from_root_file: false
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
@@ -539,7 +539,7 @@ ResponseManager:
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
         # JetHPerformance
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
 
 # Configuration for plotting EMCal corrections from a train.
 EMCalCorrections:
