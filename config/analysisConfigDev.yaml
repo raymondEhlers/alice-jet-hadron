@@ -407,7 +407,7 @@ _testPtHardBins: &TestPtHardBin
 
 # Response matrix related configuration
 PtHardBins:
-    moving_average_threshold: 1.0
+    moving_average_threshold: &outlierRemovalThreshold 1.0
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         inputListName: "AliAnalysisTaskEmcalEmbeddingHelper_histos"
@@ -498,7 +498,7 @@ Response:
             #pt_hard_bin: *TestPtHardBin
 # Final response histograms.
 ResponseFinal:
-    particle_level_spectra:
+    particle_level_spectra: &particleLevelSpectra
         # We only want a single jet pt bin. So we create a fake bin value.
         # NOTE: It is required to specify that the range is a SelectedRange due to
         #       the way that YAML constructs the object!
@@ -530,6 +530,66 @@ ResponseFinal:
         iterables:
             reaction_plane_orientation: true
 ResponseManager:
+    # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
+    read_hists_from_root_file: false
+    override:
+        # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
+        #       so that the output is stored in the same directory.
+        # ResponseMaker
+        #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
+        # JetHPerformance
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+
+_starPtHardBins: !PtHardBins &starPtHardBins
+    # Disabled here due to a bug parsing the combination of the tag and the anchor
+    # yamllint disable-line rule:indentation
+    bins: [5, 10, 15, 20, 25, 35, 45]
+    train_numbers:
+        1: 1
+        2: 2
+        3: 3
+        4: 4
+        5: 5
+        6: 6
+STARPtHardBins:
+    moving_average_threshold: *outlierRemovalThreshold
+    override:
+        # yamllint disable-line rule:line-length
+        inputFilename: "trains/{collision_system}/{collision_energy}/{event_activity}/{pt_hard_bin_train_number}/event_properties.npy"
+        iterables:
+            reaction_plane_orientation: false
+            pt_hard_bin: *starPtHardBins
+STARPtHardFinal:
+    override:
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}"
+        iterables:
+            # Technically this is true, although not very helpful. However, we must have at least
+            # one iterator, so this allows us to do so with minimal change.
+            reaction_plane_orientation:
+                - "inclusive"
+STARResponse:
+    override:
+        # yamllint disable-line rule:line-length
+        inputFilename: "trains/{collision_system}/{collision_energy}/{event_activity}/{pt_hard_bin_train_number}/jets.npy"
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputFilename: "ResponseMatrixHists.root"
+        iterables:
+            reaction_plane_orientation:
+                - "inclusive"
+            pt_hard_bin: *starPtHardBins
+STARResponseFinal:
+    particle_level_spectra:
+        <<: *particleLevelSpectra
+    override:
+        # yamllint disable-line rule:line-length
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputFilename: "ResponseMatrixHists.root"
+        iterables:
+            reaction_plane_orientation:
+                - "inclusive"
+STARResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
     read_hists_from_root_file: false
     override:

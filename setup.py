@@ -64,9 +64,10 @@ setup(
         "console_scripts": [
             "jetHCorrelations = jet_hadron.analysis.correlations:run_from_terminal",
             "jetHResponse = jet_hadron.analysis.response_matrix:run_from_terminal",
+            "starResponse = jet_hadron.analysis.STAR_response_matrix:run_from_terminal",
             "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_corrections_hists_from_terminal",
             "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_embedding_hists_from_terminal",
-            "plotRPFRegions = jet_hadron.plot.highlight_RPF:run_from_terminal"
+            "plotRPFRegions = jet_hadron.plot.highlight_RPF:run_from_terminal",
         ],
     },
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-""" Response matrix dev.
+""" Jet-hardon response matrix.
 
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@yale.edu>, Yale University
 """
@@ -13,7 +13,7 @@ import numpy as np
 import os
 import pprint
 import sys
-from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Union
+from typing import Any, Callable, Dict, Iterator, List, Mapping, Tuple, Type, Union
 
 # NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
 #       line options
@@ -788,10 +788,10 @@ class ResponseManager(analysis_manager.Manager):
         analyses: Response matrix analysis objects.
         pt_hard_bins: Pt hard analysis objects for pt hard binned analyses (optional).
     """
-    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: Any):
+    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, manager_task_name: str = "ResponseManager", **kwargs: Any):
         super().__init__(
             config_filename = config_filename, selected_analysis_options = selected_analysis_options,
-            manager_task_name = "ResponseManager", **kwargs
+            manager_task_name = manager_task_name, **kwargs
         )
 
         # Create the actual response matrix objects.
@@ -830,44 +830,82 @@ class ResponseManager(analysis_manager.Manager):
             )
 
     def construct_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
-        """ Construct ResponseMatrix objects based on iterables in a configuration file. """
+        """ Construct ``ResponseMatrix`` objects based on iterables in a configuration file. """
+        return self._construct_responses_from_configuration_file(task_name = "Response", obj = ResponseMatrix)
+
+    def _construct_responses_from_configuration_file(self, task_name: str = "Response",
+                                                     obj: Type[ResponseMatrixBase] = ResponseMatrix) -> analysis_config.ConstructedObjects:
+        """ Helper function for constructing the ``ResponseMatrix`` objects.
+
+        This is a separate function to make it easy to override the arguments in inherited classes.
+        """
         return analysis_config.construct_from_configuration_file(
-            task_name = "Response",
+            task_name = task_name,
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
             additional_classes_to_register = [response_matrix_helpers.ResponseNormalization],
-            obj = ResponseMatrix,
+            obj = obj,
         )
 
     def construct_final_responses_from_configuration_file(self) -> analysis_config.ConstructedObjects:
-        """ Construct final ResponseMatrixBase objects based on iterables in a configuration file. """
+        """ Construct final ``ResponseMatrixBase`` objects based on iterables in a configuration file. """
+        return self._construct_final_responses_from_configuration_file(
+            task_name = "ResponseFinal", obj = ResponseMatrixBase
+        )
+
+    def _construct_final_responses_from_configuration_file(self, task_name: str = "ResponseFinal",
+                                                           obj: Type[ResponseMatrixBase] = ResponseMatrixBase) -> analysis_config.ConstructedObjects:
+        """ Helper function for constructing the final ResponseMatrixBase objects.
+
+        This is a separate function to make it easy to override the arguments in inherited classes.
+        """
         return analysis_config.construct_from_configuration_file(
-            task_name = "ResponseFinal",
+            task_name = task_name,
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None, "jet_pt_bin": None},
             additional_classes_to_register = [response_matrix_helpers.ResponseNormalization],
-            obj = ResponseMatrixBase,
+            obj = obj,
         )
 
     def construct_pt_hard_bins_from_configuration_file(self) -> analysis_config.ConstructedObjects:
-        """ Construct PtHardAnalysis objects based on iterables in a configuration file. """
+        """ Construct ``PtHardAnalysis`` objects based on iterables in a configuration file. """
+        return self._construct_pt_hard_bins_from_configuration_file(
+            task_name = "PtHardBins", obj = pt_hard_analysis.PtHardAnalysis
+        )
+
+    def _construct_pt_hard_bins_from_configuration_file(self, task_name: str = "PtHardBins",
+                                                        obj: Type[pt_hard_analysis.PtHardAnalysis] = pt_hard_analysis.PtHardAnalysis
+                                                        ) -> analysis_config.ConstructedObjects:
+        """ Helper function for constructing the ``PtHardAnalysis`` objects.
+
+        This is a separate function to make it easy to override the arguments in inherited classes.
+        """
         return analysis_config.construct_from_configuration_file(
-            task_name = "PtHardBins",
+            task_name = task_name,
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
-            obj = pt_hard_analysis.PtHardAnalysis,
+            obj = obj,
         )
 
     def construct_final_pt_hard_object_from_configuration_file(self) -> analysis_config.ConstructedObjects:
+        """ Construct final ``PtHardAnalysisBase`` objects based on iterables in a configuration file. """
+        return self._construct_final_pt_hard_object_from_configuration_file(
+            task_name = "PtHardFinal", obj = pt_hard_analysis.PtHardAnalysisBase
+        )
+
+    def _construct_final_pt_hard_object_from_configuration_file(self, task_name: str = "PtHardFinal",
+                                                                obj: Type[pt_hard_analysis.PtHardAnalysisBase] = pt_hard_analysis.PtHardAnalysisBase
+                                                                ) -> analysis_config.ConstructedObjects:
+        """ Construct final ``PtHardAnalysisBase`` objects based on iterables in a configuration file. """
         return analysis_config.construct_from_configuration_file(
-            task_name = "PtHardFinal",
+            task_name = task_name,
             config_filename = self.config_filename,
             selected_analysis_options = self.selected_analysis_options,
             additional_possible_iterables = {"pt_hard_bin": None},
-            obj = pt_hard_analysis.PtHardAnalysisBase,
+            obj = obj,
         )
 
     def setup(self) -> None:
