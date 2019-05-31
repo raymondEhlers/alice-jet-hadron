@@ -44,6 +44,8 @@ G__*.cxx
 .DS_Store
 .project
 .vscode
+# np arrays
+*.npy
 
 # mypy
 .mypy_cache/
