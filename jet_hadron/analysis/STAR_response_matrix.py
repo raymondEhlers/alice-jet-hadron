@@ -50,19 +50,21 @@ class STARResponseMatrix(response_matrix.ResponseMatrixBase):
         """
         # Create the histograms. Unfortunately, to integrate with the other response matrix
         # code, we need to use ROOT histograms.
-        self.response_matrix = ROOT.TH2F("responseMatrix", "Response matrix", 100, 0, 100, 100, 0, 100)
+        self.response_matrix = ROOT.TH2D("responseMatrix", "Response matrix", 100, 0, 100, 100, 0, 100)
         self.part_level_hists: response_matrix.ResponseHistograms = response_matrix.ResponseHistograms(
-            jet_spectra = ROOT.TH1F("particleLevelJets", "Particle level jets", 100, 0, 100),
+            jet_spectra = ROOT.TH1D("particleLevelJets", "Particle level jets", 100, 0, 100),
             unmatched_jet_spectra = None,
         )
         self.det_level_hists: response_matrix.ResponseHistograms = response_matrix.ResponseHistograms(
-            jet_spectra = ROOT.TH1F("detectorLevelJets", "Detector level jets", 100, 0, 100),
+            jet_spectra = ROOT.TH1D("detectorLevelJets", "Detector level jets", 100, 0, 100),
             unmatched_jet_spectra = None,
         )
         # ROOT memory management sux...
         self.response_matrix.SetDirectory(0)
         self.part_level_hists.jet_spectra.SetDirectory(0)
         self.det_level_hists.jet_spectra.SetDirectory(0)
+        # Ensure that sumw2 is set before filling.
+        self.set_sumw2()
 
     def run_projectors(self) -> None:
         """ Convert the jet tree into histograms. """
@@ -103,10 +105,10 @@ class STARPtHardAnalysis(pt_hard_analysis.PtHardAnalysis):
         Returns:
             None
         """
-        self.pt_hard_spectra: Hist = ROOT.TH1F("fHistPtHard", "p_{T} Hard Spectra;p_{T} hard;Counts", 50, 0, 100)
+        self.pt_hard_spectra: Hist = ROOT.TH1D("fHistPtHard", "p_{T} Hard Spectra;p_{T} hard;Counts", 100, 0, 100)
         self.cross_section: Hist = ROOT.TProfile("fHistXsection", "Pythia Cross Section;p_{T} hard bin; XSection", n_pt_hard_bins + 1, 0, n_pt_hard_bins + 1)
-        self.n_trials: Hist = ROOT.TH1F("fHistTrials", "Number of Pythia Trials;p_{T} hard bin;Trials", n_pt_hard_bins + 1, 0, n_pt_hard_bins + 1)
-        self.n_events: Hist = ROOT.TH1F("fHistEventCount", "Number of events", 2, 0, 2)
+        self.n_trials: Hist = ROOT.TH1D("fHistTrials", "Number of Pythia Trials;p_{T} hard bin;Trials", n_pt_hard_bins + 1, 0, n_pt_hard_bins + 1)
+        self.n_events: Hist = ROOT.TH1D("fHistEventCount", "Number of events", 2, 0, 2)
         # ROOT memory management sux...
         self.pt_hard_spectra.SetDirectory(0)
         self.cross_section.SetDirectory(0)
@@ -229,7 +231,7 @@ def run_from_terminal() -> STARResponseManager:
     # Run in batch mode
     ROOT.gROOT.SetBatch(True)
     # Turn off stats box
-    #ROOT.gStyle.SetOptStat(0)
+    ROOT.gStyle.SetOptStat(0)
 
     # Setup and run the analysis
     manager: STARResponseManager = analysis_manager.run_helper(
