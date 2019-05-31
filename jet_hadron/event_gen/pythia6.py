@@ -13,6 +13,10 @@ class Pythia6(generator.Generator):
 
     Defaults to the Perugia 2012 tune (tune number 370).
 
+    Note:
+        TPythia6 is a singleton class (even though this isn't called out super clearly in the docs).
+        Each ``Initialize(...)`` call will go to the singleton instance.
+
     Args:
         sqrt_s: Center of momentum energy.
         random_seed: Random seed for the generator. Default: None, which will be totally random.
@@ -50,12 +54,10 @@ class Pythia6(generator.Generator):
         )
         # Store the other parameters.
         self.pt_hard = pt_hard
+        self.tune_number = tune_number
 
         # The setup the generator
-        self.initialized = self.setup(tune_number = tune_number)
-        # Validate
-        if not self.initialized:
-            raise RuntimeError("Pythia6 failed to initialize.")
+        self.initialized = False
 
     def tune(self, tune_number: int) -> None:
         """ Set the Pythia tune. """
@@ -68,14 +70,15 @@ class Pythia6(generator.Generator):
         """ Provide additional tune customization. """
         ...
 
-    def setup(self, tune_number: Optional[int] = None) -> bool:
+    def setup(self) -> bool:
         """ Setup the PYTHIA 6 generator.
 
-        Args:
-            tune_number: The tune number that should be used to configure Pythia.
         Returns:
             True if setup was successful.
         """
+        if self.initialized is True:
+            raise RuntimeError("This PYTHIA6 instsance has already been initialized")
+
         # Basic setup
         # Pt hard
         if self.pt_hard[0]:
@@ -86,15 +89,17 @@ class Pythia6(generator.Generator):
         self.generator.SetMRPY(1, self.random_seed)
 
         # Specify or otherwise customize the tune.
-        if tune_number:
-            self.tune(tune_number)
+        if self.tune_number:
+            self.tune(self.tune_number)
         # Customize the tune (perhaps further beyond the tune number) if desired
         self._customize_tune()
 
         # Finally, initialize PYTHIA for pp at the given sqrt(s)
         self.generator.Initialize("cms", "p", "p", self.sqrt_s)
 
-        return True
+        # Store that it's initialized to ensure that it it isn't missed.
+        self.initialized = True
+        return self.initialized
 
     def _format_output(self) -> generator.Event:
         """ Convert the output from the generator for into a format suitable for further processing.
@@ -154,6 +159,20 @@ class Pythia6(generator.Generator):
         Returns:
             Generator to provide the requested number of events.
         """
+        # Validation
+        if not self.initialized:
+            raise RuntimeError("Pythia6 was not yet initialized.")
+        if self.pt_hard[0] and self.pt_hard[0] != self.generator.GetCKIN(3):
+            raise ValueError(
+                f"Min pt hard bin not set properly in PYTHIA6! Specified: {self.pt_hard[0]},"
+                f" PYTHIA value: {self.generator.GetCKIN(3)}"
+            )
+        if self.pt_hard[1] and self.pt_hard[1] != self.generator.GetCKIN(4):
+            raise ValueError(
+                f"Max pt hard bin not set properly in PYTHIA6! Specified: {self.pt_hard[1]},"
+                f" PYTHIA value: {self.generator.GetCKIN(4)}"
+            )
+
         for i in range(n_events):
             # Call Pyevnt()
             self.generator.GenerateEvent()

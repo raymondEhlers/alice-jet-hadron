@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-"""
+""" Generate events and perform jet finding.
+
+Can be invoked via ``python -m jet_hadron.event_gen.jet_analyis -c ...``.
 
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
@@ -309,9 +311,12 @@ class STARJetAnalysis(JetAnalysis):
             os.makedirs(self.output_info.output_prefix)
 
     def setup(self) -> bool:
-        """ Setup the analysis.
+        """ Setup the analysis and the PYTHIA 6 generator.
 
         The main task is to setup the efficiency histograms.
+
+        Usually, we'd like the generator to set itself up, but ``TPythia{6,8}`` is a singleton,
+        so we need to call set up immediately before we run the particular analysis.
         """
         # Setup the efficiency histograms
         # Distribution to sample for determining which efficiency hist to use.
@@ -353,6 +358,10 @@ class STARJetAnalysis(JetAnalysis):
                 # Take advantage of the last iteration
                 self.efficiency_pt_bin_edges = histogram.get_bin_edges_from_axis(h_root.GetXaxis())
                 self.efficiency_eta_bin_edges = histogram.get_bin_edges_from_axis(h_root.GetYaxis())
+
+        # Complete setup of PYTHIA6 if necessary.
+        if self.generator.initialized is False:
+            self.generator.setup()
 
         return True
 
@@ -564,35 +573,26 @@ class JetAnalysisManager(analysis_manager.Manager, abc.ABC):
         # Steps to the analysis
         # 1. Setup
         # 2. Generate and finalize.
-        with self._progress_manager.counter(total = 2,
-                                            desc = "Overall processing progress",
-                                            unit = "") as analysis_progress:
-            with self._progress_manager.counter(total = len(self.analyses), leave = False,
-                                                desc = "Setting up",
-                                                unit = "pt hard binned analysis") as setup_progress:
-                for analysis in self.analyses.values():
-                    res = analysis.setup()
-                    if not res:
-                        raise RuntimeError("Setup failed!")
+        #
+        # Usually, we would setup and run the analysis objects separately, but that isn't compatible with
+        # TPythia{6,8}, which are singleton classes. So instead we configure and then run them immediately.
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Setting up and running",
+                                            unit = "pt hard binned analysis") as progress:
+            for label, analysis in self.analyses.items():
+                logger.info(f"Setting up {label.name} {label}")
+                res = analysis.setup()
+                if not res:
+                    raise RuntimeError("Setup failed!")
 
-                    setup_progress.update()
+                logger.info(f"Analyzing {label.name} {label}")
+                n_events_accepted = analysis.event_loop(
+                    n_events = self.n_events_to_generate,
+                    progress_manager = self._progress_manager
+                )
+                analysis.finalize(n_events_accepted)
 
-            analysis_progress.update()
-
-            with self._progress_manager.counter(total = len(self.analyses),
-                                                desc = "Running",
-                                                unit = "jet analyses") as running_progress:
-                for label, analysis in self.analyses.items():
-                    logger.info(f"Analyzing {label.name} {label}")
-                    n_events_accepted = analysis.event_loop(
-                        n_events = self.n_events_to_generate,
-                        progress_manager = self._progress_manager
-                    )
-                    analysis.finalize(n_events_accepted)
-
-                    running_progress.update()
-
-            analysis_progress.update()
+                progress.update()
 
         return True
 
