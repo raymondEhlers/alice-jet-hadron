@@ -245,7 +245,7 @@ class CollisionSystem(enum.Enum):
     embedPythia = r"PYTHIA \bigotimes %(embedded_additional_label)s Pb \textendash Pb"
     pPb = r"pPb"
     PbPb = r"Pb \textendash Pb"
-    AuAu = r"Au \textemdash Au"
+    AuAu = r"Au \textendash Au"
 
     def __str__(self) -> str:
         """ Return a string of the name of the system. """
