@@ -203,21 +203,12 @@ class STARResponseManager(response_matrix.ResponseManager):
                     # Update progress
                     setting_up.update()
 
-        # TEMP
-        c = ROOT.TCanvas("c", "c")
-        # ENDTEMP
-
         # Setup the pt hard bin analysis objects.
         with self._progress_manager.counter(total = len(self.pt_hard_bins),
                                             desc = "Setting up: ",
                                             unit = "pt hard bins") as setting_up:
             for key_index, pt_hard_bin in analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
                 pt_hard_bin.setup(input_hists = None, n_pt_hard_bins = len(self.pt_hard_bins))
-
-                logger.debug(f"entries: {pt_hard_bin.pt_hard_spectra.GetEntries()}")
-                c.Clear()
-                pt_hard_bin.pt_hard_spectra.Draw()
-                c.SaveAs(f"pt_hard_spectra_{pt_hard_bin.pt_hard_bin.bin}.pdf")
 
                 # Update progress
                 setting_up.update()
