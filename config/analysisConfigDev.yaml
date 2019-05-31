@@ -523,6 +523,7 @@ ResponseFinal:
         particle_level_max_pt: 100
         # Plot the points for each angle with a small offset.
         plot_points_with_offset: false
+        y_limits: [8e-5, 0.4]
     override:
         # ResponseMaker
         # yamllint disable-line rule:line-length
@@ -609,6 +610,7 @@ STARResponse:
 STARResponseFinal:
     particle_level_spectra:
         <<: *particleLevelSpectra
+        y_limits: [1e-7, 1.1]
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
@@ -618,7 +620,7 @@ STARResponseFinal:
                 - "inclusive"
 STARResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: false
+    read_hists_from_root_file: true
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.

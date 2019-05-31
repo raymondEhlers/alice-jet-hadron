@@ -184,7 +184,9 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
     ax.set_xlim(0, particle_level_max_pt)
     # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
     # we have to set the values by hand.
-    ax.set_ylim(8 * 10**-5, 0.4)
+    # We grab the value from the last analysis object - the value will be the same for all of them.
+    y_limits = analysis.task_config["particle_level_spectra"]["y_limits"]
+    ax.set_ylim(y_limits[0], y_limits[1])
     ax.set_yscale("log")
     # Legend
     ax.legend(
