@@ -48,7 +48,9 @@ _fixed_v4: &fixed_v4
 # Helpful binning information
 etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
 
+#############################################
 # Correlations analysis related configuration
+#############################################
 Correlations:
     # These define the regions for projecting, fitting
     deltaEtaRanges:
@@ -225,6 +227,9 @@ CorrelationsManager:
                 R62: 0
                 R82: 0
 
+##################################################
+# General histograms for the correlation analysis.
+##################################################
 GeneralHists:
     enabled: false
     componentsToPlot:
@@ -541,10 +546,13 @@ ResponseManager:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
 
+############################################
+# STAR pythia and response matrix comparison
+############################################
 _starPtHardBins: !PtHardBins &starPtHardBins
     # Disabled here due to a bug parsing the combination of the tag and the anchor
     # yamllint disable-line rule:indentation
-    bins: [5, 10, 15, 20, 25, 35, 45]
+    bins: [5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 125]
     train_numbers:
         1: 1
         2: 2
@@ -552,6 +560,25 @@ _starPtHardBins: !PtHardBins &starPtHardBins
         4: 4
         5: 5
         6: 6
+        7: 7
+        8: 8
+        9: 9
+        10: 10
+
+# PYTHIA jet spectra generation.
+STARJetAnalysisManager:
+    pt_hard_bins: *starPtHardBins
+    n_events_to_generate: 5000
+    # If the seed isn't specified, it will be randomly determined in each generator object.
+    #random_seed: 10
+    jet_radius: 0.4
+    override:
+        #inputFilename: "inputData/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        outputPrefix: "trains/{collision_system}/{collision_energy}/{event_activity}/"
+        iterables:
+            reaction_plane_orientation: false
+
+# Response matrix and particle level spectra
 STARPtHardBins:
     moving_average_threshold: *outlierRemovalThreshold
     override:
@@ -573,7 +600,7 @@ STARResponse:
         # yamllint disable-line rule:line-length
         inputFilename: "trains/{collision_system}/{collision_energy}/{event_activity}/{pt_hard_bin_train_number}/jets.npy"
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         iterables:
             reaction_plane_orientation:
@@ -599,9 +626,11 @@ STARResponseManager:
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
         # JetHPerformance
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/STARResponseFinal"
 
+############################################################
 # Configuration for plotting EMCal corrections from a train.
+############################################################
 EMCalCorrections:
     # Track pt bins that are used when binning various cluster-track matching histograms.
     track_pt_bins: !TrackPtBins [0.15, 0.5, 1, 1.5, 2, 3, 4, 5, 8, -1]
