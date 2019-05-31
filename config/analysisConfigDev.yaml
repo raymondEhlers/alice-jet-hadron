@@ -582,6 +582,8 @@ STARJetAnalysisManager:
 # Response matrix and particle level spectra
 STARPtHardBins:
     moving_average_threshold: *outlierRemovalThreshold
+    # Only need a very slight increase.
+    mean_fractional_difference_limit: 0.011
     override:
         # yamllint disable-line rule:line-length
         inputFilename: "trains/{collision_system}/{collision_energy}/{event_activity}/{pt_hard_bin_train_number}/event_properties.npy"
@@ -620,7 +622,7 @@ STARResponseFinal:
                 - "inclusive"
 STARResponseManager:
     # NOTE: The histograms are saved after they are scaled, but before the particle level spectra is projected.
-    read_hists_from_root_file: true
+    read_hists_from_root_file: false
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.

@@ -185,7 +185,7 @@ class PtHardAnalysis(PtHardAnalysisBase):
             outliers_removal_axis: projectors.TH1AxisType,
             hists: Optional[Mapping[str, Hist]] = None,
             analyses: Optional[Mapping[str, analysis_objects.JetHBase]] = None,
-            hist_attribute_name: str = "") -> bool:
+            hist_attribute_name: str = "", **additional_outliers_removal_args: float) -> bool:
         """ Run the pt hard analysis.
 
         Histograms are often grouped together if we want them to remove outliers at the same index location.
@@ -204,6 +204,8 @@ class PtHardAnalysis(PtHardAnalysisBase):
             hist_attribute_name: Name of the attributes to retrieve the histogram from the analysis object. Must
                 be specified in conjunction with ``analyses``.  Default: None, in which case, the hists must be
                 provided directly.
+            additional_outliers_removal_args: Additional args to pass to the outliers removal manager when performing
+                outliers removal. Default: {}.
         Returns:
             True if the process was successful.
         Raises:
@@ -230,7 +232,9 @@ class PtHardAnalysis(PtHardAnalysisBase):
         self.scale_factor = self._calculate_rescale_factor(average_number_of_events)
 
         # Remove outliers from the given hists.
-        self.outliers_manager.run(hists = hists, outliers_removal_axis = outliers_removal_axis)
+        self.outliers_manager.run(hists = hists,
+                                  outliers_removal_axis = outliers_removal_axis,
+                                  **additional_outliers_removal_args)
 
         # Scale the requested histograms.
         for h in hists.values():

@@ -965,18 +965,36 @@ class ResponseManager(analysis_manager.Manager):
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
 
+        # Setup
+        checked_additional_arguments = False
+        additional_outliers_removal_arguments = {}
         # Remove outliers and scale the projected histograms according to their pt hard bins.
         with self._progress_manager.counter(total = len(self.pt_hard_bins),
                                             desc = "Processing:",
                                             unit = "pt hard bins") as processing:
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+                # Argument validation
+                # We only want to check once because it won't very between pt hard bin analysis, so it's
+                # a waste to check multiple times.
+                if checked_additional_arguments is False:
+                    mean_fractional_difference_limit = pt_hard_bin.task_config.get("mean_fractional_difference_limit", None)
+                    if mean_fractional_difference_limit:
+                        additional_outliers_removal_arguments["mean_fractional_difference_limit"] = mean_fractional_difference_limit
+                    median_fractional_difference_limit = pt_hard_bin.task_config.get("median_fractional_difference_limit", None)
+                    if median_fractional_difference_limit:
+                        additional_outliers_removal_arguments["median_fractional_difference_limit"] = median_fractional_difference_limit
+
+                    # Only check once - it won't vary with pt hard bin.
+                    checked_additional_arguments = True
+
                 # Scale the pt hard spectra
                 logger.debug("Scaling the pt hard spectra.")
                 pt_hard_bin.run(
                     average_number_of_events = average_number_of_events,
                     outliers_removal_axis = projectors.TH1AxisType.x_axis,
                     hists = {"pt_hard_spectra": pt_hard_bin.pt_hard_spectra},
+                    **additional_outliers_removal_arguments,
                 )
 
                 # We need to perform the outliers removal in EP groups so all EPs get a consistent
@@ -1002,6 +1020,7 @@ class ResponseManager(analysis_manager.Manager):
                         outliers_removal_axis = hist_info.outliers_removal_axis,
                         analyses = ep_analyses,
                         hist_attribute_name = hist_info.attribute_name,
+                        **additional_outliers_removal_arguments,
                     )
 
                 # Update progress
