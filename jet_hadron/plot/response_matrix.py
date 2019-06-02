@@ -369,6 +369,105 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Also save the plot as a c macro
     canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
+def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMatrixBase",
+                           alice_particle_level_spectra: Dict[params.CollisionEnergy, Hist],
+                           output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # First, plot the STAR points
+    star_hist = histogram.Histogram1D.from_existing_hist(star_final_response_task.particle_level_spectra)
+    star_label = f"STAR ${star_final_response_task.collision_energy.display_str()}$ hard-core jets"
+    star_label += "\n" + f"${star_final_response_task.event_activity.display_str()}$ ${star_final_response_task.collision_system.display_str()}$"
+    ax.errorbar(
+        star_hist.x, star_hist.y,
+        xerr = (star_hist.bin_edges[1:] - star_hist.bin_edges[:-1]) / 2,
+        yerr = star_hist.errors,
+        label = star_label,
+        color = "blue",
+        marker = "s",
+        linestyle = "",
+    )
+
+    # Convert and plot hist
+    # Markers are for 2.76, 5.02 TeV
+    markers = ["s", "o"]
+    for (collision_energy, part_level_hist), marker in zip(alice_particle_level_spectra.items(), markers):
+        alice_label = f"ALICE ${collision_energy.display_str()}$ biased jets"
+        alice_label += "\n" + f"${params.CollisionSystem.embedPythia.display_str(embedded_additional_label = star_final_response_task.event_activity.display_str())}$"
+        h = histogram.Histogram1D.from_existing_hist(part_level_hist)
+        ax.errorbar(
+            h.x, h.y,
+            xerr = (h.bin_edges[1:] - h.bin_edges[:-1]) / 2,
+            yerr = h.errors,
+            label = alice_label,
+            color = "red",
+            marker = marker,
+            linestyle = "",
+        )
+
+    # Label axes
+    y_label = r"\text{d}N/\text{d}p_{\text{T}}"
+    if star_final_response_task.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
+        y_label = r"(1/N_{\text{jets}})" + y_label
+        y_label = y_label
+    if star_final_response_task.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_bin"]:
+        y_label = r"\text{Arb. Units}"
+    plot_labels = plot_base.PlotLabels(
+        title = "",
+        x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
+        y_label = labels.make_valid_latex_string(y_label),
+    )
+    # Apply labels individually so we can increase the font size...
+    ax.set_xlabel(plot_labels.x_label, fontsize = 16)
+    ax.set_ylabel(plot_labels.y_label, fontsize = 16)
+    ax.set_title("")
+    # Final presentation settings
+    # Axis ticks
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 10))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(base = 2))
+    tick_shared_args = {
+        "axis": "both",
+        "bottom": True,
+        "left": True,
+    }
+    ax.tick_params(
+        which = "major",
+        # Size of the axis mark labels
+        labelsize = 15,
+        length = 8,
+        **tick_shared_args,
+    )
+    ax.tick_params(
+        which = "minor",
+        length = 4,
+        **tick_shared_args,
+    )
+    # Limits
+    ax.set_xlim(0, star_final_response_task.task_config["particle_level_spectra"]["particle_level_max_pt"])
+    # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
+    # we have to set the values by hand.
+    # We grab the value from the last analysis object - the value will be the same for all of them.
+    y_limits = star_final_response_task.task_config["particle_level_spectra"]["y_limits"]
+    ax.set_ylim(y_limits[0], y_limits[1])
+    ax.set_yscale("log")
+    # Legend
+    ax.legend(
+        # Here, we specify the location of the upper right corner of the legend box.
+        loc = "upper right",
+        bbox_to_anchor = (0.99, 0.99),
+        borderaxespad = 0,
+        frameon = True,
+        fontsize = 16,
+    )
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name = "particle_level_comparison_STAR_ALICE"
+    output_name += "_mpl"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
 def plot_response_matrix_and_errors(obj: "response_matrix.ResponseMatrixBase",
                                     plot_with_ROOT: bool = False) -> None:
     """ Plot the 2D response matrix and response matrix errors hists using ROOT.

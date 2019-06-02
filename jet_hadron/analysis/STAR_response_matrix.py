@@ -7,15 +7,19 @@
 
 import logging
 import numpy as np
+import os
 from typing import Any, Dict, Mapping, Optional
 
 # NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
 #       line options
 from jet_hadron.base.typing_helpers import Hist
 
+from pachyderm import histogram
+
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_manager
 from jet_hadron.base import params
+from jet_hadron.plot import response_matrix as plot_response_matrix
 from jet_hadron.analysis import pt_hard_analysis
 from jet_hadron.analysis import response_matrix
 
@@ -212,6 +216,42 @@ class STARResponseManager(response_matrix.ResponseManager):
 
                 # Update progress
                 setting_up.update()
+
+    def _plot_results(self, histogram_info_for_processing:
+                      Mapping[str, pt_hard_analysis.PtHardHistogramInformation]) -> None:
+        """ Plot the results of the response matrix processing.
+
+        Args:
+            histogram_info_for_processing: Specifies which histograms to process, and how to do so.
+        Returns:
+            None.
+        """
+        # Plot the STAR/ALICE comparison
+        self._plot_comparison_of_STAR_and_ALICE_particle_level_spectra()
+        # Then plot the rest of the histograms.
+        super()._plot_results(histogram_info_for_processing = histogram_info_for_processing)
+
+    def _plot_comparison_of_STAR_and_ALICE_particle_level_spectra(self) -> None:
+        """ Compare STAR and ALICE particle level spectra. """
+        # Open ALICE 2.76 semi_central reference.
+        base_path = os.path.join(
+            "output", "embedPythia", "2.76", str(self.selected_analysis_options.event_activity),
+            "{leading_hadron_bias}", "ResponseFinal", "final_responses.root"
+        )
+        alice276Path = base_path.format(leading_hadron_bias = "clusterBias6")
+        particle_level_spectra: Dict[params.CollisionEnergy, Hist] = {}
+        with histogram.RootOpen(alice276Path) as f:
+            h = f.Get("particle_level_spectra_inclusive")
+            h.SetDirectory(0)
+            particle_level_spectra[params.CollisionEnergy.two_seven_six] = h
+
+        plot_response_matrix.compare_STAR_and_ALICE(
+            star_final_response_task = self.final_responses[
+                self.final_responses_key_index(params.ReactionPlaneOrientation.inclusive)
+            ],
+            alice_particle_level_spectra = particle_level_spectra,
+            output_info = self.output_info,
+        )
 
 def run_from_terminal() -> STARResponseManager:
     """ Driver function for running the correlations analysis. """

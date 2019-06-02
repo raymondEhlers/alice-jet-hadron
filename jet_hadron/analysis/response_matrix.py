@@ -1289,15 +1289,21 @@ class ResponseManager(analysis_manager.Manager):
                 # Update progress
                 plotting.update()
 
-    def _package_and_write_final_responses(self) -> None:
-        """ Package up and write the final repsonse matrices. """
+    def _package_and_write_final_hists(self) -> None:
+        """ Package up and write the final repsonse matrices and particle level spectra. """
         output_filename = os.path.join(self.output_info.output_prefix, "final_responses.root")
         with histogram.RootOpen(output_filename, mode = "RECREATE"):
             for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
-                hist = analysis.response_matrix.Clone(
+                # Response matrix
+                response = analysis.response_matrix.Clone(
                     f"{analysis.response_matrix.GetName()}_{analysis.reaction_plane_orientation}"
                 )
-                hist.Write()
+                response.Write()
+                # Particle level spectra
+                particle_level_spectra = analysis.particle_level_spectra.Clone(
+                    f"{analysis.particle_level_spectra.GetName()}_{analysis.reaction_plane_orientation}"
+                )
+                particle_level_spectra.Write()
 
     def run(self) -> bool:
         """ Run the response matrix analyses. """
@@ -1360,7 +1366,7 @@ class ResponseManager(analysis_manager.Manager):
             overall_progress.update()
 
             # Package up all of the responses in one file.
-            self._package_and_write_final_responses()
+            self._package_and_write_final_hists()
             overall_progress.update()
 
         return True
