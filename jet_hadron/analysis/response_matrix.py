@@ -834,7 +834,8 @@ class ResponseManager(analysis_manager.Manager):
         return self._construct_responses_from_configuration_file(task_name = "Response", obj = ResponseMatrix)
 
     def _construct_responses_from_configuration_file(self, task_name: str = "Response",
-                                                     obj: Type[ResponseMatrixBase] = ResponseMatrix) -> analysis_config.ConstructedObjects:
+                                                     obj: Type[ResponseMatrixBase] = ResponseMatrix
+                                                     ) -> analysis_config.ConstructedObjects:
         """ Helper function for constructing the ``ResponseMatrix`` objects.
 
         This is a separate function to make it easy to override the arguments in inherited classes.
@@ -855,7 +856,8 @@ class ResponseManager(analysis_manager.Manager):
         )
 
     def _construct_final_responses_from_configuration_file(self, task_name: str = "ResponseFinal",
-                                                           obj: Type[ResponseMatrixBase] = ResponseMatrixBase) -> analysis_config.ConstructedObjects:
+                                                           obj: Type[ResponseMatrixBase] = ResponseMatrixBase
+                                                           ) -> analysis_config.ConstructedObjects:
         """ Helper function for constructing the final ResponseMatrixBase objects.
 
         This is a separate function to make it easy to override the arguments in inherited classes.
@@ -978,12 +980,16 @@ class ResponseManager(analysis_manager.Manager):
                 # We only want to check once because it won't very between pt hard bin analysis, so it's
                 # a waste to check multiple times.
                 if checked_additional_arguments is False:
-                    mean_fractional_difference_limit = pt_hard_bin.task_config.get("mean_fractional_difference_limit", None)
+                    mean_fractional_difference_limit = \
+                        pt_hard_bin.task_config.get("mean_fractional_difference_limit", None)
                     if mean_fractional_difference_limit:
-                        additional_outliers_removal_arguments["mean_fractional_difference_limit"] = mean_fractional_difference_limit
-                    median_fractional_difference_limit = pt_hard_bin.task_config.get("median_fractional_difference_limit", None)
+                        additional_outliers_removal_arguments["mean_fractional_difference_limit"] = \
+                            mean_fractional_difference_limit
+                    median_fractional_difference_limit = \
+                        pt_hard_bin.task_config.get("median_fractional_difference_limit", None)
                     if median_fractional_difference_limit:
-                        additional_outliers_removal_arguments["median_fractional_difference_limit"] = median_fractional_difference_limit
+                        additional_outliers_removal_arguments["median_fractional_difference_limit"] = \
+                            median_fractional_difference_limit
 
                     # Only check once - it won't vary with pt hard bin.
                     checked_additional_arguments = True
