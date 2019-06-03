@@ -83,7 +83,7 @@ def jet_pt_display_label(upper_label: str = "") -> str:
     """ Generate a display jet pt label.
 
     Args:
-        upper_label: Superscript labe for pT. Default: ""
+        upper_label: Superscript label for pT. Default: ""
     Returns:
         Properly formatted pt string.
     """
@@ -123,7 +123,7 @@ def pt_range_string(pt_bin: "analysis_objects.PtBin",
     Args:
         pt_bin: Pt bin object which contains information about the bin and pt range.
         lower_label: Subscript label for pT.
-        upper_label: Superscript labe for pT.
+        upper_label: Superscript label for pT.
         only_show_lower_value_for_last_bin: If True, skip show the upper value.
     Returns:
         The pt range label.
