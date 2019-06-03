@@ -376,9 +376,12 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # First, plot the STAR points
+    star_centrality_map = {
+        params.EventActivity.semi_central: r"20 \textendash 50 \%",
+    }
     star_hist = histogram.Histogram1D.from_existing_hist(star_final_response_task.particle_level_spectra)
     star_label = f"STAR ${star_final_response_task.collision_energy.display_str()}$ hard-core jets"
-    star_label += "\n" + f"${star_final_response_task.event_activity.display_str()}$ ${star_final_response_task.collision_system.display_str()}$"
+    star_label += "\n" + f"PYTHIA with ${star_centrality_map[star_final_response_task.event_activity]}$ ${star_final_response_task.collision_system.display_str()}$ det. conditions"
     ax.errorbar(
         star_hist.x, star_hist.y,
         xerr = (star_hist.bin_edges[1:] - star_hist.bin_edges[:-1]) / 2,
@@ -458,8 +461,14 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
         bbox_to_anchor = (0.99, 0.99),
         borderaxespad = 0,
         frameon = True,
-        fontsize = 16,
+        fontsize = 15,
     )
+    ax.text(0.99, 0.75, s = "Inclusive event plane orientation",
+            horizontalalignment = "right",
+            verticalalignment = "top",
+            multialignment = "right",
+            fontsize = 15,
+            transform = ax.transAxes)
     fig.tight_layout()
 
     # Finally, save and cleanup
