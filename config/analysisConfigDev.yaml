@@ -632,6 +632,16 @@ STARResponseManager:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/STARResponseFinal"
 
+##############################################################
+# Configuration for Glauber toy model for path length estimate
+##############################################################
+GlauberToyModelManager:
+    n_events: 10000
+    override:
+        outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{task_name}"
+        iterables:
+            reaction_plane_orientation: false
+
 ############################################################
 # Configuration for plotting EMCal corrections from a train.
 ############################################################
