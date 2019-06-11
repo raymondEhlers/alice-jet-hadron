@@ -254,7 +254,7 @@ class STARResponseManager(response_matrix.ResponseManager):
         )
 
 def run_from_terminal() -> STARResponseManager:
-    """ Driver function for running the correlations analysis. """
+    """ Driver function for running the STAR response matrix analysis. """
     # Basic setup
     # Quiet down some pachyderm modules
     logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
