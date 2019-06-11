@@ -636,7 +636,7 @@ STARResponseManager:
 # Configuration for Glauber toy model for path length estimate
 ##############################################################
 GlauberToyModelManager:
-    n_events: 10000
+    n_events: 25000
     override:
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{task_name}"
         iterables:

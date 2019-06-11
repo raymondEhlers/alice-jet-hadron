@@ -202,10 +202,10 @@ class GlauberPathLengthAnalysis:
         logger.info("Performing final processing.")
 
         # Setup
-        main_font_size = 16
+        main_font_size = 18
         general_labels = fr"TGlauberMC v{glauber_version}, ${selected_analysis_options.event_activity.display_str()}\:{selected_analysis_options.collision_system.display_str()}$"
         general_labels += "\n" + fr"$\sigma = {self.cross_section.value} \pm {self.cross_section.width}$ mb"
-        general_labels += fr", $b = {self.impact_parameter_range.min} - {self.impact_parameter_range.max}$ fm"
+        general_labels += "\n" + fr"$b = {self.impact_parameter_range.min} - {self.impact_parameter_range.max}$ fm"
 
         # Create histograms of the two axes
         h_x, x_edges = np.histogram(
@@ -228,19 +228,24 @@ class GlauberPathLengthAnalysis:
         ax.errorbar(
             hist_max_x.x, hist_max_x.y, yerr = hist_max_x.errors,
             marker = "o", linestyle = "",
-            label = "Semi-minor",
+            # Equivalent to semi-minor
+            label = fr"{params.ReactionPlaneOrientation.in_plane.display_str()}",
         )
         ax.errorbar(
             hist_max_y.x, hist_max_y.y, yerr = hist_max_y.errors,
             marker = "o", linestyle = "",
-            label = "Semi-major",
+            # Equivalent to semi-major
+            label = fr"{params.ReactionPlaneOrientation.out_of_plane.display_str()}",
         )
 
         # Label and final adjustments
-        ax.legend(loc = "upper left", frameon = False, fontsize = main_font_size)
-        ax.set_xlabel("Max length (fm)", fontsize = main_font_size)
-        ax.set_ylabel("Counts / 0.1", fontsize = main_font_size)
-        ax.tick_params(axis='both', which='major', labelsize = main_font_size)
+        ax.legend(
+            loc = "upper left", bbox_to_anchor = (0.01, 0.99), borderaxespad = 0,
+            frameon = False, fontsize = main_font_size,
+        )
+        ax.set_xlabel("Max length (fm)")
+        ax.set_ylabel("Counts / 0.1")
+        ax.tick_params(axis='both', which='major')
         ax.text(0.97, 0.97, s = general_labels,
                 horizontalalignment = "right",
                 verticalalignment = "top",
@@ -264,7 +269,7 @@ class GlauberPathLengthAnalysis:
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
             marker = "o", linestyle = "",
-            label = "out-of-plane / in-plane",
+            label = "out-of-plane/in-plane",
         )
 
         # Label and final adjustments
@@ -272,9 +277,9 @@ class GlauberPathLengthAnalysis:
             loc = "upper right", bbox_to_anchor = (0.99, 0.99), borderaxespad = 0,
             frameon = False, fontsize = main_font_size
         )
-        ax.set_xlabel("Length ratio", fontsize = main_font_size)
-        ax.set_ylabel("Counts / 0.05", fontsize = main_font_size)
-        ax.tick_params(axis='both', which='major', labelsize = main_font_size)
+        ax.set_xlabel("Length ratio")
+        ax.set_ylabel("Counts / 0.05")
+        ax.tick_params(axis='both', which='major')
         ratio_label = general_labels
         ratio_label += "\n" + fr"Mean: ${np.mean(self.ratio):.2f} \pm {_calculate_array_RMS(self.ratio):.2f}$ (RMS)"
         ax.text(0.03, 0.97, s = ratio_label,
