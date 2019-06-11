@@ -354,15 +354,34 @@ class GlauberPathLengthManager(analysis_manager.Manager):
         cross_section = self.cross_sections[self.selected_analysis_options.collision_energy]
         impact_parameter_range = self.impact_parameters[self.selected_analysis_options.event_activity]
 
-        # Create the object
+        # Create and setup the object
         self.analysis = GlauberPathLengthAnalysis(
             cross_section = cross_section,
             impact_parameter_range = impact_parameter_range,
         )
-
         self.analysis.setup()
 
         return True
+
+    def _example_plots(self) -> None:
+        """ Produce some images of example collisions. """
+        logger.info("Creating example interaction region plots")
+        # Setup
+        c = ROOT.TCanvas("c", "c")
+
+        # Iterate over the min and max impact parameters, plotting an example interaction from each.
+        for _, impact_parameter in self.impact_parameters[self.selected_analysis_options.event_activity]:
+            logger.debug(f"impact_parameter: {impact_parameter}")
+            # Setup
+            self.analysis.glauber.SetBmin(impact_parameter)
+            self.analysis.glauber.SetBmax(impact_parameter)
+            # Generate
+            self.analysis.event_loop(
+                n_events = 1, progress_manager = self._progress_manager
+            )
+            # Draw
+            self.analysis.glauber.Draw()
+            plot_base.save_plot(self.output_info, c, f"example_collision_b_{impact_parameter}")
 
     def run(self) -> bool:
         """ Setup and run the actual analysis. """
@@ -383,6 +402,9 @@ class GlauberPathLengthManager(analysis_manager.Manager):
             glauber_version = self.glauber_version,
             output_info = self.output_info,
         )
+
+        # Produce some example interaction regions.
+        self._example_plots()
 
         return True
 
