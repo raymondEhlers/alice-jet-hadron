@@ -27,6 +27,7 @@ from pachyderm.utils import epsilon
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_manager
 from jet_hadron.base import analysis_objects
+from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import response_matrix as plot_response_matrix
@@ -118,6 +119,12 @@ for name in ["part", "det"]:
             outliers_removal_axis = projectors.TH1AxisType.x_axis,
         ),
     })
+# QA
+_response_matrix_histogram_info["matched_jet_pt_difference"] = pt_hard_analysis.PtHardHistogramInformation(
+    description = "Matched jet pt difference for hybrid and det level",
+    attribute_name = "matched_jet_pt_difference",
+    outliers_removal_axis = projectors.TH1AxisType.x_axis
+)
 
 @dataclass
 class ResponseHistograms:
@@ -158,6 +165,10 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
 
         self.part_level_hists: ResponseHistograms = ResponseHistograms(None, None)
         self.det_level_hists: ResponseHistograms = ResponseHistograms(None, None)
+
+        # QA hists
+        # Difference between hybrid and detector level jet pt to characterize jet energy scale.
+        self.matched_jet_pt_difference: Hist = None
 
     def __iter__(self) -> Iterator[Tuple[str, analysis_objects.HistogramInformation, Union[Hist, None]]]:
         """ Iterate over the histograms in the response matrix analysis object.
@@ -206,7 +217,8 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         It is enabled automatically in some cases, but it's better to ensure that it is always done
         if it's not enabled.
         """
-        for hist in [self.response_matrix, self.response_matrix_errors, self.particle_level_spectra]:
+        for hist in [self.response_matrix, self.response_matrix_errors, self.particle_level_spectra,
+                     self.matched_jet_pt_difference]:
             if hist and not hist.GetSumw2N() > 0:
                 logger.debug(f"Setting Sumw2 for hist: {hist.GetName()}")
                 hist.Sumw2(True)
@@ -775,6 +787,13 @@ class ResponseMatrix(ResponseMatrixBase):
             )
             self.det_level_hists.jet_spectra.SetName("jetSpectraDetLevel")
 
+        ##########
+        # QA hists
+        ##########
+        hists = histogram.get_histograms_in_file(self.input_filename)
+        logger.debug(f"hists: {hists}")
+        self.matched_jet_pt_difference = hists["JetTagger_hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_detLevelJets_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme_TC"]["fh2PtJet2VsRelPt_2"]
+
         return True
 
 class ResponseManager(analysis_manager.Manager):
@@ -1240,6 +1259,21 @@ class ResponseManager(analysis_manager.Manager):
                     output_info = self.output_info,
                     plot_with_ROOT = plot_with_ROOT,
                 )
+
+            # Jet energy scale QA. It's not meaningful for each orientation because the tagger
+            # doesn't selecte on RP orientation. So we just do it once.
+            plot_response_matrix.matched_jet_energy_scale(
+                plot_labels = plot_base.PlotLabels(
+                    title = "Matched hybrid-detector jet energy scale",
+                    x_label = fr"${labels.jet_pt_display_label('det')}\:({labels.momentum_units_label_gev()}$",
+                    y_label = fr"$({labels.jet_pt_display_label('hybrid')} - {labels.jet_pt_display_label('det')})/{labels.jet_pt_display_label('det')}",
+                ),
+                output_name = "matched_hybrid_detctor_level_jet_energy_scale",
+                output_info = self.output_info,
+                obj = self.final_responses[
+                    self.final_responses_key_index(params.ReactionPlaneOrientation.inclusive)
+                ],
+            )
             plotting.update()
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
@@ -1261,9 +1295,10 @@ class ResponseManager(analysis_manager.Manager):
                         reaction_plane_orientation = reaction_plane_orientation
                     )
                 )
-                # Plot part, det level match and unmatched (so skip the response matrix)
+                # Plot part, det level match and unmatched (so skip the response matrix (first), as well as
+                # matched jet differences(last))
                 for plot_with_ROOT in [False, True]:
-                    for hist_info in list(histogram_info_for_processing.values())[1:]:
+                    for hist_info in list(histogram_info_for_processing.values())[1:-1]:
                         # This is just a proxy to get "part" or "det"
                         base_label = hist_info.description[:hist_info.attribute_name.find("_")].lower()
                         # This will be something like "unmatched_jet_spectra"

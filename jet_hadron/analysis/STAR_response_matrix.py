@@ -63,10 +63,12 @@ class STARResponseMatrix(response_matrix.ResponseMatrixBase):
             jet_spectra = ROOT.TH1D("detectorLevelJets", "Detector level jets", 100, 0, 100),
             unmatched_jet_spectra = None,
         )
+        self.matched_jet_pt_difference = ROOT.TH2D("fh2PtJet2VsRelPt", "Matched particle det level jet energy scale", 40, -50, 150, 241, -2.41, 2.41)
         # ROOT memory management sux...
         self.response_matrix.SetDirectory(0)
         self.part_level_hists.jet_spectra.SetDirectory(0)
         self.det_level_hists.jet_spectra.SetDirectory(0)
+        self.matched_jet_pt_difference.SetDirectory(0)
         # Ensure that sumw2 is set before filling.
         self.set_sumw2()
 
@@ -81,6 +83,7 @@ class STARResponseMatrix(response_matrix.ResponseMatrixBase):
             self.response_matrix.Fill(det_pt, part_pt)
             self.part_level_hists.jet_spectra.Fill(part_pt)
             self.det_level_hists.jet_spectra.Fill(det_pt)
+            self.matched_jet_pt_difference.Fill(det_pt, (part_pt - det_pt) / det_pt)
 
         # Create fake unmatched spectra. They don't matter, but it makes it way easier to work with the response code
         self.part_level_hists.unmatched_jet_spectra = self.part_level_hists.jet_spectra.Clone("unmathcedParticleLevelJets")

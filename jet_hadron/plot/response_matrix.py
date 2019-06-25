@@ -882,3 +882,29 @@ def plot_particle_level_spectra_agreement(difference: Hist, absolute_value_of_di
     canvas.SetLogy(True)
     output_name += "_abs"
     plot_base.save_plot(output_info, canvas, output_name)
+
+def matched_jet_energy_scale(plot_labels: plot_base.PlotLabels, output_name: str,
+                             output_info: analysis_objects.PlottingOutputWrapper,
+                             obj: "response_matrix.ResponseMatrixBase") -> None:
+    # Setup
+    canvas = ROOT.TCanvas("canvas", "canvas")
+    canvas.SetLogz(True)
+    hist = obj.matched_jet_pt_difference
+    logger.debug(f"hist: {hist}")
+
+    # Plot the histogram
+    plot_labels.apply_labels(hist)
+    hist.Draw("colz")
+
+    # Axis ranges
+    hist.GetXaxis().SetRangeUser(0, 150)
+    # Scale Z axis. Otherwise, we won't see much.
+    min_val = ctypes.c_double(0)
+    max_val = ctypes.c_double(0)
+    hist.GetMinimumAndMaximum(min_val, max_val)
+    # * 1.1 to put it slightly above the max value
+    # min_val doesn't work here, because there are some entries at 0
+    hist.GetZaxis().SetRangeUser(10e-7, max_val.value * 1.1)
+
+    # Save
+    plot_base.save_plot(output_info, canvas, output_name)
