@@ -17,7 +17,7 @@ inputObjects:
 CellEnergy:
     enabled: true
     createHistos: true
-    enableRun2TempCalib: true
+    enableNewTempCalib: true
 CellBadChannel:
     enabled: true
     createHistos: true
