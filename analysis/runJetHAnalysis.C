@@ -194,7 +194,7 @@ AliAnalysisManager* runJetHAnalysis(
   /////////////////
   //AliLog::SetClassDebugLevel("AliEmcalCorrectionComponent", AliLog::kDebug+3);
   //AliLog::SetClassDebugLevel("AliAnalysisTaskEmcalJetHCorrelations", AliLog::kDebug+1);
-  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug+5);
+  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug-1);
   //AliLog::SetClassDebugLevel("AliJetContainer", AliLog::kDebug+7);
 
   // EMCal corrections
