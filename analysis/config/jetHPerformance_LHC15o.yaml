@@ -11,6 +11,8 @@ eventCuts:
     enablePileupCuts: true
 general:
     nCentBins: 5
+QA:
+    cellsName: "emcalCells"
 # Cluster collections
 clusters:
     clusterCont:
