@@ -324,7 +324,7 @@ class STARJetAnalysis(JetAnalysis):
         # 0 = 0-33 kHz -> 1/9
         # 1 = 33-66 kHz -> 5/9
         # 2 = 66-100 kHz -> 3/9
-        self.efficiency_sampling: List[int] = [
+        self.efficiency_sampling = [
             0,
             1, 1, 1, 1, 1,
             2, 2, 2
