@@ -33,14 +33,7 @@ everything.
 
 ## Development
 
-It is strongly recommended to install `pre-commit` (from pip or elsewhere) and then run
-
-```bash
-$ pre-commit install
-```
-
-to utilize the git pre-commit checks. They can be run with `pre-commit run` (and they will be run
-automatically on each commit).
+You're now ready to develop.
 
 The code is structured as:
 
@@ -64,6 +57,26 @@ Most executables take a uniform set of arguments consisting of a YAML configurat
 parameters of the analysis (collision system, energy, event activity, and leading hadron bias). The flags can
 be accessed through the `--help` flag. A YAML config file that stores most of the configuration options is in
 the `config` directory.
+
+For example, the jet-hadron correlations analysis can be run with:
+
+```bash
+$ jetHCorrelations -c config/analysisConfigDev.yaml -e 5.02 -s PbPb -a semi_central -b track
+```
+
+This would analyze semi-central Pb--Pb collisions at 5.02 TeV with a leading track bias as defined in the
+configuration file. Note that the location of input and output files are specified in the YAML configuration.
+
+### Pre-commit checks
+
+It is strongly recommended to install `pre-commit` (from pip or elsewhere) and then run
+
+```bash
+$ pre-commit install
+```
+
+to utilize the git pre-commit checks. They will be run automatically with each commit to help ensure code
+quality. (They can also be run manually with `pre-commit run`).
 
 # Tools
 
