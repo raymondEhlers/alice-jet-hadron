@@ -1,0 +1,26 @@
+particle:
+    basic: {}
+    configured:
+        minPt: 1
+        minE: 2.2
+        etaLimits: [-0.3, 0.4]
+        phiLimits: [0, 3.14]
+        embedding: true
+track:
+    basic: {}
+    configured:
+        minPt: 2.0
+        aodFilterBits:
+            - 16
+            - 256
+        trackFilterType: "kTPCOnlyTracks"
+        trackCutsPeriod: "LHC15o"
+cluster:
+    basic: {}
+    configured:
+        minPt: 3
+        minE: 2.2
+        defaultClusterEnergy: "kNonLinCorr"
+        clusNonLinCorrEnergyCut: 30.1
+        clusHadCorrEnergyCut: 50.2
+        includePHOS: false
