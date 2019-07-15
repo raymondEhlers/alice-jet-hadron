@@ -1,0 +1,9 @@
+---
+train: "Jets_EMC_PbPb_MC"
+trainNumber: 55
+production: "LHC16g1"
+anchor: "LHC15o"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb_MC/55_20180219-2329/merge"
+status: |
+    "Determine the tracking efficiency by running over HIJING anchored to LHC15o."
+    "Originally ran and fit by Eliane."
