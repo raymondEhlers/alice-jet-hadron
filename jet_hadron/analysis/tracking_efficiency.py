@@ -12,7 +12,7 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Any, cast, Callable, Dict, List, Tuple
+from typing import Any, cast, Callable, List, Tuple
 
 from pachyderm import histogram
 from pachyderm.utils import epsilon
@@ -23,10 +23,20 @@ import jet_hadron.plot.base as plot_base  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
-def get_efficiency_function(period: str) -> Tuple[Callable[..., float], Any]:
-    """ Retrieve the efficiency function and period from AliPhysics.
+# Types
+T_PublicUtils = Any
+
+def setup(period: str) -> Tuple[Callable[..., float], Any, T_PublicUtils]:
+    """ Retrieve the efficiency function, period and internal efficiency functions and params from AliPhysics.
 
     Re-factored to a separate function so we can isolate the dependency.
+
+    Args:
+        period: Name of the data period.
+    Returns:
+        (efficiency_function, efficiency_period, T_PublicUtils): The general efficiency function, and
+        the period enum value used in calling that function, and a derived class to make the internal
+        efficiency functions and parameters public for further testing.
     """
     import ROOT
     # The tasks are in the PWGJE::EMCALJetTasks namespace, so we first retrieve that namespace for convenience.
@@ -36,8 +46,8 @@ def get_efficiency_function(period: str) -> Tuple[Callable[..., float], Any]:
     # Then the period by string
     efficiency_period = getattr(user_namespace.AliAnalysisTaskEmcalJetHUtils, "k" + period)
 
-    # Provide full access to the rest of the attributes by inheriting and making the members public
-    # The winding route to get there is due to namespace issues (amongst others).
+    # Provide full access to the rest of the attributes by inheriting and making the members public.
+    # The winding route to get there is due to namespace issues in PyROOT.
     code = """
     // Tell ROOT where to find AliRoot headers
     R__ADD_INCLUDE_PATH($ALICE_ROOT)
@@ -90,56 +100,26 @@ def get_efficiency_function(period: str) -> Tuple[Callable[..., float], Any]:
         }
     };
     """
+    # Create the class
     ROOT.gInterpreter.ProcessLine(code)
-    IPython.embed()
+    PublicUtils = ROOT.JetHUtilsPublic
 
-    return cast(Callable[..., float], efficiency_function), efficiency_period
+    return cast(Callable[..., float], efficiency_function), efficiency_period, PublicUtils
 
-def get_15o_eta_max_efficiency(n_cent_bins: int, centrality_ranges: Dict[int, params.SelectedRange]) -> List[List[float]]:
+def get_15o_eta_max_efficiency(PublicUtils: T_PublicUtils, n_cent_bins: int) -> List[List[float]]:
     """ Get the max of the eta efficiencies for properly normalizing the functions.
 
-    This requires a modification of the interface of the JetHUtils task to expose the ``LHC15oEtaEfficiency`` function,
-    as well as the parameters themselves.
+    Takes advantage of the public interface to the ``AliAnalysisTaskEmcalJetHUtils`` defiend in the setup.
 
     Args:
+        PublicUtils: Jet-H public utils class.
         n_cent_bins: Number of centrality bins
-        centrality_ranges: Maps the centrality bin to the centrality range.
     Returns:
         Max value in the eta efficiency.
     """
-    import ROOT
-    # The tasks are in the PWGJE::EMCALJetTasks namespace, so we first retrieve that namespace for convenience.
-    user_namespace = ROOT.PWGJE.EMCALJetTasks
-    # First retrieve the function
-    efficiency_function = user_namespace.AliAnalysisTaskEmcalJetHUtils.LHC15oEtaEfficiency
-    eta_params = []
+    efficiency_function = PublicUtils.LHC15oEtaEfficiency
     max_values = []
     for centrality_bin in range(n_cent_bins):
-        # First get the parameters.
-        centrality = centrality_ranges[centrality_bin]
-        eta_param = getattr(
-            user_namespace.AliAnalysisTaskEmcalJetHUtils, f"LHC15oParam_{centrality.min}_{centrality.max}_eta",
-        )
-        eta_params.append(eta_param)
-
-        # Then determine the max eta values.
-        values_left = []
-        values_right = []
-        # Record the values with high granularity
-        for eta in np.linspace(-0.9, 0, 1000):
-            values_left.append(efficiency_function(eta, eta_params[centrality_bin], 0))
-        for eta in np.linspace(-0.06, 0.9, 1000):
-            values_right.append(efficiency_function(eta, eta_params[centrality_bin], 6))
-
-        # Store the result
-        max_values.append([np.max(values_left), np.max(values_right)])
-
-    efficiency_function = ROOT.JetHUtilsPublic.LHC15oEtaEfficiency
-    new_max_values = []
-    for centrality_bin in range(n_cent_bins):
-        # First get the parameters.
-        centrality = centrality_ranges[centrality_bin]
-
         # Then determine the max eta values.
         values_left = []
         values_right = []
@@ -150,10 +130,7 @@ def get_15o_eta_max_efficiency(n_cent_bins: int, centrality_ranges: Dict[int, pa
             values_right.append(efficiency_function(eta, centrality_bin))
 
         # Store the result
-        new_max_values.append([np.max(values_left), np.max(values_right)])
-
-    # Sanity check
-    assert np.allclose(max_values, new_max_values)
+        max_values.append([np.max(values_left), np.max(values_right)])
 
     return max_values
 
@@ -203,6 +180,26 @@ def jetH_task_efficiency_for_comparison(period: str, system: str,
 
     return efficiencies
 
+def check_for_accidentally_repeated_parameters(n_cent_bins: int, efficiencies: np.ndarray) -> bool:
+    """ Check for accidnetally repeated parameters.
+
+    Namely, it checks whether the efficiencies for one centrality bin is the same as another.
+    If they are the same, it indicates that parameters are accidentally repeated.
+
+    Args:
+        n_cent_bins: Number of centrality bins.
+        efficiencies: Calculated efficiencies.
+    Returns:
+        True if there are duplicated parameters
+    """
+    for centrality_bin in range(n_cent_bins):
+        for other_centrality_bin in range(n_cent_bins):
+            # True if the indices are the same, false if not
+            comparison_value = (centrality_bin == other_centrality_bin)
+            assert np.allclose(efficiencies[centrality_bin], efficiencies[other_centrality_bin]) is comparison_value
+
+    return False
+
 def plot_tracking_efficiency(period: str, system: str) -> None:
     """ Plot the tracking efficiency.
 
@@ -214,7 +211,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
     """
     # Setup
     logger.warning(f"Plotting efficiencies for {period}, system {system}")
-    efficiency_function, efficiency_period = get_efficiency_function(period)
+    efficiency_function, efficiency_period, PublicUtils = setup(period)
 
     # Setting up ranges.
     pt_values = np.linspace(0.05, 9.95, 100)
@@ -244,30 +241,25 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
     # Find maxima for eta normalization
     if period == "LHC15o":
         logger.info("Checking max eta efficiency normalization")
-        try:
-            max_eta_efficiencies = get_15o_eta_max_efficiency(
-                n_cent_bins = n_cent_bins, centrality_ranges = centrality_ranges,
-            )
+        max_eta_efficiencies = get_15o_eta_max_efficiency(
+            PublicUtils = PublicUtils, n_cent_bins = n_cent_bins,
+        )
 
-            for centrality_bin, (left, right) in enumerate(max_eta_efficiencies):
-                if np.isclose(left, 1.0, atol = 1e-4) or np.isclose(right, 1.0, atol = 1e-4):
-                    logger.info(f"Eta efficiency for LHC15o centrality bin {centrality_bin} is properly normalized.")
-                else:
-                    logger.warning(
-                        f"Eta efficiency for LHC15o centrality bin {centrality_bin} appears not to be normalized."
-                        "Check if this is expected!"
-                    )
-            logger.info(f"Max eta efficiencies: {max_eta_efficiencies}")
-        except AttributeError as e:
-            logger.warning(f"{e.args[0]}. Skipping!")
+        for centrality_bin, (left, right) in enumerate(max_eta_efficiencies):
+            if np.isclose(left, 1.0, atol = 1e-4) or np.isclose(right, 1.0, atol = 1e-4):
+                logger.info(f"Eta efficiency for LHC15o centrality bin {centrality_bin} is properly normalized.")
+            else:
+                logger.warning(
+                    f"Eta efficiency for LHC15o centrality bin {centrality_bin} appears not to be normalized."
+                    "Check if this is expected!"
+                )
+        logger.info(f"Max eta efficiencies: {max_eta_efficiencies}")
 
     # Check that the parameters are all set correctly.
     logger.info("Checking for accidentally repeated parameters")
-    for centrality_bin in range(n_cent_bins):
-        for other_centrality_bin in range(n_cent_bins):
-            # True if the indices are the same, false if not
-            comparison_value = (centrality_bin == other_centrality_bin)
-            assert np.allclose(efficiencies[centrality_bin], efficiencies[other_centrality_bin]) is comparison_value
+    duplicated = check_for_accidentally_repeated_parameters(n_cent_bins = n_cent_bins, efficiencies = efficiencies)
+    if duplicated:
+        raise ValueError("Some parameters appear to be accidentally repeated.")
     logger.info("No repeated parameters!")
 
     # Comparison to previous task
