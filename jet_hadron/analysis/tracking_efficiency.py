@@ -12,21 +12,46 @@ import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Any, cast, Callable, List, Tuple
+from typing import Any, cast, Callable, Dict, List, Tuple
 
 from pachyderm import histogram
 from pachyderm.utils import epsilon
 
+from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
-import jet_hadron.plot.base as plot_base  # noqa: F401
+from jet_hadron.plot import base as plot_base
 
 logger = logging.getLogger(__name__)
 
 # Types
 T_PublicUtils = Any
 
-def setup(period: str) -> Tuple[Callable[..., float], Any, T_PublicUtils]:
+def generate_parameters(system: params.CollisionSystem) -> Tuple[np.ndarray, np.ndarray, int, Dict[int, params.SelectedRange]]:
+    """ Generate the analysis parameters.
+
+    This can be called multiple times if necessary to retrieve the parameters easily in any function.
+
+    Args:
+        system: Collision system.
+    Returns:
+        (pt_values, eta_values, n_cent_bins, centrality_ranges): Pt values where the efficiency should be evaluated,
+            eta values where the efficiency should be evaluated, number of centrality bins, map from centrality bin
+            number to centrality bin ranges.
+    """
+    pt_values = np.linspace(0.05, 9.95, 100)
+    eta_values = np.linspace(-0.85, 0.85, 35)
+    n_cent_bins = 4 if system != params.CollisionSystem.pp else 1
+    centrality_ranges = {
+        0: params.SelectedRange(0, 10),
+        1: params.SelectedRange(10, 30),
+        2: params.SelectedRange(30, 50),
+        3: params.SelectedRange(50, 90),
+    }
+
+    return pt_values, eta_values, n_cent_bins, centrality_ranges
+
+def setup_AliPhysics(period: str) -> Tuple[Callable[..., float], Any, T_PublicUtils]:
     """ Retrieve the efficiency function, period and internal efficiency functions and params from AliPhysics.
 
     Re-factored to a separate function so we can isolate the dependency.
@@ -134,7 +159,7 @@ def get_15o_eta_max_efficiency(PublicUtils: T_PublicUtils, n_cent_bins: int) -> 
 
     return max_values
 
-def jetH_task_efficiency_for_comparison(period: str, system: str,
+def jetH_task_efficiency_for_comparison(period: str, system: params.CollisionSystem,
                                         pt_values: np.ndarray, eta_values: np.ndarray) -> np.ndarray:
     """ Provide the efficiencies from the Jet-hadron correlations task for comparison.
 
@@ -157,7 +182,7 @@ def jetH_task_efficiency_for_comparison(period: str, system: str,
         Calculated efficiencies for the same range as the JetHUtils implementation.
     """
     # Setup
-    n_cent_bins = 4 if system != "pp" else 1
+    n_cent_bins = 4 if system != params.CollisionSystem.pp else 1
     import ROOT
     jetHTask = ROOT.PWGJE.EMCALJetTasks.AliAnalysisTaskEmcalJetHCorrelations()
 
@@ -165,7 +190,7 @@ def jetH_task_efficiency_for_comparison(period: str, system: str,
     jetHTask.SetCurrentRun(167902)
     # Enable efficiency correction
     efficiency = jetHTask.kEffPP if period == "LHC11a" else jetHTask.kEffAutomaticConfiguration
-    system = ROOT.AliAnalysisTaskEmcal.kpp if period == "LHC11a" else ROOT.AliAnalysisTaskEmcal.kAA
+    system_enum = ROOT.AliAnalysisTaskEmcal.kpp if system == params.CollisionSystem.pp else ROOT.AliAnalysisTaskEmcal.kAA
     jetHTask.SetSingleTrackEfficiencyType(efficiency)
 
     # Loop over values
@@ -175,7 +200,7 @@ def jetH_task_efficiency_for_comparison(period: str, system: str,
         for pt_index, pt in enumerate(pt_values):
             for eta_index, eta in enumerate(eta_values):
                 efficiencies[centrality_bin, pt_index, eta_index] = jetHTask.EffCorrection(
-                    eta, pt, system
+                    eta, pt, system_enum
                 )
 
     return efficiencies
@@ -200,30 +225,19 @@ def check_for_accidentally_repeated_parameters(n_cent_bins: int, efficiencies: n
 
     return False
 
-def plot_tracking_efficiency(period: str, system: str) -> None:
-    """ Plot the tracking efficiency.
+def calculate_efficiencies(n_cent_bins: int, pt_values: np.ndarray, eta_values: np.ndarray, efficiency_period: Any, efficiency_function: Callable[..., float]) -> np.ndarray:
+    """ Caluclate the efficiency given the parameters.
 
     Args:
-        period: Period for calculating the efficiencies.
-        system: Collision system.
+        n_cent_bins: Number of centrality bins.
+        pt_values: Pt values to evaluate.
+        eta_values: Eta values to evaluate.
+        efficiency_period: Enum value correspoonding to the period.
+        efficiency_function: The actual efficiency function.
     Returns:
-        Calculated efficiencies for the same range as the JetHUtils implementation.
+        Efficiency evaluated at all centrality bins, pt values, and eta values, indexed as
+            [centrality_bin, pt_value, eta_value].
     """
-    # Setup
-    logger.warning(f"Plotting efficiencies for {period}, system {system}")
-    efficiency_function, efficiency_period, PublicUtils = setup(period)
-
-    # Setting up ranges.
-    pt_values = np.linspace(0.05, 9.95, 100)
-    eta_values = np.linspace(-0.85, 0.85, 35)
-    n_cent_bins = 4 if system != "pp" else 1
-    centrality_ranges = {
-        0: params.SelectedRange(0, 10),
-        1: params.SelectedRange(10, 30),
-        2: params.SelectedRange(30, 50),
-        3: params.SelectedRange(50, 90),
-    }
-
     # Centrality, pt, eta
     efficiencies = np.zeros(shape = (n_cent_bins, len(pt_values), len(eta_values)))
     for centrality_bin in range(n_cent_bins):
@@ -233,6 +247,18 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
                     pt, eta, centrality_bin, efficiency_period, "task_name"
                 )
 
+    return efficiencies
+
+def efficiency_properties(n_cent_bins: int, efficiencies: np.ndarray, PublicUtils: T_PublicUtils) -> bool:
+    """ Determine and check a variety of efficiency properties.
+
+    Args:
+        n_cent_bins: Number of centrality bins.
+        efficiencies: Calculated efficiencies.
+        PublicUtils: Jet-H public utils class.
+    Returns:
+        True if the properties were calculated and checked.
+    """
     # Determine maximum
     for centrality_bin in range(n_cent_bins):
         m = np.max(efficiencies[centrality_bin])
@@ -262,18 +288,24 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
         raise ValueError("Some parameters appear to be accidentally repeated.")
     logger.info("No repeated parameters!")
 
-    # Comparison to previous task
-    if period in ["LHC11a", "LHC11h"]:
-        try:
-            comparison_efficiencies = jetH_task_efficiency_for_comparison(period, system, pt_values, eta_values)
-            np.testing.assert_allclose(efficiencies, comparison_efficiencies)
-            logger.info("Efficiencies agree!")
-        except AttributeError as e:
-            logger.warning(f"{e.args[0]}. Skipping!")
-    else:
-        logger.info("Skipping efficiencies comparison because no other implementation exists.")
+    return True
 
-    # Now, plot the result.
+def plot_tracking_efficiency_parametrization(efficiencies: np.ndarray, n_cent_bins: int, period: str,
+                                             system: params.CollisionSystem, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the given tracking efficiencies parametrization.
+
+    Args:
+        efficiencies: Calculated tracking efficiencies.
+        n_cent_bins: Number of centrality bins.
+        period: Data taking period.
+        system: Collision system.
+        output_info: Output info for saving figures.
+    Returns:
+        None.
+    """
+    # Get the parameters
+    pt_values, eta_values, n_cent_bins, centrality_ranges = generate_parameters(system)
+
     logger.debug("Plotting efficiencies")
     for centrality_bin in range(n_cent_bins):
         fig, ax = plt.subplots(figsize = (8, 6))
@@ -291,7 +323,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
         ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
         ax.set_ylabel(r"$\varphi$")
         title = f"{period} tracking efficiency parametrization"
-        if system != "pp":
+        if system != params.CollisionSystem.pp:
             centrality_range = centrality_ranges[centrality_bin]
             title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
         ax.set_title(title, size = 16)
@@ -299,13 +331,66 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
         # Final adjustments
         fig.tight_layout()
         name = f"efficiency_{period}"
-        if system != "pp":
+        if system != params.CollisionSystem.pp:
             centrality_range = centrality_ranges[centrality_bin]
             name += f"_centrality_parametrization_{centrality_range.min}_{centrality_range.max}"
-        fig.savefig(f"{name}.pdf")
+        plot_base.save_plot(output_info, fig, name)
 
         # Cleanup
         plt.close(fig)
+
+def comparison_to_data() -> None:
+    ...
+
+def characterize_tracking_efficiency(period: str, system: params.CollisionSystem) -> None:
+    """ Characterize the tracking efficiency.
+
+    Args:
+        period: Period for calculating the efficiencies.
+        system: Collision system.
+    Returns:
+        Calculated efficiencies for the same range as the JetHUtils implementation.
+    """
+    # Setup
+    logger.warning(f"Plotting efficiencies for {period}, system {system}")
+    efficiency_function, efficiency_period, PublicUtils = setup_AliPhysics(period)
+    # Setting up evaluation ranges.
+    pt_values, eta_values, n_cent_bins, centrality_ranges = generate_parameters(system)
+    # Plotting output location
+    output_info = analysis_objects.PlottingOutputWrapper(
+        output_prefix = f"output/{system}/{period}/trackingEfficiency",
+        printing_extensions = ["pdf"],
+    )
+
+    # Caluclate the efficiency.
+    efficiencies = calculate_efficiencies(
+        n_cent_bins = n_cent_bins, pt_values = pt_values, eta_values = eta_values,
+        efficiency_period = efficiency_period, efficiency_function = efficiency_function,
+    )
+
+    # Calculate and check efficiency properties.
+    result = efficiency_properties(
+        n_cent_bins = n_cent_bins, efficiencies = efficiencies, PublicUtils = PublicUtils
+    )
+    if not result:
+        raise RuntimeError("Failed to calculate all efficiency properties. Check the logs!")
+
+    # Retrieve efficiency data
+    #efficiencies_data = retrieve_efficiencies_data()
+
+    # Comparison to previous task
+    if period in ["LHC11a", "LHC11h"]:
+        try:
+            comparison_efficiencies = jetH_task_efficiency_for_comparison(period, system, pt_values, eta_values)
+            np.testing.assert_allclose(efficiencies, comparison_efficiencies)
+            logger.info("Efficiencies agree!")
+        except AttributeError as e:
+            logger.warning(f"{e.args[0]}. Skipping!")
+    else:
+        logger.info("Skipping efficiencies comparison because no other implementation exists.")
+
+    # Now, plot the result.
+    plot_tracking_efficiency_parametrization(efficiencies, n_cent_bins, period, system, output_info)
 
     # Plot residuals if available.
     if period == "LHC15o":
@@ -407,7 +492,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
             ax.set_ylabel(r"$\varphi$")
             title = f"{period} tracking efficiency residuals"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
             ax.set_title(title, size = 16)
@@ -415,7 +500,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             # Final adjustments
             fig.tight_layout()
             name = f"efficiency_residuals_{period}"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
             fig.savefig(f"{name}.pdf")
@@ -445,7 +530,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
             ax.set_ylabel(r"$\varphi$")
             title = f"{period} tracking efficiency data"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
             ax.set_title(title, size = 16)
@@ -453,7 +538,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             # Final adjustments
             fig.tight_layout()
             name = f"efficiency_{period}"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
             fig.savefig(f"{name}.pdf")
@@ -478,7 +563,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
             ax.set_ylabel(r"Efficiency")
             title = f"{period} ${labels.pt_display_label()}$ tracking efficiency"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
             ax.set_title(title, size = 16)
@@ -486,7 +571,7 @@ def plot_tracking_efficiency(period: str, system: str) -> None:
             # Final adjustments
             fig.tight_layout()
             name = f"efficiency_pt_{period}"
-            if system != "pp":
+            if system != params.CollisionSystem.pp:
                 centrality_range = centrality_ranges[centrality_bin]
                 name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
             fig.savefig(f"{name}.pdf")
@@ -501,7 +586,9 @@ if __name__ == "__main__":
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
     # Run for each period
-    #for period, system in [("LHC11a", "pp"), ("LHC11h", "PbPb"), ("LHC15o", "PbPb")]:
-    for period, system in [("LHC15o", "PbPb")]:
-        plot_tracking_efficiency(period, system)
+    #for period, system in [("LHC11a", params.CollisionSystem.pp),
+    #                       ("LHC11h", params.CollisionSystem.PbPb),
+    #                       ("LHC15o", params.CollisionSystem.PbPb)]:
+    for period, system in [("LHC15o", params.CollisionSystem.PbPb)]:
+        characterize_tracking_efficiency(period, system)
 
