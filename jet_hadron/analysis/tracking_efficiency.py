@@ -42,7 +42,7 @@ def generate_parameters(system: params.CollisionSystem) -> Tuple[np.ndarray, np.
             eta values where the efficiency should be evaluated, number of centrality bins, map from centrality bin
             number to centrality bin ranges.
     """
-    pt_values = np.linspace(0.05, 9.95, 100)
+    pt_values = np.linspace(0.15, 9.95, 100 - 1)
     eta_values = np.linspace(-0.85, 0.85, 35)
     n_cent_bins = 4 if system != params.CollisionSystem.pp else 1
     centrality_ranges = {
@@ -471,8 +471,18 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
 def plot_residual(residual: np.ndarray, pts: List[float], etas: List[float],
                   period: str, centrality_bin: int, centrality_ranges: Dict[int, params.SelectedRange],
                   output_info: analysis_objects.PlottingOutputWrapper) -> None:
-    """
+    """ Plot the residual between the data and the parametrization.
 
+    Args:
+        residual: Calculated residual.
+        pts: Pt values where the residual was evaluated.
+        etas: Eta values where the residual was evaluated.
+        period: Name of the data taking period.
+        centrality_bin: Centrality bin.
+        centraliy_ranges: Map of centrality bins to ranges.
+        output_info: Output info for saving figures.
+    Returns:
+        None.
     """
     fig, ax = plt.subplots(figsize = (8, 6))
     im = ax.imshow(
@@ -484,6 +494,7 @@ def plot_residual(residual: np.ndarray, pts: List[float], etas: List[float],
             #vmin = np.nanmin(residuals[centrality_bin]), vmax = np.nanmax(residuals[centrality_bin])
             vmin = -40, vmax = 40
         ),
+        # This is a good diverging color scheme when it's centered at 0.
         cmap = "RdBu",
     )
 
@@ -719,6 +730,7 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
             # 1D efficiency comparison
             # TODO: Add fit functions...
             plot_1D_pt_efficiency(efficiency_data_1D_pt[centrality_bin],
+                                  #PublicUtils, efficiency_period,
                                   centrality_ranges[centrality_bin], output_info)
             plot_1D_eta_efficiency(efficiency_data_1D_eta[centrality_bin],
                                    centrality_ranges[centrality_bin], output_info)
