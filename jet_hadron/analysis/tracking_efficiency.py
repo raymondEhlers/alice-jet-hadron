@@ -7,12 +7,15 @@ is a hard AliPhysics dependency.
 """
 
 import coloredlogs
-import IPython
 import logging
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Any, cast, Callable, Dict, List, Tuple
+
+# NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
+#       line options
+from jet_hadron.base.typing_helpers import Hist
 
 from pachyderm import histogram
 from pachyderm.utils import epsilon
@@ -290,13 +293,14 @@ def efficiency_properties(n_cent_bins: int, efficiencies: np.ndarray, PublicUtil
 
     return True
 
-def plot_tracking_efficiency_parametrization(efficiencies: np.ndarray, n_cent_bins: int, period: str,
-                                             system: params.CollisionSystem, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def plot_tracking_efficiency_parametrization(efficiency: np.ndarray, centrality_range: params.SelectedRange,
+                                             period: str, system: params.CollisionSystem,
+                                             output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the given tracking efficiencies parametrization.
 
     Args:
-        efficiencies: Calculated tracking efficiencies.
-        n_cent_bins: Number of centrality bins.
+        efficiency: Calculated tracking efficiencies.
+        centrality_range: Associated centrality range.
         period: Data taking period.
         system: Collision system.
         output_info: Output info for saving figures.
@@ -307,40 +311,328 @@ def plot_tracking_efficiency_parametrization(efficiencies: np.ndarray, n_cent_bi
     pt_values, eta_values, n_cent_bins, centrality_ranges = generate_parameters(system)
 
     logger.debug("Plotting efficiencies")
-    for centrality_bin in range(n_cent_bins):
-        fig, ax = plt.subplots(figsize = (8, 6))
-        im = ax.imshow(
-            efficiencies[centrality_bin].T,
-            extent = [np.min(pt_values), np.max(pt_values), np.min(eta_values), np.max(eta_values)],
-            interpolation = "nearest", aspect = "auto", origin = "lower",
-            norm = matplotlib.colors.Normalize(vmin = 0.5, vmax = 1), cmap = "viridis",
-        )
+    fig, ax = plt.subplots(figsize = (8, 6))
+    im = ax.imshow(
+        efficiency.T,
+        extent = [np.min(pt_values), np.max(pt_values), np.min(eta_values), np.max(eta_values)],
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        norm = matplotlib.colors.Normalize(vmin = 0.5, vmax = 1), cmap = "viridis",
+    )
 
-        # Add the colorbar
-        fig.colorbar(im, ax = ax)
+    # Add the colorbar
+    fig.colorbar(im, ax = ax)
 
-        # Labels
-        ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-        ax.set_ylabel(r"$\varphi$")
-        title = f"{period} tracking efficiency parametrization"
-        if system != params.CollisionSystem.pp:
-            centrality_range = centrality_ranges[centrality_bin]
-            title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
-        ax.set_title(title, size = 16)
+    # Labels
+    ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
+    ax.set_ylabel(r"$\varphi$")
+    title = f"{period} tracking efficiency parametrization"
+    if system != params.CollisionSystem.pp:
+        title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
+    ax.set_title(title, size = 16)
 
-        # Final adjustments
-        fig.tight_layout()
-        name = f"efficiency_{period}"
-        if system != params.CollisionSystem.pp:
-            centrality_range = centrality_ranges[centrality_bin]
-            name += f"_centrality_parametrization_{centrality_range.min}_{centrality_range.max}"
-        plot_base.save_plot(output_info, fig, name)
+    # Final adjustments
+    fig.tight_layout()
+    name = f"efficiency_{period}"
+    if system != params.CollisionSystem.pp:
+        name += f"_centrality_parametrization_{centrality_range.min}_{centrality_range.max}"
+    plot_base.save_plot(output_info, fig, name)
 
-        # Cleanup
-        plt.close(fig)
+    # Cleanup
+    plt.close(fig)
 
-def comparison_to_data() -> None:
-    ...
+def retrieve_efficiency_data(n_cent_bins: int, centrality_ranges: Dict[int, params.SelectedRange]) -> Tuple[List[Hist], List[Hist], List[Hist]]:
+    """ Retrieve efficiency data.
+
+    Args:
+        n_cent_bins: Number of centrality bins.
+        centrality_ranges: Map from centrality bin numbers to centrality ranges.
+    Returns:
+        (2D efficiency data, 1D pt efficiency data, 1D eta efficiency data)
+    """
+    # Retrieve histograms
+    hists = histogram.get_histograms_in_list(
+        filename = "trains/PbPbMC/55/AnalysisResults.root",
+        list_name = "AliAnalysisTaskPWGJEQA_tracks_caloClusters_emcalCells_histos"
+    )
+    matched_sparse = hists["tracks_Matched"]
+    generator_sparse = hists["tracks_PhysPrim"]
+
+    # Retrieve the centrality dependent data
+    efficiency_data_1D_pt = []
+    efficiency_data_1D_eta = []
+    efficiency_data_2D = []
+    for dimension in ["1D", "2D"]:
+        for centrality_bin, centrality_range in centrality_ranges.items():
+            # Select in centrality
+            matched_sparse.GetAxis(0).SetRangeUser(centrality_range.min + epsilon, centrality_range.max - epsilon)
+            generator_sparse.GetAxis(0).SetRangeUser(centrality_range.min + epsilon, centrality_range.max - epsilon)
+            # Restrict pt range to < 10 GeV
+            matched_sparse.GetAxis(1).SetRangeUser(0.15, 10)
+            generator_sparse.GetAxis(1).SetRangeUser(0.15, 10)
+
+            if dimension == "2D":
+                # (pt_gen, eta_gen) - order is reversed because 2D API is backwards...
+                pt_gen_matched = matched_sparse.Projection(2, 1)
+                pt_gen_matched.SetName(f"pt_gen_matched_cent_{centrality_bin}")
+                # (pt_gen, eta_gen, findable)
+                pt_gen_2d = generator_sparse.Projection(1, 2, 4)
+                pt_gen_2d.SetName(f"pt_gen_2D_cent_{centrality_bin}")
+                # Select only findable particles and use that efficiency.
+                pt_gen_2d.GetZaxis().SetRange(2, 2)
+                pt_gen_findable = pt_gen_2d.Project3D("yx")
+                logger.debug(f"pt_gen_matched: {pt_gen_matched}, pt_gen_findable: {pt_gen_findable}")
+
+                efficiency_hist = pt_gen_findable.Clone()
+                efficiency_hist.Divide(pt_gen_matched, pt_gen_findable, 1.0, 1.0, "B")
+                efficiency_data_2D.append(efficiency_hist)
+
+            elif dimension == "1D":
+                # pT 1D efficiency
+                # NOTE: We can't just project from the 2D efficiency. Integrating over eta will get the wrong
+                #       wrong values. Here, we project before we divide to get the right answer.
+                pt_gen_matched1D = matched_sparse.Projection(1)
+                pt_gen_matched1D.SetName(f"pt_gen_matched_1D_cent_{centrality_bin}")
+                pt_gen_1d = generator_sparse.Projection(4, 1)
+                pt_gen_1d.SetName(f"pt_gen_1D_cent_{centrality_bin}")
+                # Select only findable particles and use that efficiency.
+                pt_gen_1d.GetYaxis().SetRange(2, 2)
+                pt_gen_findable = pt_gen_1d.ProjectionX()
+                logger.debug(f"pt_gen_matched1D: {pt_gen_matched1D}, pt_gen_findable: {pt_gen_findable}")
+
+                efficiency_1D = pt_gen_findable.Clone()
+                efficiency_1D.Divide(pt_gen_matched1D, pt_gen_findable, 1.0, 1.0, "B")
+                efficiency_data_1D_pt.append(efficiency_1D)
+
+                # Eta 1D
+                eta_gen_matched_1D = matched_sparse.Projection(2)
+                eta_gen_matched_1D.SetName(f"eta_gen_matched_1D_cent_{centrality_bin}")
+                eta_gen_1D = generator_sparse.Projection(4, 2)
+                eta_gen_1D.SetName(f"eta_gen_1D_cent_{centrality_bin}")
+                # Select only findable particles and use that efficiency.
+                eta_gen_1D.GetYaxis().SetRange(2, 2)
+                eta_gen_findable = eta_gen_1D.ProjectionX()
+                logger.debug(f"eta_gen_matched_1D: {eta_gen_matched_1D}, eta_gen_findable: {eta_gen_findable}")
+
+                efficiency_1D = eta_gen_findable.Clone()
+                efficiency_1D.Divide(eta_gen_matched_1D, eta_gen_findable, 1.0, 1.0, "B")
+                efficiency_data_1D_eta.append(efficiency_1D)
+            else:
+                # Shouldn't ever really happen, but just for sanity.
+                raise RuntimeError(f"Invalid dimension {dimension}")
+
+    return efficiency_data_2D, efficiency_data_1D_pt, efficiency_data_1D_eta
+
+def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[..., float],
+                          efficiency_period: Any, centrality_bin: int) -> Tuple[np.ndarray, List[float], List[float]]:
+    """ Calculate residual for 2D tracking efficiency.
+
+    There is a separate 1D and 2D function for convenience. If there is no entries for a particular
+    bin, we set the value to NaN so that it can be ignored later when plotting.
+
+    Args:
+        efficiency_data: 2D efficiency data.
+        efficiency_function: Efficiency function.
+        efficiency_period: Efficiency period.
+        centrality_bin: Centrality bin.
+    Returns:
+        Calculated residual, pt values where it was evaluated, eta values where it was evaluated.
+    """
+    pts = []
+    etas = []
+    residual = np.zeros(shape = (efficiency_data.GetXaxis().GetNbins(),
+                                 efficiency_data.GetYaxis().GetNbins()))
+    # Loop over all of the bins in the data histogram.
+    for pt_index, x in enumerate(range(1, efficiency_data.GetXaxis().GetNbins() + 1)):
+        pt = efficiency_data.GetXaxis().GetBinCenter(x)
+        pts.append(pt)
+        for eta_index, y in enumerate(range(1, efficiency_data.GetYaxis().GetNbins() + 1)):
+            eta = efficiency_data.GetYaxis().GetBinCenter(y)
+            etas.append(eta)
+            # Calculate the efficiency. It's calculated again here to ensure that it's evaluated at exactly
+            # the same location as in the data histogram.
+            efficiency_at_value = efficiency_function(pt, eta, centrality_bin, efficiency_period, "task_name")
+
+            # Determine the histogram value, setting it to NaN if there's no entries.
+            if np.abs(efficiency_data.GetBinContent(x, y)) < epsilon:
+                value = np.nan
+            else:
+                value = (efficiency_data.GetBinContent(x, y) - efficiency_at_value) / efficiency_at_value * 100.
+
+            residual[pt_index, eta_index] = value
+
+    # Check max values
+    logger.debug(f"min efficiency_data: {efficiency_data.GetMinimum()}, "
+                 f"max efficiency_data: {efficiency_data.GetMaximum()}")
+    logger.debug(f"min residual: {np.nanmin(residual)}, max residual: {np.nanmax(residual)}")
+    logger.debug(f"mean: {np.nanmean(residual)}")
+
+    return residual, pts, etas
+
+def plot_residual(residual: np.ndarray, pts: List[float], etas: List[float],
+                  period: str, centrality_bin: int, centrality_ranges: Dict[int, params.SelectedRange],
+                  output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """
+
+    """
+    fig, ax = plt.subplots(figsize = (8, 6))
+    im = ax.imshow(
+        residual.T, extent = [np.nanmin(pts), np.nanmax(pts), np.nanmin(etas), np.nanmax(etas)],
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        # An even normalization is better for the colorscheme.
+        # NOTE: This causes clipping at the lowest pt values, but I don't think this is a big problem.
+        norm = matplotlib.colors.Normalize(
+            #vmin = np.nanmin(residuals[centrality_bin]), vmax = np.nanmax(residuals[centrality_bin])
+            vmin = -40, vmax = 40
+        ),
+        cmap = "RdBu",
+    )
+
+    # Add the colorbar
+    color_bar = fig.colorbar(im, ax = ax)
+    color_bar.set_label(r"(data - fit)/fit (\%)")
+
+    # Labels
+    ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
+    ax.set_ylabel(r"$\varphi$")
+    title = f"{period} tracking efficiency residuals"
+    if system != params.CollisionSystem.pp:
+        centrality_range = centrality_ranges[centrality_bin]
+        title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
+    ax.set_title(title, size = 16)
+
+    # Final adjustments
+    fig.tight_layout()
+    name = f"efficiency_residuals_{period}"
+    if system != params.CollisionSystem.pp:
+        centrality_range = centrality_ranges[centrality_bin]
+        name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
+    plot_base.save_plot(output_info, fig, name)
+
+    # Cleanup
+    plt.close(fig)
+
+def plot_2D_efficiency_data(efficiency_hist: Hist, centrality_range: params.SelectedRange, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the 2D efficiency data
+
+    Args:
+        efficiency_hist: Efficiecny histogram.
+        centrality_range: Centrality range.
+        output_info: Output info for saving figures.
+    Returns:
+        None.
+    """
+    X, Y, efficiency_data = histogram.get_array_from_hist2D(hist = efficiency_hist)
+    logger.debug(f"efficiency data min: {np.nanmin(efficiency_data)}, max: {np.nanmax(efficiency_data)}")
+    fig, ax = plt.subplots(figsize = (8, 6))
+    im = ax.imshow(
+        efficiency_data.T, extent = [np.nanmin(X), np.nanmax(X), np.nanmin(Y), np.nanmax(Y)],
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        norm = matplotlib.colors.Normalize(
+            vmin = np.nanmin(efficiency_data), vmax = np.nanmax(efficiency_data)
+            #vmin = 0.5, vmax = 1,
+        ),
+        cmap = "viridis",
+    )
+
+    # Add the colorbar
+    color_bar = fig.colorbar(im, ax = ax)
+    color_bar.set_label("Efficiency")
+
+    # Labels
+    ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
+    ax.set_ylabel(r"$\varphi$")
+    title = f"{period} tracking efficiency data"
+    if system != params.CollisionSystem.pp:
+        title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
+    ax.set_title(title, size = 16)
+
+    # Final adjustments
+    fig.tight_layout()
+    name = f"efficiency_{period}"
+    if system != params.CollisionSystem.pp:
+        name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
+    plot_base.save_plot(output_info, fig, name)
+
+    # Cleanup
+    plt.close(fig)
+
+def plot_1D_pt_efficiency(efficiency: Hist, centrality_range: params.SelectedRange,
+                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot 1D pt efficiency.
+
+    Args:
+        efficiency: Pt efficiency hist.
+        centrality_range: Centrality range.
+        output_info: Output info for saving figures.
+    Returns:
+        None.
+    """
+    # 1D efficiency as a function of pt
+    logger.debug(f"max efficiency_1D: {efficiency.GetMaximum()}")
+    h = histogram.Histogram1D.from_existing_hist(efficiency)
+    fig, ax = plt.subplots(figsize = (8, 6))
+    ax.errorbar(
+        h.x, h.y, yerr = h.errors,
+        label = "${labels.pt_display_label()}$",
+        color = "black", marker = ".", linestyle = "",
+    )
+
+    # Ensure that it's on a consistent axis
+    ax.set_ylim(0.6, 1)
+
+    # Labels
+    ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
+    ax.set_ylabel(r"Efficiency")
+    title = f"{period} ${labels.pt_display_label()}$ tracking efficiency"
+    if system != params.CollisionSystem.pp:
+        title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
+    ax.set_title(title, size = 16)
+
+    # Final adjustments
+    fig.tight_layout()
+    name = f"efficiency_pt_{period}"
+    if system != params.CollisionSystem.pp:
+        name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
+    plot_base.save_plot(output_info, fig, name)
+
+def plot_1D_eta_efficiency(efficiency: Hist, centrality_range: params.SelectedRange,
+                           output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot 1D eta efficiency.
+
+    Args:
+        efficiency: Eta efficiency hist.
+        centrality_range: Centrality range.
+        output_info: Output info for saving figures.
+    Returns:
+        None.
+    """
+    # 1D efficiency as a function of eta
+    logger.debug(f"max efficiency_1D: {efficiency.GetMaximum()}")
+    h = histogram.Histogram1D.from_existing_hist(efficiency)
+    fig, ax = plt.subplots(figsize = (8, 6))
+    ax.errorbar(
+        h.x, h.y, yerr = h.errors,
+        label = r"$\eta$",
+        color = "black", marker = ".", linestyle = "",
+    )
+
+    # Ensure that it's on a consistent axis
+    ax.set_ylim(0.6, 1)
+
+    # Labels
+    ax.set_xlabel(fr"$\eta$")
+    ax.set_ylabel(r"Efficiency")
+    title = fr"{period} $\eta$ tracking efficiency"
+    if system != params.CollisionSystem.pp:
+        title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
+    ax.set_title(title, size = 16)
+
+    # Final adjustments
+    fig.tight_layout()
+    name = f"efficiency_eta_{period}"
+    if system != params.CollisionSystem.pp:
+        name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
+    plot_base.save_plot(output_info, fig, name)
 
 def characterize_tracking_efficiency(period: str, system: params.CollisionSystem) -> None:
     """ Characterize the tracking efficiency.
@@ -362,7 +654,7 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
         printing_extensions = ["pdf"],
     )
 
-    # Caluclate the efficiency.
+    # Calculate the efficiency.
     efficiencies = calculate_efficiencies(
         n_cent_bins = n_cent_bins, pt_values = pt_values, eta_values = eta_values,
         efficiency_period = efficiency_period, efficiency_function = efficiency_function,
@@ -375,9 +667,6 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
     if not result:
         raise RuntimeError("Failed to calculate all efficiency properties. Check the logs!")
 
-    # Retrieve efficiency data
-    #efficiencies_data = retrieve_efficiencies_data()
-
     # Comparison to previous task
     if period in ["LHC11a", "LHC11h"]:
         try:
@@ -389,192 +678,50 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
     else:
         logger.info("Skipping efficiencies comparison because no other implementation exists.")
 
-    # Now, plot the result.
-    plot_tracking_efficiency_parametrization(efficiencies, n_cent_bins, period, system, output_info)
+    # Done checking the efficiency parametrization, so now plot it.
+    for centrality_bin in range(n_cent_bins):
+        plot_tracking_efficiency_parametrization(
+            efficiencies[centrality_bin], centrality_ranges[centrality_bin],
+            period, system, output_info
+        )
 
-    # Plot residuals if available.
+    # Next, compare to the actual efficiency data.
+    # We only have the LHC15o data easily available.
     if period == "LHC15o":
+        # First, retrieve efficiency data
+        efficiency_data_2D, efficiency_data_1D_pt, efficiency_data_1D_eta = retrieve_efficiency_data(n_cent_bins, centrality_ranges)
+
+        # Calculate residuals.
         logger.info("Calculating and plotting residuals")
         # Setup
         residuals: np.ndarray = None
-        #residuals = np.zeros(shape = efficiencies.shape)
-        hists = histogram.get_histograms_in_list(
-            filename = "trains/PbPbMC/55/AnalysisResults.root",
-            list_name = "AliAnalysisTaskPWGJEQA_tracks_caloClusters_emcalCells_histos"
-        )
-        matched_sparse = hists["tracks_Matched"]
-        generator_sparse = hists["tracks_PhysPrim"]
-
-        # Project
         for centrality_bin, centrality_range in centrality_ranges.items():
-            # Select in centrality
-            matched_sparse.GetAxis(0).SetRangeUser(centrality_range.min + epsilon, centrality_range.max - epsilon)
-            generator_sparse.GetAxis(0).SetRangeUser(centrality_range.min + epsilon, centrality_range.max - epsilon)
-            # Restrict pt range to < 10 GeV.
-            matched_sparse.GetAxis(1).SetRangeUser(0, 10)
-            # (pt_gen, eta_gen) - order is reversed because 2D API is backwards...
-            hPtGenMatched = matched_sparse.Projection(2, 1)
-            hPtGenMatched.SetName(f"hPtGenMatched_cent_{centrality_bin}")
-            # (pt_gen, eta_gen, findable)
-            hPtGen2D = generator_sparse.Projection(1, 2, 4)
-            hPtGen2D.SetName(f"hPtGen2D_cent_{centrality_bin}")
-            # Restrict pt range to < 10 GeV.
-            hPtGen2D.GetXaxis().SetRangeUser(0, 10)
-            # Select only findable particles and use that efficiency.
-            hPtGen2D.GetZaxis().SetRange(2, 2)
-            hPtGenFindable = hPtGen2D.Project3D("yx")
-            logger.debug(f"hPtGenMatched: {hPtGenMatched}, hPtGenFindable: {hPtGenFindable}")
-
-            efficiency_hist = hPtGenFindable.Clone()
-            efficiency_hist.Divide(hPtGenMatched, hPtGenFindable, 1.0, 1.0, "B")
-
-            # Get 1D efficiency for a test.
-            # NOTE: We can't just project from the 2D efficiency. Integrating over eta will get the wrong
-            #       wrong values. Here, we project before we divide to get the right answer.
-            hPtGenMatched1D = matched_sparse.Projection(1)
-            hPtGenMatched1D.SetName(f"hPtGenMatched_cent_{centrality_bin}")
-            hPtGen1D = generator_sparse.Projection(4, 1)
-            hPtGen1D.SetName(f"hPtGetn1D_cent_{centrality_bin}")
-            # Restrict pt range to < 10 GeV.
-            hPtGen1D.GetXaxis().SetRangeUser(0, 10)
-            # Select only findable particles and use that efficiency.
-            hPtGen1D.GetYaxis().SetRange(2, 2)
-            hPtGenFindable1D = hPtGen1D.ProjectionX()
-            logger.debug(f"hPtGenMatched1D: {hPtGenMatched1D}, hPtGenFindable1D: {hPtGenFindable1D}")
-
-            efficiency_1D = hPtGenFindable1D.Clone()
-            efficiency_1D.Divide(hPtGenMatched1D, hPtGenFindable1D, 1.0, 1.0, "B")
-
+            # Finish the setup
             if residuals is None:
                 residuals = np.zeros(
-                    shape = (n_cent_bins, efficiency_hist.GetXaxis().GetNbins(), efficiency_hist.GetYaxis().GetNbins())
+                    shape = (n_cent_bins, efficiency_data_2D[centrality_bin].GetXaxis().GetNbins(),
+                             efficiency_data_2D[centrality_bin].GetYaxis().GetNbins())
                 )
             logger.debug(f"residuals shape: {residuals.shape}")
 
             # Calculate the residuals.
-            pts = []
-            etas = []
-            for pt_index, x in enumerate(range(1, efficiency_hist.GetXaxis().GetNbins() + 1)):
-                pt = efficiency_hist.GetXaxis().GetBinCenter(x)
-                pts.append(pt)
-                for eta_index, y in enumerate(range(1, efficiency_hist.GetYaxis().GetNbins() + 1)):
-                    eta = efficiency_hist.GetYaxis().GetBinCenter(y)
-                    etas.append(eta)
-                    efficiency_at_value = efficiency_function(pt, eta, centrality_bin, efficiency_period, "task_name")
-                    if np.abs(efficiency_hist.GetBinContent(x, y)) < epsilon:
-                        value = np.nan
-                    else:
-                        value = (efficiency_hist.GetBinContent(x, y) - efficiency_at_value) / efficiency_at_value * 100.
-                    residuals[centrality_bin, pt_index, eta_index] = value
-
-            # Check max values
-            logger.debug(f"min efficiency_hist: {efficiency_hist.GetMinimum()}, max efficiency_hist: {efficiency_hist.GetMaximum()}")
-            logger.debug(f"min residual: {np.nanmin(residuals[centrality_bin])}, max residual: {np.nanmax(residuals[centrality_bin])}")
-            logger.debug(f"mean: {np.nanmean(residuals[centrality_bin])}")
-
-            # Plot them.
-            fig, ax = plt.subplots(figsize = (8, 6))
-            im = ax.imshow(
-                residuals[centrality_bin].T, extent = [np.nanmin(pts), np.nanmax(pts), np.nanmin(etas), np.nanmax(etas)],
-                interpolation = "nearest", aspect = "auto", origin = "lower",
-                norm = matplotlib.colors.Normalize(
-                    #vmin = np.nanmin(residuals[centrality_bin]), vmax = np.nanmax(residuals[centrality_bin])
-                    vmin = -40, vmax = 40
-                ),
-                cmap = "RdBu",
+            residuals[centrality_bin], pts, etas, = calculate_residual_2D(
+                efficiency_data_2D[centrality_bin], efficiency_function, efficiency_period, centrality_bin
             )
 
-            # Add the colorbar
-            color_bar = fig.colorbar(im, ax = ax)
-            color_bar.set_label(r"(data - fit)/fit (\%)")
+            # Plot the residuals.
+            plot_residual(residuals[centrality_bin], pts, etas, period, centrality_bin, centrality_ranges, output_info)
 
-            # Labels
-            ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-            ax.set_ylabel(r"$\varphi$")
-            title = f"{period} tracking efficiency residuals"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
-            ax.set_title(title, size = 16)
+            # Plot the 2D efficiency data
+            plot_2D_efficiency_data(efficiency_data_2D[centrality_bin],
+                                    centrality_ranges[centrality_bin], output_info)
 
-            # Final adjustments
-            fig.tight_layout()
-            name = f"efficiency_residuals_{period}"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
-            fig.savefig(f"{name}.pdf")
-
-            # Cleanup
-            plt.close(fig)
-
-            # Plot the efficiency itself
-            X, Y, efficiency_data = histogram.get_array_from_hist2D(hist = efficiency_hist)
-            logger.debug(f"efficiency data min: {np.nanmin(efficiency_data)}, max: {np.nanmax(efficiency_data)}")
-            fig, ax = plt.subplots(figsize = (8, 6))
-            im = ax.imshow(
-                efficiency_data.T, extent = [np.nanmin(X), np.nanmax(X), np.nanmin(Y), np.nanmax(Y)],
-                interpolation = "nearest", aspect = "auto", origin = "lower",
-                norm = matplotlib.colors.Normalize(
-                    vmin = np.nanmin(efficiency_data), vmax = np.nanmax(efficiency_data)
-                    #vmin = 0.5, vmax = 1,
-                ),
-                cmap = "viridis",
-            )
-
-            # Add the colorbar
-            color_bar = fig.colorbar(im, ax = ax)
-            color_bar.set_label("Efficiency")
-
-            # Labels
-            ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-            ax.set_ylabel(r"$\varphi$")
-            title = f"{period} tracking efficiency data"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
-            ax.set_title(title, size = 16)
-
-            # Final adjustments
-            fig.tight_layout()
-            name = f"efficiency_{period}"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
-            fig.savefig(f"{name}.pdf")
-
-            # Cleanup
-            plt.close(fig)
-
-            # 1D efficiency as a function of pt
-            logger.debug(f"max efficiency_1D: {efficiency_1D.GetMaximum()}")
-            h = histogram.Histogram1D.from_existing_hist(efficiency_1D)
-            fig, ax = plt.subplots(figsize = (8, 6))
-            ax.errorbar(
-                h.x, h.y, yerr = h.errors,
-                label = "${labels.pt_display_label()}$",
-                color = "black", marker = ".", linestyle = "",
-            )
-
-            # Ensure that it's on a consistent axis
-            ax.set_ylim(0, 1)
-
-            # Labels
-            ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-            ax.set_ylabel(r"Efficiency")
-            title = f"{period} ${labels.pt_display_label()}$ tracking efficiency"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
-            ax.set_title(title, size = 16)
-
-            # Final adjustments
-            fig.tight_layout()
-            name = f"efficiency_pt_{period}"
-            if system != params.CollisionSystem.pp:
-                centrality_range = centrality_ranges[centrality_bin]
-                name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
-            fig.savefig(f"{name}.pdf")
+            # 1D efficiency comparison
+            # TODO: Add fit functions...
+            plot_1D_pt_efficiency(efficiency_data_1D_pt[centrality_bin],
+                                  centrality_ranges[centrality_bin], output_info)
+            plot_1D_eta_efficiency(efficiency_data_1D_eta[centrality_bin],
+                                   centrality_ranges[centrality_bin], output_info)
 
 if __name__ == "__main__":
     # Basic setup
