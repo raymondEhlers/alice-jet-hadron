@@ -126,6 +126,16 @@ def setup_AliPhysics(period: str) -> Tuple[Callable[..., float], Any, T_PublicUt
             return  (trackEta <= -0.04) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oEtaEfficiency(trackEta, centMap[centBin], 0) +
                     (trackEta > -0.04) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oEtaEfficiency(trackEta, centMap[centBin], 6);
         }
+        static double LHC15oEtaEfficiencyNormalization(const double centralityBin)
+        {
+            std::map<int, const double*> centMap = {
+                { 0, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_0_10_eta },
+                { 1, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_10_30_eta },
+                { 2, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_30_50_eta },
+                { 3, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_50_90_eta },
+            };
+            return centMap[centralityBin][12];
+        }
     };
     """
     # Create the class
@@ -437,17 +447,15 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
     Returns:
         Calculated residual, pt values where it was evaluated, eta values where it was evaluated.
     """
-    pts = []
-    etas = []
+    pts = [efficiency_data.GetXaxis().GetBinCenter(x) for x in range(1, efficiency_data.GetXaxis().GetNbins() + 1)]
+    etas = [efficiency_data.GetYaxis().GetBinCenter(y) for y in range(1, efficiency_data.GetYaxis().GetNbins() + 1)]
     residual = np.zeros(shape = (efficiency_data.GetXaxis().GetNbins(),
                                  efficiency_data.GetYaxis().GetNbins()))
     # Loop over all of the bins in the data histogram.
-    for pt_index, x in enumerate(range(1, efficiency_data.GetXaxis().GetNbins() + 1)):
-        pt = efficiency_data.GetXaxis().GetBinCenter(x)
-        pts.append(pt)
-        for eta_index, y in enumerate(range(1, efficiency_data.GetYaxis().GetNbins() + 1)):
-            eta = efficiency_data.GetYaxis().GetBinCenter(y)
-            etas.append(eta)
+    for pt_index, pt in enumerate(pts):
+        for eta_index, eta in enumerate(etas):
+            x = pt_index + 1
+            y = eta_index + 1
             # Calculate the efficiency. It's calculated again here to ensure that it's evaluated at exactly
             # the same location as in the data histogram.
             efficiency_at_value = efficiency_function(pt, eta, centrality_bin, efficiency_period, "task_name")
@@ -464,7 +472,9 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
     logger.debug(f"min efficiency_data: {efficiency_data.GetMinimum()}, "
                  f"max efficiency_data: {efficiency_data.GetMaximum()}")
     logger.debug(f"min residual: {np.nanmin(residual)}, max residual: {np.nanmax(residual)}")
-    logger.debug(f"mean: {np.nanmean(residual)}")
+    logger.debug(f"standard mean: {np.nanmean(residual)}")
+    logger.debug(f"restricted mean: {np.nanmean(residual[:,np.abs(etas) < 0.8])}")
+    logger.debug(f"len(pts): {len(pts)}, len(etas): {len(etas)}")
 
     return residual, pts, etas
 
@@ -567,12 +577,16 @@ def plot_2D_efficiency_data(efficiency_hist: Hist, centrality_range: params.Sele
     # Cleanup
     plt.close(fig)
 
-def plot_1D_pt_efficiency(efficiency: Hist, centrality_range: params.SelectedRange,
+def plot_1D_pt_efficiency(efficiency: Hist, PublicUtils: T_PublicUtils, efficiency_period: Any,
+                          centrality_bin: int, centrality_range: params.SelectedRange,
                           output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot 1D pt efficiency.
 
     Args:
         efficiency: Pt efficiency hist.
+        PublicUtils: Jet-H public utils class.
+        efficiency_period: Data taking period in the efficiency enum.
+        centrality_bin: int
         centrality_range: Centrality range.
         output_info: Output info for saving figures.
     Returns:
@@ -586,6 +600,16 @@ def plot_1D_pt_efficiency(efficiency: Hist, centrality_range: params.SelectedRan
         h.x, h.y, yerr = h.errors,
         label = "${labels.pt_display_label()}$",
         color = "black", marker = ".", linestyle = "",
+    )
+
+    # Efficiency function
+    parametrization = []
+    for x in h.x:
+        parametrization.append(PublicUtils.LHC15oPtEfficiency(x, centrality_bin))
+    ax.plot(
+        h.x, parametrization,
+        label = "${labels.pt_display_label()}$ param.",
+        color = "red",
     )
 
     # Ensure that it's on a consistent axis
@@ -606,12 +630,16 @@ def plot_1D_pt_efficiency(efficiency: Hist, centrality_range: params.SelectedRan
         name += f"_centrality_{centrality_range.min}_{centrality_range.max}"
     plot_base.save_plot(output_info, fig, name)
 
-def plot_1D_eta_efficiency(efficiency: Hist, centrality_range: params.SelectedRange,
+def plot_1D_eta_efficiency(efficiency: Hist, PublicUtils: T_PublicUtils, efficiency_period: Any,
+                           centrality_bin: int, centrality_range: params.SelectedRange,
                            output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot 1D eta efficiency.
 
     Args:
         efficiency: Eta efficiency hist.
+        PublicUtils: Jet-H public utils class.
+        efficiency_period: Data taking period in the efficiency enum.
+        centrality_bin: int
         centrality_range: Centrality range.
         output_info: Output info for saving figures.
     Returns:
@@ -625,6 +653,16 @@ def plot_1D_eta_efficiency(efficiency: Hist, centrality_range: params.SelectedRa
         h.x, h.y, yerr = h.errors,
         label = r"$\eta$",
         color = "black", marker = ".", linestyle = "",
+    )
+
+    # Efficiency function
+    parametrization = []
+    for x in h.x:
+        parametrization.append(PublicUtils.LHC15oEtaEfficiency(x, centrality_bin))
+    ax.plot(
+        h.x, parametrization,
+        label = r"$\eta$ param.",
+        color = "red",
     )
 
     # Ensure that it's on a consistent axis
@@ -728,12 +766,14 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
                                     centrality_ranges[centrality_bin], output_info)
 
             # 1D efficiency comparison
-            # TODO: Add fit functions...
             plot_1D_pt_efficiency(efficiency_data_1D_pt[centrality_bin],
-                                  #PublicUtils, efficiency_period,
-                                  centrality_ranges[centrality_bin], output_info)
+                                  PublicUtils, efficiency_period,
+                                  centrality_bin, centrality_ranges[centrality_bin],
+                                  output_info)
             plot_1D_eta_efficiency(efficiency_data_1D_eta[centrality_bin],
-                                   centrality_ranges[centrality_bin], output_info)
+                                   PublicUtils, efficiency_period,
+                                   centrality_bin, centrality_ranges[centrality_bin],
+                                   output_info)
 
 if __name__ == "__main__":
     # Basic setup
