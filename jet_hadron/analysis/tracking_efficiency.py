@@ -656,7 +656,15 @@ def plot_1D_eta_efficiency(efficiency: Hist, PublicUtils: T_PublicUtils, efficie
     # Efficiency function
     parametrization = []
     for x in h.x:
-        parametrization.append(PublicUtils.LHC15oEtaEfficiency(x, centrality_bin))
+        # Only evaluate for eta < 0.9 - otherwise the function goes back up again.
+        if np.abs(x) < 0.9:
+            value = PublicUtils.LHC15oEtaEfficiency(x, centrality_bin) * PublicUtils.LHC15oEtaEfficiencyNormalization(centrality_bin)
+        else:
+            # Just set to 0 since it's not meaningful
+            value = 0
+        parametrization.append(value)
+
+    # And plot it
     ax.plot(
         h.x, parametrization,
         label = r"$\eta$ param.",
