@@ -235,17 +235,17 @@ def system_label(energy: Union[float, "params.CollisionEnergy"],
             e = float(energy)
             energy = params.CollisionEnergy(e)
         except ValueError:
-            energy = params.CollisionEnergy[energy]  # type: ignore
+            energy = params.CollisionEnergy[energy]
     # Ensure that we've done our conversion correctly. This also helps out mypy.
     assert isinstance(energy, params.CollisionEnergy)
 
     # Handle collision system
     if isinstance(system, str):
-        system = params.CollisionSystem[system]  # type: ignore
+        system = params.CollisionSystem[system]
 
     # Handle event activity
     if isinstance(activity, str):
-        activity = params.EventActivity[activity]  # type: ignore
+        activity = params.EventActivity[activity]
     event_activity_str = activity.display_str()
     if event_activity_str:
         event_activity_str = r",\:" + event_activity_str
