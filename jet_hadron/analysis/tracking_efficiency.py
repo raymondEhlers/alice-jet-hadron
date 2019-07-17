@@ -137,8 +137,13 @@ def setup_AliPhysics(period: str) -> Tuple[Callable[..., float], Any, T_PublicUt
     };
     """
     # Create the class
-    ROOT.gInterpreter.ProcessLine(code)
-    PublicUtils = ROOT.JetHUtilsPublic
+    # We check for the attribute to ensure that we don't doubly define it.
+    try:
+        PublicUtils = ROOT.JetHUtilsPublic
+    except AttributeError:
+        ROOT.gInterpreter.ProcessLine(code)
+        # Now that it's defined, we retrieve it.
+        PublicUtils = ROOT.JetHUtilsPublic
 
     return cast(Callable[..., float], efficiency_function), efficiency_period, PublicUtils
 
@@ -318,7 +323,7 @@ def plot_tracking_efficiency_parametrization(efficiency: np.ndarray, centrality_
     # Get the parameters
     pt_values, eta_values, n_cent_bins, centrality_ranges = generate_parameters(system)
 
-    logger.debug(r"Plotting efficiencies for {centrality_range.min}--{centrality_range.max}%")
+    logger.debug(fr"Plotting efficiencies for {centrality_range.min}--{centrality_range.max}%")
     fig, ax = plt.subplots(figsize = (8, 6))
     im = ax.imshow(
         efficiency.T,
@@ -775,6 +780,9 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
                                     centrality_ranges[centrality_bin], output_info)
 
             # 1D efficiency comparison
+            # NOTE: Since we are using the 2D efficiency parametrization, the 1D fits aren't going to be quite right.
+            #       This is basically because we can't integrate an efficiency (it's not well defined).
+            #       It will be fairly close, but not exactly right.
             plot_1D_pt_efficiency(efficiency_data_1D_pt[centrality_bin],
                                   PublicUtils, efficiency_period,
                                   centrality_bin, centrality_ranges[centrality_bin],
@@ -794,9 +802,8 @@ if __name__ == "__main__":
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
     # Run for each period
-    #for period, system in [("LHC11a", params.CollisionSystem.pp),
-    #                       ("LHC11h", params.CollisionSystem.PbPb),
-    #                       ("LHC15o", params.CollisionSystem.PbPb)]:
-    for period, system in [("LHC15o", params.CollisionSystem.PbPb)]:
+    for period, system in [("LHC11a", params.CollisionSystem.pp),
+                           ("LHC11h", params.CollisionSystem.PbPb),
+                           ("LHC15o", params.CollisionSystem.PbPb)]:
         characterize_tracking_efficiency(period, system)
 
