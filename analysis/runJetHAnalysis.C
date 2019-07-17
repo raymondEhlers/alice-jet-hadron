@@ -194,7 +194,7 @@ AliAnalysisManager* runJetHAnalysis(
   /////////////////
   //AliLog::SetClassDebugLevel("AliEmcalCorrectionComponent", AliLog::kDebug+3);
   //AliLog::SetClassDebugLevel("AliAnalysisTaskEmcalJetHCorrelations", AliLog::kDebug+1);
-  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug-1);
+  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug-2);
   //AliLog::SetClassDebugLevel("AliJetContainer", AliLog::kDebug+7);
 
   // EMCal corrections
@@ -284,7 +284,6 @@ AliAnalysisManager* runJetHAnalysis(
   }
   const bool sparseAxes = true;
   const bool widerTrackPtBins = true;
-  const auto efficiencyCorrectionType = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHCorrelations::kEffAutomaticConfiguration;
   const bool embeddingCorrection = false;
   // Local tests
   const char * embeddingCorrectionFilename = "../embeddingCorrection.root";
@@ -307,7 +306,7 @@ AliAnalysisManager* runJetHAnalysis(
       triggerEventsSelection,                                     // Trigger events
       mixedEventsSelection,                                       // Mixed event
       sparseAxes, widerTrackPtBins,                               // Less sprase axis, wider binning
-      efficiencyCorrectionType, embeddingCorrection,              // Track efficiency, embedding correction
+      embeddingCorrection,                                        // Embedding correction
       embeddingCorrectionFilename, embeddingCorrectionHistName,   // Settings for embedding
       "jetH"                                                      // Suffix
       );
