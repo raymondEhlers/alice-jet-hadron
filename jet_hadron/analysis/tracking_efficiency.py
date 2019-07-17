@@ -318,7 +318,7 @@ def plot_tracking_efficiency_parametrization(efficiency: np.ndarray, centrality_
     # Get the parameters
     pt_values, eta_values, n_cent_bins, centrality_ranges = generate_parameters(system)
 
-    logger.debug("Plotting efficiencies")
+    logger.debug(r"Plotting efficiencies for {centrality_range.min}--{centrality_range.max}%")
     fig, ax = plt.subplots(figsize = (8, 6))
     im = ax.imshow(
         efficiency.T,
@@ -658,7 +658,9 @@ def plot_1D_eta_efficiency(efficiency: Hist, PublicUtils: T_PublicUtils, efficie
     for x in h.x:
         # Only evaluate for eta < 0.9 - otherwise the function goes back up again.
         if np.abs(x) < 0.9:
-            value = PublicUtils.LHC15oEtaEfficiency(x, centrality_bin) * PublicUtils.LHC15oEtaEfficiencyNormalization(centrality_bin)
+            # Need to undo the scale factor here to get something that's reasonably close..
+            value = PublicUtils.LHC15oEtaEfficiency(x, centrality_bin) * \
+                PublicUtils.LHC15oEtaEfficiencyNormalization(centrality_bin)
         else:
             # Just set to 0 since it's not meaningful
             value = 0
@@ -744,7 +746,8 @@ def characterize_tracking_efficiency(period: str, system: params.CollisionSystem
     # We only have the LHC15o data easily available.
     if period == "LHC15o":
         # First, retrieve efficiency data
-        efficiency_data_2D, efficiency_data_1D_pt, efficiency_data_1D_eta = retrieve_efficiency_data(n_cent_bins, centrality_ranges)
+        efficiency_data_2D, efficiency_data_1D_pt, efficiency_data_1D_eta = \
+            retrieve_efficiency_data(n_cent_bins, centrality_ranges)
 
         # Calculate residuals.
         logger.info("Calculating and plotting residuals")
