@@ -35,6 +35,8 @@ jets:
         collection: "Jet_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme"
         acceptance: "EMCALfid"
         R: &R 0.2
+        areaCutPercentage: 0.6
+        #rhoName: "Rho_Scaled"
 # Configure response matrix
 responseMatrix:
     minFractionSharedPt: 0.5
