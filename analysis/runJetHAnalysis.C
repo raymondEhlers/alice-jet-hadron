@@ -87,12 +87,12 @@ AliAnalysisManager* runJetHAnalysis(
 
   // Set beam type
   AliAnalysisTaskEmcal::BeamType iBeamType = AliAnalysisTaskEmcal::kpp;
-  if (runPeriod == "lhc10h" || runPeriod == "lhc11h" || runPeriod == "lhc15o") {
+  if (runPeriod == "lhc10h" || runPeriod == "lhc11h" || runPeriod == "lhc15o" || runPeriod == "lhc18q" || runPeriod == "lhc18r") {
     iBeamType = AliAnalysisTaskEmcal::kAA;
   }
   else if (runPeriod == "lhc12g" || runPeriod == "lhc13b" || runPeriod == "lhc13c" ||
       runPeriod == "lhc13d" || runPeriod == "lhc13e" || runPeriod == "lhc13f" ||
-      runPeriod == "LHC16q" || runPeriod == "LHC16r" || runPeriod == "LHC16s" || runPeriod == "LHC16t") {
+      runPeriod == "lhc16q" || runPeriod == "lhc16r" || runPeriod == "lhc16s" || runPeriod == "lhc16t") {
     iBeamType = AliAnalysisTaskEmcal::kpA;
   }
 
@@ -112,8 +112,13 @@ AliAnalysisManager* runJetHAnalysis(
   const Double_t maxTimeCut = 100e-9;
 
   // Control background subtraction
-  bool enableBackgroundSubtraction = false;
+  const bool enableBackgroundSubtraction = false;
+  const bool useLowConstituentCuts = false;
   // Note that we are still enabling rho subtraction for the high constituent cut by default.
+  if (useLowConstituentCuts) {
+    minTrackPt = 0.15;
+    minClusterPt = 0.30;
+  }
 
   // Set data file type
   enum eDataType { kAod, kEsd };
@@ -246,12 +251,14 @@ AliAnalysisManager* runJetHAnalysis(
       pRhoTask->AddJetContainer(rhoJetType, rhoJetAlgorithm, rhoRecoScheme, rhoJetRadius, rhoJetAcceptance, "Jet");
     }
 
-    if (runPeriod == "lhc11h") {
+    if (runPeriod == "LHC11h") {
+      std::cout << "Loading LHC11h rho scale factor\n";
       TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
       TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
       pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
     }
-    else if (runPeriod == "lhc15o") {
+    else if (runPeriod == "LHC15o") {
+      std::cout << "Loading LHC15o rho scaled factor\n";
       TString sFuncPath = "alien:///alice/cern.ch/user/j/jmulliga/scaleFactorEMCalLHC15o_PtDepTrackMatching.root";
       TString sFuncName = "fScaleFactorEMCal";
       pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
@@ -345,6 +352,12 @@ AliAnalysisManager* runJetHAnalysis(
   // Configure the task
   jetHTask->SetUseNewCentralityEstimation(bIsRun2);
   jetHTask->ConfigureForStandardAnalysis("usedefault", "usedefault", minTrackPt);
+  // Need to modify the cluster pt cut to be separate from the particle pt cut since
+  // the configure function is not that flexible.
+  if (minClusterPt != minTrackPt) {
+    jetHTask->RemoveJetContainer(0);
+    jetHTask->AddJetContainer("Jet_AKTFullR020_tracks_pT0150_caloClusters_E0300_pt_scheme", AliEmcalJet::kEMCALfid, 0.2);
+  }
 
   if (iBeamType != AliAnalysisTaskEmcal::kpp && enableBackgroundSubtraction == true) {
     AliJetContainer * jetCont = jetHTask->GetJetContainer(0);

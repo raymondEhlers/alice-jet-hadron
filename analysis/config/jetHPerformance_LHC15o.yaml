@@ -32,10 +32,14 @@ particles:
 jets:
     leadingHadronBiasType: &leadingHadronType kCharged
     analysisJets:
+        # High constituent cut
         collection: "Jet_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme"
+        # Low constituent cut
+        #collection: "Jet_AKTFullR020_tracks_pT0150_caloClusters_E0300_pt_scheme"
         acceptance: "EMCALfid"
         R: &R 0.2
         areaCutPercentage: 0.6
+        # Uncomment for rho subtraction
         #rhoName: "Rho_Scaled"
 # Configure response matrix
 responseMatrix:
