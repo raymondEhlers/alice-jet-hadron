@@ -106,13 +106,14 @@ AliAnalysisManager* runJetHAnalysis(
 
   // Configuration
   // General track and cluster cuts (used particularly for jet finding)
-  const Double_t minTrackPt = 3.0;
-  const Double_t minClusterPt = 3.0;
+  Double_t minTrackPt = 3.0;
+  Double_t minClusterPt = 3.0;
   const Double_t minTimeCut = -50e-9;
   const Double_t maxTimeCut = 100e-9;
 
   // Control background subtraction
   bool enableBackgroundSubtraction = false;
+  // Note that we are still enabling rho subtraction for the high constituent cut by default.
 
   // Set data file type
   enum eDataType { kAod, kEsd };
@@ -343,7 +344,7 @@ AliAnalysisManager* runJetHAnalysis(
 
   // Configure the task
   jetHTask->SetUseNewCentralityEstimation(bIsRun2);
-  jetHTask->ConfigureForStandardAnalysis();
+  jetHTask->ConfigureForStandardAnalysis("usedefault", "usedefault", minTrackPt);
 
   if (iBeamType != AliAnalysisTaskEmcal::kpp && enableBackgroundSubtraction == true) {
     AliJetContainer * jetCont = jetHTask->GetJetContainer(0);
