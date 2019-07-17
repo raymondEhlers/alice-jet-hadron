@@ -112,8 +112,7 @@ def setup_AliPhysics(period: str) -> Tuple[Callable[..., float], Any, T_PublicUt
                 { 2, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_30_50_pt },
                 { 3, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_50_90_pt },
             };
-            return (trackPt <= 3.5) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oLowPtEfficiency(trackPt, centMap[centBin], 0) +
-                   (trackPt > 3.5) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oHighPtEfficiency(trackPt, centMap[centBin], 5);
+            return PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oPtEfficiency(trackPt, centMap[centBin]);
         }
         static double LHC15oEtaEfficiency(const double trackEta, const int centBin)
         {
@@ -123,8 +122,7 @@ def setup_AliPhysics(period: str) -> Tuple[Callable[..., float], Any, T_PublicUt
                 { 2, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_30_50_eta },
                 { 3, PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oParam_50_90_eta },
             };
-            return  (trackEta <= -0.04) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oEtaEfficiency(trackEta, centMap[centBin], 0) +
-                    (trackEta > -0.04) * PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oEtaEfficiency(trackEta, centMap[centBin], 6);
+            return PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::LHC15oEtaEfficiency(trackEta, centMap[centBin]);
         }
         static double LHC15oEtaEfficiencyNormalization(const double centralityBin)
         {
@@ -290,7 +288,7 @@ def efficiency_properties(n_cent_bins: int, efficiencies: np.ndarray, PublicUtil
             else:
                 logger.warning(
                     f"Eta efficiency for LHC15o centrality bin {centrality_bin} appears not to be normalized."
-                    "Check if this is expected!"
+                    " Check if this is expected!"
                 )
         logger.info(f"Max eta efficiencies: {max_eta_efficiencies}")
 
