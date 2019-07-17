@@ -53,7 +53,7 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
                                                                      value = leading_hadron_bias_value)
     return params.SelectedAnalysisOptions(**return_options)
 
-def override_options(config: generic_config.DictLike, selected_options: params.SelectedAnalysisOptions, config_containing_override: generic_config.DictLike = None) -> generic_config.DictLike:
+def override_options(config: generic_config.DictLike, selected_options: params.SelectedAnalysisOptions, config_containing_override: Optional[generic_config.DictLike] = None) -> generic_config.DictLike:
     """ Override options for the jet-hadron analysis.
 
     Selected options include: (energy, collision_system, event_activity, leading_hadron_bias). Note
