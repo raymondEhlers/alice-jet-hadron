@@ -112,7 +112,7 @@ AliAnalysisManager* runJetHAnalysis(
   const Double_t maxTimeCut = 100e-9;
 
   // Control background subtraction
-  Bool_t bEnableBackgroundSubtraction = kFALSE;
+  bool enableBackgroundSubtraction = false;
 
   // Set data file type
   enum eDataType { kAod, kEsd };
@@ -214,7 +214,7 @@ AliAnalysisManager* runJetHAnalysis(
   // Background
   std::string sRhoChargedName = "";
   std::string sRhoFullName = "";
-  if (iBeamType != AliAnalysisTaskEmcal::kpp && bEnableBackgroundSubtraction == kTRUE) {
+  if (iBeamType != AliAnalysisTaskEmcal::kpp && enableBackgroundSubtraction == true) {
     const AliJetContainer::EJetAlgo_t rhoJetAlgorithm = AliJetContainer::kt_algorithm;
     const AliJetContainer::EJetType_t rhoJetType = AliJetContainer::kChargedJet;
     const AliJetContainer::ERecoScheme_t rhoRecoScheme = AliJetContainer::pt_scheme;
@@ -222,18 +222,39 @@ AliAnalysisManager* runJetHAnalysis(
     sRhoChargedName = "Rho";
     sRhoFullName = "Rho_Scaled";
 
-    AliEmcalJetTask *pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", rhoJetAlgorithm, rhoJetRadius, rhoJetType, minTrackPt, 0, kGhostArea, rhoRecoScheme, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet(
+      "usedefault", "", rhoJetAlgorithm, rhoJetRadius, rhoJetType,
+      minTrackPt, 0, kGhostArea, rhoRecoScheme, "Jet", 0., kFALSE,
+      kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
     pKtChJetTask->SetUseNewCentralityEstimation(bIsRun2);
     pKtChJetTask->SetNCentBins(5);
 
-    AliAnalysisTaskRho * pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChargedName.c_str(), rhoJetRadius);
-    pRhoTask->SetExcludeLeadJets(2);
+    const AliEmcalJet::JetAcceptanceType rhoJetAcceptance = AliEmcalJet::kTPCfid;
+    AliAnalysisTaskRho * pRhoTask = AddTaskRhoNew("usedefault", "", sRhoChargedName.c_str(), rhoJetRadius, rhoJetAcceptance, rhoJetType, true);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
+    pRhoTask->SetUseNewCentralityEstimation(bIsRun2);
+    pRhoTask->SetNCentBins(5);
+    pRhoTask->SetExcludeLeadJets(2);
+    // Need to find the jet collection by hand because the task automatically creates the jet container
+    // without giving the opportunity to specify the the particle container cuts (which influence the jet name).
+    if (minTrackPt > 0.15) {
+      pRhoTask->RemoveJetContainer(0);
+      AliParticleContainer * partCont = pRhoTask->GetParticleContainer(0);
+      partCont->SetMinPt(minTrackPt);
+      pRhoTask->AddJetContainer(rhoJetType, rhoJetAlgorithm, rhoRecoScheme, rhoJetRadius, rhoJetAcceptance, "Jet");
+    }
 
-    TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
-    TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
-    pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    if (runPeriod == "lhc11h") {
+      TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
+      TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
+      pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    }
+    else if (runPeriod == "lhc15o") {
+      TString sFuncPath = "alien:///alice/cern.ch/user/j/jmulliga/scaleFactorEMCalLHC15o_PtDepTrackMatching.root";
+      TString sFuncName = "fScaleFactorEMCal";
+      pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    }
   }
 
   // Jet finding
@@ -324,11 +345,9 @@ AliAnalysisManager* runJetHAnalysis(
   jetHTask->SetUseNewCentralityEstimation(bIsRun2);
   jetHTask->ConfigureForStandardAnalysis();
 
-  if (iBeamType != AliAnalysisTaskEmcal::kpp && bEnableBackgroundSubtraction == kTRUE) {
-    //AliJetContainer* jetCont = jetHTask->AddJetContainer(AliJetContainer::kFullJet, AliJetContainer::antikt_algorithm, AliJetContainer::pt_scheme, 0.2, AliEmcalJet::kEMCALfid, "Jet");
+  if (iBeamType != AliAnalysisTaskEmcal::kpp && enableBackgroundSubtraction == true) {
     AliJetContainer * jetCont = jetHTask->GetJetContainer(0);
     jetCont->SetRhoName(sRhoFullName.c_str());
-    jetCont->SetPercAreaCut(0.6);
   }
 
   // Complete configuration.
