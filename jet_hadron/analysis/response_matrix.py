@@ -1339,6 +1339,13 @@ class ResponseManager(analysis_manager.Manager):
                     f"{analysis.particle_level_spectra.GetName()}_{analysis.reaction_plane_orientation}"
                 )
                 particle_level_spectra.Write()
+                # Matched jet pt
+                # We didn't select on reaction plane orientation, so only write the inclusive case
+                if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+                    matched_jet_pt_difference = analysis.matched_jet_pt_difference.Clone(
+                        "matched_jet_pt_residual"
+                    )
+                    matched_jet_pt_difference.Write()
 
     def run(self) -> bool:
         """ Run the response matrix analyses. """
