@@ -264,17 +264,17 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # We want the centrality to appear between the cross symbol and Pb--Pb
     # NOTE: The y value is minimally adjusted down from the constant 0.06 decrease because the sqrt extends far down.
     latex_labels.append(ROOT.TLatex(
-        0.5375, 0.839,
+        0.5375, 0.825,
         labels.use_label_with_root(general_labels["collision_system_and_event_activity"]),
     ))
     # Particle level spectra range in detector pt.
     latex_labels.append(ROOT.TLatex(
-        0.605, 0.78,
+        0.605, 0.75,
         labels.use_label_with_root(general_labels["detector_pt_range"]),
     ))
     # Constituent cuts
     latex_labels.append(ROOT.TLatex(
-        0.5675, 0.70,
+        0.5675, 0.675,
         labels.use_label_with_root(general_labels["constituent_cuts"]),
     ))
     # Leading hadron bias
@@ -292,11 +292,14 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
             inclusive.leading_hadron_bias.value < 10:
         leading_hadron_bias_label_x_position = 0.633
     latex_labels.append(ROOT.TLatex(
-        leading_hadron_bias_label_x_position, 0.625,
-        labels.use_label_with_root(general_labels["leading_hadron_bias"]),
+        leading_hadron_bias_label_x_position, 0.60,
+        # Replace necessary because ROOT LaTeX support sux...
+        # Includes "d" in finding the space because there is another space that's rendered properly
+        # later in the string...
+        labels.use_label_with_root(general_labels["leading_hadron_bias"]).replace(r"d\:", "d "),
     ))
     # Jet finding
-    latex_labels.append(ROOT.TLatex(0.71, 0.56, labels.use_label_with_root(general_labels["jet_finding"])))
+    latex_labels.append(ROOT.TLatex(0.71, 0.525, labels.use_label_with_root(general_labels["jet_finding"])))
 
     # Plot the actual hists. The inclusive orientation will be plotted first.
     for i, (analysis, color, marker, marker_size) in enumerate(zip(ep_analyses.values(), colors, markers, marker_sizes)):
