@@ -311,8 +311,8 @@ AliAnalysisManager* runJetHAnalysis(
       mixedEventsSelection = AliVEvent::kAnyINT;
     }
   }
-  const bool sparseAxes = true;
-  const bool widerTrackPtBins = true;
+  const bool sparseAxes = false;
+  const bool widerTrackPtBins = false;
   const bool embeddingCorrection = false;
   // Local tests
   const char * embeddingCorrectionFilename = "../embeddingCorrection.root";
