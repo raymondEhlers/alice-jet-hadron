@@ -74,7 +74,9 @@ setup(
     # This is usually the minimal set of the required packages.
     # Packages should be installed via pip -r requirements.txt !
     install_requires=[
-        "ruamel.yaml",
+        # Pinned version because the typing information doesn't seem right,
+        # at least with how I understand it.
+        "ruamel.yaml<0.15.99",
         "IPython",
         "scipy",
         "numpy",
