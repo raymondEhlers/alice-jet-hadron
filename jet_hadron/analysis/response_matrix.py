@@ -1266,6 +1266,10 @@ class ResponseManager(analysis_manager.Manager):
                     output_info = self.output_info,
                     plot_with_ROOT = plot_with_ROOT,
                 )
+            plot_response_matrix.particle_level_ratios(
+                ep_analyses_iter = analysis_config.iterate_with_selected_objects(self.final_responses),
+                output_info = self.output_info,
+            )
 
             # Jet energy scale QA. It's not meaningful for each orientation because the tagger
             # doesn't selecte on RP orientation. So we just do it once.

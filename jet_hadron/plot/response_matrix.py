@@ -373,6 +373,69 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Also save the plot as a c macro
     canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
+def particle_level_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
+                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Create ratios relative to the particle level spectra and plot them.
+
+    Args:
+        ep_analyses: The event plane dependent final response matrices.
+        output_info: Output information.
+    Returns:
+        None. The spectra are plotted and saved.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    # Diamond, square, up triangle, circle
+    markers = ["D", "s", "^", "o"]
+    colors = ["black", "blue", "green", "red"]
+    # Pull out the dict because we need to grab individual analyses for some labeling information, which doesn't
+    # play well with generators (the generator will be exhausted).
+    ep_analyses = dict(ep_analyses_iter)
+    # First, we need the inclusive analysis spectra to define the ratio.
+    inclusive = next(iter(ep_analyses.values()))
+    inclusive_hist = histogram.Histogram1D.from_existing_hist(inclusive.particle_level_spectra)
+
+    for analysis, color, marker in zip(ep_analyses.values(), colors, markers):
+        # For inclusive, use open markers that are plotted on top of all points.
+        additional_args = {}
+        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
+            additional_args.update({
+                "fillstyle": "none",
+                "zorder": 10,
+            })
+
+        # Convert and plot hist
+        h = histogram.Histogram1D.from_existing_hist(analysis.particle_level_spectra)
+        h /= inclusive_hist
+        ax.errorbar(
+            h.x, h.y,
+            xerr = (h.bin_edges[1:] - h.bin_edges[:-1]) / 2,
+            yerr = h.errors,
+            label = analysis.reaction_plane_orientation.display_str(),
+            color = color,
+            marker = marker,
+            linestyle = "",
+            **additional_args
+        )
+
+    # Final presentation settings
+    plot_labels = plot_base.PlotLabels(
+        title = "",
+        x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
+        y_label = "Ratio to inclusive",
+    )
+    plot_labels.apply_labels(ax)
+    # Use the same xlimits as for the particle level spectra
+    ax.set_xlim(0, inclusive.task_config["particle_level_spectra"]["particle_level_max_pt"])
+    # Should be centered around 1.
+    ax.set_ylim(0.5, 1.5)
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name = "particle_level_ratios"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
 def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMatrixBase",
                            alice_particle_level_spectra: Dict[params.CollisionEnergy, Hist],
                            output_info: analysis_objects.PlottingOutputWrapper) -> None:
