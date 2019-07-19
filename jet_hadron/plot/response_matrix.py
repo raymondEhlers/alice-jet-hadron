@@ -85,9 +85,10 @@ def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_
     y_label = r"\mathrm{d}N/\mathrm{d}p_{\mathrm{T}}"
     if inclusive.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
         y_label = r"(1/N_{\mathrm{jets}})" + y_label
-        y_label = y_label
     if inclusive.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_bin"]:
-        y_label = r"\mathrm{Arb. Units}"
+        # Assumes that we'll never set an upper bound.
+        values = inclusive.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
+        y_label = r"(1/N_{\text{jets}}^{p_{\text{T}} > " + fr"{values.min}\:{labels.momentum_units_label_gev()}" + r"})" + y_label
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
@@ -416,9 +417,10 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
     y_label = r"\text{d}N/\text{d}p_{\text{T}}"
     if star_final_response_task.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
         y_label = r"(1/N_{\text{jets}})" + y_label
-        y_label = y_label
     if star_final_response_task.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_bin"]:
-        y_label = r"\text{Arb. Units}"
+        # Assumes that we'll never set an upper bound.
+        values = star_final_response_task.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
+        y_label = r"(1/N_{\text{jets}}^{p_{\text{T}} > " + fr"{values.min}\:{labels.momentum_units_label_gev()}" + r"})" + y_label
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",

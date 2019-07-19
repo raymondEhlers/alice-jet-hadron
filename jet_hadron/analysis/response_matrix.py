@@ -6,6 +6,7 @@
 """
 
 import copy
+import ctypes
 from dataclasses import dataclass
 import enum
 import logging
@@ -323,14 +324,20 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             hist.Scale(1.0 / entries)
 
         if particle_level_spectra_config["normalize_at_selected_jet_pt_bin"]:
+            error = ctypes.c_double(0)
             # Determine the number of entries at the selected bin value
             values = particle_level_spectra_config["normalize_at_selected_jet_pt_values"]
-            entries = hist.Integral(hist.FindBin(values.min + epsilon), hist.FindBin(values.max - epsilon))
+            entries = hist.IntegralAndError(hist.FindBin(values.min + epsilon), hist.FindBin(values.max - epsilon), error)
             #entries = hist.GetBinContent(hist.FindBin(value[0] + epsilon))
-            logger.debug(f"Number of entries with {values}: {entries}")
+            logger.info(f"Number of entries with {values}: {entries} +/ {error.value}")
 
             # Normalize the histogram
             hist.Scale(1.0 / entries)
+
+        # Check the result of the normalization (debug info to compare agreement)
+        error = ctypes.c_double(0)
+        entries = hist.IntegralAndError(hist.FindBin(20 + epsilon), hist.FindBin(100 - epsilon), error)
+        logger.info(f"{self.reaction_plane_orientation}: Number of entries within 20-100: {entries} +/ {error.value}")
 
         logger.debug(
             f"Post particle level spectra processing information: ep_orientation: {self.reaction_plane_orientation},"
