@@ -7,7 +7,7 @@ eventCuts:
     enabled: true
     manualMode: true
     cutsPeriod: &period "LHC15o"
-    centralityRange: [0, 10]
+    centralityRange: [30, 50]
     enablePileupCuts: true
 general:
     nCentBins: 5

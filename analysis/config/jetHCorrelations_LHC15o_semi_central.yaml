@@ -1,0 +1,11 @@
+---
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: &period "LHC15o"
+    centralityRange: [30, 50]
+    enablePileupCuts: true
+general:
+    nCentBins: 5
+efficiency:
+    periodIdentifier: *period
