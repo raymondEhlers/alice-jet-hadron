@@ -455,6 +455,7 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
     residual = np.zeros(shape = (efficiency_data.GetXaxis().GetNbins(),
                                  efficiency_data.GetYaxis().GetNbins()))
     # Loop over all of the bins in the data histogram.
+    chi_2 = []
     for pt_index, pt in enumerate(pts):
         for eta_index, eta in enumerate(etas):
             x = pt_index + 1
@@ -468,6 +469,9 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
                 value = np.nan
             else:
                 value = (efficiency_data.GetBinContent(x, y) - efficiency_at_value) / efficiency_at_value * 100.
+                # The points around the edges aren't super reliable for calcuating chi squared
+                if pt > 1 and np.abs(eta) < 0.8:
+                    chi_2.append(np.power(efficiency_data.GetBinContent(x, y) - efficiency_at_value, 2) / np.power(efficiency_data.GetBinError(x, y), 2))
 
             residual[pt_index, eta_index] = value
 
@@ -478,6 +482,15 @@ def calculate_residual_2D(efficiency_data: Hist, efficiency_function: Callable[.
     logger.debug(f"standard mean: {np.nanmean(residual)}")
     logger.debug(f"restricted mean: {np.nanmean(residual[:,np.abs(etas) < 0.8])}")
     logger.debug(f"len(pts): {len(pts)}, len(etas): {len(etas)}")
+
+    # Check chi squared
+    chi_squared = np.sum(chi_2)
+    # 23 is the number of parameters (10 + 13) at any given point
+    ndf = len(chi_2) - 23
+    logger.warning("NOTE: The restricted chi squared value calculated here may not be super reliable.")
+    logger.info(f"Chi squared: {chi_squared}")
+    logger.info(f"NDF: {ndf}")
+    logger.info(f"chi2/ndf: {chi_squared / ndf}")
 
     return residual, pts, etas
 
