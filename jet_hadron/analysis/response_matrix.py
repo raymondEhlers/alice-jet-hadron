@@ -1266,7 +1266,7 @@ class ResponseManager(analysis_manager.Manager):
                     output_info = self.output_info,
                     plot_with_ROOT = plot_with_ROOT,
                 )
-            plot_response_matrix.particle_level_ratios(
+            plot_response_matrix.particle_level_spectra_ratios(
                 ep_analyses_iter = analysis_config.iterate_with_selected_objects(self.final_responses),
                 output_info = self.output_info,
             )

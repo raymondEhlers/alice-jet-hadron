@@ -373,8 +373,8 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Also save the plot as a c macro
     canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
-def particle_level_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
-                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
+                                  output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Create ratios relative to the particle level spectra and plot them.
 
     Args:
@@ -394,6 +394,67 @@ def particle_level_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix
     # First, we need the inclusive analysis spectra to define the ratio.
     inclusive = next(iter(ep_analyses.values()))
     inclusive_hist = histogram.Histogram1D.from_existing_hist(inclusive.particle_level_spectra)
+
+    # Setup rank 1 polynomial fit (not really the right place, but it's quick and fine
+    # for these purposees).
+    from jet_hadron.analysis import fit
+
+    def degree_1_polynomial(x: float, const: float, slope: float) -> float:
+        """ Degree 1 polynomial.
+
+        Args:
+            x: Independent variable.
+            const: Constant offset.
+            slope: Coefficient for 1st degree term.
+        Returns:
+            Calculated first degree polynomial.
+        """
+        return const + x * slope
+
+    class Polynomial(fit.Fit):
+        """ Fit a degree-1 to the background dominated region of a delta eta hist.
+
+        The initial value of the fit will be determined by the minimum y value of the histogram.
+
+        Attributes:
+            fit_range: Range used for fitting the data. Values inside of this range will be used.
+            user_arguments: User arguments for the fit. Default: None.
+            fit_function: Function to be fit.
+            fit_result: Result of the fit. Only valid after the fit has been performed.
+        """
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            # Finally, setup the fit function
+            self.fit_function = degree_1_polynomial
+
+        def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, fit.FitArguments]:
+            """ Setup the histogram and arguments for the fit.
+
+            Args:
+                h: Background subtracted histogram to be fit.
+            Returns:
+                Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
+                    restricted or otherwise modified here.
+            """
+            # Restrict the range so that we only fit within the desired input.
+            restricted_range = (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+            restricted_hist = histogram.Histogram1D(
+                # We need the bin edges to be inclusive.
+                bin_edges = h.bin_edges[(h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)],
+                y = h.y[restricted_range],
+                errors_squared = h.errors_squared[restricted_range]
+            )
+
+            # Default arguments
+            # Use the minimum of the histogram as the starting value.
+            arguments: fit.FitArguments = {
+                "slope": 0, "error_slope": 0.005,
+                "const": 1, "error_const": 0.005,
+                "limit_slope": (-100, 100),
+                "limit_const": (-10, 10),
+            }
+
+            return restricted_hist, arguments
 
     for analysis, color, marker in zip(ep_analyses.values(), colors, markers):
         # For inclusive, use open markers that are plotted on top of all points.
@@ -418,7 +479,38 @@ def particle_level_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix
             **additional_args
         )
 
+        # Fit to a degree-1 polynomial and plot
+        fit_object = Polynomial(
+            fit_range = analysis.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
+        )
+        fit_result = fit_object.fit(h = h)
+        fit_object.fit_result = fit_result
+        values = fit_object(fit_result.x, *fit_result.values_at_minimum.values())
+        # Plot the values
+        ax.plot(
+            fit_result.x, values,
+            label = rf"Fit, {fit_result.values_at_minimum['const']:.2f} $\pm$ {fit_result.errors_on_parameters['const']:.2f} + "
+                    + rf"{fit_result.values_at_minimum['slope']:.2f} $\pm$ {fit_result.errors_on_parameters['slope']:.2f} "
+                    + rf"* ${labels.jet_pt_display_label()}$",
+            color = color,
+        )
+        # And the error bands
+        ax.fill_between(
+            fit_result.x, values - fit_result.errors,
+            values + fit_result.errors,
+            facecolor = color, alpha = 0.5,
+        )
+
     # Final presentation settings
+    # Legend
+    ax.legend(
+        # Here, we specify the location of the upper right corner of the legend box.
+        loc = "upper right",
+        bbox_to_anchor = (0.99, 0.99),
+        borderaxespad = 0,
+        fontsize = 14,
+        ncol = 2,
+    )
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
