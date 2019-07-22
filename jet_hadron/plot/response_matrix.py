@@ -239,7 +239,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Canvas
     canvas = ROOT.TCanvas("canvas", "canvas")
     canvas.SetTopMargin(0.04)
-    canvas.SetLeftMargin(0.12)
+    canvas.SetLeftMargin(0.14)
     canvas.SetRightMargin(0.04)
     canvas.SetBottomMargin(0.15)
     # These are spectra, so it makes sense to draw it in a log scale.
@@ -310,7 +310,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         # Set the titles
         plot_labels.apply_labels(hist)
 
-        # Style each individual hist. In principle, we could do this for only one # hist and then set the
+        # Style each individual hist. In principle, we could do this for only one hist and then set the
         # axis labels to empty for the rest, but then we would have to empty out the labels. This is just,
         # as easy, and then we don't have to deal with changing the labels.
         # Enlarge axis title size
@@ -318,7 +318,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
         hist.GetYaxis().SetTitleSize(0.055)
         # Ensure there is enough space
         hist.GetXaxis().SetTitleOffset(1.15)
-        hist.GetYaxis().SetTitleOffset(1.05)
+        hist.GetYaxis().SetTitleOffset(1.22)
         # Enlarge axis label size
         hist.GetXaxis().SetLabelSize(0.06)
         hist.GetYaxis().SetLabelSize(0.06)
