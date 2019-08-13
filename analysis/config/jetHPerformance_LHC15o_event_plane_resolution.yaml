@@ -13,6 +13,8 @@ eventCuts:
     # Intentionally make no centrality selection!
     #centralityRange: [0, 10]
     enablePileupCuts: true
+    physicsSelection:
+        - "kAnyINT"
 general:
     nCentBins: 5
 efficiency:
