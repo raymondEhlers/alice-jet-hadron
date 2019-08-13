@@ -1,0 +1,29 @@
+---
+name: |
+    "Configuration options for finding the event plane resolution LHC15o PbPb. The options are stripped down to keep"
+    "the output size down when it's not neededd."
+enable:
+    QAHists: true
+    CellQAHists: false
+    responseMatrix: false
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: &period "LHC15o"
+    # Intentionally make no centrality selection!
+    #centralityRange: [0, 10]
+    enablePileupCuts: true
+general:
+    nCentBins: 5
+efficiency:
+    periodIdentifier: *period
+# Particle collections:
+particles:
+    tracksForCorrelations:
+        branchName: "usedefault"
+    tracksForJets:
+        branchName: "usedefault"
+        minPt: 3
+# No cluster or jet containers
+clusters: {}
+jets: {}

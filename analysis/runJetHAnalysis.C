@@ -42,6 +42,8 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 #include "OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"
 #include "OADB/macros/AddTaskCentrality.C"
 #include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
+//#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsNewDetConfig.C"
+#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig.C"
 // Simplify rho task usage
 #include "PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 // Include AddTask to test for the LEGO train
@@ -110,6 +112,9 @@ AliAnalysisManager* runJetHAnalysis(
   Double_t minClusterPt = 3.0;
   const Double_t minTimeCut = -50e-9;
   const Double_t maxTimeCut = 100e-9;
+
+  // Enable Qn Vector corrections (for calculating EP resolution)
+  const bool enableQnVectorCorrections = true;
 
   // Control background subtraction
   const bool enableBackgroundSubtraction = false;
@@ -200,7 +205,7 @@ AliAnalysisManager* runJetHAnalysis(
   /////////////////
   //AliLog::SetClassDebugLevel("AliEmcalCorrectionComponent", AliLog::kDebug+3);
   //AliLog::SetClassDebugLevel("AliAnalysisTaskEmcalJetHCorrelations", AliLog::kDebug+1);
-  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug-2);
+  AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug-1);
   //AliLog::SetClassDebugLevel("AliJetContainer", AliLog::kDebug+7);
 
   // EMCal corrections
@@ -216,6 +221,12 @@ AliAnalysisManager* runJetHAnalysis(
   // Grid configuration
   //correctionTask->SetUserConfigurationFilename("alien:///alice/cern.ch/user/r/rehlersi/jetH/jetHUserConfiguration.yaml");
   correctionTask->Initialize();
+
+  // Qn vector
+  if (enableQnVectorCorrections) {
+    // Returns void, so there's no other configuration to be done...
+    AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig("config/LHC15o");
+  }
 
   // Background
   std::string sRhoChargedName = "";
@@ -406,6 +417,7 @@ AliAnalysisManager* runJetHAnalysis(
   jetHPerformance->SelectCollisionCandidates(kPhysSel);
   std::string jetHPerformanceConfigurationName = "config/jetHPerformance_";
   jetHPerformanceConfigurationName += cRunPeriod;
+  jetHPerformanceConfigurationName += "_event_plane_resolution";
   jetHPerformanceConfigurationName += ".yaml";
   std::cout << "Using jet-h performance configuration " << jetHPerformanceConfigurationName << "\n";
   jetHPerformance->SetUseNewCentralityEstimation(bIsRun2);
