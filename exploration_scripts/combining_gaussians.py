@@ -7,6 +7,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 from typing import Tuple
 
 def create_gaussian_inputs() -> Tuple[np.ndarray, np.ndarray]:
@@ -50,5 +51,43 @@ def combine_gaussians() -> None:
     fig.tight_layout()
     fig.savefig("gaussian.pdf")
 
+def new_combine_gaussians() -> None:
+    """ Use a new approach devised in July 2019. """
+    # Imagine with 3 EP angles + inclusive
+    # First define the 3 EP angles
+    gaussians = []
+    for width in range(1, 4):
+        gaussians.append(np.random.normal(0, width, size = 1000000))
+    #n_trig = [600, 300, 100]
+
+    # Create the inclusive, and then histogram it
+    inclusive = np.array([(i, val) for i, gaussian in enumerate(gaussians, 1) for val in gaussian])
+
+    h_inclusive, x_bin_edges, y_bin_edges = np.histogram2d(inclusive[:, 1], inclusive[:, 0], bins = [200, np.linspace(0.5, 3.5, 3 + 1)], range = [[-10, 10], [0.5, 3.5]])
+
+    #print(f"x_bin_edges: {x_bin_edges}")
+    #print(f"y_bin_edges: {y_bin_edges}")
+    print(f"inclusive[:, 0]: {inclusive[:, 0]}")
+
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    X, Y = np.meshgrid(x_bin_edges, y_bin_edges)
+    ax.pcolormesh(X, Y, h_inclusive.T)
+    ax.set_xlabel("x")
+    ax.set_ylabel("EP orientation proxy")
+
+    fig.tight_layout()
+    fig.savefig("gaussian_2d_histogram.pdf")
+
+    # Basically, the first two arguments are h.x and h.y
+    binned_mean = scipy.stats.binned_statistic(
+        inclusive[:, 0], inclusive[:, 1], "std", bins = np.linspace(0.5, 3.5, 3 + 1)
+    )
+    print(f"Binned mean: {binned_mean}")
+    inclusive_binned_mean = scipy.stats.binned_statistic(inclusive[:, 0], inclusive[:, 1], "std", bins = 1)
+    print(f"Inclusive binned mean: {inclusive_binned_mean}")
+
 if __name__ == "__main__":
+    new_combine_gaussians()
     combine_gaussians()
+
