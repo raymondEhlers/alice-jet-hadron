@@ -1,0 +1,25 @@
+---
+# Enable for Run 2
+useMultiplicityPercentileForCentralityDetermination: true
+zVertex: [-10., 10]
+centrality: [0., 100.]
+# Should be fine either way
+useOnlyCentralityCalibratedEvents: false
+correctionHistograms:
+    #source: "local"
+    #path: "qVector"
+    #filename: "Pass3CalibrationHistograms.root"
+    # LEGO train:
+    source: alienmultiple
+    path: alien:///alice/cern.ch/user/p/pwg_hf/common/QnConfig/LHC15o/pass1
+    filename: Pass3CalibrationHistograms.root
+detectors:
+    TPC: true
+    VZERO: true
+outputs:
+    # Keep the output as minimal as possible
+    QVectorTree: false
+    QAHistograms: false
+    NveQAHistograms: false
+    OutputHistograms: false
+    EventQA: false
