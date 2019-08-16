@@ -642,6 +642,34 @@ GlauberToyModelManager:
         iterables:
             reaction_plane_orientation: false
 
+##########################################################
+# Configuration for calculating the event plane reoslution
+##########################################################
+EventPlaneResolution:
+    # The detectors are needed both in the task and to iterate over,
+    # so we define them here, and them reference them elsewhere.
+    detectors: &listOfEPDetectors
+        - "VZERO"
+        - "TPC_Pos"
+        - "TPC_Neg"
+    output_ranges:
+        - !SelectedRange [0, 10]
+        - !SelectedRange [30, 50]
+    override:
+        outputPrefix: "output/{collision_system}/{collision_energy}/{task_name}"
+        inputListName: "AliAnalysisTaskEmcalJetHPerformance"
+        trainNumber: 4731
+        iterables:
+            reaction_plane_orientation: false
+            detector: *listOfEPDetectors
+            harmonic: [2, 3, 4, 5, 6]
+EventPlaneResolutionManager:
+    # We need a minimal override. This is it for an analysis manager.
+    override:
+        outputPrefix: "output/{collision_system}/{collision_energy}/{task_name}"
+        iterables:
+            reaction_plane_orientation: false
+
 ############################################################
 # Configuration for plotting EMCal corrections from a train.
 ############################################################
