@@ -22,6 +22,8 @@ class AliParticleContainer;
 class AliJetContainer;
 
 class AliEmcalCorrectionTask;
+class AliQnCorrectionsManager;
+class AliAnalysisTaskFlowVectorCorrections;
 class AliEmcalJetTask;
 class AliAnalysisTaskEmcalJetSample;
 namespace PWGJE {
@@ -43,12 +45,13 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 #include "OADB/macros/AddTaskCentrality.C"
 #include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
 //#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsNewDetConfig.C"
-#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig.C"
+//#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig.C"
 // Simplify rho task usage
 #include "PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 // Include AddTask to test for the LEGO train
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHCorrelations.C"
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHPerformance.C"
+#include "PWGJE/EMCALJetTasks/macros/AddTaskFlowQnVectorCorrections.C"
 //#include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHadEPpid.C"
 #endif
 
@@ -224,8 +227,16 @@ AliAnalysisManager* runJetHAnalysis(
 
   // Qn vector
   if (enableQnVectorCorrections) {
-    // Returns void, so there's no other configuration to be done...
-    AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig("config/LHC15o");
+    std::string configFilename = "config/qnVectorCorrections_";
+    configFilename += cRunPeriod;
+    configFilename += ".yaml";
+    //AliAnalysisTaskFlowVectorCorrections* qnVectorCorrections =
+    //    PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHUtils::
+    //        AddTaskFlowQnVectorCorrections(configFilename.c_str());
+    AliAnalysisTaskFlowVectorCorrections* qnVectorCorrections =
+      AddTaskFlowQnVectorCorrections(configFilename.c_str());
+    // Returns void, so there's no other configuration to be done directly...
+    //AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig("config/LHC15o");
   }
 
   // Background

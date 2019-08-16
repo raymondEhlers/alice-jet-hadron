@@ -6,7 +6,7 @@ class AliAnalysisManager;
 void runTrainRootFile(
         const char   *filePath       = "train.root",            // Location of the train.root file
         const char   *cDataType      = "AOD",                   // set the analysis type, AOD or ESD
-        const char   *cLocalFiles    = "LHC11h.txt",          // set the local list file
+        const char   *cLocalFiles    = "LHC15o.txt",          // set the local list file
         UInt_t        iNumFiles      = 100,                     // number of files analyzed locally
         UInt_t        iNumEvents     = 1000                     // number of events to be analyzed
     )
