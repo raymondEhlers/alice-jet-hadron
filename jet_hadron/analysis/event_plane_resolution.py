@@ -25,7 +25,7 @@ class Detector:
     data: histogram.Histogram1D
 
 class EventPlaneResolution(analysis_objects.JetHBase):
-    """ Calculate the event plane reoslution.
+    """ Calculate the event plane resolution.
 
     Args:
         n: Harmonic for calculating the resolution
@@ -48,14 +48,15 @@ class EventPlaneResolution(analysis_objects.JetHBase):
         self.harmonic = harmonic
         self.main_detector_name = detector
 
-        # Propertes for determining the event plane resolution
-        # Take all other detectors that aren't the main detector
+        # Properties for determining the event plane resolution
+        # Here we take all other detectors that aren't the main detector
         self.other_detector_names = [name for name in self.task_config.get("detectors") if name != self.main_detector_name]
         self.output_ranges = self.task_config.get("output_ranges", None)
         # Validation
         if self.output_ranges is None:
             # Default should be to process each centrality range.
-            self.output_ranges = [params.SelectedRange(min, max) for min, max in zip(np.linspace(0, 100, 11)[:-1], np.linsapce(0, 100, 11)[1:])]
+            self.output_ranges = [params.SelectedRange(min, max)
+                                  for min, max in zip(np.linspace(0, 100, 11)[:-1], np.linsapce(0, 100, 11)[1:])]
 
         # Objects that will be created during the calculation
         self.main_detector: Detector
@@ -88,32 +89,38 @@ class EventPlaneResolution(analysis_objects.JetHBase):
         ]
 
     def _calculate_resolution(self) -> histogram.Histogram1D:
-        """ Calculate the event plane reoslution.
+        """ Calculate the event plane resolution.
 
         Args:
             None.
         Returns:
             Resolutions and errors calculated for each centrality bin.
         """
-        # R = sqrt(multiply all other detecotrs/main detector)
-        # NOTE: main_detector actually contains the cosine of the difference of the other detectors. The terminology is a bit confusing.
-        # For VZERO resolutino, sqrt((TPC_Pos * TPC_Neg)/VZERO)
-        # NOTE: The output is an element-wise multiplication of all other_detector arrays. For
-        #       two other detectors, this is the same as just other[0].data * other[1].data
-        numerator = reduce(lambda x, y: x * y, [other.data.y for other in self.other_detectors])
-        denominator = self.main_detector.data.y
-        resolutions = np.sqrt(numerator / denominator)
+        # R = sqrt(multiply all other detectors/main detector)
+        # NOTE: main_detector actually contains the cosine of the difference of the other detectors. The terminology
+        #       is a bit confusing. As an example, for VZERO resolution, sqrt((TPC_Pos * TPC_Neg)/VZERO)
+        # NOTE: The output of reduce is an element-wise multiplication of all other_detector arrays. For
+        #       the example of two other detectors, this is the same as just other[0].data * other[1].data
+        resolution_squared = reduce(
+            lambda x, y: x * y, [other.data for other in self.other_detectors]) / self.main_detector.data
+        # We sometimes end up with a few very small negative values. This is a problem for sqrt, so we
+        # explicitly set them to 0.
+        resolution_squared.y[resolution_squared.y < 0] = 0
+        logger.debug(f"resolution_squared negative values: {resolution_squared.y[resolution_squared.y < 0]}")
+        logger.debug(f"resolution_squared: {resolution_squared.y}")
+        resolutions = np.sqrt(resolution_squared.y)
+        # TODO: Is this the right thing to do?
+        resolutions[np.isnan(resolutions)] = 0
+        # Cross check
+        logger.debug(f"resolutions: {resolutions}")
+        errors = resolution_squared.errors / (2 * resolutions)
 
-        # Equivalently,
-        #resolution_squared = reduce(lambda x, y: x * y, [other.data for other in self.other_detectors]) / self.main_detector
-        #resolution = np.sqrt(resolution_squared.y)
-        #errors = 1 / 2 * resolution.errors
+        # Cross check errors
+        # TODO: Is this the right thing to do?
+        errors[np.isnan(errors)] = 0
+        logger.debug(f"errors: {errors}")
 
-        # Calculate error
-        # sigma_R = R / 2 * sqrt(\Sum_i (sigma_i / values_i) ** 2)
-        errors =  resolutions / 2 * np.sqrt(np.sum([(other.data.errors / other.data.y) ** 2 for other in [self.main_detector, *self.other_detectors]]))
-
-        # Return both values
+        # Return the values in a histogram for convenience
         return histogram.Histogram1D(
             bin_edges = self.main_detector.data.bin_edges, y = resolutions, errors_squared = errors ** 2
         )
@@ -184,12 +191,14 @@ class EventPlaneResolutionManager(analysis_manager.Manager):
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                 # We are effectively caching the values here.
                 if not input_hists:
-                    input_hists = histogram.get_histograms_in_list(filename = analysis.input_filename, list_name = analysis.input_list_name)
+                    input_hists = histogram.get_histograms_in_list(
+                        filename = analysis.input_filename, list_name = analysis.input_list_name
+                    )
 
                 # Setup input histograms and projectors.
                 analysis.setup(input_hists = input_hists)
 
-                # Cache the event counts for conveience.
+                # Cache the event counts for convenience.
                 if not hasattr(self, "event_counts"):
                     # Determine the number of events in each centrality bin.
                     event_counts = input_hists["Centrality_selected"]
@@ -215,8 +224,8 @@ class EventPlaneResolutionManager(analysis_manager.Manager):
 
         # Run the calculations
         with self._progress_manager.counter(total = len(self.analyses),
-                                            desc = "Setting up:",
-                                            unit = "analysis objects") as running:
+                                            desc = "Calculating:",
+                                            unit = "EP resolutions") as running:
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                 analysis.run(event_counts = self.event_counts)
                 logger.debug(f"resolutions: {key_index} {analysis.resolutions}")
