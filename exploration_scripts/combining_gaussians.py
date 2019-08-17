@@ -5,7 +5,7 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-from typing import Dict, Tuple, Union
+from typing import Dict, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -54,13 +54,36 @@ def combine_gaussians() -> None:
     fig.tight_layout()
     fig.savefig("gaussian.pdf")
 
-def new_combine_gaussians() -> None:
+def unnormalized_gaussian(x: Union[np.ndarray, float], mean: float, sigma: float, amplitude: float) -> Union[np.ndarray, float]:
+    r""" Unnormalized gaussian.
+
+    .. math::
+
+        f = A * \exp{-\frac{(x - \mu)^{2}}{(2 * \sigma^{2}}}
+
+    The width in the amplitude is implicitly excluded.
+
+    Args:
+        x: Value(s) where the gaussian should be evaluated.
+        mean: Mean of the gaussian distribution.
+        sigma: Width of the gaussian distribution.
+        amplitude: Amplitude of the gaussian.
+    Returns:
+        Calculated gaussian value(s).
+    """
+    return amplitude * np.exp(-1.0 / 2.0 * np.square((x - mean) / sigma))
+
+def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
     """ Use a new approach devised in July 2019. """
+    # Validation
+    if len(widths) != 3:
+        raise ValueError(f"Must pass only three widths. Passed: {widths}")
+
     # Imagine with 3 EP angles + inclusive
     # First define the 3 EP angles
     gaussians = []
     #for width in range(1, 4):
-    for width in [0.95, 1.0, 1.05]:
+    for width in widths:
         gaussians.append(np.random.normal(0, width, size = 1000000))
     n_trigs = [375, 300, 325]
     # Add the inclusive to the start of the number of trigs
@@ -152,13 +175,13 @@ def new_combine_gaussians() -> None:
         gaussian_fit_results.append(fit_result)
 
         # Plot for a sanity check
-        ax.errorbar(h.x, h.y, yerr = h.errors, marker = "o", linestyle = "", label = f"Data {i}")
-        ax.plot(h.x, scaled_gaussian(h.x, *list(fit_result.values_at_minimum.values())), label = f"Fit {i}", zorder = 5)
-
-    # Final adjustments
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(f"gaussian_fit.pdf")
+        plot_label: str
+        if i > 0:
+            plot_label = fr"$\sigma = {widths[i-1]:0.2f}$"
+        else:
+            plot_label = "inclusive"
+        ax.errorbar(h.x, h.y, yerr = h.errors, marker = "o", linestyle = "", label = f"Data {plot_label}")
+        ax.plot(h.x, scaled_gaussian(h.x, *list(fit_result.values_at_minimum.values())), label = f"Fit {plot_label}", zorder = 5)
 
     values_at_zero_from_hist = []
     for h in hists:
@@ -166,12 +189,34 @@ def new_combine_gaussians() -> None:
     values_at_zero_from_fits = []
     for fit_result in gaussian_fit_results:
         values_at_zero_from_fits.append(scaled_gaussian(0, *list(fit_result.values_at_minimum.values())))
-    print(f"Values at 0 from hist: {values_at_zero_from_hist}, Sum of last 3: {np.sum(values_at_zero_from_hist[1:])}")
-    print(f"Values at 0 from fit: {values_at_zero_from_fits}, Sum of last 3: {np.sum(values_at_zero_from_fits[1:])}")
+    sum_of_last_3_from_hist = np.sum(values_at_zero_from_hist[1:])
+    sum_of_last_3_from_fit = np.sum(values_at_zero_from_fits[1:])
+    print(f"Values at 0 from hist: {values_at_zero_from_hist}, Sum of last 3: {sum_of_last_3_from_hist}, Diff: {_percent_diff(values_at_zero_from_hist[0], sum_of_last_3_from_hist):.3f}%")
+    print(f"Values at 0 from fit: {values_at_zero_from_fits}, Sum of last 3: {sum_of_last_3_from_fit}, Diff: {_percent_diff(values_at_zero_from_fits[0], sum_of_last_3_from_fit):.3f}%")
+
+    # TODO: Predict gaussian fit and plot
+
+    # Final adjustments
+    ax.legend()
+    ax.set_title(f"{label} widths")
+    fig.tight_layout()
+    fig.savefig(f"gaussian_fit_{label}.pdf")
+
+def _percent_diff(expected: float, predicted: float) -> float:
+    """ Calculate the percent difference.
+
+    Args:
+        expected: The value that the predicted should reproduce.
+        predicted: The value that attempts to match the expected.
+    Returns:
+        The percent difference between the two values.
+    """
+    return (predicted - expected) / expected * 100.
 
 if __name__ == "__main__":
     print("---- New explorations ----")
-    new_combine_gaussians()
+    new_combine_gaussians(label = "broad", widths = [1, 2, 3])
+    new_combine_gaussians(label = "narrow", widths = [0.95, 1.0, 1.05])
     print("---- Older explorations -----")
     combine_gaussians()
 
