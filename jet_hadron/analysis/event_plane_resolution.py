@@ -106,19 +106,12 @@ class EventPlaneResolution(analysis_objects.JetHBase):
         # We sometimes end up with a few very small negative values. This is a problem for sqrt, so we
         # explicitly set them to 0.
         resolution_squared.y[resolution_squared.y < 0] = 0
-        logger.debug(f"resolution_squared negative values: {resolution_squared.y[resolution_squared.y < 0]}")
-        logger.debug(f"resolution_squared: {resolution_squared.y}")
         resolutions = np.sqrt(resolution_squared.y)
-        # TODO: Is this the right thing to do?
-        resolutions[np.isnan(resolutions)] = 0
-        # Cross check
-        logger.debug(f"resolutions: {resolutions}")
-        errors = resolution_squared.errors / (2 * resolutions)
-
-        # Cross check errors
-        # TODO: Is this the right thing to do?
-        errors[np.isnan(errors)] = 0
-        logger.debug(f"errors: {errors}")
+        # Sometimes the resolution is 0, so we carefully divide to avoid NaNs
+        errors = np.divide(
+            1. / 2 * resolution_squared.errors, resolutions,
+            out = np.zeros_like(resolution_squared.errors), where = resolutions != 0,
+        )
 
         # Return the values in a histogram for convenience
         return histogram.Histogram1D(
