@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4730
+production: "LHC15o"
+alienOutputDir: "/alice/data/2015/LHC15o/000246037/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4730_20190813-1822/Stage_2"
+status: |
+    "Attempt to calculate the event plane resolution at 5 TeV. Merging failed in the first stage because "
+    "the was too large. So I ran a new train (4731) reducing the calibration size and output."

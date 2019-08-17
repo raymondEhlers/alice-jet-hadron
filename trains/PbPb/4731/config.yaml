@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4731
+production: "LHC15o"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4731_20190815-1833/merge"
+status: |
+    "Calculate the event plane resolution at 5 TeV. Merging failed in the final stage due to"
+    "grid issues, so I had to do the final merge locally. (002 and 004 merged successfully)"
