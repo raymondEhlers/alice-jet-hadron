@@ -8,14 +8,16 @@
 import logging
 from dataclasses import dataclass
 from functools import reduce
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
-from pachyderm import histogram
+from pachyderm import histogram, yaml
 from pachyderm.utils import epsilon
 
 from jet_hadron.base import analysis_config, analysis_manager, analysis_objects, params
+from jet_hadron.plot import general as plot_general
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,8 @@ class EventPlaneResolution(analysis_objects.JetHBase):
         main_detector: The main detector for which we are calculating the resolution.
         other_detectors: The two other detectors used for calculating the resolution. The
             order doesn't matter because cosine is an even function.
-        resolutions: Resolutions which are calculated over the output_ranges. Keys are the output_ranges.
+        resolution: Event plane resolution as a function of centrality, stored in a ``Histogram1D``.
+        selected_resolutions: Resolutions which are calculated over the output_ranges. Keys are the output_ranges.
     """
     def __init__(self, harmonic: int, detector: str, *args: Any, **kwargs: Any):
         # Base class
@@ -61,7 +64,8 @@ class EventPlaneResolution(analysis_objects.JetHBase):
         # Objects that will be created during the calculation
         self.main_detector: Detector
         self.other_detectors: List[Detector]
-        self.resolutions: Dict[params.SelectedRange, Tuple[float, float]] = {}
+        self.resolution: histogram.Histogram1D
+        self.selected_resolutions: Dict[params.SelectedRange, Tuple[float, float]] = {}
 
     def setup(self, input_hists: Optional[Dict[str, Any]]) -> None:
         """ Setup the histograms needed for the calculation.
@@ -131,19 +135,24 @@ class EventPlaneResolution(analysis_objects.JetHBase):
             raise ValueError("Event counts binning must match that of the resolution data.")
 
         # Calculate the resolutions for each bin.
-        resolutions = self._calculate_resolution()
+        self.resolution = self._calculate_resolution()
 
         # Calculate the resolutions of interest
         for r in self.output_ranges:
-            lower_bin = resolutions.find_bin(r.min + epsilon)
-            upper_bin = resolutions.find_bin(r.max - epsilon)
+            lower_bin = self.resolution.find_bin(r.min + epsilon)
+            upper_bin = self.resolution.find_bin(r.max - epsilon)
             # +1 because the upper bin edge is exclusive.
             selected_range = slice(lower_bin, upper_bin + 1)
             # Use data from the selected range, and average it, weighting by number
             # of events in each bin.
-            res = np.sum(event_counts.y[selected_range] * resolutions.y[selected_range]) / np.sum(event_counts.y[selected_range])
-            error = np.sum(event_counts.y[selected_range] * resolutions.errors[selected_range]) / np.sum(event_counts.y[selected_range])
-            self.resolutions[r] = (res, error)
+            res = np.sum(
+                event_counts.y[selected_range] * self.resolution.y[selected_range]
+            ) / np.sum(event_counts.y[selected_range])
+            error = np.sum(
+                event_counts.y[selected_range] * self.resolution.errors[selected_range]
+            ) / np.sum(event_counts.y[selected_range])
+            # Cast to python floats to avoid YAML writing issues later
+            self.selected_resolutions[r] = (float(res), float(error))
 
         return True
 
@@ -154,6 +163,9 @@ class EventPlaneResolutionManager(analysis_manager.Manager):
             config_filename = config_filename, selected_analysis_options = selected_analysis_options,
             manager_task_name = "EventPlaneResolutionManager", **kwargs,
         )
+
+        # Properties
+        self.harmonics_to_write = self.task_config["harmonicsToWrite"]
 
         # Analysis task
         # Create the actual analysis objects.
@@ -208,6 +220,35 @@ class EventPlaneResolutionManager(analysis_manager.Manager):
         # Successfully setup the tasks
         return True
 
+    def _write_selected_resolutions(self) -> Path:
+        """ Write selected resolutions to a YAML file.
+
+        Args:
+            None.
+        Returns:
+            Filename where the YAML file was written.
+        """
+        output: Dict[str, Any] = {}
+        for event_activity in [params.EventActivity.central, params.EventActivity.semi_central]:
+            output[str(event_activity)] = {"values": {}, "errors": {}}
+            for harmonic in self.harmonics_to_write:
+                # We only want the VZERO values!
+                for key_index, analysis in \
+                        analysis_config.iterate_with_selected_objects(self.analyses,
+                                                                      harmonic = harmonic,
+                                                                      detector = "VZERO"):
+                    logger.debug(f"analysis.main_detector_name: {analysis.main_detector_name}")
+                    value, error = analysis.selected_resolutions[event_activity.value_range]
+                    output[str(event_activity)]["values"][f"R{harmonic}"] = value
+                    output[str(event_activity)]["errors"][f"R{harmonic}"] = error
+
+        y = yaml.yaml()
+        filename = Path(self.output_info.output_prefix) / "resolution.yaml"
+        with open(filename, "w") as f:
+            y.dump(output, f)
+
+        return filename
+
     def run(self) -> bool:
         """ Setup and run the actual analysis. """
         # Setup
@@ -220,12 +261,26 @@ class EventPlaneResolutionManager(analysis_manager.Manager):
                                             desc = "Calculating:",
                                             unit = "EP resolutions") as running:
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                # Run the analysis
                 analysis.run(event_counts = self.event_counts)
-                logger.debug(f"resolutions: {key_index} {analysis.resolutions}")
+                #logger.debug(f"resolutions: {key_index} {analysis.resolution}")
 
                 running.update()
 
-        # TODO: Output and plot the results...
+        # Write out the results of interest.
+        yaml_filename = self._write_selected_resolutions()
+        logger.info(f"Wrote resolution parameters to {yaml_filename}")
+
+        # Plot the results
+        with self._progress_manager.counter(total = len(self.selected_iterables["harmonic"]),
+                                            desc = "Plotting:",
+                                            unit = "harmonics") as plotting:
+            for harmonic in self.selected_iterables["harmonic"]:
+                plot_general.event_plane_resolution_harmonic(
+                    analyses_iter = analysis_config.iterate_with_selected_objects(self.analyses, harmonic = harmonic),
+                    harmonic = harmonic, output_info = self.output_info,
+                )
+                plotting.update()
 
         return True
 

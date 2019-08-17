@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import logging
 import numpy as np
 import os
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, TypeVar, Union
 
 # Import and configure plotting packages
 import matplotlib
@@ -229,6 +229,36 @@ def error_boxes(ax: matplotlib.axes.Axes,
     ax.add_collection(patch_collection)
 
     return patch_collection
+
+_T_Color = TypeVar("_T_Color")
+
+def modify_brightness(color: Union[str, Tuple[float, float, float]], amount: float = 0.5) -> Tuple[float, float, float]:
+    """ Modifies a color's brightness.
+
+    Lightens or darkens the given color by multiplying (1-luminosity) by the given amount.
+    Function from: https://stackoverflow.com/a/49601444
+
+    Examples:
+
+        >>> lighten_color('g', 0.3)
+        >>> lighten_color('#F034A3', 0.6)
+        >>> lighten_color((.3,.55,.1), 0.5)
+
+    Args:
+        color: Color to be lightened or darkened. Can be matplotlib color string, hex string, or RGB tuple.
+        amount: Amount to modify the brightness by. Less than 1 makes it lighter,
+            greater than 1 makes it darker.
+    Returns:
+        Modified color in the given format.
+    """
+    import matplotlib.colors as mc
+    import colorsys
+    try:
+        c = mc.cnames[color]
+    except KeyError:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 # ROOT 6 default color scheme
 # Colors extracted from [TColor::SetPalette()](https://root.cern.ch/doc/master/TColor_8cxx_source.html#l02209):

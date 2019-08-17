@@ -211,21 +211,33 @@ CorrelationsManager:
         outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/Correlations"
         2.76:
             trainNumber: 3360
+            # Event plane resolution parameters
+            central:
+                resolution_parameters:
+                    R22: 0.5713
+                    R42: 0.2972
+                    R62: 0
+                    R82: 0
+            semi_central:
+                resolution_parameters:
+                    R22: 0.7275
+                    R42: 0.4424
+                    R62: 0
+                    R82: 0
         5.02:
             trainNumber: 4358
-        # Event plane resolution parameters
-        central:
-            resolution_parameters:
-                R22: 0.5713
-                R42: 0.2972
-                R62: 0
-                R82: 0
-        semi_central:
-            resolution_parameters:
-                R22: 0.7275
-                R42: 0.4424
-                R62: 0
-                R82: 0
+            central:
+                resolution_parameters:
+                    R22: 0.6192508430757114
+                    R42: 0.34878092755772117
+                    R62: 0.18777865138044672
+                    R82: 0
+            semi_central:
+                resolution_parameters:
+                    R2@: 0.7703651242647157
+                    R4@: 0.5046126852106662
+                    R6@: 0.3020062445564112
+                    R82: 0
 
 ##################################################
 # General histograms for the correlation analysis.
@@ -665,6 +677,7 @@ EventPlaneResolution:
             harmonic: [2, 3, 4, 5, 6]
 EventPlaneResolutionManager:
     # We need a minimal override. This is it for an analysis manager.
+    harmonicsToWrite: [2, 4, 6]
     override:
         outputPrefix: "output/{collision_system}/{collision_energy}/{task_name}"
         iterables:
