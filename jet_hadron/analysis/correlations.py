@@ -2020,11 +2020,9 @@ class CorrelationsManager(analysis_manager.Manager):
             if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
                 inclusive_analysis = analysis
             key = str(analysis.reaction_plane_orientation)
-            # Include the signal for inclusive orientations, but background for others.
-            if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-                input_hists["signal"][key] = analysis.correlation_hists_delta_phi.signal_dominated
-            else:
-                input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
+            # Include the data for both the signal and background regions
+            input_hists["signal"][key] = analysis.correlation_hists_delta_phi.signal_dominated
+            input_hists["background"][key] = analysis.correlation_hists_delta_phi.background_dominated
 
         # Determine the key index for the fit object.
         # We want all iterables except the one that we selected on (the reaction plane orientations).
@@ -2041,18 +2039,22 @@ class CorrelationsManager(analysis_manager.Manager):
         return input_hists, inclusive_analysis, fit_key_index, user_arguments, use_log_likelihood
 
     def _store_reaction_plane_fit_components_in_analysis_objects(self, fit_key_index: Any,
-                                                                 ep_analyses: List[Tuple[Any, Correlations]]) -> None:
+                                                                 ep_analyses: List[Tuple[Any, Correlations]],
+                                                                 input_hists: rpf.fit.Data) -> None:
         """ Helper to store the reaction plane fit result components in analysis objects for easy access.
 
         Args:
             fit_key_index: ``KeyIndex`` for fit object.
             ep_analyses: Event plane dependent correlation analysis objects.
+            input_hists: Input histograms for use when creating the full set of components.
         Returns:
             None.
         """
-        for index, fit_component in self.fit_objects[fit_key_index].components.items():
+        #for index, fit_component in self.fit_objects[fit_key_index].components.items():
+        for ep_orientation, fit_component in \
+                self.fit_objects[fit_key_index].create_full_set_of_components(input_hists).items():
             for key_index, analysis in ep_analyses:
-                if str(key_index.reaction_plane_orientation) in index.orientation:
+                if str(key_index.reaction_plane_orientation) in ep_orientation:
                     analysis.fit_object = fit_component
 
     def _reaction_plane_fit(self) -> None:
@@ -2090,7 +2092,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 # Now, perform the fit (or load in the fit result).
                 rpf_filename = os.path.join(
-                    self.output_info.output_prefix, f"RPFitResult_{inclusive_analysis.identifier}.yaml"
+                    self.output_info.output_prefix, f"RPFitResult_{fit_type}_{inclusive_analysis.identifier}.yaml"
                 )
                 if self.processing_options["fit_correlations"]:
                     # Perform the fit.
@@ -2116,7 +2118,8 @@ class CorrelationsManager(analysis_manager.Manager):
                 self.fit_objects[fit_key_index] = fit_obj
                 # Store the results relevant to each component in the individual analysis.
                 self._store_reaction_plane_fit_components_in_analysis_objects(
-                    fit_key_index = fit_key_index, ep_analyses = ep_analyses
+                    fit_key_index = fit_key_index, ep_analyses = ep_analyses,
+                    input_hists = rpf.base.format_input_data(data = input_hists),
                 )
 
                 # Plot the result
@@ -2167,10 +2170,10 @@ class CorrelationsManager(analysis_manager.Manager):
 
     def fit(self) -> bool:
         """ Fit the stored correlations. """
-        # Fit the delta eta correlations
-        self._fit_delta_eta_correlations()
         # Fit the delta phi correlations using the reaction plane fit.
         self._reaction_plane_fit()
+        # Fit the delta eta correlations
+        self._fit_delta_eta_correlations()
         return True
 
     def _subtract_reaction_plane_fits(self) -> None:

@@ -167,11 +167,6 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             output_name = f"{prefix}_v4a",
             labels = plot_base.PlotLabels(title = r"Associated hadron $v_{4}$", x_label = pt_assoc_label),
         ),
-        ParameterInfo(
-            name = "BG",
-            output_name = f"{prefix}_background",
-            labels = plot_base.PlotLabels(title = r"Effective RPF background", x_label = pt_assoc_label),
-        ),
     ]
 
     # Plot the signal parameters (but only if they exist).
@@ -210,6 +205,22 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                 labels = plot_base.PlotLabels(
                     title = r"Away side $\sigma$", x_label = pt_assoc_label, y_label = r"$\sigma_{\text{as}}$"
                 ),
+            )
+        )
+    if "BG" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "BG",
+                output_name = f"{prefix}_signal_background",
+                labels = plot_base.PlotLabels(title = r"Effective RPF background", x_label = pt_assoc_label),
+            )
+        )
+    if "B" in fit_obj.fit_result.parameters:
+        parameters.append(
+            ParameterInfo(
+                name = "B",
+                output_name = f"{prefix}_background",
+                labels = plot_base.PlotLabels(title = r"RPF background", x_label = pt_assoc_label),
             )
         )
 
@@ -468,11 +479,11 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
         None. The axes are modified in place.
     """
     # Validation
-    if len(rp_fit.components) != len(axes):
-        raise TypeError(
-            f"Number of axes is not equal to the number of fit components."
-            f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
-        )
+    #if len(rp_fit.components) != len(axes):
+    #    raise TypeError(
+    #        f"Number of axes is not equal to the number of fit components."
+    #        f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+    #    )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
@@ -526,11 +537,11 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
         None. The axes are modified in place.
     """
     # Validation
-    if len(rp_fit.components) != len(axes):
-        raise TypeError(
-            f"Number of axes is not equal to the number of fit components."
-            f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
-        )
+    #if len(rp_fit.components) != len(axes):
+    #    raise TypeError(
+    #        f"Number of axes is not equal to the number of fit components."
+    #        f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
+    #    )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
@@ -605,7 +616,8 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
         None. The plot will be saved.
     """
     # Setup
-    n_components = len(rp_fit.components)
+    #n_components = len(rp_fit.components)
+    n_components = 4
     fig, axes = plt.subplots(
         2, n_components,
         sharey = "row", sharex = True,
