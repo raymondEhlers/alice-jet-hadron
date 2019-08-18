@@ -6,18 +6,16 @@
 """
 
 import abc
-from abc import ABC
-from dataclasses import dataclass
 import iminuit.util
 import logging
 import numpy as np
-from pachyderm import histogram
-from pachyderm import yaml
 import pprint
 import sys
+from abc import ABC
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
-import reaction_plane_fit.base
+import pachyderm.fit
+from pachyderm import histogram, yaml
 
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
@@ -100,38 +98,7 @@ def fit_2d_mixed_event_normalization(hist: Hist, delta_phi_limits: Sequence[floa
     # And return the fit
     return fit_func
 
-@dataclass
-class FitResult(reaction_plane_fit.base.FitResult):
-    """ Store the fit result.
-
-    Attributes:
-        parameters (list): Names of the parameters used in the fit.
-        free_parameters (list): Names of the free parameters used in the fit.
-        fixed_parameters (list): Names of the fixed parameters used in the fit.
-        values_at_minimum (dict): Contains the values of the fit function at the minimum. Keys are the names
-            of parameters, while values are the numerical values at convergence.
-        errors_on_parameters (dict): Contains the values of the errors associated with the parameters
-            determined via the fit.
-        covariance_matrix (dict): Contains the values of the covariance matrix. Keys are tuples
-            with (param_name_a, param_name_b), and the values are covariance between the specified parameters.
-            Note that fixed parameters are _not_ included in this matrix.
-        x: x values where the fit result should be evaluated.
-        errors: Store the errors associated with the fit function.
-        n_fit_data_points: Number of data points used in the fit.
-        minimum_val: Minimum value of the fit when it coverages. This is the chi squared value for a
-            chi squared minimization fit.
-        nDOF: Number of degrees of freedom. Calculated on request from ``n_fit_data_points`` and ``free_parameters``.
-    """
-    x: np.array
-    errors: np.array
-    n_fit_data_points: int
-    minimum_val: float
-
-    @property
-    def nDOF(self) -> int:
-        return self.n_fit_data_points - len(self.free_parameters)
-
-def RPF_result_to_width_fit_result(rpf_result: reaction_plane_fit.base.FitResult,
+def RPF_result_to_width_fit_result(rpf_result: pachyderm.fit.FitResult,
                                    short_name: str,
                                    subtracted_hist: histogram.Histogram1D,
                                    width_obj: "extracted.ExtractedWidth") -> bool:
@@ -175,16 +142,16 @@ def RPF_result_to_width_fit_result(rpf_result: reaction_plane_fit.base.FitResult
     }
 
     # Store the result
-    width_obj.fit_object.fit_result = FitResult(
+    width_obj.fit_object.fit_result = pachyderm.fit.FitResult(
         parameters = parameters,
         free_parameters = free_parameters,
         fixed_parameters = fixed_parameters,
         values_at_minimum = values_at_minimum,
         errors_on_parameters = errors_on_parameters,
         covariance_matrix = covariance_matrix,
-        x = subtracted_hist.x,
         # This will be determine and set below.
         errors = np.array([]),
+        x = subtracted_hist.x,
         n_fit_data_points = len(subtracted_hist.x),
         minimum_val = cost_func(list(values_at_minimum.values())),
     )
@@ -245,7 +212,7 @@ def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments
 def fit_with_chi_squared(fit_func: Callable[..., float],
                          arguments: FitArguments, user_arguments: FitArguments,
                          h: histogram.Histogram1D,
-                         use_minos: bool = False) -> FitResult:
+                         use_minos: bool = False) -> pachyderm.fit.FitResult:
     """ Fit the given histogram to the given fit function using iminuit.
 
     Args:
@@ -283,7 +250,7 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
 
     # Check that the fit is actually good
     if not minuit.migrad_ok():
-        raise reaction_plane_fit.base.FitFailed("Minimization failed! The fit is invalid!")
+        raise pachyderm.fit.FitFailed("Minimization failed! The fit is invalid!")
 
     # Create the fit result
     fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
@@ -292,22 +259,22 @@ def fit_with_chi_squared(fit_func: Callable[..., float],
     # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
     free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
     # Store the result
-    fit_result = FitResult(
+    fit_result = pachyderm.fit.FitResult(
         parameters = parameters,
         free_parameters = free_parameters,
         fixed_parameters = fixed_parameters,
         values_at_minimum = dict(minuit.values),
         errors_on_parameters = dict(minuit.errors),
         covariance_matrix = minuit.covariance,
-        x = h.x,
         # These will be calculated below. It's easier to calculate once a FitResult already exists.
         errors = np.array([]),
+        x = h.x,
         n_fit_data_points = len(h.x),
         minimum_val = minuit.fval,
     )
 
     # Calculate errors.
-    fit_result.errors = reaction_plane_fit.base.calculate_function_errors(
+    fit_result.errors = pachyderm.fit.calculate_function_errors(
         func = fit_func,
         fit_result = fit_result,
         x = fit_result.x
@@ -335,7 +302,7 @@ class Fit(ABC):
         self.fit_range = fit_range
         self.user_arguments: FitArguments = user_arguments
         self.fit_function: Callable[..., float]
-        self.fit_result: FitResult
+        self.fit_result: pachyderm.fit.FitResult
 
     def __call__(self, *args: float, **kwargs: float) -> float:
         """ Call the fit function.
@@ -356,14 +323,14 @@ class Fit(ABC):
         """
         if x is None:
             x = self.fit_result.x
-        return reaction_plane_fit.base.calculate_function_errors(
+        return pachyderm.fit.calculate_function_errors(
             func = self.fit_function,
             fit_result = self.fit_result,
             x = x,
         )
 
     def fit(self, h: histogram.Histogram1D,
-            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> FitResult:
+            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> pachyderm.fit.FitResult:
         """ Fit the given histogram to the stored fit function using iminuit.
 
         Args:
@@ -503,14 +470,14 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
         """
         restricted_range = (
             # For example, -1.2 < h.x < -0.8
-            (h.x < -1 * self.fit_range.min) & (h.x > -1 * self.fit_range.max)
+            ((h.x < -1 * self.fit_range.min) & (h.x > -1 * self.fit_range.max))
             # For example, 0.8 < h.x < 1.2
-            | (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+            | ((h.x > self.fit_range.min) & (h.x < self.fit_range.max))
         )
         # Same conditions as above, but we need the bin edges to be inclusive.
         bin_edges_restricted_range = (
-            (h.bin_edges <= -1 * self.fit_range.min) & (h.bin_edges >= -1 * self.fit_range.max)
-            | (h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)
+            ((h.bin_edges <= -1 * self.fit_range.min) & (h.bin_edges >= -1 * self.fit_range.max))
+            | ((h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max))
         )
         restricted_hist = histogram.Histogram1D(
             bin_edges = h.bin_edges[bin_edges_restricted_range],

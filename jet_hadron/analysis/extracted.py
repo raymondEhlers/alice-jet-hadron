@@ -7,6 +7,8 @@
 
 from dataclasses import dataclass
 
+import pachyderm.fit
+
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
 from jet_hadron.analysis import fit
@@ -31,12 +33,12 @@ class ExtractedWidth:
     fit_args: fit.FitArguments
 
     @property
-    def fit_result(self) -> fit.FitResult:
+    def fit_result(self) -> pachyderm.fit.FitResult:
         """ Helper to retrieve the overall fit result. """
         return self.fit_object.fit_result
 
     @fit_result.setter
-    def fit_result(self, result: fit.FitResult) -> None:
+    def fit_result(self, result: pachyderm.fit.FitResult) -> None:
         """ Helper to simplify setting the fit result. """
         self.fit_object.fit_result = result
 

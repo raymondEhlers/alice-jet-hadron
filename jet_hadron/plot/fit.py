@@ -308,7 +308,7 @@ def _matrix_values(free_parameters: Sequence[str],
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def rpf_correlation_matrix(fit_result: reaction_plane_fit.base.RPFitResult,
+def rpf_correlation_matrix(fit_result: reaction_plane_fit.base.FitResult,
                            output_info: analysis_objects.PlottingOutputWrapper,
                            identifier: str) -> None:
     """ Plot the RP fit correlation matrix.
@@ -327,7 +327,7 @@ def rpf_correlation_matrix(fit_result: reaction_plane_fit.base.RPFitResult,
         output_name = f"{identifier}_correlation_matrix",
     )
 
-def rpf_covariance_matrix(fit_result: reaction_plane_fit.base.RPFitResult,
+def rpf_covariance_matrix(fit_result: reaction_plane_fit.base.FitResult,
                           output_info: analysis_objects.PlottingOutputWrapper,
                           identifier: str) -> None:
     """ Plot the RP fit covariance matrix.
