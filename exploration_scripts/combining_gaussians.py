@@ -5,6 +5,9 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
+import coloredlogs
+import logging
+from functools import reduce
 from typing import Dict, Sequence, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -12,6 +15,9 @@ import numpy as np
 import scipy.stats
 
 from pachyderm import fit, histogram
+from pachyderm.utils import epsilon
+
+logger = logging.getLogger(__name__)
 
 def create_gaussian_inputs() -> Tuple[np.ndarray, np.ndarray]:
     g1 = np.random.normal(0, 1, size = 1000000)
@@ -46,9 +52,9 @@ def combine_gaussians() -> None:
     ax.plot(x, 300000 * 1 / (np.sqrt(2 * np.pi) * 3.0) * np.exp(- x ** 2 / (2 * 3)), label = "Gaussian with sigma = sqrt(3)")
 
     std_dev = np.std(g_combined)
-    print(f"std_dev: {std_dev}, squared: {std_dev * std_dev}, var: {np.var(g_combined)}")
-    print(f"Sanity check on std dev: mu = 1: {np.std(g1)}, mu = 2: {np.std(g2)}")
-    print(f"Sanity check on variance: mu = 1: {np.var(g1)}, mu = 2: {np.var(g2)}")
+    logger.debug(f"std_dev: {std_dev}, squared: {std_dev * std_dev}, var: {np.var(g_combined)}")
+    logger.debug(f"Sanity check on std dev: mu = 1: {np.std(g1)}, mu = 2: {np.std(g2)}")
+    logger.debug(f"Sanity check on variance: mu = 1: {np.var(g1)}, mu = 2: {np.var(g2)}")
 
     ax.legend()
     fig.tight_layout()
@@ -72,6 +78,23 @@ def unnormalized_gaussian(x: Union[np.ndarray, float], mean: float, sigma: float
         Calculated gaussian value(s).
     """
     return amplitude * np.exp(-1.0 / 2.0 * np.square((x - mean) / sigma))
+
+def restrict_hist_range(hist: histogram.Histogram1D, min_x: float, max_x: float) -> histogram.Histogram1D:
+    """ Restrict the histogram to only be within a provided x range.
+
+    Args:
+        hist: Histogram to be restricted.
+        min_x: Minimum x value.
+        max_x: Maximum x value.
+    Returns:
+        Restricted histogram.
+    """
+    selected_range = slice(hist.find_bin(min_x + epsilon), hist.find_bin(max_x - epsilon) + 1)
+    bin_edges_selected_range = ((hist.bin_edges >= min_x) & (hist.bin_edges <= max_x))
+    return histogram.Histogram1D(
+        bin_edges = hist.bin_edges[bin_edges_selected_range], y = hist.y[selected_range],
+        errors_squared = hist.errors_squared[selected_range]
+    )
 
 def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
     """ Use a new approach devised in July 2019. """
@@ -97,10 +120,10 @@ def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
         inclusive[:, 1], inclusive[:, 0], bins = [200, np.linspace(0.5, 3.5, 3 + 1)], range = [[-10, 10], [0.5, 3.5]]
     )
 
-    print(f"h_inclusive.shape: {h_inclusive.shape}")
-    #print(f"x_bin_edges: {x_bin_edges}")
-    #print(f"y_bin_edges: {y_bin_edges}")
-    print(f"inclusive[:, 0]: {inclusive[:, 0]}")
+    logger.debug(f"h_inclusive.shape: {h_inclusive.shape}")
+    #logger.debug(f"x_bin_edges: {x_bin_edges}")
+    #logger.debug(f"y_bin_edges: {y_bin_edges}")
+    logger.debug(f"inclusive[:, 0]: {inclusive[:, 0]}")
 
     fig, ax = plt.subplots(figsize = (8, 6))
 
@@ -116,36 +139,36 @@ def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
     binned_mean, _, _ = scipy.stats.binned_statistic(
         inclusive[:, 0], inclusive[:, 1], "std", bins = np.linspace(0.5, 3.5, 3 + 1)
     )
-    print(f"Binned mean: {binned_mean}")
+    logger.debug(f"Binned mean: {binned_mean}")
     inclusive_binned_mean, _, _ = scipy.stats.binned_statistic(inclusive[:, 0], inclusive[:, 1], "std", bins = 1)
-    print(f"Inclusive binned mean: {inclusive_binned_mean}")
+    logger.debug(f"Inclusive binned mean: {inclusive_binned_mean}")
 
     hists = []
     # Inclusive
     hists.append(histogram.Histogram1D(
-        bin_edges = x_bin_edges, y = np.sum(h_inclusive, axis = 1), errors_squared = np.sum(h_inclusive[:, 0]),
+        bin_edges = x_bin_edges, y = np.sum(h_inclusive, axis = 1), errors_squared = np.sum(h_inclusive, axis = 1),
     ))
     # Width = 1
     hists.append(histogram.Histogram1D(
-        bin_edges = x_bin_edges, y = h_inclusive[:, 0], errors_squared = np.copy(h_inclusive[:, 0]),
+        bin_edges = x_bin_edges, y = h_inclusive[:, 0], errors_squared = h_inclusive[:, 0],
     ))
     # Width = 2
     hists.append(histogram.Histogram1D(
-        bin_edges = x_bin_edges, y = h_inclusive[:, 1], errors_squared = np.copy(h_inclusive[:, 1]),
+        bin_edges = x_bin_edges, y = h_inclusive[:, 1], errors_squared = h_inclusive[:, 1],
     ))
     # Width = 3
     hists.append(histogram.Histogram1D(
-        bin_edges = x_bin_edges, y = h_inclusive[:, 2], errors_squared = np.copy(h_inclusive[:, 2]),
+        bin_edges = x_bin_edges, y = h_inclusive[:, 2], errors_squared = h_inclusive[:, 2],
     ))
 
     # Scale by number of triggers.
     #for h, n_trig in zip(hists, n_trigs):
     #for i, n_trig in enumerate(n_trigs):
-    #    print(f" pre scale {i}: {np.max(hists[i].y)}")
-    #    print(f"scale by {1 / n_trig}")
+    #    logger.debug(f" pre scale {i}: {np.max(hists[i].y)}")
+    #    logger.debug(f"scale by {1 / n_trig}")
     #    hists[i] *= 1.0 / n_trig
     #    #h = h * 1.0 / n_trig
-    #    print(f"post scale {i}: {np.max(hists[i].y)}")
+    #    logger.debug(f"post scale {i}: {np.max(hists[i].y)}")
 
     # Quickly plot hists
     fig, ax = plt.subplots(figsize = (8, 6))
@@ -163,10 +186,12 @@ def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
     fig, ax = plt.subplots(figsize = (8, 6))
     gaussian_fit_results = []
     for i, h in enumerate(hists):
-        cost_func = fit.BinnedLogLikelihood(f = scaled_gaussian, data = h)
+        # First try just -3 to 3
+        #cost_func = fit.BinnedLogLikelihood(f = scaled_gaussian, data = restrict_hist_range(h, -3, 3))
+        cost_func = fit.BinnedLogLikelihood(f = unnormalized_gaussian, data = restrict_hist_range(h, -3, 3))
         minuit_args: Dict[str, Union[float, Tuple[float, float]]] = {
             "mean": 0, "fix_mean": True,
-            "sigma": 1.0, "error_sigma": 0.1, "limit_sigma": (0, 100),
+            "sigma": 1.0, "error_sigma": 0.1, "limit_sigma": (0, 10),
             "amplitude": 100.0, "error_amplitude": 0.1,
         }
         fit_result, _ = fit.fit_with_minuit(
@@ -181,26 +206,68 @@ def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
         else:
             plot_label = "inclusive"
         ax.errorbar(h.x, h.y, yerr = h.errors, marker = "o", linestyle = "", label = f"Data {plot_label}")
-        ax.plot(h.x, scaled_gaussian(h.x, *list(fit_result.values_at_minimum.values())), label = f"Fit {plot_label}", zorder = 5)
+        #ax.plot(h.x, scaled_gaussian(h.x, *list(fit_result.values_at_minimum.values())), label = f"Fit {plot_label}", zorder = 5)
+        ax.plot(h.x, unnormalized_gaussian(h.x, *list(fit_result.values_at_minimum.values())), label = f"Fit {plot_label}", zorder = 5)
 
     values_at_zero_from_hist = []
     for h in hists:
         values_at_zero_from_hist.append(h.y[h.find_bin(0.0)])
     values_at_zero_from_fits = []
     for fit_result in gaussian_fit_results:
-        values_at_zero_from_fits.append(scaled_gaussian(0, *list(fit_result.values_at_minimum.values())))
+        #values_at_zero_from_fits.append(scaled_gaussian(0, *list(fit_result.values_at_minimum.values())))
+        values_at_zero_from_fits.append(unnormalized_gaussian(0, *list(fit_result.values_at_minimum.values())))
     sum_of_last_3_from_hist = np.sum(values_at_zero_from_hist[1:])
     sum_of_last_3_from_fit = np.sum(values_at_zero_from_fits[1:])
-    print(f"Values at 0 from hist: {values_at_zero_from_hist}, Sum of last 3: {sum_of_last_3_from_hist}, Diff: {_percent_diff(values_at_zero_from_hist[0], sum_of_last_3_from_hist):.3f}%")
-    print(f"Values at 0 from fit: {values_at_zero_from_fits}, Sum of last 3: {sum_of_last_3_from_fit}, Diff: {_percent_diff(values_at_zero_from_fits[0], sum_of_last_3_from_fit):.3f}%")
+    logger.debug(f"Values at 0 from hist: {values_at_zero_from_hist}, Sum of last 3: {sum_of_last_3_from_hist}, Diff: {_percent_diff(values_at_zero_from_hist[0], sum_of_last_3_from_hist):.3f}%")
+    logger.debug(f"Values at 0 from fit: {values_at_zero_from_fits}, Sum of last 3: {sum_of_last_3_from_fit}, Diff: {_percent_diff(values_at_zero_from_fits[0], sum_of_last_3_from_fit):.3f}%")
 
-    # TODO: Predict gaussian fit and plot
+    # Predict gaussian fit and plot based on previous fit
+    calculate_variances(hists, gaussian_fit_results)
+
+    import IPython
+    IPython.embed()
 
     # Final adjustments
     ax.legend()
     ax.set_title(f"{label} widths")
     fig.tight_layout()
     fig.savefig(f"gaussian_fit_{label}.pdf")
+
+def calculate_variances(hists: Sequence[histogram.Histogram1D], gaussian_fit_results: Sequence[fit.FitResult]) -> None:
+    """ Calculate variances in a variety of routes. """
+    def f(x: np.ndarray, amplitudes: Sequence[float], sigmas: Sequence[float]) -> np.ndarray:
+        return reduce(
+            lambda x, y: x + y,
+            [A / sigma * np.exp(-x ** 2 / (2 * sigma ** 2)) for A, sigma in zip(amplitudes, sigmas)]
+        )
+
+    amplitudes_list = []
+    sigmas_list = []
+    x = hists[0].x
+    for fit_result in gaussian_fit_results[1:]:
+        #amplitudes_list.append(scaled_gaussian(0, *list(fit_result.values_at_minimum.values())))
+        amplitudes_list.append(unnormalized_gaussian(0, *list(fit_result.values_at_minimum.values())))
+        sigmas_list.append(fit_result.values_at_minimum["sigma"])
+    amplitudes = np.array(amplitudes_list)
+    sigmas = np.array(sigmas_list)
+    numerator = np.sum(amplitudes / sigmas)
+    denominator = f(x, amplitudes, sigmas)
+    sigma_inclusive = np.sqrt(x ** 2 / (2 * np.log1p(numerator / denominator)))
+
+    A_inclusive_at_0 = np.sum(amplitudes)
+    A_inclusive = np.sum(amplitudes / sigmas) * sigma_inclusive
+    logger.debug(f"A_inclusive_at_0: {A_inclusive_at_0}, A_inclusive: {A_inclusive}")
+    logger.debug(f"sigma_inclusive: {sigma_inclusive}")
+
+    # Check variance of the x weighted by f(x) = A_i / sqrt(2 * np.pi * sigma_i ** 2) * np.exp(-x ** 2 / (2 * sigma_i **2))
+    mean = np.average(x, weights = f(x, amplitudes, sigmas))
+    variance = np.average((x - mean) ** 2, weights = f(x, amplitudes, sigmas))
+    # Check out varaince for comparison
+    stats = histogram.calculate_binned_stats(hists[0].bin_edges, hists[0].y, hists[0].errors_squared)
+    variance_hist = histogram.binned_variance(stats)
+    logger.debug(f"Calculated mean: {mean}, variance: {variance}, sqrt: {np.sqrt(variance)}")
+    logger.debug(f"Calculated variance: {variance}, from histogram: {variance_hist}, percent difference: {_percent_diff(variance_hist, variance):.3f}%")
+    logger.debug("Conclusion: The variance difference it too large when the widths are too different :-(")
 
 def _percent_diff(expected: float, predicted: float) -> float:
     """ Calculate the percent difference.
@@ -214,9 +281,17 @@ def _percent_diff(expected: float, predicted: float) -> float:
     return (predicted - expected) / expected * 100.
 
 if __name__ == "__main__":
-    print("---- New explorations ----")
-    new_combine_gaussians(label = "broad", widths = [1, 2, 3])
+    # Basic setup
+    coloredlogs.install(
+        level = logging.DEBUG,
+        fmt = "%(asctime)s %(name)s:%(lineno)d %(levelname)s %(message)s"
+    )
+    # Quiet down the matplotlib logging
+    logging.getLogger("matplotlib").setLevel(logging.INFO)
+
+    logger.debug("---- New explorations ----")
     new_combine_gaussians(label = "narrow", widths = [0.95, 1.0, 1.05])
-    print("---- Older explorations -----")
+    new_combine_gaussians(label = "broad", widths = [1, 2, 3])
+    logger.debug("---- Older explorations -----")
     combine_gaussians()
 
