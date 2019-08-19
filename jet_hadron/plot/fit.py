@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # Typing helpers
 FitObjects = Mapping[Any, rpf.fit.ReactionPlaneFit]
-ReferenceData = Mapping[str, Mapping[str, histogram.Histogram1D]]
+ReferenceData = Mapping[str, Any]
 
 @dataclass
 class ParameterInfo:
@@ -46,11 +46,13 @@ class ParameterInfo:
         output_name: Name under which the plot will be stored.
         labels: Title and axis labels for the plot.
         plot_reference_data_func: Function to handle plotting provided reference data. Optional.
+        transform_fit_data: Function to transform the fit data for plotting.
     """
     name: str
     output_name: str
     labels: plot_base.PlotLabels
-    plot_reference_data_func: Optional[Callable[..., None]] = None
+    plot_reference_data_func: Optional[Callable[..., Optional[List[Any]]]] = None
+    transform_fit_data: Optional[Callable[[histogram.Histogram1D], histogram.Histogram1D]] = None
 
 def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
                                     parameter: ParameterInfo,
@@ -61,39 +63,68 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # Extract the parameter values from each fit object.
-    bin_centers = np.zeros(len(fit_objects))
-    parameter_values = np.zeros(len(fit_objects))
-    parameter_values_errors = np.zeros(len(fit_objects))
-    for i, (key_index, fit_object) in enumerate(fit_objects.items()):
-        bin_centers[i] = key_index.track_pt_bin.bin_center
-        parameter_values[i] = fit_object.fit_result.values_at_minimum[parameter.name]
-        parameter_values_errors[i] = fit_object.fit_result.errors_on_parameters[parameter.name]
+    bin_edges = []
+    parameter_values = []
+    parameter_errors = []
+    for key_index, fit_object in fit_objects.items():
+        # First take all of the lower edges.
+        # This assumes that the bins are continuous.
+        bin_edges.append(key_index.track_pt_bin.min)
+        parameter_values.append(fit_object.fit_result.values_at_minimum[parameter.name])
+        parameter_errors.append(fit_object.fit_result.errors_on_parameters[parameter.name])
+    # Now grab the last upper edge. The last key_index is still valid.
+    bin_edges.append(key_index.track_pt_bin.max)
+
+    # Store the data into a convenient form.
+    data = histogram.Histogram1D(bin_edges = bin_edges, y = parameter_values, errors_squared = np.array(parameter_errors) ** 2)
+
+    # Transform the plotted data.
+    if parameter.transform_fit_data:
+        data = parameter.transform_fit_data(data)
 
     # Plot the particular parameter.
     ax.errorbar(
-        bin_centers, parameter_values, yerr = parameter_values_errors,
+        data.x, data.y, yerr = data.errors,
         marker = "o", linestyle = "",
         label = parameter.labels.title,
     )
 
+    handles: Optional[List[Any]] = []
     if parameter.plot_reference_data_func:
-        parameter.plot_reference_data_func(
+        handles = parameter.plot_reference_data_func(
             reference_data, ax,
             selected_analysis_options,
         )
 
     # Labeling
     parameter.labels.apply_labels(ax)
-    ax.legend(loc = "upper left", frameon = False)
+    legend_kwargs = dict(
+        loc = "upper left", frameon = False
+    )
+    # Add custom legend handles from the reference data.
+    if handles:
+        legend_kwargs["handles"] = handles
+    ax.legend(**legend_kwargs)
     # Final adjustments
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig, parameter.output_name)
     plt.close(fig)
 
-def _reference_v2_a_data(reference_data: ReferenceData,
-                         ax: matplotlib.axes.Axes,
-                         selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+def _plot_reference_vn_data(variable_name: str, harmonic: int, reference_data: ReferenceData,
+                            ax: matplotlib.axes.Axes,
+                            selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+    """ Plot the reference vn data histogram on the given axis.
+
+    Args:
+        variable_name: Name of the variable to plot.
+        harmonic: Harmonic of the data to be plotted. Usually related to the variable name.
+        reference_data: Reference data to be used for plotting.
+        ax: Axis where the data should be plotted.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+    Returns:
+        None. The data is plotted on the given axis.
+    """
     # Determine the centrality key (because they don't map cleanly onto our centrality ranges)
     reference_data_centrality_map = {
         params.EventActivity.central: "0-5",
@@ -101,14 +132,123 @@ def _reference_v2_a_data(reference_data: ReferenceData,
     }
     centrality_label = reference_data_centrality_map[selected_analysis_options.event_activity]
     # Retrieve the data
-    hist = reference_data["ptDependent"][centrality_label]
+    hist = reference_data["ptDependent"][variable_name][centrality_label]
 
     # Plot and label it on the existing axis.
     ax.errorbar(
         hist.x, hist.y, yerr = hist.errors,
         marker = "o", linestyle = "",
-        label = fr"ALICE {centrality_label}\% " + labels.make_valid_latex_string("v_{2}") + r"\{2, $| \Delta\eta |>1$\}",
+        label = fr"ALICE {centrality_label}\% "
+                + labels.make_valid_latex_string(f"v_{{ {harmonic} }}") + r"\{2, $| \Delta\eta |>1$\}",
     )
+
+def _reference_v2_a_data(reference_data: ReferenceData,
+                         ax: matplotlib.axes.Axes,
+                         selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+    """ Plot reference v2_a data.
+
+    Args:
+        reference_data: Reference data to be used for plotting.
+        ax: Axis where the data should be plotted.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+    Returns:
+        None. The data is plotted on the given axis.
+    """
+    _plot_reference_vn_data(variable_name = "v2_a", harmonic = 2, reference_data = reference_data,
+                            ax = ax, selected_analysis_options = selected_analysis_options)
+
+def _reference_v2_t_data(reference_data: ReferenceData,
+                         ax: matplotlib.axes.Axes,
+                         selected_analysis_options: params.SelectedAnalysisOptions) -> List[Any]:
+    """ Plot reference v2_t data point.
+
+    Args:
+        reference_data: Reference data to be used for plotting.
+        ax: Axis where the data should be plotted.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+    Returns:
+        None. The data is plotted on the given axis.
+    """
+    # Determine the centrality key (because they don't map cleanly onto our centrality ranges)
+    reference_data_centrality_map = {
+        params.EventActivity.central: "0-5",
+        params.EventActivity.semi_central: "30-50",
+    }
+    centrality_label = reference_data_centrality_map[selected_analysis_options.event_activity]
+    # Retrieve the data. It's a single point in contrast to the other reference data
+    data = reference_data["ptDependent"]["v2_t"][centrality_label]
+    pt_range = params.SelectedRange(*data["jet_pt_range"])
+    y_min, y_max = ax.get_ylim()
+    ax.set_ylim(y_min, data["value"] * 1.1 if y_max < data["value"] else y_max)
+
+    # Draw the data as an arrow
+    # The arrow points from xytext to xy
+    x_min, x_max = ax.get_xlim()
+    ax.annotate(
+        "", xytext = (x_max, data["value"]),
+        # The arrow should go in 10% of the plot.
+        xy = (x_max - (x_max - x_min) * 0.10, data["value"]), xycoords = "data",
+        arrowprops = dict(arrowstyle = "simple")
+    )
+    # And then label. We can't add the label with the arrow together because we
+    # can't control the text position well enough.
+    label = "Jet $v_{2}$"
+    ax.annotate(
+        label, xy = (x_max - (x_max - x_min) * 0.05, data["value"] * 1.05),
+        horizontalalignment="center",
+        verticalalignment="center",
+    )
+    # Add the full information to the legend
+    legend_label = fr"ALICE {centrality_label}\%, Jet $v_{2}$ {pt_range.min}-{pt_range.max} ${labels.momentum_units_label_gev()}$"
+    # Help out mypy...
+    handles: List[Any]
+    handles, legend_labels = ax.get_legend_handles_labels()
+    handles.append(matplotlib.lines.Line2D([0], [0], label = legend_label))
+
+    return handles
+
+def _reference_v3_data(reference_data: ReferenceData,
+                       ax: matplotlib.axes.Axes,
+                       selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+    """ Plot reference v3 data.
+
+    Args:
+        reference_data: Reference data to be used for plotting.
+        ax: Axis where the data should be plotted.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+    Returns:
+        None. The data is plotted on the given axis.
+    """
+    _plot_reference_vn_data(variable_name = "v3", harmonic = 3, reference_data = reference_data,
+                            ax = ax, selected_analysis_options = selected_analysis_options)
+
+def _square_root_v3_2(data: histogram.Histogram1D) -> histogram.Histogram1D:
+    """ Transform the v3^2 data into v3 data.
+
+    Args:
+        data: Input data.
+    Returns:
+        Transformed data.
+    """
+    # Take the square root of the v3^2 values to compare to the reference data.
+    parameter_values = np.sqrt(data.y)
+    errors = 1 / 2 * data.errors / parameter_values
+    return histogram.Histogram1D(bin_edges = data.bin_edges, y = parameter_values, errors_squared = errors ** 2)
+
+def _reference_v4_a_data(reference_data: ReferenceData,
+                         ax: matplotlib.axes.Axes,
+                         selected_analysis_options: params.SelectedAnalysisOptions) -> None:
+    """ Plot reference v4_a data.
+
+    Args:
+        reference_data: Reference data to be used for plotting.
+        ax: Axis where the data should be plotted.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+    Returns:
+        None. The data is plotted on the given axis.
+    """
+    _plot_reference_vn_data(variable_name = "v4_a", harmonic = 4, reference_data = reference_data,
+                            ax = ax, selected_analysis_options = selected_analysis_options)
 
 def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                                selected_analysis_options: params.SelectedAnalysisOptions,
@@ -145,6 +285,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             name = "v2_t",
             output_name = f"{prefix}_v2t",
             labels = plot_base.PlotLabels(title = r"Jet $v_{2}$", x_label = pt_assoc_label),
+            plot_reference_data_func = _reference_v2_t_data,
         ),
         ParameterInfo(
             name = "v2_a",
@@ -156,6 +297,8 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             name = "v3",
             output_name = f"{prefix}_v3",
             labels = plot_base.PlotLabels(title = r"$v_{3}$", x_label = pt_assoc_label),
+            plot_reference_data_func = _reference_v3_data,
+            transform_fit_data = _square_root_v3_2,
         ),
         ParameterInfo(
             name = "v4_t",
@@ -166,6 +309,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             name = "v4_a",
             output_name = f"{prefix}_v4a",
             labels = plot_base.PlotLabels(title = r"Associated hadron $v_{4}$", x_label = pt_assoc_label),
+            plot_reference_data_func = _reference_v4_a_data,
         ),
     ]
 
