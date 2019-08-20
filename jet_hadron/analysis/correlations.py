@@ -2030,10 +2030,10 @@ class CorrelationsManager(analysis_manager.Manager):
         fit_key_index = self.fit_key_index(**{k: v for k, v in key_index if k != "reaction_plane_orientation"})
 
         # Determine the user arguments.
-        user_arguments = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+        user_arguments = self.config["reaction_plane_fit_parameters"].get(f"{self.fit_type}", {}) \
             .get(inclusive_analysis.jet_pt_identifier, {}) \
             .get(inclusive_analysis.track_pt_identifier, {}).get("args", {})
-        use_log_likelihood = self.task_config["reaction_plane_fit"].get("fit_params", {}) \
+        use_log_likelihood = self.config["reaction_plane_fit_parameters"].get(f"{self.fit_type}", {}) \
             .get(inclusive_analysis.jet_pt_identifier, {}) \
             .get(inclusive_analysis.track_pt_identifier, {}).get("use_log_likelihood", False)
 

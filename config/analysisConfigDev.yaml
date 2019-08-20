@@ -119,30 +119,34 @@ Correlations:
                 - !TrackPtBin
                   bin: 6
                   range: !SelectedRange [3.0, 4.0]
-                #- !TrackPtBin
-                #  bin: 7
-                #  range: !SelectedRange [4.0, 5.0]
-                #- !TrackPtBin
-                #  bin: 8
-                #  range: !SelectedRange [5.0, 6.0]
+                - !TrackPtBin
+                  bin: 7
+                  range: !SelectedRange [4.0, 5.0]
+                - !TrackPtBin
+                  bin: 8
+                  range: !SelectedRange [5.0, 6.0]
+                - !TrackPtBin
+                  bin: 9
+                  range: !SelectedRange [6.0, 10.0]
             jet_pt_bin:
                 - !JetPtBin
                   bin: 2
                   range: !SelectedRange [20, 40]
+# Parameters that we want to override. They can't be overridden if they
+# are stored in the task config, so we add dummy variables here to be overridden.
 # Default to 2.76 central resolution parmeters
 resolution_parameters:
-    R22: 0.5713
-    R42: &R42 0.2972
-    R62: 0
-    R82: 0
+    null: null
+reaction_plane_fit_parameters:
+    null: null
 CorrelationsManager:
     processing_options:
-        fit_correlations: false
-        plot_RPF: false
-        plot_RPF_summary: false
+        fit_correlations: true
+        plot_RPF: true
+        plot_RPF_summary: true
         plot_delta_eta_fit: false
-        subtract_correlations: false
-        plot_subtracted_correlations: false
+        subtract_correlations: true
+        plot_subtracted_correlations: true
         # Yields
         extract_yields: true
         plot_yields: true
@@ -156,88 +160,6 @@ CorrelationsManager:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
         fit_type: "BackgroundFit"
-        fit_params:
-            # Assuming semi-central parameters...
-            jetPtBiased_20_40:
-                trackPt_0.5_1.0:
-                    args:
-                        # Background terms
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                trackPt_1.0_1.5:
-                    args:
-                        # Background terms
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                trackPt_1.5_2.0:
-                    args:
-                        # Background terms
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                        v4_t: 0.01
-                        limit_v4_t: [0, 0.1]
-                        v4_a: 0.1
-                        limit_v4_a: [0, 0.2]
-                trackPt_2.0_3.0:
-                    args:
-                        # Signal terms
-                        #fix_BG: true
-                        #BG: 0
-                        #ns_amplitude: 1.0
-                        #as_amplitude: 0.2
-                        # Background terms
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                        v3: 0.0015
-                        #<<: *fixed_v4
-                        v4_t: 0.01
-                        limit_v4_t: [0, 0.1]
-                        v4_a: 0.1
-                        limit_v4_a: [0, 0.2]
-                #    use_log_likelihood: true
-                trackPt_3.0_4.0:
-                    args:
-                        v2_t: 0.04
-                        limit_v2_t: [0.0005, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                        #<<: *fixed_v4
-                        v4_t: 0.01
-                        limit_v4_t: [0, 0.1]
-                        v4_a: 0.1
-                        limit_v4_a: [0, 0.2]
-                trackPt_4.0_5.0:
-                    args:
-                        <<: *fixed_v4
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                #    use_log_likelihood: true
-                trackPt_5.0_6.0:
-                    args:
-                        <<: *fixed_v4
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                    use_log_likelihood: true
-                trackPt_6.0_10.0:
-                    args:
-                        <<: *fixed_v4
-                        v2_t: 0.04
-                        limit_v2_t: [0.001, 0.15]
-                        v2_a: 0.15
-                        limit_v2_a: [0.03, 0.5]
-                    use_log_likelihood: true
     override:
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
@@ -273,6 +195,89 @@ CorrelationsManager:
                     R42: 0.5046126852106662
                     R62: 0.3020062445564112
                     R82: 0
+                reaction_plane_fit_parameters:
+                    BackgroundFit:
+                        jetPtBiased_20_40:
+                            trackPt_0.5_1.0:
+                                args:
+                                    # Background terms
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                use_log_likelihood: True
+                            trackPt_1.0_1.5:
+                                args:
+                                    # Background terms
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                            trackPt_1.5_2.0:
+                                args:
+                                    # Background terms
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    v4_t: 0.01
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.1
+                                    limit_v4_a: [0, 0.2]
+                            trackPt_2.0_3.0:
+                                args:
+                                    # Signal terms
+                                    #fix_BG: true
+                                    #BG: 0
+                                    #ns_amplitude: 1.0
+                                    #as_amplitude: 0.2
+                                    # Background terms
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    v3: 0.0015
+                                    #<<: *fixed_v4
+                                    v4_t: 0.01
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.1
+                                    limit_v4_a: [0, 0.2]
+                            #    use_log_likelihood: true
+                            trackPt_3.0_4.0:
+                                args:
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.0005, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    #<<: *fixed_v4
+                                    v4_t: 0.01
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.1
+                                    limit_v4_a: [0, 0.2]
+                            trackPt_4.0_5.0:
+                                args:
+                                    <<: *fixed_v4
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                            #    use_log_likelihood: true
+                            trackPt_5.0_6.0:
+                                args:
+                                    <<: *fixed_v4
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                use_log_likelihood: true
+                            trackPt_6.0_10.0:
+                                args:
+                                    <<: *fixed_v4
+                                    v2_t: 0.04
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                use_log_likelihood: true
 
 ##################################################
 # General histograms for the correlation analysis.
