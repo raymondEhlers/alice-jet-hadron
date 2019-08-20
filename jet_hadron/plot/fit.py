@@ -251,6 +251,7 @@ def _reference_v4_a_data(reference_data: ReferenceData,
                             ax = ax, selected_analysis_options = selected_analysis_options)
 
 def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
+                               fit_type: str,
                                selected_analysis_options: params.SelectedAnalysisOptions,
                                reference_data_path: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
@@ -258,6 +259,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
 
     Args:
         fit_objects: Fit objects whose parameters will be plotted.
+        fit_type: Name of the type of fit.
         selected_analysis_options: Selected analysis options to be used for labeling.
         reference_data_path: Path to the reference data.
         output_info: Output information.
@@ -279,7 +281,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
     pt_assoc_label = labels.make_valid_latex_string(
         f"{labels.track_pt_display_label()} ({labels.momentum_units_label_gev()})"
     )
-    prefix = "fit_parameter"
+    prefix = f"{fit_type}_fit_parameter"
     parameters = [
         ParameterInfo(
             name = "v2_t",

@@ -744,7 +744,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # For truncate, see: https://stackoverflow.com/a/2769090
             f.truncate(0)
 
-            logger.debug(f"output: {output}")
+            #logger.debug(f"output: {output}")
 
             # Now look for the histograms to write
             for _, observable in hists:
@@ -1930,6 +1930,7 @@ class CorrelationsManager(analysis_manager.Manager):
             iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
         )
         self.fit_objects: Dict[Any, rpf_fit.ReactionPlaneFit] = {}
+        self.fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
 
         # General histograms
         self.general_histograms = GeneralHistogramsManager(
@@ -2080,8 +2081,7 @@ class CorrelationsManager(analysis_manager.Manager):
                     f"Performing RPF for {inclusive_analysis.jet_pt_identifier},"
                     f" {inclusive_analysis.track_pt_identifier}"
                 )
-                fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
-                FitFunction = getattr(three_orientations, fit_type)
+                FitFunction = getattr(three_orientations, self.fit_type)
                 fit_obj: three_orientations.ReactionPlaneFit = FitFunction(
                     resolution_parameters = resolution_parameters,
                     use_log_likelihood = use_log_likelihood,
@@ -2092,7 +2092,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 # Now, perform the fit (or load in the fit result).
                 rpf_filename = os.path.join(
-                    self.output_info.output_prefix, f"RPFitResult_{fit_type}_{inclusive_analysis.identifier}.yaml"
+                    self.output_info.output_prefix, f"RPFitResult_{self.fit_type}_{inclusive_analysis.identifier}.yaml"
                 )
                 if self.processing_options["fit_correlations"]:
                     # Perform the fit.
@@ -2130,20 +2130,20 @@ class CorrelationsManager(analysis_manager.Manager):
                         inclusive_analysis = inclusive_analysis,
                         ep_analyses = ep_analyses,
                         output_info = self.output_info,
-                        output_name = f"{fit_type}_{inclusive_analysis.identifier}",
+                        output_name = f"{self.fit_type}_{inclusive_analysis.identifier}",
                     )
 
                     # Covariance matrix
                     plot_fit.rpf_covariance_matrix(
                         fit_obj.fit_result,
                         output_info = self.output_info,
-                        identifier = f"{fit_type}_{inclusive_analysis.identifier}",
+                        identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
                     )
                     # Correlation matrix
                     plot_fit.rpf_correlation_matrix(
                         fit_obj.fit_result,
                         output_info = self.output_info,
-                        identifier = f"{fit_type}_{inclusive_analysis.identifier}",
+                        identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
                     )
 
                 # Update progress
@@ -2155,6 +2155,7 @@ class CorrelationsManager(analysis_manager.Manager):
             # Fit parameters
             plot_fit.fit_parameters_vs_assoc_pt(
                 fit_objects = self.fit_objects,
+                fit_type = self.fit_type,
                 selected_analysis_options = self.selected_analysis_options,
                 reference_data_path = os.path.join(
                     "inputData",
@@ -2223,12 +2224,11 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 # Plot all RP fit angles together
                 if self.processing_options["plot_subtracted_correlations"]:
-                    fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
                     plot_fit.rp_fit_subtracted(
                         ep_analyses = ep_analyses,
                         inclusive_analysis = inclusive_analysis,
                         output_info = self.output_info,
-                        output_name = f"{fit_type}_{inclusive_analysis.identifier}",
+                        output_name = f"{self.fit_type}_{inclusive_analysis.identifier}",
                     )
 
                 # Update progress
