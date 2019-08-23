@@ -427,6 +427,26 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
             # Finally, setup the fit function
             self.fit_function = degree_1_polynomial
 
+        def _post_init_validation(self) -> None:
+            """ Validate that the fit object was setup properly.
+
+            This can be any method that the user devises to ensure that
+            all of the information needed for the fit is available.
+
+            Args:
+                None.
+            Returns:
+                None.
+            """
+            fit_range = self.fit_options.get("range", None)
+            # Check that the fit range is specified
+            if fit_range is None:
+                raise ValueError("Fit range must be provided in the fit options.")
+
+            # Check that the fit range is a SelectedRange (this isn't really suitable for duck typing)
+            if not isinstance(fit_range, params.SelectedRange):
+                raise ValueError("Must provide fit range with a selected range or a set of two values")
+
         def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, fit.FitArguments]:
             """ Setup the histogram and arguments for the fit.
 
@@ -436,11 +456,12 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
                 Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
                     restricted or otherwise modified here.
             """
+            fit_range = self.fit_options["range"]
             # Restrict the range so that we only fit within the desired input.
-            restricted_range = (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+            restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
             restricted_hist = histogram.Histogram1D(
                 # We need the bin edges to be inclusive.
-                bin_edges = h.bin_edges[(h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)],
+                bin_edges = h.bin_edges[(h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max)],
                 y = h.y[restricted_range],
                 errors_squared = h.errors_squared[restricted_range]
             )

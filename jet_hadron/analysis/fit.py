@@ -15,6 +15,7 @@ from abc import ABC
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
 
 import pachyderm.fit
+import pachyderm.fit.function
 from pachyderm import histogram, yaml
 
 from jet_hadron.base import params
@@ -295,20 +296,65 @@ class Fit(ABC):
         fit_function: Function to be fit.
         fit_result: Result of the fit. Only valid after the fit has been performed.
     """
-    def __init__(self, fit_range: params.SelectedRange, user_arguments: Optional[FitArguments] = None):
+    # TODO: Update docs...
+    def __init__(self, use_log_likelihood: bool, fit_options: Optional[Dict[str, Any]] = None,
+                 user_arguments: Optional[FitArguments] = None):
         # Validation
         if user_arguments is None:
             user_arguments = {}
-        self.fit_range = fit_range
+        if fit_options is None:
+            fit_options = {}
+        self.fit_options = fit_options
+        self.use_log_likelihood = use_log_likelihood
         self.user_arguments: FitArguments = user_arguments
         self.fit_function: Callable[..., float]
         self.fit_result: pachyderm.fit.FitResult
+
+        # Create the cost function based on the fit parameters.
+        self._cost_func: Type[pachyderm.fit.cost_function.DataComparisonCostFunction]
+        if use_log_likelihood:
+            self._cost_func = pachyderm.fit.BinnedLogLikelihood
+        else:
+            self._cost_func = pachyderm.fit.BinnedChiSquared
+
+        # Check fit initialization.
+        self._post_init_validation()
+
+    @abc.abstractmethod
+    def _post_init_validation(self) -> None:
+        """ Validate that the fit object was setup properly.
+
+        This can be any method that the user devises to ensure that
+        all of the information needed for the fit is available.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        ...
+
+    def _create_cost_function(self, h: histogram.Histogram1D) -> pachyderm.fit.DataComparisonCostFunction:
+        """ Create the cost function from the data and stored parameters.
+
+        Args:
+            h: Data to be used for the fit.
+        Returns:
+            The created cost function.
+        """
+        return self._cost_func(f = self.fit_function, data = h)
 
     def __call__(self, *args: float, **kwargs: float) -> float:
         """ Call the fit function.
 
         This is provided for convenience. This way, we can easily evaluate the function while
         still storing the information necessary to perform the entire fit.
+
+        Args:
+            args: Arguments to pass to the fit function.
+            kwargs: Arguments to pass to the fit function.
+        Returns:
+            The fit function called with these arguments.
         """
         return self.fit_function(*args, **kwargs)
 
@@ -334,7 +380,7 @@ class Fit(ABC):
         """ Fit the given histogram to the stored fit function using iminuit.
 
         Args:
-            h: Background subtracted histogram to be fit.
+            h: Histogram to be fit.
             user_arguments: Additional user arguments (beyond those already specified when the object
                 was created). Default: None.
             use_minos: If True, minos errors will be calculated. Default: False.
@@ -349,15 +395,20 @@ class Fit(ABC):
         # Update with any additional user provided arguments
         user_fit_arguments.update(user_arguments)
 
-        # Setup the fit
+        # Setup the fit and the cost function
         hist_for_fit, arguments = self._setup(h = h)
+        # We elect to create the cost fu
+        cost_func = self._create_cost_function(h = hist_for_fit)
 
         # Perform the fit by minimizing the chi squared
-        fit_result = fit_with_chi_squared(
-            fit_func = self.fit_function,
-            arguments = arguments, user_arguments = user_fit_arguments,
-            h = hist_for_fit, use_minos = use_minos
+        fit_result, _ = pachyderm.fit.fit_with_minuit(
+            cost_func = cost_func, minuit_args = user_fit_arguments,
+            log_likelihood = self.use_log_likelihood, x = hist_for_fit.x,
         )
+
+        # Calculate the fit result only if requested.
+        if self.fit_options.get("calculate_errors", False):
+            fit_result.errors = self.calculate_errors(hist_for_fit.x)
 
         return fit_result
 
@@ -384,6 +435,7 @@ class Fit(ABC):
         # (we won't really use this name, but it's useful to store what was used, and
         # we can at least warn if it changed).
         members["fit_function"] = obj.fit_function.__name__
+        members["_cost_func"] = obj._cost_func.__name__
         representation = representer.represent_mapping(
             f"!{cls.__name__}", members
         )
@@ -409,19 +461,23 @@ class Fit(ABC):
         # is the same as the one that we stored. (If they are different, this isn't necessarily
         # a problem, as we sometimes rename functions, but regardless it's good to be notified
         # if that's the case).
-        fit_function_name = members.pop("fit_function")
+        function_names = {}
+        for attr_name in ["fit_function", "_cost_func"]:
+            function_names[attr_name] = members.pop(attr_name)
 
         # Finally, create the object and set the properties as needed.
         obj = cls(**members)
         obj.fit_result = fit_result
-        # Sanity check on the fit function name (see above).
-        if fit_function_name != obj.fit_function.__name__:
-            logger.warning(
-                "The stored fit function name from YAML doesn't match the name of the fit function"
-                " created in the fit object."
-                f" Stored name: {fit_function_name}, object created fit function: {obj.fit_function.__name__}."
-                " This may indicate a problem (but is fine if the same function was just renamed)."
-            )
+        # Sanity checks on function names (see above).
+        for attr_name, function_name in function_names.items():
+            # Sanity check on the fit function name (see above).
+            if function_name != getattr(obj, attr_name).__name__:
+                logger.warning(
+                    "The stored '{attr_name}' function name from YAML doesn't match the name of the function"
+                    " created in the fit object."
+                    f" Stored name: {function_name}, object created fit function: {getattr(obj, attr_name).__name__}."
+                    " This may indicate a problem (but is fine if the same function was just renamed)."
+                )
 
         # Now that the object is fully constructed, we can return it.
         return obj
@@ -459,6 +515,26 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
         # Finally, setup the fit function
         self.fit_function = pedestal
 
+    def _post_init_validation(self) -> None:
+        """ Validate that the fit object was setup properly.
+
+        This can be any method that the user devises to ensure that
+        all of the information needed for the fit is available.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        fit_range = self.fit_options.get("range", None)
+        # Check that the fit range is specified
+        if fit_range is None:
+            raise ValueError("Fit range must be provided in the fit options.")
+
+        # Check that the fit range is a SelectedRange (this isn't really suitable for duck typing)
+        if not isinstance(fit_range, params.SelectedRange):
+            raise ValueError("Must provide fit range with a selected range or a set of two values")
+
     def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
         """ Setup the histogram and arguments for the fit.
 
@@ -468,16 +544,17 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
             Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
                 restricted or otherwise modified here.
         """
+        fit_range = self.fit_options["range"]
         restricted_range = (
             # For example, -1.2 < h.x < -0.8
-            ((h.x < -1 * self.fit_range.min) & (h.x > -1 * self.fit_range.max))
+            ((h.x < -1 * fit_range.min) & (h.x > -1 * fit_range.max))
             # For example, 0.8 < h.x < 1.2
-            | ((h.x > self.fit_range.min) & (h.x < self.fit_range.max))
+            | ((h.x > fit_range.min) & (h.x < fit_range.max))
         )
         # Same conditions as above, but we need the bin edges to be inclusive.
         bin_edges_restricted_range = (
-            ((h.bin_edges <= -1 * self.fit_range.min) & (h.bin_edges >= -1 * self.fit_range.max))
-            | ((h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max))
+            ((h.bin_edges <= -1 * fit_range.min) & (h.bin_edges >= -1 * fit_range.max))
+            | ((h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max))
         )
         restricted_hist = histogram.Histogram1D(
             bin_edges = h.bin_edges[bin_edges_restricted_range],
@@ -495,22 +572,8 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
 
         return restricted_hist, arguments
 
-def gaussian(x: float, mean: float, width: float) -> float:
-    """ Normalized gaussian.
-
-    Args:
-        x: Independent variable.
-        mean: Mean.
-        width: Width.
-    Returns:
-        Normalized gaussian value.
-    """
-    return cast(
-        float,
-        1 / np.sqrt(2 * np.pi * width ** 2) * np.exp(-1 / 2 * ((x - mean) / width) ** 2),
-    )
-
-def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitude: float, pedestal: float) -> float:
+def pedestal_with_extended_gaussian(x: Union[float, np.ndarray], mean: float, width: float,
+                                    amplitude: float, pedestal: float) -> Union[float, np.ndarray]:
     """ Pedestal + extended (unnormalized) gaussian
 
     Args:
@@ -522,7 +585,7 @@ def pedestal_with_extended_gaussian(x: float, mean: float, width: float, amplitu
     Returns:
         Function value.
     """
-    return pedestal + amplitude * gaussian(x = x, mean = mean, width = width)
+    return pedestal + pachyderm.fit.functions.extended_gaussian(x = x, mean = mean, width = width, amplitude = amplitude)
 
 class FitPedestalWithExtendedGaussian(Fit):
     """ Fit a pedestal + extended (unnormalized) gaussian to a signal peak using iminuit.
@@ -538,6 +601,26 @@ class FitPedestalWithExtendedGaussian(Fit):
         # Finally, setup the fit function
         self.fit_function = pedestal_with_extended_gaussian
 
+    def _post_init_validation(self) -> None:
+        """ Validate that the fit object was setup properly.
+
+        This can be any method that the user devises to ensure that
+        all of the information needed for the fit is available.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        fit_range = self.fit_options.get("range", None)
+        # Check that the fit range is specified
+        if fit_range is None:
+            raise ValueError("Fit range must be provided in the fit options.")
+
+        # Check that the fit range is a SelectedRange (this isn't really suitable for duck typing)
+        if not isinstance(fit_range, params.SelectedRange):
+            raise ValueError("Must provide fit range with a selected range or a set of two values")
+
     def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
         """ Setup the histogram and arguments for the fit.
 
@@ -547,11 +630,12 @@ class FitPedestalWithExtendedGaussian(Fit):
             Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
                 restricted or otherwise modified here.
         """
+        fit_range = self.fit_options["range"]
         # Restrict the range so that we only fit within the desired input.
-        restricted_range = (h.x > self.fit_range.min) & (h.x < self.fit_range.max)
+        restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
         restricted_hist = histogram.Histogram1D(
             # We need the bin edges to be inclusive.
-            bin_edges = h.bin_edges[(h.bin_edges >= self.fit_range.min) & (h.bin_edges <= self.fit_range.max)],
+            bin_edges = h.bin_edges[(h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max)],
             y = h.y[restricted_range],
             errors_squared = h.errors_squared[restricted_range]
         )

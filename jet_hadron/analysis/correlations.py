@@ -506,22 +506,24 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.widths_delta_phi: CorrelationWidths = CorrelationWidths(
             near_side = extracted.ExtractedWidth(
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
-                    fit_range = self.near_side_phi_region.range,
+                    fit_options = {"range": self.near_side_phi_region.range},
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
                         "width": 0.15, "limit_width": (0.05, 1.0),
                     },
+                    use_log_likelihood = False,
                 ),
                 # Additional fit arguments.
                 fit_args = {},
             ),
             away_side = extracted.ExtractedWidth(
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
-                    fit_range = self.away_side_phi_region.range,
+                    fit_options = {"range": self.away_side_phi_region.range},
                     user_arguments = {
                         "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
                         "width": 0.3, "limit_width": (0.05, 1.5),
                     },
+                    use_log_likelihood = False,
                 ),
                 # Additional fit arguments.
                 fit_args = {},
@@ -530,22 +532,24 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.widths_delta_eta: CorrelationWidths = CorrelationWidths(
             near_side = extracted.ExtractedWidth(
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
-                    fit_range = self.signal_dominated_eta_region.range,
+                    fit_options = {"range": self.signal_dominated_eta_region.range},
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
                         "width": 0.15, "limit_width": (0.05, 1.0),
                     },
+                    use_log_likelihood = False,
                 ),
                 # Additional fit arguments.
                 fit_args = {},
             ),
             away_side = extracted.ExtractedWidth(
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
-                    fit_range = self.near_side_phi_region.range,
+                    fit_options = {"range": self.near_side_phi_region.range},
                     user_arguments = {
                         "mean": 0, "fix_mean": True,
                         "width": 0.3, "limit_width": (0.05, 1.5),
                     },
+                    use_log_likelihood = False,
                 ),
                 # Additional fit arguments.
                 fit_args = {},
@@ -556,10 +560,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.fit_object: rpf.fit.FitComponent
         self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
             near_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
-                fit_range = self.background_dominated_eta_region.range
+                fit_options = {"range": self.background_dominated_eta_region.range},
+                use_log_likelihood = False,
             ),
             away_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
-                fit_range = self.background_dominated_eta_region.range
+                fit_options = {"range": self.background_dominated_eta_region.range},
+                use_log_likelihood = False,
             ),
         )
 

@@ -154,7 +154,8 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
         # Convert the attribute name to display better. Ex: "near_side" -> "Near side"
         attribute_display_name = attribute_name.replace("_", " ").capitalize()
         # We only want to plot the fit over the range that it was fit.
-        restricted_range = (h.x > width_obj.fit_object.fit_range.min) & (h.x < width_obj.fit_object.fit_range.max)
+        restricted_range = (h.x > width_obj.fit_object.fit_options["range"].min) & \
+            (h.x < width_obj.fit_object.fit_options["range"].max)
         x = h.x[restricted_range]
 
         # Plot the fit
