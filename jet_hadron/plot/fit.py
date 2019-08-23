@@ -53,6 +53,7 @@ class ParameterInfo:
     labels: plot_base.PlotLabels
     plot_reference_data_func: Optional[Callable[..., Optional[List[Any]]]] = None
     transform_fit_data: Optional[Callable[[histogram.Histogram1D], histogram.Histogram1D]] = None
+    additional_plot_options: Optional[Dict[str, Union[str, bool]]] = None
 
 def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
                                     parameter: ParameterInfo,
@@ -76,7 +77,9 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
     bin_edges.append(key_index.track_pt_bin.max)
 
     # Store the data into a convenient form.
-    data = histogram.Histogram1D(bin_edges = bin_edges, y = parameter_values, errors_squared = np.array(parameter_errors) ** 2)
+    data = histogram.Histogram1D(
+        bin_edges = bin_edges, y = parameter_values, errors_squared = np.array(parameter_errors) ** 2
+    )
 
     # Transform the plotted data.
     if parameter.transform_fit_data:
@@ -88,6 +91,13 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
         marker = "o", linestyle = "",
         label = parameter.labels.title,
     )
+    # Handle parameter specific options
+    additional_plot_options = parameter.additional_plot_options
+    if additional_plot_options is None:
+        additional_plot_options = {}
+    logy = additional_plot_options.get("logy", False)
+    if logy:
+        ax.set_yscale("log")
 
     handles: Optional[List[Any]] = []
     if parameter.plot_reference_data_func:
@@ -98,8 +108,8 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
 
     # Labeling
     parameter.labels.apply_labels(ax)
-    legend_kwargs = dict(
-        loc = "upper left", frameon = False
+    legend_kwargs: Dict[str, Any] = dict(
+        loc = additional_plot_options.get("legend_location", "upper left"), frameon = False,
     )
     # Add custom legend handles from the reference data.
     if handles:
@@ -179,7 +189,7 @@ def _reference_v2_t_data(reference_data: ReferenceData,
     data = reference_data["ptDependent"]["v2_t"][centrality_label]
     pt_range = params.SelectedRange(*data["jet_pt_range"])
     y_min, y_max = ax.get_ylim()
-    ax.set_ylim(y_min, data["value"] * 1.1 if y_max < data["value"] else y_max)
+    ax.set_ylim(y_min, (data["value"] + data["error"]) * 1.1 if y_max < data["value"] + data["error"] else y_max)
 
     # Draw the data as an arrow
     # The arrow points from xytext to xy
@@ -198,8 +208,17 @@ def _reference_v2_t_data(reference_data: ReferenceData,
         horizontalalignment="center",
         verticalalignment="center",
     )
+    # And then the error band
+    r = matplotlib.patches.Rectangle(
+        (x_max - (x_max - x_min) * 0.08, data["value"] - data["error"]),
+        x_max, 2 * data["error"],
+        alpha = 0.5
+    )
+    ax.add_patch(r)
+
     # Add the full information to the legend
-    legend_label = fr"ALICE {centrality_label}\%, Jet $v_{2}$ {pt_range.min}-{pt_range.max} ${labels.momentum_units_label_gev()}$"
+    legend_label = (fr"ALICE {centrality_label}\%, Jet $v_{2}$"
+                    fr" {pt_range.min}-{pt_range.max} ${labels.momentum_units_label_gev()}$")
     # Help out mypy...
     handles: List[Any]
     handles, legend_labels = ax.get_legend_handles_labels()
@@ -359,6 +378,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                 name = "BG",
                 output_name = f"{prefix}_signal_background",
                 labels = plot_base.PlotLabels(title = r"Effective RPF background", x_label = pt_assoc_label),
+                additional_plot_options = {"logy": True, "legend_location": "upper right"},
             )
         )
     if "B" in fit_obj.fit_result.parameters:
@@ -367,6 +387,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                 name = "B",
                 output_name = f"{prefix}_background",
                 labels = plot_base.PlotLabels(title = r"RPF background", x_label = pt_assoc_label),
+                additional_plot_options = {"logy": True, "legend_location": "upper right"},
             )
         )
 
