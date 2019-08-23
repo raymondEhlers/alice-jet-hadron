@@ -11,7 +11,6 @@ import pachyderm.fit
 
 from jet_hadron.base import analysis_objects
 from jet_hadron.base import params
-from jet_hadron.analysis import fit
 
 @dataclass
 class ExtractedYield:
@@ -29,8 +28,8 @@ class ExtractedYield:
 
 @dataclass
 class ExtractedWidth:
-    fit_object: fit.Fit
-    fit_args: fit.FitArguments
+    fit_object: pachyderm.fit.Fit
+    fit_args: pachyderm.fit.T_FitArguments
 
     @property
     def fit_result(self) -> pachyderm.fit.FitResult:

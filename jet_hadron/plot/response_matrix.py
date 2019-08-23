@@ -15,6 +15,7 @@ import os
 import seaborn as sns
 from typing import Any, cast, Dict, Iterator, Sequence, Tuple, TYPE_CHECKING
 
+import pachyderm.fit
 from pachyderm import histogram
 from pachyderm import utils
 
@@ -397,8 +398,6 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
 
     # Setup rank 1 polynomial fit (not really the right place, but it's quick and fine
     # for these purposees).
-    from jet_hadron.analysis import fit
-
     def degree_1_polynomial(x: float, const: float, slope: float) -> float:
         """ Degree 1 polynomial.
 
@@ -411,7 +410,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
         """
         return const + x * slope
 
-    class Polynomial(fit.Fit):
+    class Polynomial(pachyderm.fit.Fit):
         """ Fit a degree-1 to the background dominated region of a delta eta hist.
 
         The initial value of the fit will be determined by the minimum y value of the histogram.
@@ -447,7 +446,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
             if not isinstance(fit_range, params.SelectedRange):
                 raise ValueError("Must provide fit range with a selected range or a set of two values")
 
-        def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, fit.FitArguments]:
+        def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, pachyderm.fit.FitArguments]:
             """ Setup the histogram and arguments for the fit.
 
             Args:
@@ -468,7 +467,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
 
             # Default arguments
             # Use the minimum of the histogram as the starting value.
-            arguments: fit.FitArguments = {
+            arguments: pachyderm.fit.FitArguments = {
                 "slope": 0, "error_slope": 0.005,
                 "const": 1, "error_const": 0.005,
                 "limit_slope": (-100, 100),

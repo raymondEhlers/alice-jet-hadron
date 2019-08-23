@@ -195,7 +195,7 @@ def new_combine_gaussians(label: str, widths: Sequence[float]) -> None:
             "amplitude": 100.0, "error_amplitude": 0.1,
         }
         fit_result, _ = fit.fit_with_minuit(
-            cost_func = cost_func, minuit_args = minuit_args, log_likelihood = True, x = h.x
+            cost_func = cost_func, minuit_args = minuit_args, x = h.x
         )
         gaussian_fit_results.append(fit_result)
 

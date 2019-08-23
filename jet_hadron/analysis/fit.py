@@ -5,18 +5,15 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-import abc
-import iminuit.util
 import logging
-import numpy as np
 import pprint
 import sys
-from abc import ABC
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, Type, TypeVar, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Sequence, Tuple, Union
 
+import numpy as np
 import pachyderm.fit
-import pachyderm.fit.function
-from pachyderm import histogram, yaml
+from pachyderm import histogram
+from pachyderm.fit import T_FitArguments
 
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
@@ -27,9 +24,6 @@ if TYPE_CHECKING:
     from jet_hadron.analysis import extracted
 
 logger = logging.getLogger(__name__)
-
-# Type helpers
-FitArguments = Dict[str, Union[bool, float, Tuple[float, float]]]
 
 this_module = sys.modules[__name__]
 
@@ -119,9 +113,9 @@ def RPF_result_to_width_fit_result(rpf_result: pachyderm.fit.FitResult,
     # NOTE: This function is just a work in progress!!
 
     # Create chi squared object to calculate the minimum value.
-    cost_func = ChiSquared(f = width_obj.fit_object.fit_function, data = subtracted_hist)
+    cost_func = pachyderm.fit.BinnedChiSquared(f = width_obj.fit_object.fit_function, data = subtracted_hist)
     # We want the func_code because it describe will then exclude the x parameter (which is what we want)
-    parameters = cost_func.func_code
+    parameters = cost_func.func_code.co_varnames
     fixed_parameters = ["mean", "pedestal"]
     free_parameters = ["width", "amplitude"]
     # Map between our new width fit parameters and those of the RPF.
@@ -154,333 +148,12 @@ def RPF_result_to_width_fit_result(rpf_result: pachyderm.fit.FitResult,
         errors = np.array([]),
         x = subtracted_hist.x,
         n_fit_data_points = len(subtracted_hist.x),
-        minimum_val = cost_func(list(values_at_minimum.values())),
+        minimum_val = cost_func(*list(values_at_minimum.values())),
     )
 
     width_obj.fit_object.calculate_errors(x = subtracted_hist.x)
 
     return True
-
-class ChiSquared:
-    """ chi^2 cost function.
-
-    Implemented with some help from the iminuit advanced tutorial. Calling this class will calculate the chi squared.
-
-    Args:
-        f: The fit function.
-        func_code: Function arguments derived from the fit function. They need to be separately specified
-            to allow iminuit to determine the proper arguments.
-        data: Data to be used for fitting.
-    """
-    def __init__(self, f: Callable[..., float], data: histogram.Histogram1D):
-        self.f = f
-        self.func_code: List[str] = iminuit.util.make_func_code(iminuit.util.describe(self.f)[1:])
-        #self.func_code = iminuit.util.make_func_code(iminuit.util.describe(self.f))
-        self.data = data
-
-    def __call__(self, *args: List[float]) -> float:
-        """ Calculate the chi2. """
-        return cast(
-            float,
-            np.sum(np.power(self.data.y - self.f(self.data.x, *args), 2) / np.power(self.data.errors, 2))
-        )
-
-def _validate_user_fit_arguments(default_arguments: FitArguments, user_arguments: FitArguments) -> bool:
-    """ Validate the user provided fit arguments.
-
-    Args:
-        default_arguments: Default fit arguments.
-        user_arguments: User provided fit arguments to be validated.
-    Returns:
-        True if the user fit arguments that are valid (ie the specified fit variables are also set in the
-        default arguments).  It's up to the user to actually update the fit arguments.
-    Raises:
-        ValueError: If user provides arguments for a parameter that doesn't exist. (Usually a typo).
-    """
-    # Handle the user arguments
-    # First, ensure that all user passed arguments are already in the argument keys. If not, the user probably
-    # passed the wrong argument unintentionally.
-    for k, v in user_arguments.items():
-        # The second condition allows us to fix components that were not previously fixed.
-        if k not in default_arguments and k.replace("fix_", "") not in default_arguments:
-            raise ValueError(
-                f"User argument {k} (with value {v}) is not present in the fit arguments."
-                f" Possible arguments: {default_arguments}"
-            )
-
-    return True
-
-def fit_with_chi_squared(fit_func: Callable[..., float],
-                         arguments: FitArguments, user_arguments: FitArguments,
-                         h: histogram.Histogram1D,
-                         use_minos: bool = False) -> pachyderm.fit.FitResult:
-    """ Fit the given histogram to the given fit function using iminuit.
-
-    Args:
-        fit_func: Function to be fit.
-        arguments: Required arguments for the fit.
-        user_arguments: Arguments to override the default fit arguments.
-        h: Histogram to be fit.
-        use_minos: If True, minos errors will be calculated.
-    Returns:
-        Fit result from the fit.
-    """
-    # Validation
-    # We are using a chi squared fit, so the errordef should be 1.
-    # We specify it first just in the case wants to override for some reason
-    arguments.update({
-        "errordef": 1.0,
-    })
-    # Will raise an exception if the user fit arguments are invalid.
-    _validate_user_fit_arguments(default_arguments = arguments, user_arguments = user_arguments)
-    # Now, we actually assign the user arguments. We assign them last so we can overwrite any default arguments
-    arguments.update(user_arguments)
-
-    logger.debug(f"Minuit args: {arguments}")
-    cost_func = ChiSquared(f = fit_func, data = h)
-    minuit = iminuit.Minuit(cost_func, **arguments)
-
-    # Perform the fit
-    minuit.migrad()
-    # Run minos if requested.
-    if use_minos:
-        logger.info("Running MINOS. This may take a minute...")
-        minuit.minos()
-    # Just in case (doesn't hurt anything, but may help in a few cases).
-    minuit.hesse()
-
-    # Check that the fit is actually good
-    if not minuit.migrad_ok():
-        raise pachyderm.fit.FitFailed("Minimization failed! The fit is invalid!")
-
-    # Create the fit result
-    fixed_parameters: List[str] = [k for k, v in minuit.fixed.items() if v is True]
-    # We use the cost function because we want intentionally want to skip "x"
-    parameters: List[str] = iminuit.util.describe(cost_func)
-    # Can't just use set(parameters) - set(fixed_parameters) because set() is unordered!
-    free_parameters: List[str] = [p for p in parameters if p not in set(fixed_parameters)]
-    # Store the result
-    fit_result = pachyderm.fit.FitResult(
-        parameters = parameters,
-        free_parameters = free_parameters,
-        fixed_parameters = fixed_parameters,
-        values_at_minimum = dict(minuit.values),
-        errors_on_parameters = dict(minuit.errors),
-        covariance_matrix = minuit.covariance,
-        # These will be calculated below. It's easier to calculate once a FitResult already exists.
-        errors = np.array([]),
-        x = h.x,
-        n_fit_data_points = len(h.x),
-        minimum_val = minuit.fval,
-    )
-
-    # Calculate errors.
-    fit_result.errors = pachyderm.fit.calculate_function_errors(
-        func = fit_func,
-        fit_result = fit_result,
-        x = fit_result.x
-    )
-
-    return fit_result
-
-T_Fit = TypeVar("T_Fit", bound = "Fit")
-
-class Fit(ABC):
-    """ Class to direct fitting a histogram to a fit function.
-
-    This allows us to easily store the fit function right alongside the minimization.
-
-    Attributes:
-        fit_range: Range used for fitting the data. Values inside of this range will be used.
-        user_arguments: User arguments for the fit. Default: None.
-        fit_function: Function to be fit.
-        fit_result: Result of the fit. Only valid after the fit has been performed.
-    """
-    # TODO: Update docs...
-    def __init__(self, use_log_likelihood: bool, fit_options: Optional[Dict[str, Any]] = None,
-                 user_arguments: Optional[FitArguments] = None):
-        # Validation
-        if user_arguments is None:
-            user_arguments = {}
-        if fit_options is None:
-            fit_options = {}
-        self.fit_options = fit_options
-        self.use_log_likelihood = use_log_likelihood
-        self.user_arguments: FitArguments = user_arguments
-        self.fit_function: Callable[..., float]
-        self.fit_result: pachyderm.fit.FitResult
-
-        # Create the cost function based on the fit parameters.
-        self._cost_func: Type[pachyderm.fit.cost_function.DataComparisonCostFunction]
-        if use_log_likelihood:
-            self._cost_func = pachyderm.fit.BinnedLogLikelihood
-        else:
-            self._cost_func = pachyderm.fit.BinnedChiSquared
-
-        # Check fit initialization.
-        self._post_init_validation()
-
-    @abc.abstractmethod
-    def _post_init_validation(self) -> None:
-        """ Validate that the fit object was setup properly.
-
-        This can be any method that the user devises to ensure that
-        all of the information needed for the fit is available.
-
-        Args:
-            None.
-        Returns:
-            None.
-        """
-        ...
-
-    def _create_cost_function(self, h: histogram.Histogram1D) -> pachyderm.fit.DataComparisonCostFunction:
-        """ Create the cost function from the data and stored parameters.
-
-        Args:
-            h: Data to be used for the fit.
-        Returns:
-            The created cost function.
-        """
-        return self._cost_func(f = self.fit_function, data = h)
-
-    def __call__(self, *args: float, **kwargs: float) -> float:
-        """ Call the fit function.
-
-        This is provided for convenience. This way, we can easily evaluate the function while
-        still storing the information necessary to perform the entire fit.
-
-        Args:
-            args: Arguments to pass to the fit function.
-            kwargs: Arguments to pass to the fit function.
-        Returns:
-            The fit function called with these arguments.
-        """
-        return self.fit_function(*args, **kwargs)
-
-    def calculate_errors(self, x: Optional[np.ndarray] = None) -> np.ndarray:
-        """ Calculate the errors on the fit function for the given x values.
-
-        Args:
-            x: x values where the fit function error should be evaluated. If not specified,
-                the x values over which the fit was performed will be used.
-        Returns:
-            The fit function error calculated at each x value.
-        """
-        if x is None:
-            x = self.fit_result.x
-        return pachyderm.fit.calculate_function_errors(
-            func = self.fit_function,
-            fit_result = self.fit_result,
-            x = x,
-        )
-
-    def fit(self, h: histogram.Histogram1D,
-            user_arguments: Optional[FitArguments] = None, use_minos: bool = False) -> pachyderm.fit.FitResult:
-        """ Fit the given histogram to the stored fit function using iminuit.
-
-        Args:
-            h: Histogram to be fit.
-            user_arguments: Additional user arguments (beyond those already specified when the object
-                was created). Default: None.
-            use_minos: If True, minos errors will be calculated. Default: False.
-        Returns:
-            Result of the fit. The user is responsible for storing it in the fit.
-        """
-        # Validation
-        if user_arguments is None:
-            user_arguments = {}
-        # Copy the user arguments so that we don't modify the arguments passed to the class if when we update them.
-        user_fit_arguments = dict(self.user_arguments)
-        # Update with any additional user provided arguments
-        user_fit_arguments.update(user_arguments)
-
-        # Setup the fit and the cost function
-        hist_for_fit, arguments = self._setup(h = h)
-        # We elect to create the cost fu
-        cost_func = self._create_cost_function(h = hist_for_fit)
-
-        # Perform the fit by minimizing the chi squared
-        fit_result, _ = pachyderm.fit.fit_with_minuit(
-            cost_func = cost_func, minuit_args = user_fit_arguments,
-            log_likelihood = self.use_log_likelihood, x = hist_for_fit.x,
-        )
-
-        # Calculate the fit result only if requested.
-        if self.fit_options.get("calculate_errors", False):
-            fit_result.errors = self.calculate_errors(hist_for_fit.x)
-
-        return fit_result
-
-    @abc.abstractmethod
-    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
-        """ Setup the histogram and arguments for the fit.
-
-        Args:
-            h: Background subtracted histogram to be fit.
-        Returns:
-            Histogram to use for the fit, default arguments for the fit. Note that the histogram may be range
-                restricted or otherwise modified here.
-        """
-        ...
-
-    @classmethod
-    def to_yaml(cls: Type[T_Fit], representer: yaml.Representer, obj: T_Fit) -> yaml.ruamel.yaml.nodes.SequenceNode:
-        """ Encode YAML representation. """
-        # ``RoundTripRepresenter`` doesn't represent objects directly, so we grab a dict of the
-        # members to store those in YAML.
-        # NOTE: We must make a copy of the vars. Otherwise, the original object will be modified.
-        members = dict(vars(obj))
-        # We can't store unbound functions, so we instead set it to the function name
-        # (we won't really use this name, but it's useful to store what was used, and
-        # we can at least warn if it changed).
-        members["fit_function"] = obj.fit_function.__name__
-        members["_cost_func"] = obj._cost_func.__name__
-        representation = representer.represent_mapping(
-            f"!{cls.__name__}", members
-        )
-
-        # Finally, return the represented object.
-        return representation
-
-    @classmethod
-    def from_yaml(cls: Type[T_Fit], constructor: yaml.Constructor, data: yaml.ruamel.yaml.nodes.MappingNode) -> "Fit":
-        """ Decode YAML representation. """
-        # First, we construct the class member objects.
-        members = {
-            constructor.construct_object(key_node): constructor.construct_object(value_node)
-            for key_node, value_node in data.value
-        }
-        # Then we deal with members which require special handling:
-        # The fit result isn't set through the constructor, so we grab it and then
-        # set it after creating the object.
-        fit_result = members.pop("fit_result")
-        # The fit function will be set in the fit constructor, so we don't need to use this
-        # value to setup the object. However, since this contains the name of the function,
-        # we can use it to check if the name of the function that is set in the constructor
-        # is the same as the one that we stored. (If they are different, this isn't necessarily
-        # a problem, as we sometimes rename functions, but regardless it's good to be notified
-        # if that's the case).
-        function_names = {}
-        for attr_name in ["fit_function", "_cost_func"]:
-            function_names[attr_name] = members.pop(attr_name)
-
-        # Finally, create the object and set the properties as needed.
-        obj = cls(**members)
-        obj.fit_result = fit_result
-        # Sanity checks on function names (see above).
-        for attr_name, function_name in function_names.items():
-            # Sanity check on the fit function name (see above).
-            if function_name != getattr(obj, attr_name).__name__:
-                logger.warning(
-                    "The stored '{attr_name}' function name from YAML doesn't match the name of the function"
-                    " created in the fit object."
-                    f" Stored name: {function_name}, object created fit function: {getattr(obj, attr_name).__name__}."
-                    " This may indicate a problem (but is fine if the same function was just renamed)."
-                )
-
-        # Now that the object is fully constructed, we can return it.
-        return obj
 
 def pedestal(x: float, pedestal: float) -> float:
     """ Pedestal function.
@@ -499,7 +172,7 @@ def pedestal(x: float, pedestal: float) -> float:
     #       dependence, it will only return a single value.
     return 0 * x + pedestal
 
-class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
+class PedestalForDeltaEtaBackgroundDominatedRegion(pachyderm.fit.Fit):
     """ Fit a pedestal to the background dominated region of a delta eta hist.
 
     The initial value of the fit will be determined by the minimum y value of the histogram.
@@ -535,7 +208,7 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
         if not isinstance(fit_range, params.SelectedRange):
             raise ValueError("Must provide fit range with a selected range or a set of two values")
 
-    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
+    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, T_FitArguments]:
         """ Setup the histogram and arguments for the fit.
 
         Args:
@@ -565,7 +238,7 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(Fit):
         # Default arguments
         # Use the minimum of the histogram as the starting value.
         min_hist = np.min(restricted_hist.y)
-        arguments: FitArguments = {
+        arguments: T_FitArguments = {
             "pedestal": min_hist, "error_pedestal": min_hist * 0.1,
             "limit_pedestal": (-1000, 1000),
         }
@@ -585,10 +258,10 @@ def pedestal_with_extended_gaussian(x: Union[float, np.ndarray], mean: float, wi
     Returns:
         Function value.
     """
-    return pedestal + pachyderm.fit.functions.extended_gaussian(x = x, mean = mean, width = width, amplitude = amplitude)
+    return pedestal + pachyderm.fit.extended_gaussian(x = x, mean = mean, sigma = width, amplitude = amplitude)
 
-class FitPedestalWithExtendedGaussian(Fit):
-    """ Fit a pedestal + extended (unnormalized) gaussian to a signal peak using iminuit.
+class FitPedestalWithExtendedGaussian(pachyderm.fit.Fit):
+    """ Fit a pedestal + extended (unnormalized) gaussian to a signal peak.
 
     Attributes:
         fit_range: Range used for fitting the data. Values inside of this range will be used.
@@ -621,7 +294,7 @@ class FitPedestalWithExtendedGaussian(Fit):
         if not isinstance(fit_range, params.SelectedRange):
             raise ValueError("Must provide fit range with a selected range or a set of two values")
 
-    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, FitArguments]:
+    def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, T_FitArguments]:
         """ Setup the histogram and arguments for the fit.
 
         Args:
@@ -641,7 +314,7 @@ class FitPedestalWithExtendedGaussian(Fit):
         )
 
         # Default arguments required for the fit
-        arguments: FitArguments = {
+        arguments: T_FitArguments = {
             "pedestal": 0, "limit_pedestal": (-1000, 1000), "error_pedestal": 0.1,
             "amplitude": 1, "limit_amplitude": (0.05, 100), "error_amplitude": 0.1 * 1,
             "mean": 0, "limit_mean": (-0.5, 0.5), "error_mean": 0.05,
