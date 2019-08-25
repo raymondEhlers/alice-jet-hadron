@@ -3,6 +3,7 @@ name: "Embedding configuration for semi-central response matrix using LHC12a15e_
 internalEventSelection:
     enabled: true
     centralityRange: [30, 50]
+    useEventCutsAutomaticTriggerSelection: false
     physicsSelection:
         - "kMB"
         - "kSemiCentral"
