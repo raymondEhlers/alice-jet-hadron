@@ -1,0 +1,36 @@
+---
+name: "Base configuration options for Jet-H Performance task for embedding into LHC15o"
+recycleUnusedEmbeddedEventsMode: true
+enable:
+    QAHists: true
+    responseMatrix: true
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: &period "LHC15o"
+    centralityRange: [0, 50]
+    enablePileupCuts: true
+general:
+    nCentBins: 5
+efficiency:
+    periodIdentifier: *period
+QA:
+    cellsName: "emcalCellsCombined"
+    embeddedCellsName: "emcalCells"
+# Configure response matrix
+responseMatrix:
+    minFractionSharedPt: 0.5
+    useThreeJetCollections: true
+    axes:
+        # Define the dimnesions that we are interested in
+        # Format is ["name", [nBins, min, max]]
+        - ["p_{T,1}", [250, 0, 250]]
+        - ["p_{T,2}", [250, 0, 250]]
+        - ["A_{jet,1}", [30, 0, 1.5]]
+        - ["A_{jet,2}", [30, 0, 1.5]]
+        - ["distance", [20, 0, 0.4]]
+        - ["p_{T,particle,1}^{leading} (GeV/c)", [100, 0, 100]]
+        - ["p_{T,particle,2}^{leading} (GeV/c)", [100, 0, 100]]
+        - ["#theta_{jet,1}^{EP}", [3, 0, 1.570796]]  # max = pi/2
+        - ["#theta_{jet,2}^{EP}", [3, 0, 1.570796]]  # max = pi/2
+        - ["centrality", [10, 0, 100]]

@@ -1,0 +1,9 @@
+---
+recycleUnusedEmbeddedEventsMode: true
+eventCuts:
+    enabled: true
+    manualMode: true
+    cutsPeriod: "LHC15o"
+    centralityRange: [0, 50]
+general:
+    nCentBins: 5
