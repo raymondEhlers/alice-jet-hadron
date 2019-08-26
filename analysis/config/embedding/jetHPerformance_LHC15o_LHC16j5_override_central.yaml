@@ -1,0 +1,8 @@
+---
+name: "Override options for response matrix for central collisions"
+eventCuts:
+    centralityRange: [0, 10]
+# Jet collections
+jets:
+    hybridLevelJets:
+        collection: "hybridLevelJets_central_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme"
