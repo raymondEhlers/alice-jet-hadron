@@ -24,6 +24,7 @@ class AliJetContainer;
 class AliAnalysisTaskEmcalEmbeddingHelper;
 class AliEmcalCorrectionTask;
 class AliEmcalJetTask;
+class AliAnalysisTaskRho;
 class AliAnalysisTaskEmcalJetSample;
 class AliJetResponseMaker;
 
@@ -45,8 +46,11 @@ AliAnalysisGrid* CreateAlienHandler(const char* uniqueName, const char* gridDir,
 R__ADD_INCLUDE_PATH($ALICE_ROOT)
 // Tell ROOT where to find AliPhysics headers
 R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
-// Simplify rho task usage
-#include "PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
+// Common tasks
+#include "OADB/macros/AddTaskPhysicsSelection.C"
+#include "OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"
+#include "OADB/macros/AddTaskCentrality.C"
+#include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
 // Include AddTask to test for LEGO train
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHCorrelations.C"
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHPerformance.C"
@@ -54,13 +58,12 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 
 AliAnalysisManager* runEmbeddingAnalysis(
     const char   *cDataType       = "AOD",                                   // set the analysis type, AOD or ESD
-    const char   *cRunPeriod      = "LHC11h",                                // set the run period
-    const char   *cEmbedRunPeriod = "LHC12a15e",                             // set the embedded run period
+    const char   *cRunPeriod      = "LHC15o",                                // set the run period
+    const char   *cEmbedRunPeriod = "LHC16j5",                               // set the embedded run period
     const char   *cLocalFiles     = "",                                      // set the local list file
     const UInt_t  iNumEvents      = 1000,                                    // number of events to be analyzed
-    const UInt_t  kPhysSel        = AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
-                    AliVEvent::kCentral | AliVEvent::kSemiCentral, //AliVEvent::kAny,                         // Physics selection
-    const char   *cTaskName       = "EMCalEmbeddingAnalysis",                     // sets name of analysis manager
+    const UInt_t  kPhysSel        = AliVEvent::kAnyINT,                      // Physics selection
+    const char   *cTaskName       = "EMCalEmbeddingAnalysis",                // sets name of analysis manager
     // 0 = only prepare the analysis manager but do not start the analysis
     // 1 = prepare the analysis manager and start the analysis
     // 2 = launch a grid analysis
@@ -149,6 +152,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   const bool doEmbedding = true;
   const bool fullJets = true;
   const bool enableBackgroundSubtraction = false;
+  const bool createLowParticlePtCutJets = true;
   const bool embedRealData = false;
   const std::string embedRunPeriod = cEmbedRunPeriod;
   const std::string configDirBasePath = "config/embedding/";
@@ -175,8 +179,12 @@ AliAnalysisManager* runEmbeddingAnalysis(
   TString externalEventParticlesName = "mcparticles";
   TString externalEventClustersName = "";
   if (embedRealData) {
-    externalEventParticlesName = AliEmcalContainerUtils::DetermineUseDefaultName(AliEmcalContainerUtils::kTrack, IsEsd);
-    externalEventClustersName = AliEmcalContainerUtils::DetermineUseDefaultName(AliEmcalContainerUtils::kCluster, IsEsd);
+    externalEventParticlesName =
+      AliEmcalContainerUtils::DetermineUseDefaultName(
+        AliEmcalContainerUtils::kTrack, IsEsd);
+    externalEventClustersName =
+      AliEmcalContainerUtils::DetermineUseDefaultName(
+        AliEmcalContainerUtils::kCluster, IsEsd);
   }
   TString emcalCellsName = AliEmcalContainerUtils::DetermineUseDefaultName(AliEmcalContainerUtils::kCaloCells, IsEsd);
   TString clustersName = AliEmcalContainerUtils::DetermineUseDefaultName(AliEmcalContainerUtils::kCluster, IsEsd);
@@ -205,51 +213,27 @@ AliAnalysisManager* runEmbeddingAnalysis(
     AliESDInputHandler * pESDHandler = AliAnalysisTaskEmcal::AddESDHandler();
   }
 
+  // CDBconnect task
+  AliTaskCDBconnect * taskCDB = AddTaskCDBconnect();
+  taskCDB->SetFallBackToRaw(kTRUE);
+
   // Physics selection task
   if (iDataType == kEsd) {
-    #ifdef __CLING__
-    std::stringstream physSel;
-    physSel << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/OADB/macros/AddTaskPhysicsSelection.C()";
-    AliPhysicsSelectionTask * pPhysSelTask = reinterpret_cast<AliPhysicsSelectionTask *>(gROOT->ProcessLine(physSel.str().c_str()));
-    #else
     AliPhysicsSelectionTask * pPhysSelTask = AddTaskPhysicsSelection();
-    #endif
   }
 
   // Centrality task
   // The Run 2 condition is too restrictive, but until the switch to MultSelection is complete, it is the best we can do
   if (iDataType == kEsd && iBeamType != AliAnalysisTaskEmcal::kpp && bIsRun2 == kFALSE) {
-    #ifdef __CLING__
-    std::stringstream centralityTask;
-    centralityTask << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/OADB/macros/AddTaskCentrality.C()";
-    AliCentralitySelectionTask * pCentralityTask = reinterpret_cast<AliCentralitySelectionTask *>(gROOT->ProcessLine(centralityTask.str().c_str()));
-    #else
     AliCentralitySelectionTask * pCentralityTask = AddTaskCentrality(kTRUE);
-    #endif
-    pCentralityTask->SelectCollisionCandidates(AliVEvent::kAny);
+    pCentralityTask->SelectCollisionCandidates(kPhysSel);
   }
   // AliMultSelection
   // Works for both pp and PbPb for the periods that it is calibrated
   if (bIsRun2 == kTRUE) {
-    #ifdef __CLING__
-    std::stringstream multSelection;
-    multSelection << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C(kFALSE)";
-    AliMultSelectionTask * pMultSelectionTask = reinterpret_cast<AliMultSelectionTask *>(gROOT->ProcessLine(multSelection.str().c_str()));
-    #else
     AliMultSelectionTask * pMultSelectionTask = AddTaskMultSelection(kFALSE);
-    #endif
-    pMultSelectionTask->SelectCollisionCandidates(AliVEvent::kAny);
+    pMultSelectionTask->SelectCollisionCandidates(kPhysSel);
   }
-
-  // CDBconnect task
-  #ifdef __CLING__
-  std::stringstream cdbConnect;
-  cdbConnect << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/PWGPP/PilotTrain/AddTaskCDBconnect.C()";
-  AliTaskCDBconnect * taskCDB = reinterpret_cast<AliTaskCDBconnect *>(gROOT->ProcessLine(cdbConnect.str().c_str()));
-  #else
-  AliTaskCDBconnect * taskCDB = AddTaskCDBconnect();
-  #endif
-  taskCDB->SetFallBackToRaw(kTRUE);
 
   // Debug options
   // NOTE: kDebug = 4. Can go up or down from there!
@@ -366,9 +350,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     tempCorrectionTask->SelectCollisionCandidates(kPhysSel);
     // Configure centrality
     tempCorrectionTask->SetNCentBins(5);
-    if (bIsRun2) {
-      tempCorrectionTask->SetUseNewCentralityEstimation(kTRUE);
-    }
+    tempCorrectionTask->SetUseNewCentralityEstimation(bIsRun2);
 
     std::string emcalCorrectionsConfig = configDirBasePath + "emcalCorrections";
     emcalCorrectionsConfig += "_" + runPeriod;
@@ -399,36 +381,33 @@ AliAnalysisManager* runEmbeddingAnalysis(
     sRhoChargedName = "Rho";
     sRhoFullName = "Rho_Scaled";
 
-    AliEmcalJetTask *pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet("usedefault", "", rhoJetAlgorithm, rhoJetRadius, rhoJetType, minTrackPt, 0, kGhostArea, rhoRecoScheme, "Jet", 0., kFALSE, kFALSE);
+    AliEmcalJetTask* pKtChJetTask = AliEmcalJetTask::AddTaskEmcalJet(
+      "usedefault", "", rhoJetAlgorithm, rhoJetRadius, rhoJetType,
+      0.15, 0, kGhostArea, rhoRecoScheme, "Jet", 0., kFALSE,
+      kFALSE);
     pKtChJetTask->SelectCollisionCandidates(kPhysSel);
+    pKtChJetTask->SetUseNewCentralityEstimation(bIsRun2);
+    pKtChJetTask->SetNCentBins(5);
 
-    /*#ifdef __CLING__
-    std::stringstream rhoTask;
-    rhoTask << ".x " << gSystem->Getenv("ALICE_PHYSICS") <<  "/PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C(";
-    rhoTask << "\"usedefault\", ";
-    rhoTask << "\"usedefault\", ";
-    rhoTask << "\"" << sRhoChargedName << "\", ";
-    rhoTask << 0.4 << ");";
-    std::cout << "Calling rho task with " << rhoTask.str().c_str() << std::endl;
-    AliAnalysisTaskRho * pRhoTask= reinterpret_cast<AliAnalysisTaskRho *>(gROOT->ProcessLine(rhoTask.str().c_str()));
-    #else
-    AliAnalysisTaskRho * pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChargedName.c_str(), 0.4);
-    #endif*/
-    AliAnalysisTaskRho * pRhoTask = AddTaskRhoNew("usedefault", "usedefault", sRhoChargedName.c_str(), rhoJetRadius);
-    pRhoTask->SetExcludeLeadJets(2);
+    const AliEmcalJet::JetAcceptanceType rhoJetAcceptance = AliEmcalJet::kTPCfid;
+    AliAnalysisTaskRho * pRhoTask = AliAnalysisTaskRho::AddTaskRhoNew("usedefault", "", sRhoChargedName.c_str(), rhoJetRadius, rhoJetAcceptance, rhoJetType, true);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
-    pRhoTask->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+    pRhoTask->SetUseNewCentralityEstimation(bIsRun2);
+    pRhoTask->SetNCentBins(5);
+    pRhoTask->SetExcludeLeadJets(2);
 
-    TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
-    TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
-    pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
-
-    // Update the track pt cut and then the jet container
-    AliParticleContainer * rhoPartCont = pRhoTask->GetParticleContainer(0);
-    rhoPartCont->SetParticlePtCut(3.0);
-    // Must remove and recreate the jet container because the particle container used doesn't have the proper pt cut
-    pRhoTask->RemoveJetContainer(0);
-    pRhoTask->AddJetContainer(rhoJetType, rhoJetAlgorithm, rhoRecoScheme, rhoJetRadius, AliEmcalJet::kTPCfid, rhoPartCont, nullptr);
+    if (runPeriod == "LHC11h") {
+      std::cout << "Loading LHC11h rho scale factor\n";
+      TString sFuncPath = "alien:///alice/cern.ch/user/s/saiola/LHC11h_ScaleFactorFunctions.root";
+      TString sFuncName = "LHC11h_HadCorr20_ClustersV2";
+      pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    }
+    else if (runPeriod == "LHC15o") {
+      std::cout << "Loading LHC15o rho scaled factor\n";
+      TString sFuncPath = "alien:///alice/cern.ch/user/j/jmulliga/scaleFactorEMCalLHC15o_PtDepTrackMatching.root";
+      TString sFuncName = "fScaleFactorEMCal";
+      pRhoTask->LoadRhoFunction(sFuncPath, sFuncName);
+    }
   }
 
   // Jet finding
@@ -459,6 +438,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     pFullJetTaskPartLevelNew = AliEmcalJetTask::AddTaskEmcalJet("mcparticles", "",
             jetAlgorithm, jetRadius, jetType, minTrackPt, minClusterPt, kGhostArea, recoScheme, "partLevelJets", minJetPt, lockTask, fillGhosts);
     pFullJetTaskPartLevelNew->SelectCollisionCandidates(kPhysSel);
+    pFullJetTaskPartLevelNew->SetUseNewCentralityEstimation(bIsRun2);
     pFullJetTaskPartLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
 
     ///////
@@ -477,6 +457,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   pFullJetTaskDetLevelNew = AliEmcalJetTask::AddTaskEmcalJet(tracksName.Data(), clustersName.Data(),
           jetAlgorithm, jetRadius, jetType, minTrackPt, minClusterPt, kGhostArea, recoScheme, "detLevelJets", minJetPt, lockTask, fillGhosts);
   pFullJetTaskDetLevelNew->SelectCollisionCandidates(kPhysSel);
+  pFullJetTaskDetLevelNew->SetUseNewCentralityEstimation(bIsRun2);
   pFullJetTaskDetLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   pFullJetTaskDetLevelNew->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
 
@@ -505,6 +486,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   /*pFullJetTaskNew = AliEmcalJetTask::AddTaskEmcalJet(tracksName.Data(), clustersName.Data(),
           jetAlgorithm, jetRadius, jetType, minTrackPt, minClusterPt, kGhostArea, recoScheme, "PbPbJets", minJetPt, lockTask, fillGhosts);
   pFullJetTaskNew->SelectCollisionCandidates(kPhysSel);
+  pFullJetTaskNew->SetUseNewCentralityEstimation(bIsRun2);
   pFullJetTaskNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   if (fullJets) {
     pFullJetTaskNew->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
@@ -518,6 +500,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   pFullJetTaskHybridNew = AliEmcalJetTask::AddTaskEmcalJet(tracksName.Data(), clustersNameCombined.Data(),
           jetAlgorithm, jetRadius, jetType, minTrackPt, minClusterPt, kGhostArea, recoScheme, "hybridLevelJets", minJetPt, lockTask, fillGhosts);
   pFullJetTaskHybridNew->SelectCollisionCandidates(kPhysSel);
+  pFullJetTaskHybridNew->SetUseNewCentralityEstimation(bIsRun2);
   pFullJetTaskHybridNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   if (fullJets) {
     pFullJetTaskHybridNew->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
@@ -566,6 +549,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     sampleTaskPartLevelNew->SetHistoBins(600, 0, 300);
     sampleTaskPartLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
     sampleTaskPartLevelNew->SelectCollisionCandidates(kPhysSel);
+    sampleTaskPartLevelNew->SetUseNewCentralityEstimation(bIsRun2);
 
     AliJetContainer* jetCont02 = sampleTaskPartLevelNew->AddJetContainer(pFullJetTaskPartLevelNew->GetName(), acceptanceType, jetRadius);
     //AliJetContainer* jetCont02 = sampleTaskPartLevelNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "partLevelJets");
@@ -604,6 +588,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskDetLevelNew->SetHistoBins(600, 0, 300);
   sampleTaskDetLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskDetLevelNew->SelectCollisionCandidates(kPhysSel);
+  sampleTaskDetLevelNew->SetUseNewCentralityEstimation(bIsRun2);
 
   AliJetContainer* detLevelJetCont02 = sampleTaskDetLevelNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "detLevelJets");*/
 
@@ -622,6 +607,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskNew->SetHistoBins(600, 0, 300);
   sampleTaskNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskNew->SelectCollisionCandidates(kPhysSel);
+  sampleTaskNew->SetUseNewCentralityEstimation(bIsRun2);
 
   AliJetContainer* jetCont02 = sampleTaskNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "PbPbJets");*/
 
@@ -661,6 +647,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskHybridNew->SetHistoBins(600, 0, 300);
   sampleTaskHybridNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskHybridNew->SelectCollisionCandidates(kPhysSel);
+  sampleTaskHybridNew->SetUseNewCentralityEstimation(bIsRun2);
 
   AliJetContainer * jetCont02 = sampleTaskHybridNew->AddJetContainer(pFullJetTaskHybridNew->GetName(), acceptanceType, jetRadius);
   //AliJetContainer* jetCont02 = sampleTaskHybridNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "hybridLevelJets");
@@ -783,6 +770,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
         );
     // Task level settings
     jetTaggerDetLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+    jetTaggerDetLevel->SetUseNewCentralityEstimation(bIsRun2);
     // Tag via geometrical matching
     jetTaggerDetLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
     // Tag the closest jet
@@ -820,6 +808,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
         );
       // Task level settings
       jetTaggerPartLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+      jetTaggerPartLevel->SetUseNewCentralityEstimation(bIsRun2);
       // Tag via geometrical matching
       jetTaggerPartLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
       // Tag the closest jet
@@ -875,12 +864,6 @@ AliAnalysisManager* runEmbeddingAnalysis(
   }
   const Bool_t sparseAxes = kTRUE;
   const Bool_t widerTrackPtBins = kTRUE;
-  // Efficiency correction
-  auto efficiencyCorrectionType = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHCorrelations::kEffAutomaticConfiguration;
-  if (doEmbedding) {
-    // Explicitly configured to use pp efficiency since we are embedding
-    efficiencyCorrectionType = PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHCorrelations::kEffPP;
-  }
   // JES correction
   const Bool_t embeddingCorrection = kFALSE;
   // Local tests
@@ -898,7 +881,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
       triggerEventsSelection,                                     // Trigger events
       mixedEventsSelection,                                       // Mixed event
       sparseAxes, widerTrackPtBins,                               // Less sprase axis, wider binning
-      efficiencyCorrectionType, embeddingCorrection,              // Track efficiency, embedding correction
+      embeddingCorrection,                                        // Embedding correction
       embeddingCorrectionFilename, embeddingCorrectionHistName,   // Settings for embedding
       "new"                                                       // Suffix
       );
@@ -915,6 +898,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     jetH->ConfigureForStandardAnalysis();
   }
   jetH->SelectCollisionCandidates(kPhysSel);
+  jetH->SetUseNewCentralityEstimation(bIsRun2);
   std::string jetHConfig = configDirBasePath + "jetHCorrelations";
   jetHConfig += "_" + runPeriod;
   jetHConfig += ".yaml";
@@ -931,6 +915,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   // Jet-h performance task
   PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance * jetHPerformance = AddTaskEmcalJetHPerformance();
   jetHPerformance->SelectCollisionCandidates(kPhysSel);
+  jetHPerformance->SetUseNewCentralityEstimation(bIsRun2);
   // Setup configuration
   // Base configuration that will be overridden.
   std::string jetHPerformanceConfigBase = configDirBasePath + "jetHPerformance";
@@ -949,6 +934,182 @@ AliAnalysisManager* runEmbeddingAnalysis(
   jetHPerformance->Initialize();
   // Override, just in case.
   jetHPerformance->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+
+  // Also produce a response between the particle level with a low pt cut and the hybrid jets.
+  // NOTE: This must run after the response was created with the previous tasks because we are going
+  //       to overwrite the tagging information in the jets.
+  if (createLowParticlePtCutJets == true)
+  {
+    // Setup
+    double leadingTrackBias = 5.0;
+
+    // Run a new particle level jet finder with a low pt cut.
+    auto* particleLevelJetsLowPtCut = AliEmcalJetTask::AddTaskEmcalJet(
+      "mcparticles", "", jetAlgorithm, jetRadius, jetType, 0.15, 0.30,
+      kGhostArea, recoScheme, "partLevelJets", minJetPt, lockTask,
+      fillGhosts);
+    particleLevelJetsLowPtCut->SelectCollisionCandidates(kPhysSel);
+    particleLevelJetsLowPtCut->SetUseNewCentralityEstimation(bIsRun2);
+    particleLevelJetsLowPtCut->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+
+    ///////
+    // External event (called embedding) settings for particle level PYTHIA
+    // jet finding
+    ///////
+    // Setup the tracks properly to be retrieved from the external event
+    // It does not matter here if it's a Particle Container or
+    // MCParticleContainer
+    AliParticleContainer* partLevelTracks =
+      particleLevelJetsLowPtCut->GetParticleContainer(0);
+    partLevelTracks->SetIsEmbedding(kTRUE);
+
+    auto* detectorLevelJetsLowPtCut = AliEmcalJetTask::AddTaskEmcalJet(
+      tracksName.Data(), clustersName.Data(), jetAlgorithm, jetRadius,
+      jetType, 0.15, 0.30, kGhostArea, recoScheme, "detLevelJets",
+      minJetPt, lockTask, fillGhosts);
+    detectorLevelJetsLowPtCut->SelectCollisionCandidates(kPhysSel);
+    detectorLevelJetsLowPtCut->SetUseNewCentralityEstimation(bIsRun2);
+    detectorLevelJetsLowPtCut->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+    detectorLevelJetsLowPtCut->GetClusterContainer(0)->SetDefaultClusterEnergy(AliVCluster::kHadCorr);
+    // Setup embedded tracks and clusters
+    // Tracks
+    // Uses the name of the container passed into AliEmcalJetTask
+    AliTrackContainer * tracksDetLevel = detectorLevelJetsLowPtCut->GetTrackContainer(0);
+    tracksDetLevel->SetIsEmbedding(kTRUE);
+    if (embedRealData) {
+      tracksDetLevel->SetTrackCutsPeriod(embedRunPeriod.c_str());
+    }
+    // Clusters
+    if (fullJets) {
+      AliClusterContainer * clustersDetLevel = detectorLevelJetsLowPtCut->GetClusterContainer(0);
+      clustersDetLevel->SetIsEmbedding(kTRUE);
+    }
+
+    /**
+     * Jet taggers:
+     *
+     * For hybrid -> part level for a response matrix:
+     * strategy is to tag:           hybrid level <-> embedded detector level
+     * and:                    embedded det level <-> embedded particle level
+     *
+     * For hybrid -> det level for pp embedding:
+     * Strategy is to only tag       hybrid level <-> embedded detector level
+     * because that is sufficient for those purposes
+     *
+     * NOTE: The shared momentum fraction is not set here because we instead
+     * handle that at the user task level to simplify configuration.
+     */
+
+    // Hybrid (PbPb + embed) jets are the "base" jet collection
+    const std::string hybridLevelJetsName = pFullJetTaskHybridNew->GetName();
+    // Embed det level jets are the "tag" jet collection
+    const std::string detLevelJetsName = detectorLevelJetsLowPtCut->GetName();
+    // Centrality estimotor
+    const std::string centralityEstimator = "V0M";
+    // NOTE: The AddTask macro is "AddTaskEmcalJetTaggerFast" ("Emcal" is removed for the static definition...)
+    auto jetTaggerDetLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+        hybridLevelJetsName.c_str(),         // "Base" jet collection which will be tagged
+        detLevelJetsName.c_str(),       // "Tag" jet collection which will be used to tag (and will be tagged)
+        jetRadius,                      // Jet radius
+        "",                             // Hybrid ("base") rho name
+        "",                             // Det level ("tag") rho name
+        "",                             // tracks to attach to the jet containers. Not meaningful here, so left empty
+        "",                             // clusters to attach to the jet conatiners. Not meaingful here, so left empty (plus, it's not the same for the two jet collections!)
+        acceptanceTypeStr.c_str(),      // Jet acceptance type for the "base" collection
+        centralityEstimator.c_str(),    // Centrality estimator
+        kPhysSel,                       // Physics selection
+        ""                              // Trigger class. We can just leave blank, as it's only used in the task name
+        );
+    // Task level settings
+    jetTaggerDetLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+    jetTaggerDetLevel->SetUseNewCentralityEstimation(bIsRun2);
+    // Tag via geometrical matching
+    jetTaggerDetLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+    // Tag the closest jet
+    jetTaggerDetLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+    // Don't impose any additional acceptance cuts beyond the jet containers
+    jetTaggerDetLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+    // Use default matching distance
+    jetTaggerDetLevel->SetMaxDistance(maxGeoMatchingDistance);
+    // Redundant, but done for completeness
+    jetTaggerDetLevel->SelectCollisionCandidates(kPhysSel);
+
+    // Reapply the max track pt cut off to maintain energy resolution and avoid fake tracks
+    auto hybridJetCont = jetTaggerDetLevel->GetJetContainer(0);
+    hybridJetCont->SetMaxTrackPt(100);
+    auto detLevelJetCont = jetTaggerDetLevel->GetJetContainer(1);
+    detLevelJetCont->SetMaxTrackPt(100);
+    // We need at least a leading track bias to avoid fakes.
+    detLevelJetCont->SetMinTrackPt(leadingTrackBias);
+
+    if (!embedRealData) {
+      // Embed det level jets are the "base" jet collection
+      // Embed part level jets are the "tag" jet collection
+      const std::string partLevelJetsName = particleLevelJetsLowPtCut->GetName();
+
+      auto jetTaggerPartLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+        detLevelJetsName.c_str(),       // "Base" jet collection which will be tagged
+        partLevelJetsName.c_str(),      // "Tag" jet collection which will be used to tag (and will be tagged)
+        jetRadius,                      // Jet radius
+        "",                             // Det level ("base") rho name
+        "",                             // Part level ("tag") rho name
+        "",                             // tracks to attach to the jet containers. Not meaningful here, so left empty
+        "",                             // clusters to attach to the jet conatiners. Not meaingful here, so left empty (plus, it's not the same for the two jet collections!)
+        acceptanceTypeStr.c_str(),      // Jet acceptance type for the "base" collection
+        centralityEstimator.c_str(),    // Centrality estimator
+        kPhysSel,                       // Physics selection
+        ""                              // Trigger class. We can just leave blank, as it's only used in the task name
+        );
+      // Task level settings
+      jetTaggerPartLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+      jetTaggerPartLevel->SetUseNewCentralityEstimation(bIsRun2);
+      // Tag via geometrical matching
+      jetTaggerPartLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+      // Tag the closest jet
+      jetTaggerPartLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+      // Don't impose any additional acceptance cuts beyond the jet containers
+      jetTaggerPartLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+      // Use default matching distance
+      jetTaggerPartLevel->SetMaxDistance(maxGeoMatchingDistance);
+      // Redundant, but done for completeness
+      jetTaggerPartLevel->SelectCollisionCandidates(kPhysSel);
+
+      // Reapply the max track pt cut off to maintain energy resolution and avoid fake tracks
+      // However, don't apply to the particle level jets which don't suffer this effect
+      detLevelJetCont = jetTaggerPartLevel->GetJetContainer(0);
+      detLevelJetCont->SetMaxTrackPt(100);
+      // We need at least a leading track bias to avoid fakes.
+      detLevelJetCont->SetMinTrackPt(leadingTrackBias);
+      AliJetContainer* partLevelJetCont = jetTaggerPartLevel->GetJetContainer(1);
+      partLevelJetCont->SetMinTrackPt(leadingTrackBias);
+    }
+
+    // Jet-h performance task
+    PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance*
+      jetHPerformanceLowPtCut = AddTaskEmcalJetHPerformance("lowJetPtCut");
+    jetHPerformanceLowPtCut->SelectCollisionCandidates(kPhysSel);
+    jetHPerformanceLowPtCut->SetUseNewCentralityEstimation(bIsRun2);
+    // Setup configuration
+    // Base configuration that will be overridden.
+    std::string jetHPerformanceConfigBase = configDirBasePath + "jetHPerformance";
+    jetHPerformanceConfigBase += "_" + runPeriod;
+    // Period specific configuration.
+    std::string jetHPerformanceConfigPeriodSpecific = jetHPerformanceConfigBase;
+    // Finalize base config name and set it.
+    jetHPerformanceConfigBase += "_base";
+    jetHPerformanceConfigBase += ".yaml";
+    jetHPerformanceLowPtCut->AddConfigurationFile(jetHPerformanceConfigBase, "base");
+    // Finalize period specific config name and set it.
+    // We use the special low pt cut configuration.
+    jetHPerformanceConfigPeriodSpecific += "_" + embedRunPeriod;
+    jetHPerformanceConfigPeriodSpecific += "_MinConstituentCut";
+    jetHPerformanceConfigPeriodSpecific += ".yaml";
+    jetHPerformanceLowPtCut->AddConfigurationFile(jetHPerformanceConfigPeriodSpecific, "periodSpecific");
+    // Complete setup.
+    jetHPerformanceLowPtCut->Initialize();
+    // Override, just in case.
+    jetHPerformanceLowPtCut->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
+  }
 
   TObjArray *pTopTasks = pMgr->GetTasks();
   for (Int_t i = 0; i < pTopTasks->GetEntries(); ++i) {
