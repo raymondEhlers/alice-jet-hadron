@@ -1,0 +1,27 @@
+---
+name: |
+    "Configuration options for the Jet-H Performance task for embedding MC to create a response matrix."
+    "This response is created using particle and detector level jets with a low constituent pt cut"
+    " (in constrast to the default)."
+# Jet collections
+jets:
+    R: &R 0.2
+    leadingHadronBiasType: &leadingHadronType kCharged
+    hybridLevelJets:
+        collection: "hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme"
+        acceptance: "EMCALfid"
+        areaCutPercentage: 0.6
+        R: *R
+    detLevelJets:
+        collection: "detLevelJets_AKTFullR020_tracks_pT0150_caloClusters_E0300_pt_scheme"
+        acceptance: "EMCALfid"
+        areaCutPercentage: 0.6
+        R: *R
+    partLevelJets:
+        collection: "partLevelJets_AKTFullR020_mcparticles_pT0150_pt_scheme"
+        acceptance: "TPCfid"
+        areaCutPercentage: 0.6
+        R: *R
+# Configure response matrix
+responseMatrix:
+    useThreeJetCollections: true

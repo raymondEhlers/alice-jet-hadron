@@ -17,6 +17,8 @@ efficiency:
 QA:
     cellsName: "emcalCellsCombined"
     embeddedCellsName: "emcalCells"
+particles: {}
+clusters: {}
 # Configure response matrix
 responseMatrix:
     minFractionSharedPt: 0.5
