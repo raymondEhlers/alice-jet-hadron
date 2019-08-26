@@ -25,6 +25,7 @@ class AliEmcalCorrectionTask;
 class AliQnCorrectionsManager;
 class AliAnalysisTaskFlowVectorCorrections;
 class AliEmcalJetTask;
+class AliAnalysisTaskRho;
 class AliAnalysisTaskEmcalJetSample;
 namespace PWGJE {
   namespace EMCALJetTasks {
@@ -46,8 +47,6 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 #include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
 //#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsNewDetConfig.C"
 //#include "PWGPP/EVCHAR/FlowVectorCorrections/QnCorrectionsInterface/macros/AddTaskFlowQnVectorCorrectionsToLegoTrainNewDetConfig.C"
-// Simplify rho task usage
-#include "PWGJE/EMCALJetTasks/macros/AddTaskRhoNew.C"
 // Include AddTask to test for the LEGO train
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHCorrelations.C"
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHPerformance.C"
@@ -259,7 +258,7 @@ AliAnalysisManager* runJetHAnalysis(
     pKtChJetTask->SetNCentBins(5);
 
     const AliEmcalJet::JetAcceptanceType rhoJetAcceptance = AliEmcalJet::kTPCfid;
-    AliAnalysisTaskRho * pRhoTask = AddTaskRhoNew("usedefault", "", sRhoChargedName.c_str(), rhoJetRadius, rhoJetAcceptance, rhoJetType, true);
+    AliAnalysisTaskRho * pRhoTask = AliAnalysisTaskRho::AddTaskRhoNew("usedefault", "", sRhoChargedName.c_str(), rhoJetRadius, rhoJetAcceptance, rhoJetType, true);
     pRhoTask->SelectCollisionCandidates(kPhysSel);
     pRhoTask->SetUseNewCentralityEstimation(bIsRun2);
     pRhoTask->SetNCentBins(5);
