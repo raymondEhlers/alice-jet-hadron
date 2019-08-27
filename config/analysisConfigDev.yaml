@@ -425,6 +425,25 @@ GeneralHists:
             task_label:
                 - ""
 
+##########################################
+# Thesis (and other miscellaneous) figures
+##########################################
+FiguresManager:
+    tasks:
+        vn_harmonics: true
+    # Format of harmonic: coefficient (ie. magnitude)
+    vn_harmonics:
+        2: 0.1
+        3: 0.1
+        4: 0.1
+    override:
+        outputPrefix: "output/{collision_system}/general_figures/"
+        iterables:
+            # Technically this is true, although not very helpful. However, we must have at least
+            # one iterator, so this allows us to do so with minimal change.
+            reaction_plane_orientation:
+                - "inclusive"
+
 # Pt hard bins configuration for LHC12a15e_fix embedded into LHC11h.
 _ptHardBin10BinsBak: !PtHardBins &PtHardBins10BinsBak
     # Disabled here due to a bug parsing the combination of the tag and the anchor
