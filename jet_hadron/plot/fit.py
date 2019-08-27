@@ -60,7 +60,17 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
                                     reference_data: ReferenceData,
                                     selected_analysis_options: params.SelectedAnalysisOptions,
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
-    """ Implementation to plot the fit parameters vs associated track pt.  """
+    """ Implementation of plotting the fit parameters vs associated track pt.
+
+    Args:
+        fit_objects: RP Fit objects.
+        parameter: Information about the parameter to be plotted.
+        reference_data: Reference data to compare the parameter against.
+        selected_analysis_options: Selected analysis options for determining which data to plot.
+        output_info: Output information.
+    Returns:
+        None. The figure is plottd and saved.
+    """
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # Extract the parameter values from each fit object.
@@ -274,7 +284,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
                                selected_analysis_options: params.SelectedAnalysisOptions,
                                reference_data_path: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
-    """ Plot the extracted fit parameters.
+    """ Plot the extracted fit parameters as a function of associated pt.
 
     Args:
         fit_objects: Fit objects whose parameters will be plotted.
@@ -646,11 +656,6 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
         None. The axes are modified in place.
     """
     # Validation
-    #if len(rp_fit.components) != len(axes):
-    #    raise TypeError(
-    #        f"Number of axes is not equal to the number of fit components."
-    #        f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
-    #    )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
@@ -660,30 +665,31 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
     x = rp_fit.fit_result.x
     for (key_index, analysis), ax in zip(ep_analyses, axes):
         # Setup
-        # Get the relevant data
-        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-            h: Union["correlations.DeltaPhiSignalDominated", "correlations.DeltaPhiBackgroundDominated"] = \
-                analysis.correlation_hists_delta_phi.signal_dominated
-        else:
-            h = analysis.correlation_hists_delta_phi.background_dominated
-        hist = histogram.Histogram1D.from_existing_hist(h)
-        # Determine the proper display color
-        data_color = plot_base.AnalysisColors.background
-        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-            data_color = plot_base.AnalysisColors.signal
+        # Get the relevant data. We define the background first so that it is plotted underneath.
+        data: Dict[str, histogram.Histogram1D] = {
+            "Background domianted":
+            histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.background_dominated),
+            "Signal domianted":
+            histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.signal_dominated),
+        }
 
         # Plot the data first to ensure that the colors are consistent with previous plots
-        ax.errorbar(
-            x, hist.y, yerr = hist.errors, label = "Data",
-            marker = "o", linestyle = "", color = data_color,
-        )
+        for label, hist in data.items():
+            plotting_signal = "Signal" in label
+            ax.errorbar(
+                x, hist.y, yerr = hist.errors, label = label,
+                marker = "o", linestyle = "",
+                color = plot_base.AnalysisColors.signal if plotting_signal else plot_base.AnalysisColors.background,
+                # Open markers for background, closed for signal.
+                fillstyle = "full" if plotting_signal else "none",
+            )
 
         # Draw the data according to the given function
         # Determine the values of the fit function.
         fit_values = analysis.fit_object.evaluate_fit(x = x)
 
         # Plot the main values
-        plot = ax.plot(x, fit_values, label = "Fit", color = plot_base.AnalysisColors.fit)
+        plot = ax.plot(x, fit_values, label = "RP fit", color = plot_base.AnalysisColors.fit)
         # Plot the fit errors
         errors = analysis.fit_object.fit_result.errors
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
@@ -745,11 +751,8 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
             facecolor = plot[0].get_color(), alpha = 0.9,
         )
 
-        # Set the y-axis limit to be symmetric
-        # Selected the value by looking at the data.
-        ax.set_ylim(bottom = -0.1, top = 0.1)
-
-def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str) -> None:
+def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str,
+                                **kwargs: Any) -> None:
     """ Add a label to the middle center of a axis for the RPF plot.
 
     This helper is limited, but useful since we often label at the same location.
@@ -757,14 +760,21 @@ def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str) -> None:
     Args:
         ax: Axis to label.
         label: Label to be added to the axis.
+        kwargs: Additional arguments to pass to text. They will override any defaults.
     Returns:
         None. The axis is modified in place.
     """
-    ax.text(
-        0.5, 0.97, label, horizontalalignment = "center",
+    # Default arguments
+    text_kwargs = dict(
+        x = 0.5, y = 0.97, s =label,
+        transform = ax.transAxes, horizontalalignment = "center",
         verticalalignment = "top", multialignment = "left",
-        transform = ax.transAxes
     )
+    # Override with any additional passed kwargs
+    text_kwargs.update(kwargs)
+
+    # Drwa the text
+    ax.text(**text_kwargs)
 
 def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
                 inclusive_analysis: "correlations.Correlations",
@@ -799,32 +809,40 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     _plot_rp_fit_residuals(rp_fit = rp_fit, ep_analyses = ep_analyses, axes = flat_axes[n_components:])
 
     # Define upper panel labels.
+    # Inclusive
+    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
+    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
     # In-plane
     text = labels.track_pt_range_string(inclusive_analysis.track_pt)
     text += "\n" + labels.constituent_cuts()
     text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
-    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
+    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
     # Mid-plane
-    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
-    text += "\n" + labels.system_label(
+    text = labels.system_label(
         energy = inclusive_analysis.collision_energy,
         system = inclusive_analysis.collision_system,
         activity = inclusive_analysis.event_activity
     )
     text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     text += "\n" + labels.jet_finding()
-    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
-    # Out-of-plane
-    #text = "Background: $0.8<|\Delta\eta|<1.2$"
-    #text += "\nSignal + Background: $|\Delta\eta|<0.6$"
-    #_add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text)
-    # Inclusive
+    text += "\n" + r"Background: $0.8<|\Delta\eta|<1.2$"
+    text += "\n" + r"Signal + Background: $|\Delta\eta|<0.6$"
+    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
+    # Out-of-plane orientation
+    flat_axes[3].legend(
+        frameon = False, loc = "upper center", fontsize = 15
+    )
+    # TODO: Impelement effective chi squared for a simultaneous fit...
+    #effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
         f"{rp_fit.fit_result.minimum_val:.1f}/{rp_fit.fit_result.nDOF} = "
         f"{rp_fit.fit_result.minimum_val / rp_fit.fit_result.nDOF:.3f}"
     )
-    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
+    _add_label_to_rpf_plot_axis(
+        ax = flat_axes[3], label = labels.make_valid_latex_string(text),
+        x = 0.5, y = 0.71, size = 15
+    )
 
     # Define lower panel labels.
     for ax in flat_axes[n_components:]:
@@ -834,18 +852,29 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
         ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
     # Improve the viewable range for the lower panels.
     # This value is somewhat arbitrarily selected, but seems to work well enough.
-    flat_axes[n_components].set_ylim(-0.2, 0.2)
+    flat_axes[n_components].set_ylim(-0.5, 0.5)
 
     # Specify shared y axis label
     # Delta phi correlations first
-    flat_axes[0].set_ylabel(labels.delta_phi_axis_label())
+    # Extra 0.75 in because the aligned baseline isn't exactly the same (probably due to latex)
+    flat_axes[0].set_ylabel(labels.delta_phi_axis_label(), labelpad = -2.75)
     # Then label the residual
-    flat_axes[n_components].set_ylabel("data - fit / fit")
+    flat_axes[n_components].set_ylabel("data - fit / fit", labelpad = -2)
+    # And then align them. Note that the padding set above is still meaningful,
+    # but this will put them on the same baseline (which we want to move in a bit)
+    fig.align_ylabels()
 
     # Final adjustments
     fig.tight_layout()
-    # Reduce spacing between subplots
-    fig.subplots_adjust(hspace = 0, wspace = 0)
+    # We need to do some additional axis adjustment  after the tight layout, so we
+    # perform that here.
+    fig.subplots_adjust(
+        # Reduce spacing between subplots
+        hspace = 0, wspace = 0,
+        # Reduce external spacing
+        left = 0.08, right = 0.99,
+        top = 0.96, bottom = 0.11,
+    )
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
