@@ -480,6 +480,31 @@ _testPtHardBins: &TestPtHardBin
       bin: 4
       range: !SelectedRange [36, 57]
       train_number: 1234
+_ptHardBinsLHC15o: !PtHardBins: &PtHardBinsLHC15o
+    # Disabled here due to a bug parsing the combination of the tag and the anchor
+    # yamllint disable-line rule:indentation
+    bins: [5, 7, 9, 12, 16, 21, 28, 36, 45, 57, 70, 85, 99, 115, 132, 150, 169, 190, 212, 235, -1]
+    train_numbers:
+        1: 4735
+        2: 4736
+        3: 4737
+        4: 4739
+        5: 4738
+        6: 4740
+        7: 4741
+        8: 4742
+        9: 4743
+        10: 4744
+        11: 4745
+        12: 4746
+        13: 4747
+        14: 4748
+        15: 4749
+        16: 4750
+        17: 4751
+        18: 4753
+        19: 4752
+        20: 4754
 
 # Response matrix related configuration
 PtHardBins:
