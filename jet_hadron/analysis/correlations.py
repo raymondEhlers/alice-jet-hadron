@@ -1585,16 +1585,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
         signal_dominated_hist = histogram.Histogram1D.from_existing_hist(signal_dominated.hist)
         # Evaluate the hist and the fit at the same x locations.
         x = signal_dominated_hist.x
-        if self.task_config["separate_background_errors"]:
-            errors_squared = np.zeros(len(x))
-        else:
-            errors_squared = self.fit_object.calculate_background_function_errors(x) ** 2
         fit_hist = histogram.Histogram1D(
             bin_edges = signal_dominated_hist.bin_edges,
             y = self.fit_object.evaluate_background(x),
-            errors_squared = errors_squared,
+            errors_squared = np.zeros(len(x)),
         )
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist
+        # Store the background errors in the hist metadata.
+        self.correlation_hists_delta_phi_subtracted.signal_dominated.hist.metadata["RPF_background_errors"] = \
+            self.fit_object.calculate_background_function_errors(x)
 
     def compare_subtracted_1d_signal_correlation_to_joel(self) -> None:
         """ Compare subtracted 1D signal correlation hists to Joel.

@@ -78,7 +78,6 @@ Correlations:
     delta_phi_yield_limit: 0.33333
     # This value is just 0.6 (ie corresponding to the signal dominated region).
     delta_eta_yield_limit: 0.6
-    separate_background_errors: true
     processingOptions:
         # 2D
         generate2DCorrelations: false

@@ -554,7 +554,7 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         )
 
         # Plot the background uncertainty separately.
-        background_error = analysis.fit_object.calculate_background_function_errors(h.x)
+        background_error = h.metadata["RPF_background_errors"]
         ax.fill_between(
             h.x, h.y - background_error, h.y + background_error,
             label = "RP fit uncertainty",
@@ -618,20 +618,10 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     text += "\n" + r"Signal + Background: $|\Delta\eta|<0.6$"
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
     # Out-of-plane orientation
-    #jet_pt_label = labels.jet_pt_range_string(inclusive_analysis.jet_pt)
-    #track_pt_label = labels.track_pt_range_string(inclusive_analysis.track_pt)
-    #ax.set_title(fr"Subtracted 1D ${inclusive_analysis.correlation_hists_delta_phi_subtracted.signal_dominated.axis.display_str()}$,"
-    #             f" {inclusive_analysis.reaction_plane_orientation.display_str()} event plane orient.,"
-    #             f" {jet_pt_label}, {track_pt_label}")
-    #ax.legend(loc = "upper right")
     flat_axes[3].legend(
         frameon = False, loc = "upper center", fontsize = 15
     )
-    #text = ""
-    #_add_label_to_rpf_plot_axis(
-    #    ax = flat_axes[3], label = labels.make_valid_latex_string(text),
-    #    x = 0.5, y = 0.71, size = 15
-    #)
+
     # Improve the viewable range for the upper panels.
     # Namely, we want to move it down such that the data doesn't overlap with the
     # labels, but oscillations in the data are still viewable.
@@ -662,9 +652,8 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
         top = 0.96, bottom = 0.11,
     )
     # Save plot and cleanup
-    # TODO: Update name...
     plot_base.save_plot(output_info, fig,
-                        f"jetH_delta_phi_{inclusive_analysis.identifier}_rp_subtracted")
+                        f"{output_name}_rp_subtracted")
     plt.close(fig)
 
 def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, "correlations.Correlations"]], axes: matplotlib.axes.Axes) -> None:
