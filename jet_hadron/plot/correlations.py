@@ -329,6 +329,7 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
     ax[0].errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
     # Plot ratio
     ax[1].errorbar(ratio.x, ratio.y, yerr = ratio.errors, label = "Theirs/ours")
+    ax[1].set_ylim(-1, 1)
 
     # Set plot properties
     ax[0].set_title(title)
