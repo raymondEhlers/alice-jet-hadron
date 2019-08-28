@@ -550,16 +550,14 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         # Plot the subtracted hist
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
-            label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
+            label = f"Sub. {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
         )
 
         # Plot the background uncertainty separately.
         background_error = analysis.fit_object.calculate_background_function_errors(h.x)
         ax.fill_between(
-            h.x,
-            h.y - background_error,
-            h.y + background_error,
-            label = "RP background uncertainty",
+            h.x, h.y - background_error, h.y + background_error,
+            label = "RP fit uncertainty",
             color = plot_base.AnalysisColors.fit,
         )
 
@@ -592,7 +590,6 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     fig, axes = plt.subplots(
         1, n_components,
         sharey = "row", sharex = True,
-        #gridspec_kw = {"height_ratios": [3, 1]},
         figsize = (3 * n_components, 6)
     )
     flat_axes = axes.flatten()
@@ -601,46 +598,71 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     _plot_rp_fit_subtracted(ep_analyses = ep_analyses, axes = flat_axes[:n_components])
 
     # Define upper panel labels.
+    # Inclusive
+    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
+    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
     # In-plane
     text = labels.track_pt_range_string(inclusive_analysis.track_pt)
     text += "\n" + labels.constituent_cuts()
     text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
-    _add_label_to_rpf_plot_axis(ax = flat_axes[0], label = text)
+    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
     # Mid-plane
-    text = labels.make_valid_latex_string(inclusive_analysis.alice_label.display_str())
-    text += "\n" + labels.system_label(
+    text = labels.system_label(
         energy = inclusive_analysis.collision_energy,
         system = inclusive_analysis.collision_system,
         activity = inclusive_analysis.event_activity
     )
     text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     text += "\n" + labels.jet_finding()
-    _add_label_to_rpf_plot_axis(ax = flat_axes[1], label = text)
-    # Out-of-plane
-    #text = "Background: $0.8<|\Delta\eta|<1.2$"
-    #text += "\nSignal + Background: $|\Delta\eta|<0.6$"
-    #_add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text)
-    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = labels.make_valid_latex_string(text))
-
-    for ax in flat_axes:
-        # Increase the frequency of major ticks to once every integer.
-        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
-        # Set label
-        ax.set_xlabel(labels.make_valid_latex_string(r"\Delta\varphi"))
-
-    flat_axes[0].set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
+    text += "\n" + r"Background: $0.8<|\Delta\eta|<1.2$"
+    text += "\n" + r"Signal + Background: $|\Delta\eta|<0.6$"
+    _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
+    # Out-of-plane orientation
     #jet_pt_label = labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     #track_pt_label = labels.track_pt_range_string(inclusive_analysis.track_pt)
     #ax.set_title(fr"Subtracted 1D ${inclusive_analysis.correlation_hists_delta_phi_subtracted.signal_dominated.axis.display_str()}$,"
     #             f" {inclusive_analysis.reaction_plane_orientation.display_str()} event plane orient.,"
     #             f" {jet_pt_label}, {track_pt_label}")
-    ax.legend(loc = "upper right")
+    #ax.legend(loc = "upper right")
+    flat_axes[3].legend(
+        frameon = False, loc = "upper center", fontsize = 15
+    )
+    #text = ""
+    #_add_label_to_rpf_plot_axis(
+    #    ax = flat_axes[3], label = labels.make_valid_latex_string(text),
+    #    x = 0.5, y = 0.71, size = 15
+    #)
+    # Improve the viewable range for the upper panels.
+    # Namely, we want to move it down such that the data doesn't overlap with the
+    # labels, but oscillations in the data are still viewable.
+    # These values are determine empirically.
+    y_min, y_max = flat_axes[0].get_ylim()
+    scale_factor = 1.12
+    if inclusive_analysis.track_pt.min >= 4.:
+        scale_factor = 1.35
+    flat_axes[0].set_ylim(y_min, y_max * scale_factor)
+
+    # Improve x axis presentation
+    for ax in flat_axes:
+        # Increase the frequency of major ticks to once every integer.
+        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
+        # Add axis labels
+        ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
+    flat_axes[0].set_ylabel(labels.make_valid_latex_string(labels.delta_phi_axis_label()))
 
     # Final adjustments
     fig.tight_layout()
-    # Reduce spacing between subplots
-    fig.subplots_adjust(hspace = 0, wspace = 0)
+    # We need to do some additional axis adjustment  after the tight layout, so we
+    # perform that here.
+    fig.subplots_adjust(
+        # Reduce spacing between subplots
+        hspace = 0, wspace = 0,
+        # Reduce external spacing
+        left = 0.10, right = 0.99,
+        top = 0.96, bottom = 0.11,
+    )
     # Save plot and cleanup
+    # TODO: Update name...
     plot_base.save_plot(output_info, fig,
                         f"jetH_delta_phi_{inclusive_analysis.identifier}_rp_subtracted")
     plt.close(fig)
@@ -667,9 +689,9 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
         # Setup
         # Get the relevant data. We define the background first so that it is plotted underneath.
         data: Dict[str, histogram.Histogram1D] = {
-            "Background domianted":
+            "Background dominated":
             histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.background_dominated),
-            "Signal domianted":
+            "Signal dominated":
             histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.signal_dominated),
         }
 
@@ -768,7 +790,7 @@ def _add_label_to_rpf_plot_axis(ax: matplotlib.axes.Axes, label: str,
     # Override with any additional passed kwargs
     text_kwargs.update(kwargs)
 
-    # Drwa the text
+    # Draw the text
     ax.text(**text_kwargs)
 
 def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
@@ -827,7 +849,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     flat_axes[3].legend(
         frameon = False, loc = "upper center", fontsize = 15
     )
-    # TODO: Impelement effective chi squared for a simultaneous fit...
+    # TODO: Impalement effective chi squared for a simultaneous fit...
     #effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
@@ -839,7 +861,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
         x = 0.5, y = 0.71, size = 15
     )
     # Improve the viewable range for the upper panels.
-    # Namely, we want to move it down such that the data doens't overlap with the
+    # Namely, we want to move it down such that the data doesn't overlap with the
     # labels, but oscillations in the data are still viewable.
     # These values are determine empirically.
     y_min, y_max = flat_axes[0].get_ylim()
