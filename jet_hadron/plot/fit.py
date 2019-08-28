@@ -710,11 +710,6 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
         None. The axes are modified in place.
     """
     # Validation
-    #if len(rp_fit.components) != len(axes):
-    #    raise TypeError(
-    #        f"Number of axes is not equal to the number of fit components."
-    #        f" # of components: {len(rp_fit.components)}, # of axes: {len(axes)}"
-    #    )
     if len(ep_analyses) != len(axes):
         raise TypeError(
             f"Number of axes is not equal to the number of EP analysis objects."
@@ -725,11 +720,11 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
     for (key_index, analysis), ax in zip(ep_analyses, axes):
         # Setup
         # Get the relevant data
-        if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
-            h: Union["correlations.DeltaPhiSignalDominated", "correlations.DeltaPhiBackgroundDominated"] = \
-                analysis.correlation_hists_delta_phi.signal_dominated
-        else:
+        h: Union["correlations.DeltaPhiSignalDominated", "correlations.DeltaPhiBackgroundDominated"]
+        if isinstance(analysis.fit_object, reaction_plane_fit.fit.BackgroundFitComponent):
             h = analysis.correlation_hists_delta_phi.background_dominated
+        else:
+            h = analysis.correlation_hists_delta_phi.signal_dominated
         hist = histogram.Histogram1D.from_existing_hist(h)
 
         # We create a histogram to represent the fit so that we can take advantage
