@@ -757,7 +757,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 hist = observable.hist
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
-                    logger.debug(f"Writing hist {hist} with name {observable.name}")
+                    #logger.debug(f"Writing hist named {observable.name}: {hist}")
                     output[observable.name] = hist
 
             # Finally, write the output
@@ -832,14 +832,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         filename = os.path.join(self.output_prefix, self.output_filename)
         with histogram.RootOpen(filename = filename, mode = "READ") as f:
             for _, observable in hists:
-                logger.debug(f"Looking for hist {observable.name}")
+                #logger.debug(f"Looking for hist {observable.name}")
                 h = f.Get(observable.name)
                 if not h:
                     h = None
                 else:
                     # Detach it from the file so we can store it for later use.
                     h.SetDirectory(0)
-                logger.debug(f"Initializing hist {h} to be stored in {observable}")
+                #logger.debug(f"Initializing hist {h} to be stored in {observable}")
                 observable.hist = h
 
     def _init_hists_from_yaml_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
@@ -850,9 +850,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         with open(filename, "r") as f:
             hists_in_file = y.load(f)
             for _, observable in hists:
-                logger.debug(f"Looking for hist {observable.name}")
+                #logger.debug(f"Looking for hist {observable.name}")
                 h = hists_in_file.get(observable.name, None)
-                logger.debug(f"Initializing hist {h} to be stored in {observable}")
+                #logger.debug(f"Initializing hist {h} to be stored in {observable}")
                 observable.hist = h
 
     def _setup_sparse_projectors(self) -> None:
@@ -1197,7 +1197,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self.processing_options["generate1DCorrelations"] = True
         else:
             # Initialize the 2D correlations from the file
-            logger.info("Loading 2D correlations and trigger jet spectra from file")
+            logger.info(f"Loading 2D correlations and trigger jet spectra from file for {self.identifier}")
             self._init_2d_correlations_hists_from_root_file()
             self._init_number_of_triggers_hist_from_root_file()
 
@@ -1526,7 +1526,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._write_1d_correlations()
         else:
             # Initialize the 1D correlations from the file
-            logger.info("Loading 1D correlations from file")
+            logger.info(f"Loading 1D correlations from file for {self.identifier}")
             self._init_1d_correlations_hists_from_root_file()
 
         # Plot the correlations
@@ -2239,7 +2239,7 @@ class CorrelationsManager(analysis_manager.Manager):
                 # Update progress
                 for key_index, analysis in ep_analyses:
                     analysis.ran_post_fit_processing = True
-                    subtracting.update()
+                subtracting.update()
 
     def _subtract_delta_eta_fits(self) -> None:
         """ Subtract the fits from the delta eta correlations. """
