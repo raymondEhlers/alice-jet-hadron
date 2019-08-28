@@ -846,8 +846,12 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     # Improve the viewable range for the upper panels.
     # Namely, we want to move it down such that the data doens't overlap with the
     # labels, but oscillations in the data are still viewable.
+    # These values are determine empirically.
     y_min, y_max = flat_axes[0].get_ylim()
-    flat_axes[0].set_ylim(y_min, y_max * 1.12)
+    scale_factor = 1.12
+    if inclusive_analysis.track_pt.min >= 4.:
+        scale_factor = 1.35
+    flat_axes[0].set_ylim(y_min, y_max * scale_factor)
 
     # Define lower panel labels.
     for ax in flat_axes[n_components:]:
