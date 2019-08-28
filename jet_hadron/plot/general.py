@@ -121,8 +121,8 @@ def vn_harmonics(theta: np.ndarray, harmonics: Dict[int, float],
         rotation = rotations[n]
         # Plot deviations from a unit circle.
         ax.plot(
-            (1 + 2 * coefficient * np.cos(n * theta + rotation)) * np.sin(theta + rotation),
             (1 + 2 * coefficient * np.cos(n * theta + rotation)) * np.cos(theta + rotation),
+            (1 + 2 * coefficient * np.cos(n * theta + rotation)) * np.sin(theta + rotation),
             label = fr"$v_{{ {n} }}$: {coefficient:.2f}",
         )
 
