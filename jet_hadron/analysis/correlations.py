@@ -56,6 +56,9 @@ ROOT.gROOT.SetBatch(True)
 
 this_module = sys.modules[__name__]
 
+# Typing helpers
+ProcessingOptions = Dict[str, bool]
+
 class JetHCorrelationSparse(enum.Enum):
     """ Defines the axes in the Jet-Hadron THn Sparses. """
     centrality = 0
@@ -356,11 +359,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.output_filename_yaml = self.output_filename.replace(".root", ".yaml")
 
         self.input_hists: Dict[str, Any] = {}
-        # For convenience since it is frequently accessed.
-        self.processing_options = self.task_config["processingOptions"]
         # Status information
+        # True if we should generate the 1D correlations.
+        self.generate_1D_correlations: bool = False
+        # True if the projections have been run.
         self.ran_projections: bool = False
+        # True if the fitting has been run.
         self.ran_fitting: bool = False
+        # True if the post fit processing has been run.
         self.ran_post_fit_processing: bool = False
 
         # Useful information
@@ -1171,8 +1177,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
             title_label = "Correlation",
         )
 
-    def _run_2d_projections(self) -> None:
-        """ Run the correlations 2D projections. """
+    def _run_2d_projections(self, processing_options: ProcessingOptions) -> None:
+        """ Run the correlations 2D projections.
+
+        Args:
+            processing_options: Processing options to configure the projections.
+        Returns:
+            None. Projections are stored in output files, and plots may have been created.
+        """
         # Only need to check if file exists for this if statement because we cannot get past there
         # without somehow having some hists
         file_exists = os.path.isfile(os.path.join(self.output_prefix, self.output_filename))
@@ -1181,7 +1193,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         #       The exceptions are the 2D correlations, which are normalized by n_trig for the raw correlation
         #       and the maximum efficiency for the mixed events. They are excepted because we don't have a
         #       purpose for such unnormalized hists.
-        if self.processing_options["generate2DCorrelations"] or not file_exists:
+        if processing_options["generate_2D_correlations"] or not file_exists:
             # Create the correlations by utilizing the projectors
             logger.info("Projecting 2D correlations")
             self._create_2d_raw_and_mixed_correlations()
@@ -1194,7 +1206,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._write_number_of_triggers_hist()
 
             # Ensure we execute the next step
-            self.processing_options["generate1DCorrelations"] = True
+            self.generate_1D_correlations = True
         else:
             # Initialize the 2D correlations from the file
             logger.info(f"Loading 2D correlations and trigger jet spectra from file for {self.identifier}")
@@ -1202,11 +1214,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._init_number_of_triggers_hist_from_root_file()
 
         # Plotting
-        if self.processing_options["plot2DCorrelations"]:
+        if processing_options["plot_2D_correlations"]:
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
             logger.info("Plotting RPF example region")
-        if self.processing_options["plotRPFHighlights"]:
+        if processing_options["plot_RPF_highlights"]:
             plot_correlations.plot_RPF_fit_regions(
                 self,
                 filename = f"highlight_RPF_regions_{self.identifier}"
@@ -1507,9 +1519,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
         )
 
-    def _run_1d_projections(self) -> None:
-        """ Run the 2D -> 1D projections. """
-        if self.processing_options["generate1DCorrelations"]:
+    def _run_1d_projections(self, processing_options: ProcessingOptions) -> None:
+        """ Run the 2D -> 1D projections.
+
+        Args:
+            processing_options: Processing options to configure the projections.
+        Returns:
+            None. Projections are stored in output files, and plots may have been created.
+        """
+        if processing_options["generate_1D_correlations"] or self.generate_1D_correlations:
             # Setup the projectors here.
             logger.info("Setting up 1D correlations projectors.")
             self._setup_1d_projectors()
@@ -1530,14 +1548,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._init_1d_correlations_hists_from_root_file()
 
         # Plot the correlations
-        if self.processing_options["plot1DCorrelations"]:
-            if self.collision_energy == params.CollisionEnergy.two_seven_six and self.event_activity == params.EventActivity.central:
-                logger.info("Comparing unsubtracted correlations to Joel's.")
-                self._compare_unsubtracted_1d_signal_correlation_to_joel()
-            else:
-                logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
+        if processing_options["plot_1D_correlations"]:
             logger.info("Plotting 1D correlations")
-            plot_correlations.plot_1d_correlations(self, self.processing_options["plot1DCorrelationsWithROOT"])
+            plot_correlations.plot_1d_correlations(self, processing_options["plot_1D_correlations_with_ROOT"])
             plot_correlations.delta_eta_unsubtracted(
                 hists = self.correlation_hists_delta_eta,
                 jet_pt = self.jet_pt, track_pt = self.track_pt,
@@ -1545,11 +1558,23 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 identifier = self.identifier,
                 output_info = self.output_info,
             )
+        if processing_options["plot_1D_correlations_joel_comparison"]:
+            if self.collision_energy == params.CollisionEnergy.two_seven_six and self.event_activity == params.EventActivity.central:
+                logger.info("Comparing unsubtracted correlations to Joel's.")
+                self._compare_unsubtracted_1d_signal_correlation_to_joel()
+            else:
+                logger.info("Skipping comparison with Joel since we're not analyzing the right system.")
 
-    def run_projections(self) -> None:
-        """ Run all analysis steps through projectors. """
-        self._run_2d_projections()
-        self._run_1d_projections()
+    def run_projections(self, processing_options: ProcessingOptions) -> None:
+        """ Run all analysis steps through projectors.
+
+        Args:
+            processing_options: Processing options to configure the projections.
+        Returns:
+            None. `self.ran_projections` is set to true.
+        """
+        self._run_2d_projections(processing_options = processing_options)
+        self._run_1d_projections(processing_options = processing_options)
 
         # Store that we've completed this step.
         self.ran_projections = True
@@ -2402,7 +2427,7 @@ class CorrelationsManager(analysis_manager.Manager):
                                                 desc = "Projecting:",
                                                 unit = "analysis objects") as projecting:
                 for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                    analysis.run_projections()
+                    analysis.run_projections(processing_options = self.processing_options)
                     # Keep track of progress
                     projecting.update()
             overall_progress.update()

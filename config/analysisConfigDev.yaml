@@ -79,14 +79,6 @@ Correlations:
     # This value is just 0.6 (ie corresponding to the signal dominated region).
     delta_eta_yield_limit: 0.6
     processingOptions:
-        # 2D
-        generate2DCorrelations: false
-        plot2DCorrelations: false
-        plotRPFHighlights: false
-        # 1D
-        generate1DCorrelations: false
-        plot1DCorrelations: false
-        plot1DCorrelationsWithROOT: false
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
@@ -140,6 +132,17 @@ reaction_plane_fit_parameters:
     null: null
 CorrelationsManager:
     processing_options:
+        # 2D
+        generate_2D_correlations: false
+        plot_2D_correlations: false
+        plot_RPF_highlights: false
+        # 1D
+        generate_1D_correlations: false
+        plot_1D_correlations: false
+        plot_1D_correlations_with_ROOT: false
+        # Even if enabled, it will only make the comparison if in the correct collision system and energy.
+        plot_1D_correlations_joel_comparison: true
+        # Fit options
         fit_correlations: true
         plot_RPF: true
         plot_RPF_summary: true
