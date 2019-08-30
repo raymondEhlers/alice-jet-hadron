@@ -1034,7 +1034,9 @@ def signal_dominated_with_background_function(analysis: "correlations.Correlatio
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # Plot signal and background dominated hists
-    plot_correlations.plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax = ax, jet_hadron = analysis)
+    plot_correlations.plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(
+        ax = ax, jet_hadron = analysis, apply_correlation_scale_factor = False
+    )
 
     # Plot background function
     # First we retrieve the signal dominated histogram to get reference x values and bin edges.

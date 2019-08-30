@@ -370,6 +370,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self.ran_post_fit_processing: bool = False
 
         # Useful information
+        # Will be set from the 2D correlation histograms
+        self._delta_phi_bin_width: float
+        self._delta_eta_bin_width: float
         # These values are only half the range (ie only the positive values).
         self.signal_dominated_eta_region = analysis_objects.AnalysisBin(
             params.SelectedRange(
@@ -777,6 +780,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Write number of triggers hists. """
         # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
         self._init_hists_from_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
+        # Then retrieve the number of triggers from the observable.
+        self.number_of_triggers = self._determine_number_of_triggers()
 
     def _init_1d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 1D correlation hists. """
@@ -1057,12 +1062,59 @@ class Correlations(analysis_objects.JetHReactionPlane):
             jet_pt = self.jet_pt,
         )
 
+    @property
+    def correlation_scale_factor(self) -> float:
+        """ Correlation scale factor.
+
+        When applied to a correlation, this will scale it by the number of triggers, as well as the
+        relevant bin widths. Note that this is the right scale factor for both 1D and 2D histograms.
+        This was achieved by scaling the 1D projections by the bin width / length of projection in
+        the particular axis, such that the axis bin width cancels out when this correlation scale
+        factor is applied.
+
+        Note:
+            This already includes the 1 / factor, so we should just apply directly to scaling the hist.
+        """
+        return 1.0 / self.number_of_triggers / self.delta_phi_bin_width / self.delta_eta_bin_width
+
+    @property
+    def delta_phi_bin_width(self) -> float:
+        return self._delta_phi_bin_width
+
+    @delta_phi_bin_width.setter
+    def delta_phi_bin_width(self, hist_2D: Hist) -> None:
+        """ Get the delta phi bin width from a 2D correlation.
+
+        Args:
+            hist_2D: A 2D correlation histogram to extract the bin width from.
+        Returns:
+            None.
+        """
+        self._delta_phi_bin_width = hist_2D.GetXaxis().GetBinWidth(1)
+
+    @property
+    def delta_eta_bin_width(self) -> float:
+        return self._delta_eta_bin_width
+
+    @delta_eta_bin_width.setter
+    def delta_eta_bin_width(self, hist_2D: Hist) -> None:
+        """ Get the delta eta bin width from a 2D correlation.
+
+        Args:
+            hist_2D: A 2D correlation histogram to extract the bin width from.
+        Returns:
+            None.
+        """
+        self._delta_eta_bin_width = hist_2D.GetYaxis().GetBinWidth(1)
+
     def setup(self, input_hists: Optional[Dict[str, Any]] = None) -> bool:
         """ Setup the correlations object. """
         # Setup the input hists and projectors
         return super().setup(input_hists = input_hists)
 
-    def _post_creation_processing_for_2d_correlation(self, hist: Hist, normalization_factor: float, title_label: str, rebin_factors: Optional[Tuple[int, int]] = None) -> None:
+    def _post_creation_processing_for_2d_correlation(self, hist: Hist,
+                                                     normalization_factor: float, title_label: str,
+                                                     rebin_factors: Optional[Tuple[int, int]] = None) -> None:
         """ Perform post creation processing for 2D correlations. """
         correlations_helpers.post_projection_processing_for_2d_correlation(
             hist = hist, normalization_factor = normalization_factor, title_label = title_label,
@@ -1135,7 +1187,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Raw signal hist post processing.
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.raw.hist,
-            normalization_factor = self.number_of_triggers,
+            normalization_factor = 1.0,
             title_label = "Raw signal",
             rebin_factors = rebin_factors,
         )
@@ -1213,12 +1265,17 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._init_2d_correlations_hists_from_root_file()
             self._init_number_of_triggers_hist_from_root_file()
 
+        # At this point, we have the 2D correlations (whether via projection or initializing them from a file),
+        # so we need to store the delta eta and delta phi bin widths
+        self.delta_phi_bin_width = self.correlation_hists_2d.signal.hist
+        self.delta_eta_bin_width = self.correlation_hists_2d.signal.hist
+
         # Plotting
         if processing_options["plot_2D_correlations"]:
             logger.info("Plotting 2D correlations")
             plot_correlations.plot_2d_correlations(self)
-            logger.info("Plotting RPF example region")
         if processing_options["plot_RPF_highlights"]:
+            logger.info("Plotting RPF example region")
             plot_correlations.plot_RPF_fit_regions(
                 self,
                 filename = f"highlight_RPF_regions_{self.identifier}"
@@ -1419,6 +1476,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # However, it is then important that we report the ranges in which we measure!
                 # NOTE: We calculate the values very explicitly to try to ensure that any changes in
                 #       values will be noticed quickly.
+                bin_width: float
                 if observable.axis == analysis_objects.CorrelationAxis.delta_phi:
                     ranges = {
                         analysis_objects.CorrelationType.signal_dominated: self.signal_dominated_eta_region,
@@ -1428,6 +1486,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     # Ranges are multiplied by 2 because the ranges are symmetric and the stored values
                     # only cover the positive range.
                     normalization_factor = (r.max - r.min) * 2.
+                    # We are projecting over delta eta, so we need the delta eta bin width.
+                    bin_width = self.delta_eta_bin_width
                 elif observable.axis == analysis_objects.CorrelationAxis.delta_eta:
                     ranges = {
                         analysis_objects.CorrelationType.near_side: self.near_side_phi_region,
@@ -1435,8 +1495,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     }
                     r = ranges[observable.type]
                     normalization_factor = r.max - r.min
+                    # We are projecting over delta phi, so we need the delta phi bin width.
+                    bin_width = self.delta_phi_bin_width
                 else:
                     raise ValueError(f"Unrecognized observable axis: {observable.axis}")
+                # Then scale the normalization factor by the bin width so we can use the correlation_scale_factor.
+                # When it's used, the factors of the bin width will cancel out.
+                normalization_factor /= bin_width
 
                 # Determine the rebin factor, which depends on the observable axis.
                 rebin_factor = self.task_config.get(f"1d_rebin_factor_{observable.axis}", 1)
@@ -1453,16 +1518,16 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     track_pt = self.track_pt,
                 )
 
-    def _post_1d_projection_scaling(self) -> None:
-        """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
-        # Since the histograms are always referencing the same root object, the stored hists
-        # will also be updated.
-        for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
-            # Help out mypy...
-            assert isinstance(hists, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
-            for _, observable in hists:
-                logger.debug(f"hist: {observable}")
-                correlations_helpers.scale_by_bin_width(observable.hist)
+    #def _post_1d_projection_scaling(self) -> None:
+    #    """ Perform post-projection scaling to avoid needing to scale the fit functions later. """
+    #    # Since the histograms are always referencing the same root object, the stored hists
+    #    # will also be updated.
+    #    for hists in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+    #        # Help out mypy...
+    #        assert isinstance(hists, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
+    #        for _, observable in hists:
+    #            logger.debug(f"hist: {observable}")
+    #            correlations_helpers.scale_by_bin_width(observable.hist)
 
     def _compare_to_other_hist(self,
                                our_hist: Hist, their_hist: Hist,
@@ -1473,6 +1538,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             our_hist = histogram.Histogram1D.from_existing_hist(our_hist)
         if not isinstance(their_hist, histogram.Histogram1D):
             their_hist = histogram.Histogram1D.from_existing_hist(their_hist)
+
+        # Scale our hist by the correlation scale factor
+        our_hist *= self.correlation_scale_factor
 
         # Create a ratio plot
         # We want to take their hist and divide it by ours.
@@ -1536,10 +1604,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info("Projecting 1D correlations")
             self._create_1d_correlations()
 
-            # Perform post-projection scaling to avoid needing to scale the fit functions later
-            logger.info("Performing post projection histogram scaling")
-            self._post_1d_projection_scaling()
-
+            # We will perform the proper scaling after fitting with the reaction plane fit.
             # Write the properly scaled projections
             self._write_1d_correlations()
         else:
@@ -1553,13 +1618,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
             plot_correlations.plot_1d_correlations(self, processing_options["plot_1D_correlations_with_ROOT"])
             plot_correlations.delta_eta_unsubtracted(
                 hists = self.correlation_hists_delta_eta,
+                correlation_scale_factor = self.correlation_scale_factor,
                 jet_pt = self.jet_pt, track_pt = self.track_pt,
                 reaction_plane_orientation = self.reaction_plane_orientation,
                 identifier = self.identifier,
                 output_info = self.output_info,
             )
         if processing_options["plot_1D_correlations_joel_comparison"]:
-            if self.collision_energy == params.CollisionEnergy.two_seven_six and self.event_activity == params.EventActivity.central:
+            if self.collision_energy == params.CollisionEnergy.two_seven_six and \
+                    self.event_activity == params.EventActivity.central:
                 logger.info("Comparing unsubtracted correlations to Joel's.")
                 self._compare_unsubtracted_1d_signal_correlation_to_joel()
             else:

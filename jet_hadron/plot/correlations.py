@@ -19,9 +19,6 @@ from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 from jet_hadron.plot import highlight_RPF
-# NOTE: This is not standard for the plot package to rely on the analysis package.
-#       However, here it's convenient (and it doesn't cause an import loops), so we tolerate it.
-from jet_hadron.analysis import correlations_helpers
 
 import ROOT
 
@@ -41,7 +38,7 @@ def plot_2d_correlations(jet_hadron: "correlations.Correlations") -> None:
         logger.debug(f"name: {name}, hist: {hist}")
         # We don't want to scale the mixed event hist because we already determined the normalization
         if "mixed" not in observable.type:
-            correlations_helpers.scale_by_bin_width(hist)
+            hist.Scale(jet_hadron.correlation_scale_factor)
 
         # We don't need the title with all of the labeling
         hist.SetTitle("")
@@ -122,7 +119,9 @@ def plot_1d_correlations(jet_hadron: "correlations.Correlations", plot_with_ROOT
     if plot_with_ROOT:
         # With ROOT
         _plot_all_1d_correlations_with_ROOT(jet_hadron = jet_hadron)
-        _plot_1d_signal_and_background_with_ROOT(jet_hadron = jet_hadron, output_name = signal_background_output_name)
+        _plot_1d_signal_and_background_with_ROOT(
+            jet_hadron = jet_hadron, output_name = signal_background_output_name
+        )
     else:
         # With matplotlib
         _plot_all_1d_correlations_with_matplotlib(jet_hadron = jet_hadron)
@@ -134,7 +133,8 @@ def _plot_all_1d_correlations_with_matplotlib(jet_hadron: "correlations.Correlat
     """ Plot all 1D correlations in a very basic way with matplotlib.
 
     Note:
-        We don't want to scale the histogram any further here because it's already been fully scaled!
+        We scaled with the correlation scale factor before plotting to ensure that the stored
+        plots are always scaled properly.
     """
     # Not ideal, but it's much more convenient to import it here. Importing it at the top
     # of the file would cause an import loop.
@@ -146,6 +146,9 @@ def _plot_all_1d_correlations_with_matplotlib(jet_hadron: "correlations.Correlat
         for _, observable in correlations_groups:
             # Draw the 1D histogram.
             h = histogram.Histogram1D.from_existing_hist(observable.hist)
+            # Scale by the appropriate factors
+            h *= jet_hadron.correlation_scale_factor
+            # And then plot
             ax.errorbar(
                 h.x, h.y, yerr = h.errors,
                 label = observable.hist.GetName(), marker = "o", linestyle = "",
@@ -170,7 +173,8 @@ def _plot_all_1d_correlations_with_ROOT(jet_hadron: "correlations.Correlations")
     """ Plot all 1D correlations in a very basic way with ROOT.
 
     Note:
-        We don't want to scale the histogram any further here because it's already been fully scaled!
+        We scaled with the correlation scale factor before plotting to ensure that the stored
+        plots are always scaled properly.
     """
     # Not ideal, but it's much more convenient to import it here. Importing it at the top
     # of the file would cause an import loop.
@@ -179,14 +183,17 @@ def _plot_all_1d_correlations_with_ROOT(jet_hadron: "correlations.Correlations")
     for correlations_groups in [jet_hadron.correlation_hists_delta_phi, jet_hadron.correlation_hists_delta_eta]:
         # Help out mypy...
         assert isinstance(correlations_groups, (correlations.CorrelationHistogramsDeltaPhi, correlations.CorrelationHistogramsDeltaEta))
-        for _, observable in correlations_groups:
+        for name, observable in correlations_groups:
             # Draw the 1D histogram.
-            observable.hist.Draw("")
+            hist = observable.hist.Clone(f"{name}_scaled")
+            hist.Scale(jet_hadron.correlation_scale_factor)
+            hist.Draw("")
             output_name = observable.hist.GetName() + "_ROOT"
             plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
 def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotlib.axes.Axes,
-                                                                    jet_hadron: "correlations.Correlations") -> None:
+                                                                    jet_hadron: "correlations.Correlations",
+                                                                    apply_correlation_scale_factor: bool = True) -> None:
     """ Plot and label the signal and background dominated hists on the given axis.
 
     This is a helper function so that we don't have to repeat code when we need to plot these hists.
@@ -195,6 +202,7 @@ def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotl
     Args:
         ax: Axis on which the histograms should be plotted.
         jet_hadron: Correlations object from which the delta_phi hists should be retrieved.
+        apply_correlation_scale_factor: Whether to scale the histogram by the correlation scale factor.
     Returns:
         None. The given axis is modified.
     """
@@ -202,11 +210,15 @@ def plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax: matplotl
     hists = jet_hadron.correlation_hists_delta_phi
 
     h_signal = histogram.Histogram1D.from_existing_hist(hists.signal_dominated.hist)
+    if apply_correlation_scale_factor:
+        h_signal *= jet_hadron.correlation_scale_factor
     ax.errorbar(
         h_signal.x, h_signal.y, yerr = h_signal.errors,
         label = hists.signal_dominated.type.display_str(), marker = "o", linestyle = "",
     )
     h_background = histogram.Histogram1D.from_existing_hist(hists.background_dominated.hist)
+    if apply_correlation_scale_factor:
+        h_background *= jet_hadron.correlation_scale_factor
     # Plot with opacity first
     background_plot = ax.errorbar(
         h_background.x, h_background.y, yerr = h_background.errors,
@@ -235,7 +247,9 @@ def _plot_1d_signal_and_background_with_matplotlib(jet_hadron: "correlations.Cor
     fig, ax = plt.subplots(figsize = (8, 6))
 
     # Perform the actual plot
-    plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(ax = ax, jet_hadron = jet_hadron)
+    plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(
+        ax = ax, jet_hadron = jet_hadron, apply_correlation_scale_factor = True
+    )
 
     # Labeling
     ax.legend(loc = "upper right")
@@ -255,18 +269,23 @@ def _plot_1d_signal_and_background_with_ROOT(jet_hadron: "correlations.Correlati
     hists = jet_hadron.correlation_hists_delta_phi
 
     # Plot
-    hists.signal_dominated.hist.SetLineColor(ROOT.kBlack)
-    hists.signal_dominated.hist.SetMarkerColor(ROOT.kBlack)
-    hists.signal_dominated.hist.Draw("")
-    hists.background_dominated.hist.SetLineColor(ROOT.kBlue)
-    hists.background_dominated.hist.SetMarkerColor(ROOT.kBlue)
-    hists.background_dominated.hist.Draw("same")
+    signal_hist = hists.signal_dominated.hist.Clone(f"{hists.signal_dominated.name}_scaled")
+    signal_hist.Scale(jet_hadron.correlation_scale_factor)
+    signal_hist.SetLineColor(ROOT.kBlack)
+    signal_hist.SetMarkerColor(ROOT.kBlack)
+    signal_hist.Draw("")
+    background_hist = hists.background_dominated.hist.Clone(f"{hists.background_dominated.name}_scaled")
+    background_hist.Scale(jet_hadron.correlation_scale_factor)
+    background_hist.SetLineColor(ROOT.kBlue)
+    background_hist.SetMarkerColor(ROOT.kBlue)
+    background_hist.Draw("same")
 
     # Save
     output_name += "_ROOT"
     plot_base.save_plot(jet_hadron.output_info, canvas, output_name)
 
 def delta_eta_unsubtracted(hists: "correlations.CorrelationHistogramsDeltaEta",
+                           correlation_scale_factor: float,
                            jet_pt: analysis_objects.JetPtBin, track_pt: analysis_objects.TrackPtBin,
                            reaction_plane_orientation: params.ReactionPlaneOrientation,
                            identifier: str, output_info: analysis_objects.PlottingOutputWrapper) -> None:
@@ -274,6 +293,7 @@ def delta_eta_unsubtracted(hists: "correlations.CorrelationHistogramsDeltaEta",
 
     Args:
         hists: Unsubtracted delta eta histograms.
+        correlation_scale_factor: Overall correlation scale factor.
         jet_pt: Jet pt bin.
         track_pt: Track pt bin.
         reaction_plane_orientation: Reaction plane orientation.
@@ -287,11 +307,13 @@ def delta_eta_unsubtracted(hists: "correlations.CorrelationHistogramsDeltaEta",
 
     # Plot NS, AS
     h_near_side = histogram.Histogram1D.from_existing_hist(hists.near_side.hist)
+    h_near_side *= correlation_scale_factor
     ax.errorbar(
         h_near_side.x, h_near_side.y, yerr = h_near_side.errors,
         label = hists.near_side.type.display_str(), marker = "o", linestyle = "",
     )
     h_away_side = histogram.Histogram1D.from_existing_hist(hists.away_side.hist)
+    h_away_side *= correlation_scale_factor
     ax.errorbar(
         h_away_side.x, h_away_side.y, yerr = h_away_side.errors,
         label = hists.away_side.type.display_str(), marker = "o", linestyle = "",
@@ -329,7 +351,7 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
     ax[0].errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
     # Plot ratio
     ax[1].errorbar(ratio.x, ratio.y, yerr = ratio.errors, label = "Theirs/ours")
-    ax[1].set_ylim(-1, 1)
+    ax[1].set_ylim(0, 2)
 
     # Set plot properties
     ax[0].set_title(title)
@@ -495,12 +517,13 @@ def plot_RPF_fit_regions(jet_hadron: "correlations.Correlations", filename: str)
     """
     # Retrieve the hist to be plotted
     # Here we selected the corrected 2D correlation
-    hist = jet_hadron.correlation_hists_2d.signal.hist
+    hist = jet_hadron.correlation_hists_2d.signal.hist.Clone(f"{jet_hadron.correlation_hists_2d.signal.name}_RPF_scaled")
+    hist.Scale(jet_hadron.correlation_scale_factor)
 
     with sns.plotting_context(context = "notebook", font_scale = 1.5):
         # Perform the plotting
         # The best option for clarify of viewing seems to be to just replace the colors with the overlay colors.
-        # mathematical_blending and screenColors look similar and seem to be the next most promising option.
+        # mathematical_blending and screen_colors look similar and seem to be the next most promising option.
         (fig, ax) = highlight_RPF.plot_RPF_fit_regions(
             histogram.get_array_from_hist2D(hist),
             highlight_regions = define_highlight_regions(
