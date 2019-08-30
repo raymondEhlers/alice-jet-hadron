@@ -184,8 +184,7 @@ def highlight_region_of_surface(surf: mpl_toolkits.mplot3d.art3d.Poly3DCollectio
     #logger.debug(f"colors: {colors}")
 
     # Update the colors with the highlight color.
-    # The colors are stored as a list for some reason so get the flat indicies
-    logger.debug(f"max idx: {np.max(np.where(highlight[:-1, :-1].flat)[0])}")
+    # The colors are stored as a list for some reason so get the flat indices
     for idx in np.where(highlight[:-1, :-1].flat)[0]:
         background = cast(Color, tuple(colors[idx]))
         # Modify the color of each index one-by-one
