@@ -342,16 +342,21 @@ def comparison_1d(output_info: analysis_objects.PlottingOutputWrapper,
                   their_hist: histogram.Histogram1D,
                   ratio: histogram.Histogram1D,
                   title: str, x_label: str, y_label: str,
-                  output_name: str) -> None:
+                  output_name: str,
+                  offset_our_points: bool) -> None:
     """ Compare our hist and their hist. """
     fig, ax = plt.subplots(2, 1, sharex = True, gridspec_kw = {"height_ratios": [3, 1]}, figsize = (8, 6))
 
     # Plot data
-    ax[0].errorbar(our_hist.x, our_hist.y, yerr = our_hist.errors, label = "Our hist")
+    offset = 0.0
+    # Offset so we can see both sets of data points.
+    if offset_our_points:
+        offset = 0.05
+    ax[0].errorbar(our_hist.x + offset, our_hist.y, yerr = our_hist.errors, label = "Our hist")
     ax[0].errorbar(their_hist.x, their_hist.y, yerr = their_hist.errors, label = "Their hist")
     # Plot ratio
     ax[1].errorbar(ratio.x, ratio.y, yerr = ratio.errors, label = "Theirs/ours")
-    ax[1].set_ylim(0, 2)
+    ax[1].set_ylim(0.5, 1.5)
 
     # Set plot properties
     ax[0].set_title(title)

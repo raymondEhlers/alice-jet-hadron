@@ -684,6 +684,10 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
             histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.signal_dominated),
         }
 
+        # Scale the data properly.
+        for h in data.values():
+            h *= analysis.correlation_scale_factor
+
         # Plot the data first to ensure that the colors are consistent with previous plots
         for label, hist in data.items():
             plotting_signal = "Signal" in label
@@ -698,11 +702,15 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
         # Draw the data according to the given function
         # Determine the values of the fit function.
         fit_values = analysis.fit_object.evaluate_fit(x = x)
+        # Scale the fit values
+        fit_values *= analysis.correlation_scale_factor
 
         # Plot the main values
         plot = ax.plot(x, fit_values, label = "RP fit", color = plot_base.AnalysisColors.fit)
-        # Plot the fit errors
-        errors = analysis.fit_object.fit_result.errors
+        # Plot the fit errors.
+        # We need to ensure that the errors are copied so we don't accidentally modify the fit result.
+        errors = np.array(analysis.fit_object.fit_result.errors, copy = True)
+        errors *= analysis.correlation_scale_factor
         ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
         ax.set_title(f"{analysis.reaction_plane_orientation.display_str()} orient.")
 
@@ -746,6 +754,10 @@ def _plot_rp_fit_residuals(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_a
             y = analysis.fit_object.evaluate_fit(x = x),
             errors_squared = analysis.fit_object.fit_result.errors ** 2,
         )
+
+        # Properly scale the hists
+        hist *= analysis.correlation_scale_factor
+        fit_hist *= analysis.correlation_scale_factor
         # NOTE: Residual = data - fit / fit, not just data-fit
         residual = (hist - fit_hist) / fit_hist
 

@@ -29,7 +29,7 @@ from pachyderm.utils import epsilon
 from pachyderm import yaml
 
 import reaction_plane_fit as rpf
-from reaction_plane_fit import fit as rpf_fit
+from reaction_plane_fit import fit as rp_fit
 from reaction_plane_fit import three_orientations
 
 from jet_hadron.base import analysis_config
@@ -1261,7 +1261,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self.generate_1D_correlations = True
         else:
             # Initialize the 2D correlations from the file
-            logger.info(f"Loading 2D correlations and trigger jet spectra from file for {self.identifier}")
+            logger.info(f"Loading 2D correlations and trigger jet spectra from file for {self.identifier}, {self.reaction_plane_orientation}")
             self._init_2d_correlations_hists_from_root_file()
             self._init_number_of_triggers_hist_from_root_file()
 
@@ -1532,15 +1532,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _compare_to_other_hist(self,
                                our_hist: Hist, their_hist: Hist,
                                title: str, x_label: str, y_label: str,
-                               output_name: str) -> None:
+                               output_name: str, offset_our_points: bool = False) -> None:
         # Convert for simplicity
         if not isinstance(our_hist, histogram.Histogram1D):
             our_hist = histogram.Histogram1D.from_existing_hist(our_hist)
         if not isinstance(their_hist, histogram.Histogram1D):
             their_hist = histogram.Histogram1D.from_existing_hist(their_hist)
-
-        # Scale our hist by the correlation scale factor
-        our_hist *= self.correlation_scale_factor
 
         # Create a ratio plot
         # We want to take their hist and divide it by ours.
@@ -1556,6 +1553,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             x_label = x_label,
             y_label = y_label,
             output_name = output_name,
+            offset_our_points = offset_our_points,
         )
 
     def _compare_unsubtracted_1d_signal_correlation_to_joel(self) -> None:
@@ -1576,8 +1574,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
         joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
         joel_hist_name += "ReconstructedSignalwithErrorsNOMnosub"
 
+        our_hist = histogram.Histogram1D.from_existing_hist(
+            self.correlation_hists_delta_phi.signal_dominated.hist
+        )
+        our_hist *= self.correlation_scale_factor
+
         self._compare_to_other_hist(
-            our_hist = self.correlation_hists_delta_phi.signal_dominated.hist,
+            our_hist = our_hist,
             their_hist = comparison_hists[joel_hist_name],
             title = f"Unsubtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$,"
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
@@ -1585,6 +1588,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             x_label = r"$\Delta\varphi$",
             y_label = r"$\mathrm{d}N/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_unsub",
+            offset_our_points = True,
         )
 
     def _run_1d_projections(self, processing_options: ProcessingOptions) -> None:
@@ -1609,7 +1613,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._write_1d_correlations()
         else:
             # Initialize the 1D correlations from the file
-            logger.info(f"Loading 1D correlations from file for {self.identifier}")
+            logger.info(f"Loading 1D correlations from file for {self.identifier}, {self.reaction_plane_orientation}")
             self._init_1d_correlations_hists_from_root_file()
 
         # Plot the correlations
@@ -1645,6 +1649,51 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Store that we've completed this step.
         self.ran_projections = True
+
+    def _compare_RP_fit_to_joel(self, rp_fit_obj: rp_fit.ReactionPlaneFit, fit_type: str) -> None:
+        """ Compare RP fit values and errors to Joel. """
+        comparison_hists = correlations_helpers.get_joels_comparison_hists(
+            track_pt = self.track_pt,
+            path = self.task_config["joelsCorrelationsFilePath"]
+        )
+        # Define map by hand because it's out of our control.
+        map_to_joels_hist_names = {
+            params.ReactionPlaneOrientation.inclusive: "all",
+            params.ReactionPlaneOrientation.in_plane: "in",
+            params.ReactionPlaneOrientation.mid_plane: "mid",
+            params.ReactionPlaneOrientation.out_of_plane: "out",
+        }
+
+        # Example hist name for all orientations fit: "allCombinedFitErrorsClone"
+        # Min systematic: allCombinedFitErrorsMIN
+        # Max systematic: allCombinedFitErrorsMAX
+        joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
+        joel_hist_name += "CombinedFitErrorsClone"
+
+        # Use to get the bin edges.
+        temp_hist = histogram.Histogram1D.from_existing_hist(
+            self.correlation_hists_delta_phi.signal_dominated.hist
+        )
+        # Then create a histogram for the fit.
+        fit_hist = histogram.Histogram1D(
+            bin_edges = temp_hist.bin_edges,
+            y = self.fit_object.evaluate_fit(x = rp_fit_obj.fit_result.x),
+            errors_squared = self.fit_object.fit_result.errors ** 2,
+        )
+        # Scale the fit values
+        fit_hist *= self.correlation_scale_factor
+
+        self._compare_to_other_hist(
+            our_hist = fit_hist,
+            their_hist = comparison_hists[joel_hist_name],
+            title = f"RP {fit_type} fit comparison,"
+                    f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
+                    f" {labels.jet_pt_range_string(self.jet_pt)}, {labels.track_pt_range_string(self.track_pt)}",
+            x_label = r"$\Delta\varphi$",
+            y_label = r"$\mathrm{d}N/\mathrm{d}\varphi$",
+            output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_RP_fit",
+            offset_our_points = True,
+        )
 
     def fit_delta_eta_correlations(self) -> None:
         """ Fit a pedestal to the background dominated region of the delta eta correlations. """
@@ -1711,8 +1760,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
         joel_hist_name += "ReconstructedSignalwithErrorsNOM"
 
+        # Scale our hist by the correlation scale factor
+        our_hist = histogram.Histogram1D.from_existing_hist(
+            self.correlation_hists_delta_phi_subtracted.signal_dominated.hist
+        )
+        our_hist *= self.correlation_scale_factor
+
         self._compare_to_other_hist(
-            our_hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            our_hist = our_hist,
             their_hist = comparison_hists[joel_hist_name],
             title = f"Subtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$,"
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
@@ -2026,7 +2081,7 @@ class CorrelationsManager(analysis_manager.Manager):
             "FitKeyIndex",
             iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
         )
-        self.fit_objects: Dict[Any, rpf_fit.ReactionPlaneFit] = {}
+        self.fit_objects: Dict[Any, rp_fit.ReactionPlaneFit] = {}
         self.fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
 
         # General histograms
@@ -2148,12 +2203,56 @@ class CorrelationsManager(analysis_manager.Manager):
         Returns:
             None.
         """
+        logger.debug("Full set of components.")
         #for index, fit_component in self.fit_objects[fit_key_index].components.items():
         for ep_orientation, fit_component in \
                 self.fit_objects[fit_key_index].create_full_set_of_components(input_hists).items():
             for key_index, analysis in ep_analyses:
                 if str(key_index.reaction_plane_orientation) in ep_orientation:
                     analysis.fit_object = fit_component
+                    logger.debug(
+                        f"ep_orientation: {ep_orientation}, fit_result.errors: {fit_component.fit_result.errors}"
+                    )
+
+        logger.debug("Actual components")
+        for index, fit_component in self.fit_objects[fit_key_index].components.items():
+            logger.debug(f"index: {index}, fit_result.errors: {fit_component.fit_result.errors}")
+
+    def _plot_reaction_plane_fit(self, fit_obj: rp_fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, Correlations]],
+                                 inclusive_analysis: Correlations) -> None:
+        """ Plot the reaction plane fit results. """
+        if self.processing_options["plot_RPF"]:
+            # Main fit plot
+            plot_fit.plot_RP_fit(
+                rp_fit = fit_obj,
+                inclusive_analysis = inclusive_analysis,
+                ep_analyses = ep_analyses,
+                output_info = self.output_info,
+                output_name = f"{self.fit_type}_{inclusive_analysis.identifier}",
+            )
+
+            # Covariance matrix
+            plot_fit.rpf_covariance_matrix(
+                fit_obj.fit_result,
+                output_info = self.output_info,
+                identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
+            )
+            # Correlation matrix
+            plot_fit.rpf_correlation_matrix(
+                fit_obj.fit_result,
+                output_info = self.output_info,
+                identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
+            )
+        if self.processing_options["plot_RPF_joel_comparison"]:
+            if inclusive_analysis.collision_energy == params.CollisionEnergy.two_seven_six and \
+                    inclusive_analysis.event_activity == params.EventActivity.central and \
+                    self.fit_type == "BackgroundFit":
+                logger.info("Comparing RP fit to Joel's.")
+                for key_index, analysis in ep_analyses:
+                    logger.debug(f"errors: {analysis.fit_object.fit_result.errors}")
+                    analysis._compare_RP_fit_to_joel(rp_fit_obj = fit_obj, fit_type = self.fit_type)
+            else:
+                logger.info("Skipping RPF comparison with Joel since we're not analyzing the right system.")
 
     def _reaction_plane_fit(self) -> None:
         """ Fit the delta phi correlations using the reaction plane fit. """
@@ -2219,29 +2318,15 @@ class CorrelationsManager(analysis_manager.Manager):
                     input_hists = rpf.base.format_input_data(data = input_hists),
                 )
 
-                # Plot the result
-                if self.processing_options["plot_RPF"]:
-                    # Main fit plot
-                    plot_fit.plot_RP_fit(
-                        rp_fit = fit_obj,
-                        inclusive_analysis = inclusive_analysis,
-                        ep_analyses = ep_analyses,
-                        output_info = self.output_info,
-                        output_name = f"{self.fit_type}_{inclusive_analysis.identifier}",
+                for index, analysis in ep_analyses:
+                    logger.debug(
+                        f"EP: {analysis.reaction_plane_orientation}, errors: {analysis.fit_object.fit_result.errors}"
                     )
 
-                    # Covariance matrix
-                    plot_fit.rpf_covariance_matrix(
-                        fit_obj.fit_result,
-                        output_info = self.output_info,
-                        identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
-                    )
-                    # Correlation matrix
-                    plot_fit.rpf_correlation_matrix(
-                        fit_obj.fit_result,
-                        output_info = self.output_info,
-                        identifier = f"{self.fit_type}_{inclusive_analysis.identifier}",
-                    )
+                # Plot the result
+                self._plot_reaction_plane_fit(
+                    fit_obj = fit_obj, ep_analyses = ep_analyses, inclusive_analysis = inclusive_analysis
+                )
 
                 # Update progress
                 for key_index, analysis in ep_analyses:
@@ -2279,7 +2364,7 @@ class CorrelationsManager(analysis_manager.Manager):
         with self._progress_manager.counter(total = len(self.analyses),
                                             desc = "Subtracting fit from signal dominated hists:",
                                             unit = "delta phi hists") as subtracting:
-            for ep_analyses, rp_fit in \
+            for ep_analyses, rp_fit_obj in \
                     zip(analysis_config.iterate_with_selected_objects_in_order(
                         analysis_objects = self.analyses,
                         analysis_iterables = self.selected_iterables,
