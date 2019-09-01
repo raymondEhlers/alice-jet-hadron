@@ -673,7 +673,6 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
             f" # of analysis objects: {len(ep_analyses)}, # of axes: {len(axes)}"
         )
 
-    x = rp_fit.fit_result.x
     for (key_index, analysis), ax in zip(ep_analyses, axes):
         # Setup
         # Get the relevant data. We define the background first so that it is plotted underneath.
@@ -692,26 +691,23 @@ def _plot_rp_fit_components(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit, ep_
         for label, hist in data.items():
             plotting_signal = "Signal" in label
             ax.errorbar(
-                x, hist.y, yerr = hist.errors, label = label,
+                hist.x, hist.y, yerr = hist.errors, label = label,
                 marker = "o", linestyle = "",
                 color = plot_base.AnalysisColors.signal if plotting_signal else plot_base.AnalysisColors.background,
                 # Open markers for background, closed for signal.
                 fillstyle = "full" if plotting_signal else "none",
             )
 
-        # Draw the data according to the given function
-        # Determine the values of the fit function.
-        fit_values = analysis.fit_object.evaluate_fit(x = x)
-        # Scale the fit values
-        fit_values *= analysis.correlation_scale_factor
-
-        # Plot the main values
-        plot = ax.plot(x, fit_values, label = "RP fit", color = plot_base.AnalysisColors.fit)
+        # Draw the fit
+        fit_hist = analysis.fit_hist
+        plot = ax.plot(fit_hist.x, fit_hist.y, label = "RP fit", color = plot_base.AnalysisColors.fit)
         # Plot the fit errors.
         # We need to ensure that the errors are copied so we don't accidentally modify the fit result.
-        errors = np.array(analysis.fit_object.fit_result.errors, copy = True)
-        errors *= analysis.correlation_scale_factor
-        ax.fill_between(x, fit_values - errors, fit_values + errors, facecolor = plot[0].get_color(), alpha = 0.8)
+        ax.fill_between(
+            fit_hist.x,
+            fit_hist.y - fit_hist.errors, fit_hist.y + fit_hist.errors,
+            facecolor = plot[0].get_color(), alpha = 0.8
+        )
         ax.set_title(f"{analysis.reaction_plane_orientation.display_str()} orient.")
 
     # Increase the upper range by 8% to ensure that the labels don't overlap with the data.

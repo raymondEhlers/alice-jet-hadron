@@ -567,6 +567,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Fit object
         self.fit_object: rpf.fit.FitComponent
+        # Stores the fit result as a histogram to make it easy to access the result.
+        # This way, we don't need to recalculate as frequently, and we won't have to worry about the right
+        # scaling as often.
+        self.fit_hist: histogram.Histogram1D
         self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
             near_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
                 fit_options = {"range": self.background_dominated_eta_region.range},
@@ -1670,21 +1674,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
         joel_hist_name += "CombinedFitErrorsClone"
 
-        # Use to get the bin edges.
-        temp_hist = histogram.Histogram1D.from_existing_hist(
-            self.correlation_hists_delta_phi.signal_dominated.hist
-        )
-        # Then create a histogram for the fit.
-        fit_hist = histogram.Histogram1D(
-            bin_edges = temp_hist.bin_edges,
-            y = self.fit_object.evaluate_fit(x = rp_fit_obj.fit_result.x),
-            errors_squared = self.fit_object.fit_result.errors ** 2,
-        )
-        # Scale the fit values
-        fit_hist *= self.correlation_scale_factor
-
         self._compare_to_other_hist(
-            our_hist = fit_hist,
+            our_hist = self.fit_hist,
             their_hist = comparison_hists[joel_hist_name],
             title = f"RP {fit_type} fit comparison,"
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
@@ -2214,6 +2205,17 @@ class CorrelationsManager(analysis_manager.Manager):
                         f"ep_orientation: {ep_orientation}, fit_result.errors: {fit_component.fit_result.errors}"
                     )
 
+                    # Need the bin edges, so we grab the signal dominated hist.
+                    binning_hist = histogram.Histogram1D.from_existing_hist(
+                        analysis.correlation_hists_delta_phi.signal_dominated.hist
+                    )
+                    analysis.fit_hist = histogram.Histogram1D(
+                        bin_edges = binning_hist.bin_edges,
+                        y = fit_component.evaluate_fit(self.fit_objects[fit_key_index].fit_result.x),
+                        errors_squared = fit_component.fit_result.errors ** 2,
+                    )
+                    analysis.fit_hist *= analysis.correlation_scale_factor
+
         logger.debug("Actual components")
         for index, fit_component in self.fit_objects[fit_key_index].components.items():
             logger.debug(f"index: {index}, fit_result.errors: {fit_component.fit_result.errors}")
@@ -2417,6 +2419,8 @@ class CorrelationsManager(analysis_manager.Manager):
                 for key_index, analysis in ep_analyses:
                     analysis.ran_post_fit_processing = True
                 subtracting.update()
+
+        #sys.exit(0)
 
     def _subtract_delta_eta_fits(self) -> None:
         """ Subtract the fits from the delta eta correlations. """
