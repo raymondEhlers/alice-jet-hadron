@@ -838,11 +838,11 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     flat_axes[3].legend(
         frameon = False, loc = "upper center", fontsize = 15
     )
-    # TODO: Impalement effective chi squared for a simultaneous fit...
-    #effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
+    # Use effective chi squared in case it's a log likelihood fit.
+    effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
-        f"{rp_fit.fit_result.minimum_val:.1f}/{rp_fit.fit_result.nDOF} = "
+        f"{effective_chi_squared:.1f}/{rp_fit.fit_result.nDOF} = "
         f"{rp_fit.fit_result.minimum_val / rp_fit.fit_result.nDOF:.3f}"
     )
     _add_label_to_rpf_plot_axis(
