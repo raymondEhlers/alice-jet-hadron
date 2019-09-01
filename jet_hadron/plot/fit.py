@@ -69,7 +69,7 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
         selected_analysis_options: Selected analysis options for determining which data to plot.
         output_info: Output information.
     Returns:
-        None. The figure is plottd and saved.
+        None. The figure is plotted and saved.
     """
     fig, ax = plt.subplots(figsize = (8, 6))
 

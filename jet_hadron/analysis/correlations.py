@@ -1686,6 +1686,26 @@ class Correlations(analysis_objects.JetHReactionPlane):
             offset_our_points = True,
         )
 
+    def scale_hists_post_RPF(self) -> None:
+        """ Scale the histograms and fits post RPF so that we don't have to worry about it later.
+
+        Here, we scale the signal and background delta phi correlations, the delta eta near side
+        and away side hists. We don't scale the RPF fit hist because it was scaled when it was created.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        # Scale the 1D correlations
+        for correlations_groups in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
+            # Help out mypy...
+            assert isinstance(correlations_groups, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
+            for _, observable in correlations_groups:
+                observable.hist.Scale(self.correlation_scale_factor)
+
+        # We _don't_ scale the RP fit hist because it was scaled when it was created!
+
     def fit_delta_eta_correlations(self) -> None:
         """ Fit a pedestal to the background dominated region of the delta eta correlations. """
         for (attribute_name, fit_object), (correlation_attribute_name, correlation) in \
@@ -1715,17 +1735,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # dominated or background dominated portion of the fit.
         signal_dominated = self.correlation_hists_delta_phi.signal_dominated
         signal_dominated_hist = histogram.Histogram1D.from_existing_hist(signal_dominated.hist)
-        # Evaluate the hist and the fit at the same x locations.
-        x = signal_dominated_hist.x
-        fit_hist = histogram.Histogram1D(
-            bin_edges = signal_dominated_hist.bin_edges,
-            y = self.fit_object.evaluate_background(x),
-            errors_squared = np.zeros(len(x)),
-        )
-        self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist
-        # Store the background errors in the hist metadata.
+        # We copy the fit hist and set the errors to zero when we subtract the histogram because we will
+        # plot the RP fit errors separately.
+        fit_hist_no_errors = self.fit_hist.copy()
+        fit_hist_no_errors.errors_squared = 0
+        self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist_no_errors
+        # Store the background errors explicitly in the hist metadata.
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist.metadata["RPF_background_errors"] = \
-            self.fit_object.calculate_background_function_errors(x)
+            self.fit_hist.errors
 
     def compare_subtracted_1d_signal_correlation_to_joel(self) -> None:
         """ Compare subtracted 1D signal correlation hists to Joel.
@@ -1751,14 +1768,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         joel_hist_name = map_to_joels_hist_names[self.reaction_plane_orientation]
         joel_hist_name += "ReconstructedSignalwithErrorsNOM"
 
-        # Scale our hist by the correlation scale factor
-        our_hist = histogram.Histogram1D.from_existing_hist(
-            self.correlation_hists_delta_phi_subtracted.signal_dominated.hist
-        )
-        our_hist *= self.correlation_scale_factor
-
         self._compare_to_other_hist(
-            our_hist = our_hist,
+            our_hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
             their_hist = comparison_hists[joel_hist_name],
             title = f"Subtracted 1D: ${self.correlation_hists_delta_phi.signal_dominated.axis.display_str()}$,"
                     f" {self.reaction_plane_orientation.display_str()} event plane orient.,"
@@ -1766,6 +1777,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             x_label = r"$\Delta\varphi$",
             y_label = r"$\mathrm{d}N/\mathrm{d}\varphi$",
             output_name = f"jetH_delta_phi_{self.identifier}_joel_comparison_sub",
+            offset_our_points = True,
         )
 
     def subtract_delta_eta_correlations(self) -> None:
@@ -2200,11 +2212,8 @@ class CorrelationsManager(analysis_manager.Manager):
                 self.fit_objects[fit_key_index].create_full_set_of_components(input_hists).items():
             for key_index, analysis in ep_analyses:
                 if str(key_index.reaction_plane_orientation) in ep_orientation:
+                    # Store the fit component (and the fit hist for convenience)
                     analysis.fit_object = fit_component
-                    logger.debug(
-                        f"ep_orientation: {ep_orientation}, fit_result.errors: {fit_component.fit_result.errors}"
-                    )
-
                     # Need the bin edges, so we grab the signal dominated hist.
                     binning_hist = histogram.Histogram1D.from_existing_hist(
                         analysis.correlation_hists_delta_phi.signal_dominated.hist
@@ -2215,10 +2224,6 @@ class CorrelationsManager(analysis_manager.Manager):
                         errors_squared = fit_component.fit_result.errors ** 2,
                     )
                     analysis.fit_hist *= analysis.correlation_scale_factor
-
-        logger.debug("Actual components")
-        for index, fit_component in self.fit_objects[fit_key_index].components.items():
-            logger.debug(f"index: {index}, fit_result.errors: {fit_component.fit_result.errors}")
 
     def _plot_reaction_plane_fit(self, fit_obj: rp_fit.ReactionPlaneFit, ep_analyses: List[Tuple[Any, Correlations]],
                                  inclusive_analysis: Correlations) -> None:
@@ -2320,11 +2325,6 @@ class CorrelationsManager(analysis_manager.Manager):
                     input_hists = rpf.base.format_input_data(data = input_hists),
                 )
 
-                for index, analysis in ep_analyses:
-                    logger.debug(
-                        f"EP: {analysis.reaction_plane_orientation}, errors: {analysis.fit_object.fit_result.errors}"
-                    )
-
                 # Plot the result
                 self._plot_reaction_plane_fit(
                     fit_obj = fit_obj, ep_analyses = ep_analyses, inclusive_analysis = inclusive_analysis
@@ -2353,10 +2353,24 @@ class CorrelationsManager(analysis_manager.Manager):
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                 plot_fit.signal_dominated_with_background_function(analysis)
 
+    def _scale_hists_post_RPF(self) -> None:
+        """ Scale the histograms and fits post RPF so that we don't have to worry about it later. """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Scaling histograms:",
+                                            unit = "analyses") as scaling:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                analysis.scale_hists_post_RPF()
+
+                scaling.update()
+
     def fit(self) -> bool:
         """ Fit the stored correlations. """
         # Fit the delta phi correlations using the reaction plane fit.
         self._reaction_plane_fit()
+        # Now that we have done the reaction plane fit, we can scale all of the histograms down to be scaled
+        # by the number of triggers. We really need this to be done _before_ fitting the delta eta correlations
+        # to ensure that they are on the right background level.
+        self._scale_hists_post_RPF()
         # Fit the delta eta correlations
         self._fit_delta_eta_correlations()
         return True
@@ -2418,9 +2432,9 @@ class CorrelationsManager(analysis_manager.Manager):
                 # Update progress
                 for key_index, analysis in ep_analyses:
                     analysis.ran_post_fit_processing = True
-                subtracting.update()
-
-        #sys.exit(0)
+                    # It's a little behind to update here, but it's fine for our purposes.
+                    # The procgress will effectively just by factors of 4
+                    subtracting.update()
 
     def _subtract_delta_eta_fits(self) -> None:
         """ Subtract the fits from the delta eta correlations. """
