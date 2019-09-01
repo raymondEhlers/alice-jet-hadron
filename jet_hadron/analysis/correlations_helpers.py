@@ -55,12 +55,12 @@ def determine_number_of_triggers(hist: Hist, jet_pt: analysis_objects.JetPtBin) 
     Returns:
         Number of triggers for the selected analysis parameters.
     """
-    logger.debug(
-        f"Find bin({jet_pt.range.min} + epsilon): "
-        f"{hist.FindBin(jet_pt.range.min + epsilon)} to "
-        f"Find bin({jet_pt.range.max} - epsilon): "
-        f"{hist.FindBin(jet_pt.range.max - epsilon)}"
-    )
+    #logger.debug(
+    #    f"Find bin({jet_pt.range.min} + epsilon): "
+    #    f"{hist.FindBin(jet_pt.range.min + epsilon)} to "
+    #    f"Find bin({jet_pt.range.max} - epsilon): "
+    #    f"{hist.FindBin(jet_pt.range.max - epsilon)}"
+    #)
     number_of_triggers: int = hist.Integral(
         hist.FindBin(jet_pt.range.min + epsilon),
         hist.FindBin(jet_pt.range.max - epsilon)
