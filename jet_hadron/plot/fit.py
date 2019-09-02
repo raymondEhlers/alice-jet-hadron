@@ -331,7 +331,9 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             name = "v3",
             output_name = f"{prefix}_v3",
             labels = plot_base.PlotLabels(title = r"$v_{3}$", x_label = pt_assoc_label),
-            plot_reference_data_func = _reference_v3_data,
+            # Don't plot the reference v3 data - it's not a meaningful comparison. See why the transform function
+            # is also disabled below.
+            #plot_reference_data_func = _reference_v3_data,
             # Don't transform the v3 data! It's difficult to interpret the v_3 data as v_3^2, as it's really the
             # product of v_3^{t} and v_3^{a}. The actual value is expected to be 0, and certainly could be negative.
             #transform_fit_data = _square_root_v3_2,
