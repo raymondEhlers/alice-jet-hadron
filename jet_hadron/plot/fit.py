@@ -91,7 +91,7 @@ def _plot_fit_parameter_vs_assoc_pt(fit_objects: FitObjects,
         bin_edges = bin_edges, y = parameter_values, errors_squared = np.array(parameter_errors) ** 2
     )
 
-    # Transform the plotted data.
+    # Plug-in to transform the plotted data.
     if parameter.transform_fit_data:
         data = parameter.transform_fit_data(data)
 
@@ -199,7 +199,10 @@ def _reference_v2_t_data(reference_data: ReferenceData,
     data = reference_data["ptDependent"]["v2_t"][centrality_label]
     pt_range = params.SelectedRange(*data["jet_pt_range"])
     y_min, y_max = ax.get_ylim()
-    ax.set_ylim(y_min, (data["value"] + data["error"]) * 1.1 if y_max < data["value"] + data["error"] else y_max)
+    ax.set_ylim(
+        0 if y_min > 0 else y_min,
+        (data["value"] + data["error"]) * 1.1 if y_max < data["value"] + data["error"] else y_max
+    )
 
     # Draw the data as an arrow
     # The arrow points from xytext to xy
@@ -329,7 +332,9 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             output_name = f"{prefix}_v3",
             labels = plot_base.PlotLabels(title = r"$v_{3}$", x_label = pt_assoc_label),
             plot_reference_data_func = _reference_v3_data,
-            transform_fit_data = _square_root_v3_2,
+            # Don't transform the v3 data! It's difficult to interpret the v_3 data as v_3^2, as it's really the
+            # product of v_3^{t} and v_3^{a}. The actual value is expected to be 0, and certainly could be negative.
+            #transform_fit_data = _square_root_v3_2,
         ),
         ParameterInfo(
             name = "v4_t",
@@ -848,6 +853,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     )
     # Use effective chi squared in case it's a log likelihood fit.
     effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
+    assert np.isclose(effective_chi_squared, rp_fit.fit_result.minimum_val)
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
         f"{effective_chi_squared:.1f}/{rp_fit.fit_result.nDOF} = "
