@@ -58,6 +58,7 @@ inputObjects:
 # Cell energy
 CellEnergy:
     createHistos: true
+    enableNewTempCalib: true
 # _data is equivalent to the base correction, but I am making it explicit for clarity
 CellEnergy_data:
     enabled: true
