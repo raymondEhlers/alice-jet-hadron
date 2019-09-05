@@ -9,18 +9,23 @@ jets:
     leadingHadronBiasType: &leadingHadronType kCharged
     hybridLevelJets:
         collection: "hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme"
-        acceptance: "EMCALfid"
+        acceptance:
+            - "kEMCALfid"
         areaCutPercentage: 0.6
         R: *R
     detLevelJets:
         collection: "detLevelJets_AKTFullR020_tracks_pT0150_caloClusters_E0300_pt_scheme"
-        acceptance: "EMCALfid"
+        acceptance:
+            - "kEMCALfid"
         areaCutPercentage: 0.6
+        leadingHadronBias: 5
         R: *R
     partLevelJets:
         collection: "partLevelJets_AKTFullR020_mcparticles_pT0150_pt_scheme"
-        acceptance: "TPCfid"
+        acceptance:
+            - "kTPCfid"
         areaCutPercentage: 0.6
+        leadingHadronBias: 5
         R: *R
 # Configure response matrix
 responseMatrix:

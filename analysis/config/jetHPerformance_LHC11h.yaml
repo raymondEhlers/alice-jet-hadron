@@ -27,7 +27,8 @@ jets:
     leadingHadronBiasType: &leadingHadronType kCharged
     analysisJets:
         collection: "Jet_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme"
-        acceptance: "EMCALfid"
+        acceptance:
+            - "kEMCALfid"
         R: &R 0.2
 # Configure response matrix
 responseMatrix:
