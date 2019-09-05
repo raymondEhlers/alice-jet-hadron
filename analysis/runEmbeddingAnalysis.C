@@ -27,6 +27,7 @@ class AliEmcalJetTask;
 class AliAnalysisTaskRho;
 class AliAnalysisTaskEmcalJetSample;
 class AliJetResponseMaker;
+class AliAnalysisTaskEmcalJetTagger;
 
 namespace PWGJE {
   namespace EMCALJetTasks {
@@ -51,6 +52,8 @@ R__ADD_INCLUDE_PATH($ALICE_PHYSICS)
 #include "OADB/COMMON/MULTIPLICITY/macros/AddTaskMultSelection.C"
 #include "OADB/macros/AddTaskCentrality.C"
 #include "PWGPP/PilotTrain/AddTaskCDBconnect.C"
+// The standard tagger doesn't have a compiled AddTask
+#include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetTagger.C"
 // Include AddTask to test for LEGO train
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHCorrelations.C"
 #include "PWGJE/EMCALJetTasks/macros/AddTaskEmcalJetHPerformance.C"
@@ -247,6 +250,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   //AliLog::SetClassDebugLevel("AliEmcalJetTask", AliLog::kDebug+2);
   //AliLog::SetClassDebugLevel("AliJetContainer", AliLog::kDebug+7);
   //AliLog::SetClassDebugLevel("AliJetResponseMaker", AliLog::kDebug+0);
+  //AliLog::SetClassDebugLevel("AliAnalysisTaskEmcalJetTagger", AliLog::kDebug + 4);
   //AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHCorrelations", AliLog::kDebug+2);
   AliLog::SetClassDebugLevel("PWGJE::EMCALJetTasks::AliAnalysisTaskEmcalJetHPerformance", AliLog::kDebug+0);
   //AliLog::SetClassDebugLevel("AliTrackContainer", AliLog::kDebug+0);
@@ -550,6 +554,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
     sampleTaskPartLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
     sampleTaskPartLevelNew->SelectCollisionCandidates(kPhysSel);
     sampleTaskPartLevelNew->SetUseNewCentralityEstimation(bIsRun2);
+    sampleTaskPartLevelNew->SetNCentBins(5);
 
     AliJetContainer* jetCont02 = sampleTaskPartLevelNew->AddJetContainer(pFullJetTaskPartLevelNew->GetName(), acceptanceType, jetRadius);
     //AliJetContainer* jetCont02 = sampleTaskPartLevelNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "partLevelJets");
@@ -589,6 +594,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskDetLevelNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskDetLevelNew->SelectCollisionCandidates(kPhysSel);
   sampleTaskDetLevelNew->SetUseNewCentralityEstimation(bIsRun2);
+  sampleTaskDetLevelNew->SetNCentBins(5);
 
   AliJetContainer* detLevelJetCont02 = sampleTaskDetLevelNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "detLevelJets");*/
 
@@ -608,6 +614,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskNew->SelectCollisionCandidates(kPhysSel);
   sampleTaskNew->SetUseNewCentralityEstimation(bIsRun2);
+  sampleTaskNew->SetNCentBins(5);
 
   AliJetContainer* jetCont02 = sampleTaskNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "PbPbJets");*/
 
@@ -648,6 +655,7 @@ AliAnalysisManager* runEmbeddingAnalysis(
   sampleTaskHybridNew->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
   sampleTaskHybridNew->SelectCollisionCandidates(kPhysSel);
   sampleTaskHybridNew->SetUseNewCentralityEstimation(bIsRun2);
+  sampleTaskHybridNew->SetNCentBins(5);
 
   AliJetContainer * jetCont02 = sampleTaskHybridNew->AddJetContainer(pFullJetTaskHybridNew->GetName(), acceptanceType, jetRadius);
   //AliJetContainer* jetCont02 = sampleTaskHybridNew->AddJetContainer(jetType, jetAlgorithm, recoScheme, jetRadius, acceptanceType, "hybridLevelJets");
@@ -755,7 +763,8 @@ AliAnalysisManager* runEmbeddingAnalysis(
     // Centrality estimotor
     const std::string centralityEstimator = "V0M";
     // NOTE: The AddTask macro is "AddTaskEmcalJetTaggerFast" ("Emcal" is removed for the static definition...)
-    auto jetTaggerDetLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+    //auto jetTaggerDetLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+    auto jetTaggerDetLevel = AddTaskEmcalJetTagger(
         hybridLevelJetsName.c_str(),         // "Base" jet collection which will be tagged
         detLevelJetsName.c_str(),       // "Tag" jet collection which will be used to tag (and will be tagged)
         jetRadius,                      // Jet radius
@@ -771,12 +780,14 @@ AliAnalysisManager* runEmbeddingAnalysis(
     // Task level settings
     jetTaggerDetLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
     jetTaggerDetLevel->SetUseNewCentralityEstimation(bIsRun2);
+    jetTaggerDetLevel->SetNCentBins(5);
     // Tag via geometrical matching
-    jetTaggerDetLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+    jetTaggerDetLevel->SetJetTaggingMethod(AliAnalysisTaskEmcalJetTagger::kGeo);
     // Tag the closest jet
-    jetTaggerDetLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+    jetTaggerDetLevel->SetJetTaggingType(AliAnalysisTaskEmcalJetTagger::kClosest);
     // Don't impose any additional acceptance cuts beyond the jet containers
-    jetTaggerDetLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+    //jetTaggerDetLevel->SetTypeAcceptance(AliAnalysisTaskEmcalJetTagger::kNoLimit);
+    jetTaggerDetLevel->SetTypeAcceptance(0);
     // Use default matching distance
     jetTaggerDetLevel->SetMaxDistance(maxGeoMatchingDistance);
     // Redundant, but done for completeness
@@ -793,7 +804,8 @@ AliAnalysisManager* runEmbeddingAnalysis(
       // Embed part level jets are the "tag" jet collection
       const std::string partLevelJetsName = pFullJetTaskPartLevelNew->GetName();
 
-      auto jetTaggerPartLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+      //auto jetTaggerPartLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+      auto jetTaggerPartLevel = AddTaskEmcalJetTagger(
         detLevelJetsName.c_str(),       // "Base" jet collection which will be tagged
         partLevelJetsName.c_str(),      // "Tag" jet collection which will be used to tag (and will be tagged)
         jetRadius,                      // Jet radius
@@ -809,16 +821,20 @@ AliAnalysisManager* runEmbeddingAnalysis(
       // Task level settings
       jetTaggerPartLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
       jetTaggerPartLevel->SetUseNewCentralityEstimation(bIsRun2);
+      jetTaggerPartLevel->SetNCentBins(5);
       // Tag via geometrical matching
-      jetTaggerPartLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+      jetTaggerPartLevel->SetJetTaggingMethod(AliAnalysisTaskEmcalJetTagger::kGeo);
       // Tag the closest jet
-      jetTaggerPartLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+      jetTaggerPartLevel->SetJetTaggingType(AliAnalysisTaskEmcalJetTagger::kClosest);
       // Don't impose any additional acceptance cuts beyond the jet containers
-      jetTaggerPartLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+      //jetTaggerPartLevel->SetTypeAcceptance(AliAnalysisTaskEmcalJetTagger::kNoLimit);
+      jetTaggerPartLevel->SetTypeAcceptance(0);
       // Use default matching distance
       jetTaggerPartLevel->SetMaxDistance(maxGeoMatchingDistance);
       // Redundant, but done for completeness
       jetTaggerPartLevel->SelectCollisionCandidates(kPhysSel);
+      // For matching up with the jet performance
+      jetTaggerPartLevel->SetMinFractionShared(0.5);
 
       // Reapply the max track pt cut off to maintain energy resolution and avoid fake tracks
       // However, don't apply to the particle level jets which don't suffer this effect
@@ -1007,7 +1023,8 @@ AliAnalysisManager* runEmbeddingAnalysis(
     // Centrality estimotor
     const std::string centralityEstimator = "V0M";
     // NOTE: The AddTask macro is "AddTaskEmcalJetTaggerFast" ("Emcal" is removed for the static definition...)
-    auto jetTaggerDetLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+    //auto jetTaggerDetLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+    auto jetTaggerDetLevel = AddTaskEmcalJetTagger(
         hybridLevelJetsName.c_str(),         // "Base" jet collection which will be tagged
         detLevelJetsName.c_str(),       // "Tag" jet collection which will be used to tag (and will be tagged)
         jetRadius,                      // Jet radius
@@ -1023,12 +1040,14 @@ AliAnalysisManager* runEmbeddingAnalysis(
     // Task level settings
     jetTaggerDetLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
     jetTaggerDetLevel->SetUseNewCentralityEstimation(bIsRun2);
+    jetTaggerDetLevel->SetNCentBins(5);
     // Tag via geometrical matching
-    jetTaggerDetLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+    jetTaggerDetLevel->SetJetTaggingMethod(AliAnalysisTaskEmcalJetTagger::kGeo);
     // Tag the closest jet
-    jetTaggerDetLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+    jetTaggerDetLevel->SetJetTaggingType(AliAnalysisTaskEmcalJetTagger::kClosest);
     // Don't impose any additional acceptance cuts beyond the jet containers
-    jetTaggerDetLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+    //jetTaggerDetLevel->SetTypeAcceptance(AliAnalysisTaskEmcalJetTagger::kNoLimit);
+    jetTaggerDetLevel->SetTypeAcceptance(0);
     // Use default matching distance
     jetTaggerDetLevel->SetMaxDistance(maxGeoMatchingDistance);
     // Redundant, but done for completeness
@@ -1047,7 +1066,8 @@ AliAnalysisManager* runEmbeddingAnalysis(
       // Embed part level jets are the "tag" jet collection
       const std::string partLevelJetsName = particleLevelJetsLowPtCut->GetName();
 
-      auto jetTaggerPartLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+      //auto jetTaggerPartLevel = PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::AddTaskJetTaggerFast(
+      auto jetTaggerPartLevel = AddTaskEmcalJetTagger(
         detLevelJetsName.c_str(),       // "Base" jet collection which will be tagged
         partLevelJetsName.c_str(),      // "Tag" jet collection which will be used to tag (and will be tagged)
         jetRadius,                      // Jet radius
@@ -1063,16 +1083,20 @@ AliAnalysisManager* runEmbeddingAnalysis(
       // Task level settings
       jetTaggerPartLevel->SetRecycleUnusedEmbeddedEventsMode(internalEventSelection);
       jetTaggerPartLevel->SetUseNewCentralityEstimation(bIsRun2);
+      jetTaggerPartLevel->SetNCentBins(5);
       // Tag via geometrical matching
-      jetTaggerPartLevel->SetJetTaggingMethod(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kGeo);
+      jetTaggerPartLevel->SetJetTaggingMethod(AliAnalysisTaskEmcalJetTagger::kGeo);
       // Tag the closest jet
-      jetTaggerPartLevel->SetJetTaggingType(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kClosest);
+      jetTaggerPartLevel->SetJetTaggingType(AliAnalysisTaskEmcalJetTagger::kClosest);
       // Don't impose any additional acceptance cuts beyond the jet containers
-      jetTaggerPartLevel->SetTypeAcceptance(PWGJE::EMCALJetTasks::AliEmcalJetTaggerTaskFast::kNoLimit);
+      //jetTaggerPartLevel->SetTypeAcceptance(AliAnalysisTaskEmcalJetTagger::kNoLimit);
+      jetTaggerPartLevel->SetTypeAcceptance(0);
       // Use default matching distance
       jetTaggerPartLevel->SetMaxDistance(maxGeoMatchingDistance);
       // Redundant, but done for completeness
       jetTaggerPartLevel->SelectCollisionCandidates(kPhysSel);
+      // For matching up with the jet performance
+      jetTaggerPartLevel->SetMinFractionShared(0.5);
 
       // Reapply the max track pt cut off to maintain energy resolution and avoid fake tracks
       // However, don't apply to the particle level jets which don't suffer this effect
