@@ -3,6 +3,7 @@ name: "Base configuration options for Jet-H Performance task for embedding into 
 recycleUnusedEmbeddedEventsMode: true
 enable:
     QAHists: true
+    jetMatching: true
     responseMatrix: true
 eventCuts:
     enabled: true
@@ -19,6 +20,9 @@ QA:
     embeddedCellsName: "emcalCells"
 particles: {}
 clusters: {}
+# Configure the jet matching
+jetMatching:
+    maxMatchingDistance: 0.3
 # Configure response matrix
 responseMatrix:
     minFractionSharedPt: 0.5
