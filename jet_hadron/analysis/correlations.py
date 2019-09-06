@@ -15,7 +15,7 @@ import logging
 import os
 import numpy as np
 import sys
-from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 # NOTE: This is out of the expected order, but it must be here to prevent ROOT from stealing the command
 #       line options
@@ -69,6 +69,22 @@ class JetHCorrelationSparse(enum.Enum):
     leading_jet = 5
     jet_hadron_deltaR = 6
     reaction_plane_orientation = 7
+
+    # Handle YAML serialization
+    to_yaml = classmethod(yaml.enum_to_yaml)
+    from_yaml = classmethod(yaml.enum_from_yaml)
+
+class JetHCorrelationSparseZVertex(enum.Enum):
+    """ Defines the axes in the Jet-Hadron THn Sparses when including the Z vertex. """
+    centrality = 0
+    jet_pt = 1
+    track_pt = 2
+    delta_eta = 3
+    delta_phi = 4
+    leading_jet = 5
+    reaction_plane_orientation = 6
+    z_vertex = 7
+    jet_hadron_deltaR = 8
 
     # Handle YAML serialization
     to_yaml = classmethod(yaml.enum_to_yaml)
@@ -875,6 +891,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         The created projectors are added to the ``sparse_projectors`` list.
         """
+        # The sparse axis defintion changed after train 4703. Later trains included the z vertex dependence.
+        sparse_axes: Union[Type[JetHCorrelationSparse], Type[JetHCorrelationSparseZVertex]] = \
+            JetHCorrelationSparseZVertex if self.train_number > 4703 else JetHCorrelationSparse
+
         # Helper which defines the full axis range
         full_axis_range = {
             "min_val": HistAxisRange.apply_func_to_find_bin(None, 1),
@@ -885,7 +905,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # NOTE: The axis will be changed a copy below when necessary (ie for the trigger, since the axes are different).
         # Centrality axis
         centrality_cut_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.centrality,
+            axis_type = sparse_axes.centrality,
             axis_range_name = "centrality",
             min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.event_activity.value_range.min + epsilon
@@ -911,25 +931,25 @@ class Correlations(analysis_objects.JetHReactionPlane):
             }
             logger.debug(f"Using selected EP angle range {self.reaction_plane_orientation.name}")
         reaction_plane_orientation_cut_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.reaction_plane_orientation,
+            axis_type = sparse_axes.reaction_plane_orientation,
             axis_range_name = "reaction_plane",
             **reaction_plane_axis_range,
         )
         # delta_phi full axis
         delta_phi_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.delta_phi,
+            axis_type = sparse_axes.delta_phi,
             axis_range_name = "delta_phi",
             **full_axis_range,
         )
         # delta_eta full axis
         delta_eta_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.delta_eta,
+            axis_type = sparse_axes.delta_eta,
             axis_range_name = "delta_eta",
             **full_axis_range,
         )
         # Jet pt axis
         jet_pt_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.jet_pt,
+            axis_type = sparse_axes.jet_pt,
             axis_range_name = f"jet_pt{self.jet_pt.min}-{self.jet_pt.max}",
             min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.jet_pt.range.min + epsilon
@@ -940,7 +960,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         # Track pt axis
         track_pt_axis = HistAxisRange(
-            axis_type = JetHCorrelationSparse.track_pt,
+            axis_type = sparse_axes.track_pt,
             axis_range_name = f"track_pt{self.track_pt.min}-{self.track_pt.max}",
             min_val = HistAxisRange.apply_func_to_find_bin(
                 ROOT.TAxis.FindBin, self.track_pt.range.min + epsilon
@@ -1032,7 +1052,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Select from 2.0 to the maximum (10.0)
             mixed_event_projector.additional_axis_cuts.append(
                 HistAxisRange(
-                    axis_type = JetHCorrelationSparse.track_pt,
+                    axis_type = sparse_axes.track_pt,
                     axis_range_name = f"track_pt2.0-10.0",
                     min_val = HistAxisRange.apply_func_to_find_bin(
                         ROOT.TAxis.FindBin, 2.0 + epsilon
