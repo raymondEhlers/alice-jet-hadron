@@ -446,7 +446,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
             if not isinstance(fit_range, params.SelectedRange):
                 raise ValueError("Must provide fit range with a selected range or a set of two values")
 
-        def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, pachyderm.fit.FitArguments]:
+        def _setup(self, h: histogram.Histogram1D) -> Tuple[histogram.Histogram1D, pachyderm.fit.T_FitArguments]:
             """ Setup the histogram and arguments for the fit.
 
             Args:
@@ -501,7 +501,8 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
 
         # Fit to a degree-1 polynomial and plot
         fit_object = Polynomial(
-            fit_range = analysis.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
+            use_log_likelihood = False,
+            fit_options = {"range": analysis.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]}
         )
         fit_result = fit_object.fit(h = h)
         fit_object.fit_result = fit_result
