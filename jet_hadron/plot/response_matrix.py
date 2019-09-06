@@ -935,7 +935,7 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
         max_limit = 300
     ax.set_xlim(0, max_limit)
     ax.set_yscale("log")
-    ax.legend(loc = "best", frameon = False)
+    ax.legend(loc = "best", frameon = False, ncol = 2, fontsize = 11)
     fig.tight_layout()
 
     # Save and cleanup
