@@ -126,6 +126,11 @@ _response_matrix_histogram_info["matched_jet_pt_difference"] = pt_hard_analysis.
     attribute_name = "matched_jet_pt_difference",
     outliers_removal_axis = projectors.TH1AxisType.x_axis
 )
+_response_matrix_histogram_info["hybrid_level_spectra"] = pt_hard_analysis.PtHardHistogramInformation(
+    description = "Hybrid level spectra",
+    attribute_name = "hybrid_level_spectra",
+    outliers_removal_axis = projectors.TH1AxisType.x_axis,
+)
 
 @dataclass
 class ResponseHistograms:
@@ -170,6 +175,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         # QA hists
         # Difference between hybrid and detector level jet pt to characterize jet energy scale.
         self.matched_jet_pt_difference: Hist = None
+        self.hybrid_level_spectra: Hist = None
 
     def __iter__(self) -> Iterator[Tuple[str, analysis_objects.HistogramInformation, Union[Hist, None]]]:
         """ Iterate over the histograms in the response matrix analysis object.
@@ -219,7 +225,7 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
         if it's not enabled.
         """
         for hist in [self.response_matrix, self.response_matrix_errors, self.particle_level_spectra,
-                     self.matched_jet_pt_difference]:
+                     self.matched_jet_pt_difference, self.hybrid_level_spectra]:
             if hist and not hist.GetSumw2N() > 0:
                 logger.debug(f"Setting Sumw2 for hist: {hist.GetName()}")
                 hist.Sumw2(True)
@@ -427,6 +433,38 @@ class ResponseMatrixBase(analysis_objects.JetHReactionPlane):
             hist = self.response_matrix,
             response_normalization = self.response_normalization
         )
+
+    def project_hybrid_level_spectra(self) -> None:
+        """ Project the hybrid level spectra from the response matrix. """
+        # Setup and run the projector
+        hybrid_level_spectra = ResponseMatrixProjector(
+            observable_to_project_from = self.response_matrix,
+            output_observable = self,
+            output_attribute_name = "hybrid_level_spectra",
+            projection_name_format = "hybrid_level_spectra",
+        )
+        # Specify the particle level pt limits
+        hybrid_level_spectra.additional_axis_cuts.append(
+            projectors.HistAxisRange(
+                axis_type = projectors.TH1AxisType.y_axis,
+                axis_range_name = "particle_level_limits",
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins),
+            )
+        )
+        # No additional cuts for the projection dependent axes
+        hybrid_level_spectra.projection_dependent_cut_axes.append([])
+        hybrid_level_spectra.projection_axes.append(
+            projectors.HistAxisRange(
+                axis_type = projectors.TH1AxisType.x_axis,
+                axis_range_name = "hybrid_level_spectra",
+                min_val = projectors.HistAxisRange.apply_func_to_find_bin(None, 1),
+                max_val = projectors.HistAxisRange.apply_func_to_find_bin(ROOT.TAxis.GetNbins),
+            )
+        )
+
+        # Perform the actual projection
+        hybrid_level_spectra.project()
 
 class ResponseMatrix(ResponseMatrixBase):
     """ Main response matrix class.
@@ -798,7 +836,7 @@ class ResponseMatrix(ResponseMatrixBase):
         # QA hists
         ##########
         hists = histogram.get_histograms_in_file(self.input_filename)
-        logger.debug(f"hists: {hists}")
+        #logger.debug(f"hists: {hists}")
         self.matched_jet_pt_difference = hists["JetTagger_hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_detLevelJets_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme_TC"]["fh2PtJet2VsRelPt_2"]
 
         return True
@@ -1092,6 +1130,43 @@ class ResponseManager(analysis_manager.Manager):
                 # Update progress
                 processing.update()
 
+    def _extract_hybrid_level_spectra(self) -> None:
+        """ Extract the hybrid level spectra from the response matrix.
+
+        For convenience, we first scale and remove outliers from the response, then we project
+        the already scaled spectra. Last, we merge them for the final response.
+        """
+        with self._progress_manager.counter(total = len(self.pt_hard_bins),
+                                            desc = "Projecting:",
+                                            unit = "hybird level spectra") as projecting:
+            for pt_hard_key_index, pt_hard_bin in \
+                    analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+                ep_analyses = {}
+                for analysis_key_index, analysis in \
+                        analysis_config.iterate_with_selected_objects(
+                            self.analyses,
+                            pt_hard_bin = pt_hard_key_index.pt_hard_bin
+                        ):
+                    ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
+                    analysis.project_hybrid_level_spectra()
+
+            # Update progress
+            projecting.update()
+
+        # Merge into the final response object. We have to do this by hand because we need to project
+        # it after the pt hard bin processing is completed.
+        for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
+            pt_hard_analysis.merge_pt_hard_binned_analyses(
+                analyses = analysis_config.iterate_with_selected_objects(
+                    self.analyses,
+                    reaction_plane_orientation = reaction_plane_orientation
+                ),
+                hist_attribute_name = "hybrid_level_spectra",
+                output_analysis_object = self.final_responses[
+                    self.final_responses_key_index(reaction_plane_orientation = reaction_plane_orientation)
+                ],
+            )
+
     def _histogram_io(self, label: str, func: Callable[..., None]) -> None:
         """ Helper to handle histogram reading or writing (i/o).
 
@@ -1331,6 +1406,23 @@ class ResponseManager(analysis_manager.Manager):
                             hist_attribute_name = hist_info.attribute_name,
                             plot_with_ROOT = plot_with_ROOT,
                         )
+                # Plot the hybrid spectra
+                plot_response_matrix.plot_response_spectra(
+                    plot_labels = plot_base.PlotLabels(
+                        title = "Hybrid jet spectra",
+                        x_label = r"$p_{\text{T,jet}}^{\text{%(label)s}}$" % {
+                            "label": "hybrid",
+                        },
+                        y_label = r"$\frac{\text{d}N}{\text{d}p_{\text{T}}}$",
+                    ),
+                    output_name = "hybrid_level_spectra",
+                    merged_analysis = self.final_responses[
+                        self.final_responses_key_index(reaction_plane_orientation)
+                    ],
+                    pt_hard_analyses = analyses,
+                    hist_attribute_name = "hybrid_level_spectra",
+                    plot_with_ROOT = False,
+                )
 
                 # Update progress
                 plotting.update()
@@ -1368,7 +1460,7 @@ class ResponseManager(analysis_manager.Manager):
         # We need to determine the input information
         histogram_info_for_processing: Dict[str, pt_hard_analysis.PtHardHistogramInformation] = {}
         for name, info in _response_matrix_histogram_info.items():
-            if name not in ["response_matrix_errors", "particle_level_spectra"]:
+            if name not in ["response_matrix_errors", "particle_level_spectra", "hybrid_level_spectra"]:
                 # Help out mypy...
                 assert isinstance(info, pt_hard_analysis.PtHardHistogramInformation)
                 histogram_info_for_processing[name] = info
@@ -1402,6 +1494,9 @@ class ResponseManager(analysis_manager.Manager):
                 )
                 overall_progress.update()
 
+                # Extract the hybrid level spectra pt hard bin.
+                self._extract_hybrid_level_spectra()
+
                 self.write_response_matrix_histograms()
                 overall_progress.update()
 
@@ -1428,8 +1523,7 @@ def run_from_terminal() -> ResponseManager:
     """ Driver function for running the correlations analysis. """
     # Basic setup
     # Quiet down some pachyderm modules
-    logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
-    logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
+    logging.getLogger("pachyderm").setLevel(logging.INFO)
     # Run in batch mode
     ROOT.gROOT.SetBatch(True)
     # Turn off stats box
