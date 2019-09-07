@@ -621,8 +621,12 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
     )
     text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     text += "\n" + labels.jet_finding()
-    text += "\n" + r"Background: $0.8<|\Delta\eta|<1.2$"
-    text += "\n" + r"Signal + Background: $|\Delta\eta|<0.6$"
+    # NOTE: Assumes that the signal and background dominated ranges are symmetric
+    text += "\n" + (fr"Background: ${inclusive_analysis.background_dominated_eta_region.min:.1f}"
+                    r"<|\Delta\eta|<"
+                    fr"{inclusive_analysis.background_dominated_eta_region.max:.1f}$")
+    text += "\n" + (r"Signal + Background: $|\Delta\eta|<"
+                    fr"{inclusive_analysis.signal_dominated_eta_region.max:.1f}$")
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
     # Out-of-plane orientation
     flat_axes[3].legend(
@@ -846,8 +850,12 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     )
     text += "\n" + labels.jet_pt_range_string(inclusive_analysis.jet_pt)
     text += "\n" + labels.jet_finding()
-    text += "\n" + r"Background: $0.8<|\Delta\eta|<1.2$"
-    text += "\n" + r"Signal + Background: $|\Delta\eta|<0.6$"
+    # NOTE: Assumes that the signal and background dominated ranges are symmetric
+    text += "\n" + (fr"Background: ${inclusive_analysis.background_dominated_eta_region.min:.1f}"
+                    r"<|\Delta\eta|<"
+                    fr"{inclusive_analysis.background_dominated_eta_region.max:.1f}$")
+    text += "\n" + (r"Signal + Background: $|\Delta\eta|<"
+                    fr"{inclusive_analysis.signal_dominated_eta_region.max:.1f}$")
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
     # Out-of-plane orientation
     flat_axes[3].legend(
