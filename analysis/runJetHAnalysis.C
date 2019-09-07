@@ -64,7 +64,7 @@ AliAnalysisManager* runJetHAnalysis(
     const char   *cDataType      = "AOD",                                   // set the analysis type, AOD or ESD
     const char   *cRunPeriod     = "LHC15o",                                // set the run period
     const char   *cLocalFiles    = "",                                      // set the local list file
-    const UInt_t  iNumEvents     = 1000,                                    // number of events to be analyzed
+    const UInt_t  iNumEvents     = 5000,                                    // number of events to be analyzed
     const UInt_t  kPhysSel       = AliVEvent::kAnyINT,
                    //AliVEvent::kEMC1 | AliVEvent::kAnyINT,
                    //AliVEvent::kEMCEGA | AliVEvent::kAnyINT |
@@ -116,7 +116,7 @@ AliAnalysisManager* runJetHAnalysis(
   const Double_t maxTimeCut = 100e-9;
 
   // Enable Qn Vector corrections (for calculating EP resolution)
-  const bool enableQnVectorCorrections = true;
+  const bool enableQnVectorCorrections = false;
 
   // Control background subtraction
   const bool enableBackgroundSubtraction = false;
