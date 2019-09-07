@@ -1,0 +1,10 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4737
+production: "LHC15o"
+embeddedProduction: "LHC16j5"
+ptHardBin: 3
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4737_20190826-2318/Stage_1"
+status: |
+    "Response matrix for 0-10% and 30-50% in LHC15o. Uses the jet tagger, which continues to suffer from "
+    "high job failure rates. Presumably due to memory issues. This train won't be used"

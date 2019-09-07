@@ -1,0 +1,10 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4745
+production: "LHC15o"
+embeddedProduction: "LHC16j5"
+ptHardBin: 8
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/"
+status: |
+    "Response matrix for 0-10% and 30-50% in LHC15o. Uses matching in the Jet-H performance task, which appears to "
+    "work around the job failure issues."
