@@ -889,7 +889,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _setup_sparse_projectors(self) -> None:
         """ Setup the THnSparse projectors.
 
-        The created projectors are added to the ``sparse_projectors`` list.
+        Args:
+            None.
+        Returns:
+            None. The created projectors are added to the ``sparse_projectors`` list.
         """
         # The sparse axis defintion changed after train 4703. Later trains included the z vertex dependence.
         sparse_axes: Union[Type[JetHCorrelationSparse], Type[JetHCorrelationSparseZVertex]] = \
@@ -1020,6 +1023,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         raw_signal_projector.additional_axis_cuts.append(reaction_plane_orientation_cut_axis)
         raw_signal_projector.additional_axis_cuts.append(jet_pt_axis)
         raw_signal_projector.additional_axis_cuts.append(track_pt_axis)
+        # No projection dependent cut axes
         raw_signal_projector.projection_dependent_cut_axes.append([])
         # Projection Axes
         raw_signal_projector.projection_axes.append(delta_phi_axis)
