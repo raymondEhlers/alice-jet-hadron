@@ -2319,7 +2319,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 # Now, perform the fit (or load in the fit result).
                 rpf_filename = os.path.join(
-                    self.output_info.output_prefix, f"RPFitResult_{self.fit_type}_{inclusive_analysis.identifier}.yaml"
+                    self.output_info.output_prefix, f"{self.fit_type}_RPFitResult_{inclusive_analysis.identifier}.yaml"
                 )
                 if self.processing_options["fit_correlations"]:
                     # Perform the fit.
@@ -2374,8 +2374,10 @@ class CorrelationsManager(analysis_manager.Manager):
             )
 
             # Signal dominated with background function
-            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                plot_fit.signal_dominated_with_background_function(analysis)
+            # This option is set separately because it's relatively slow.
+            if self.processing_options["plot_RPF_signal_background_comparison"]:
+                for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                    plot_fit.signal_dominated_with_background_function(analysis)
 
     def _scale_hists_post_RPF(self) -> None:
         """ Scale the histograms and fits post RPF so that we don't have to worry about it later. """
