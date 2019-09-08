@@ -372,7 +372,7 @@ AliAnalysisManager* runJetHAnalysis(
 
   // Configure the task
   jetHTask->SetUseNewCentralityEstimation(bIsRun2);
-  jetHTask->ConfigureForStandardAnalysis("usedefault", "usedefault", minTrackPt);
+  jetHTask->ConfigureForStandardAnalysis("usedefault", "usedefault", minTrackPt, 0.9);
   // Need to modify the cluster pt cut to be separate from the particle pt cut since
   // the configure function is not that flexible.
   if (minClusterPt != minTrackPt) {
