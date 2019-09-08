@@ -82,7 +82,7 @@ Correlations:
     processingOptions:
     override:
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{trainNumber}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         2.76:
             trainNumber: 3360
         5.02:
@@ -102,24 +102,24 @@ Correlations:
                 #- !TrackPtBin
                 #  bin: 3
                 #  range: !SelectedRange [1.0, 1.5]
+                #- !TrackPtBin
+                #  bin: 4
+                #  range: !SelectedRange [1.5, 2.0]
+                #- !TrackPtBin
+                #  bin: 5
+                #  range: !SelectedRange [2.0, 3.0]
                 - !TrackPtBin
-                  bin: 4
-                  range: !SelectedRange [1.5, 2.0]
+                  bin: 6
+                  range: !SelectedRange [3.0, 4.0]
                 - !TrackPtBin
-                  bin: 5
-                  range: !SelectedRange [2.0, 3.0]
-                #- !TrackPtBin
-                #  bin: 6
-                #  range: !SelectedRange [3.0, 4.0]
-                #- !TrackPtBin
-                #  bin: 7
-                #  range: !SelectedRange [4.0, 5.0]
-                #- !TrackPtBin
-                #  bin: 8
-                #  range: !SelectedRange [5.0, 6.0]
-                #- !TrackPtBin
-                #  bin: 9
-                #  range: !SelectedRange [6.0, 10.0]
+                  bin: 7
+                  range: !SelectedRange [4.0, 5.0]
+                - !TrackPtBin
+                  bin: 8
+                  range: !SelectedRange [5.0, 6.0]
+                - !TrackPtBin
+                  bin: 9
+                  range: !SelectedRange [6.0, 10.0]
             jet_pt_bin:
                 - !JetPtBin
                   bin: 2
@@ -147,17 +147,18 @@ CorrelationsManager:
         fit_correlations: true
         plot_RPF: true
         plot_RPF_summary: true
+        plot_RPF_signal_background_comparison: false
         # Even if enabled, it will only make the comparison if in the correct collision system, energy, and fit type.
         plot_RPF_joel_comparison: false
-        plot_delta_eta_fit: false
+        plot_delta_eta_fit: true
         subtract_correlations: true
         plot_subtracted_correlations: true
         # Yields
         extract_yields: true
         plot_yields: true
         # Widths
-        extract_delta_phi_widths: true
-        plot_delta_phi_widths: true
+        extract_delta_phi_widths: false
+        plot_delta_phi_widths: false
         extract_delta_eta_widths: false
         use_stored_delta_eta_widths: false
         plot_delta_eta_widths: false
@@ -165,11 +166,12 @@ CorrelationsManager:
         # The fit type will be used to retrieve the fit object from the RPF package.
         # Could be "InclusiveSignalFit" or "BackgroundFit"
         fit_type: "BackgroundFit"
+        #fit_type: "InclusiveSignalFit"
     override:
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
         # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/Correlations"
+        outputPrefix: "output/{collision_system}/{trainNumber}/{event_activity}/{leading_hadron_bias}/Correlations"
         2.76:
             trainNumber: 3360
             # Event plane resolution parameters
@@ -233,7 +235,7 @@ CorrelationsManager:
                             trackPt_3.0_4.0:
                                 args:
                                     v2_t: 0.04
-                                    limit_v2_t: [0.0005, 0.15]
+                                    limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     <<: *fixed_v4
@@ -331,7 +333,7 @@ CorrelationsManager:
                             trackPt_3.0_4.0:
                                 args:
                                     v2_t: 0.04
-                                    limit_v2_t: [0.0005, 0.15]
+                                    limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     #<<: *fixed_v4
@@ -341,27 +343,27 @@ CorrelationsManager:
                                     limit_v4_a: [0, 0.2]
                             trackPt_4.0_5.0:
                                 args:
-                                    <<: *fixed_v4
                                     v2_t: 0.04
                                     limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
-                            #    use_log_likelihood: true
+                                    <<: *fixed_v4
+                                use_log_likelihood: true
                             trackPt_5.0_6.0:
                                 args:
-                                    <<: *fixed_v4
                                     v2_t: 0.04
                                     limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
+                                    <<: *fixed_v4
                                 use_log_likelihood: true
                             trackPt_6.0_10.0:
                                 args:
-                                    <<: *fixed_v4
                                     v2_t: 0.04
                                     limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
+                                    <<: *fixed_v4
                                 use_log_likelihood: true
             semi_central:
                 resolution_parameters:
@@ -373,172 +375,142 @@ CorrelationsManager:
                     BackgroundFit:
                         jetPtBiased_20_40:
                             trackPt_0.5_1.0:
-                                args:
-                                    # Background terms
+                                args: &_5TeVSemiCentral_0_5__1
                                     limit_B: [0, 1e7]
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                            trackPt_1.0_1.5:
-                                args:
-                                    # Background terms
-                                    limit_B: [0, 1e7]
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                            trackPt_1.5_2.0:
-                                args:
-                                    # Background terms
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                                    v4_t: 0.01
-                                    limit_v4_t: [0, 0.1]
-                                    v4_a: 0.1
-                                    limit_v4_a: [0, 0.2]
-                            trackPt_2.0_3.0:
-                                args:
-                                    # Signal terms
-                                    #fix_BG: true
-                                    #BG: 0
-                                    #ns_amplitude: 1.0
-                                    #as_amplitude: 0.2
-                                    # Background terms
-                                    #fix_v2_t: true
                                     v2_t: 0.08
                                     limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
-                                    #v3: 0.0015
                                     v3: 0.00015
                                     error_v3: 1e-5
-                                    #<<: *fixed_v4
+                                    v4_t: 0.03
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.05
+                                    limit_v4_a: [0, 0.2]
+                            trackPt_1.0_1.5:
+                                args: &_5TeVSemiCentral_1__1_5
+                                    limit_B: [0, 1e7]
+                                    v2_t: 0.08
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
+                                    v4_t: 0.03
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.05
+                                    limit_v4_a: [0, 0.2]
+                            trackPt_1.5_2.0:
+                                args: &_5TeVSemiCentral_1_5__2
+                                    v2_t: 0.08
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
+                                    v4_t: 0.03
+                                    limit_v4_t: [0, 0.1]
+                                    v4_a: 0.05
+                                    limit_v4_a: [0, 0.2]
+                            trackPt_2.0_3.0:
+                                args: &_5TeVSemiCentral_2__3
+                                    v2_t: 0.08
+                                    limit_v2_t: [0.001, 0.15]
+                                    v2_a: 0.15
+                                    limit_v2_a: [0.03, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
                                     v4_t: 0.01
                                     limit_v4_t: [0, 0.1]
                                     v4_a: 0.1
                                     limit_v4_a: [0, 0.2]
-                            #    use_log_likelihood: true
                             trackPt_3.0_4.0:
-                                args:
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.0005, 0.15]
+                                args: &_5TeVSemiCentral_3__4
+                                    v2_t: 0.08
+                                    limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
-                                    #<<: *fixed_v4
+                                    v3: 0.00015
+                                    error_v3: 1e-5
                                     v4_t: 0.01
                                     limit_v4_t: [0, 0.1]
                                     v4_a: 0.1
                                     limit_v4_a: [0, 0.2]
                             trackPt_4.0_5.0:
-                                args:
-                                    <<: *fixed_v4
-                                    v2_t: 0.04
+                                args: &_5TeVSemiCentral_4__5
+                                    v2_t: 0.08
                                     limit_v2_t: [0.001, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
+                                    <<: *fixed_v4
                             #    use_log_likelihood: true
                             trackPt_5.0_6.0:
-                                args:
-                                    <<: *fixed_v4
+                                args: &_5TeVSemiCentral_5__6
                                     v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                    limit_v2_t: [0.0001, 0.25]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
+                                    <<: *fixed_v4
                                 use_log_likelihood: true
                             trackPt_6.0_10.0:
-                                args:
-                                    <<: *fixed_v4
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                args: &_5TeVSemiCentral_6__10
+                                    v2_t: 0.08
+                                    limit_v2_t: [0.0001, 0.20]
                                     v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    limit_v2_a: [0.0001, 0.5]
+                                    v3: 0.00015
+                                    error_v3: 1e-5
+                                    <<: *fixed_v4
                                 use_log_likelihood: true
                     InclusiveSignalFit:
                         jetPtBiased_20_40:
                             trackPt_0.5_1.0:
                                 args:
                                     # Background terms
-                                    limit_B: [0, 1e7]
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    <<: *_5TeVSemiCentral_0_5__1
+                                    # Signal terms
                             trackPt_1.0_1.5:
                                 args:
                                     # Background terms
-                                    limit_B: [0, 1e7]
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    <<: *_5TeVSemiCentral_1__1_5
+                                    # Signal terms
                             trackPt_1.5_2.0:
                                 args:
                                     # Background terms
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                                    v4_t: 0.01
-                                    limit_v4_t: [0, 0.1]
-                                    v4_a: 0.1
-                                    limit_v4_a: [0, 0.2]
+                                    <<: *_5TeVSemiCentral_1_5__2
+                                    # Signal terms
                             trackPt_2.0_3.0:
                                 args:
+                                    # Background terms
+                                    <<: *_5TeVSemiCentral_2__3
                                     # Signal terms
-                                    #fix_BG: true
-                                    #BG: 0
                                     #ns_amplitude: 1.0
                                     #as_amplitude: 0.2
-                                    # Background terms
-                                    v2_t: 0.08
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                                    v3: 1.5e-4
-                                    error_v3: 1e-5
-                                    #<<: *fixed_v4
-                                    v4_t: 0.01
-                                    limit_v4_t: [0, 0.1]
-                                    v4_a: 0.1
-                                    limit_v4_a: [0, 0.2]
-                            #    use_log_likelihood: true
                             trackPt_3.0_4.0:
                                 args:
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.0005, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                                    #<<: *fixed_v4
-                                    v4_t: 0.01
-                                    limit_v4_t: [0, 0.1]
-                                    v4_a: 0.1
-                                    limit_v4_a: [0, 0.2]
+                                    # Background terms
+                                    <<: *_5TeVSemiCentral_3__4
+                                    # Signal terms
                             trackPt_4.0_5.0:
                                 args:
-                                    <<: *fixed_v4
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
-                            #    use_log_likelihood: true
+                                    # Background terms
+                                    <<: *_5TeVSemiCentral_4__5
+                                    # Signal terms
                             trackPt_5.0_6.0:
                                 args:
-                                    <<: *fixed_v4
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    # Background terms
+                                    <<: *_5TeVSemiCentral_5__6
+                                    # Signal terms
                                 use_log_likelihood: true
                             trackPt_6.0_10.0:
                                 args:
-                                    <<: *fixed_v4
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
-                                    v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    # Background terms
+                                    <<: *_5TeVSemiCentral_6__10
+                                    # Signal terms
                                 use_log_likelihood: true
 
 ##################################################
