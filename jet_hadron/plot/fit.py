@@ -861,9 +861,12 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     flat_axes[3].legend(
         frameon = False, loc = "upper center", fontsize = 15
     )
-    # Use effective chi squared in case it's a log likelihood fit.
+    # Use effective chi squared rather than the function minimum to ensure that we have
+    # a valid way to characterize the fit even if we're using a log likelihood cost function.
     effective_chi_squared = rp_fit.fit_result.effective_chi_squared(rp_fit.cost_func)
-    assert np.isclose(effective_chi_squared, rp_fit.fit_result.minimum_val)
+    # This sanity check is only meaningful if not using a log likelihood fit.
+    if rp_fit.use_log_likelihood is False:
+        assert np.isclose(effective_chi_squared, rp_fit.fit_result.minimum_val)
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
         f"{effective_chi_squared:.1f}/{rp_fit.fit_result.nDOF} = "
