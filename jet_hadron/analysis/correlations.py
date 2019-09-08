@@ -2521,15 +2521,15 @@ class CorrelationsManager(analysis_manager.Manager):
         if self.processing_options["plot_yields"]:
             plot_extracted.delta_phi_near_side_yields(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
             plot_extracted.delta_phi_away_side_yields(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
             plot_extracted.delta_eta_near_side_yields(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
 
         return True
@@ -2582,16 +2582,16 @@ class CorrelationsManager(analysis_manager.Manager):
         if self.processing_options["plot_delta_phi_widths"]:
             plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
             plot_extracted.delta_phi_away_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
         if self.processing_options["plot_delta_eta_widths"]:
             plot_extracted.delta_eta_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
-                output_info = self.output_info,
+                fit_type = self.fit_type, output_info = self.output_info,
             )
 
         return True

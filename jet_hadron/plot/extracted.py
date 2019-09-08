@@ -242,6 +242,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
                       plot_labels: plot_base.PlotLabels,
                       output_name: str,
+                      fit_type: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
                       projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                       extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
@@ -260,6 +261,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         extract_value_func: Function to retrieve the extracted value and error.
         plot_labels: Titles and axis labels for the plot.
         output_name: Base of name under which the plot will be stored.
+        fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
@@ -356,7 +358,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     fig.tight_layout()
     # Save plot and cleanup
     plot_base.save_plot(output_info, fig,
-                        f"{output_name}_{inclusive_analysis.jet_pt_identifier}")
+                        f"{fit_type}_{output_name}_{inclusive_analysis.jet_pt_identifier}")
     plt.close(fig)
 
 def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Correlations") -> str:
@@ -367,6 +369,7 @@ def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Cor
 
 def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -384,12 +387,14 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side width",
         ),
         output_name = "widths_delta_phi_near_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
 
 def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side widths. """
     def away_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -407,12 +412,14 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Away-side width",
         ),
         output_name = "widths_delta_phi_away_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
 
 def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi near-side yields. """
     def near_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -443,6 +450,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side yield",
         ),
         output_name = "yields_delta_phi_near_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
         extraction_range_func = near_side_extraction_range,
@@ -450,6 +458,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
 
 def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
     def away_side_yields(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -483,6 +492,7 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Away-side yield",
         ),
         output_name = "yields_delta_phi_away_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_phi_plot_projection_range_string,
         extraction_range_func = away_side_extraction_range,
@@ -499,6 +509,7 @@ def delta_eta_plot_projection_range_string(inclusive_analysis: "correlations.Cor
 
 def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -516,12 +527,14 @@ def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side width",
         ),
         output_name = "widths_delta_eta_near_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
     )
 
 def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
+                               fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta eta near-side yields. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -554,6 +567,7 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side yield",
         ),
         output_name = "yields_delta_eta_near_side",
+        fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
         extraction_range_func = near_side_extraction_range,
