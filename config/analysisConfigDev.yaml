@@ -445,13 +445,12 @@ CorrelationsManager:
                                     v3: 0.00015
                                     error_v3: 1e-5
                                     <<: *fixed_v4
-                            #    use_log_likelihood: true
                             trackPt_5.0_6.0:
                                 args: &_5TeVSemiCentral_5__6
-                                    v2_t: 0.04
-                                    limit_v2_t: [0.0001, 0.25]
+                                    v2_t: 0.08
+                                    limit_v2_t: [-0.50, 0.50]
                                     v2_a: 0.15
-                                    limit_v2_a: [0.03, 0.5]
+                                    limit_v2_a: [-0.50, 0.90]
                                     v3: 0.00015
                                     error_v3: 1e-5
                                     <<: *fixed_v4
@@ -459,9 +458,9 @@ CorrelationsManager:
                             trackPt_6.0_10.0:
                                 args: &_5TeVSemiCentral_6__10
                                     v2_t: 0.08
-                                    limit_v2_t: [0.0001, 0.20]
+                                    limit_v2_t: [-0.50, 0.50]
                                     v2_a: 0.15
-                                    limit_v2_a: [0.0001, 0.5]
+                                    limit_v2_a: [-0.50, 0.90]
                                     v3: 0.00015
                                     error_v3: 1e-5
                                     <<: *fixed_v4
