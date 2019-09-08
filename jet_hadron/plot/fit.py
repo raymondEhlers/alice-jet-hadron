@@ -893,8 +893,17 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
         # Add axis labels
         ax.set_xlabel(labels.make_valid_latex_string(inclusive_analysis.correlation_hists_delta_phi.signal_dominated.axis.display_str()))
     # Improve the viewable range for the lower panels.
-    # This value is somewhat arbitrarily selected, but seems to work well enough.
-    flat_axes[n_components].set_ylim(-0.5, 0.5)
+    # This values are selected empirically. Note that we often select values slightly
+    # less than the round value. This way, we are less likely to have labels overlap
+    # with the upper label y-axis.
+    y_min, y_max = -0.49, 0.49
+    if inclusive_analysis.track_pt.min >= 4.:
+        y_min, y_max = -0.95, 0.95
+    if inclusive_analysis.track_pt.min >= 5.:
+        y_min, y_max = -9, 9
+    if inclusive_analysis.track_pt.min >= 6.:
+        y_min, y_max = -19, 19
+    flat_axes[n_components].set_ylim(y_min, y_max)
 
     # Specify shared y axis label
     # Delta phi correlations first
