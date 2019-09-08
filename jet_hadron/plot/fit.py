@@ -870,7 +870,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
     text = (
         r"\chi^{2}/\mathrm{NDF} = "
         f"{effective_chi_squared:.1f}/{rp_fit.fit_result.nDOF} = "
-        f"{rp_fit.fit_result.minimum_val / rp_fit.fit_result.nDOF:.3f}"
+        f"{effective_chi_squared / rp_fit.fit_result.nDOF:.3f}"
     )
     _add_label_to_rpf_plot_axis(
         ax = flat_axes[3], label = labels.make_valid_latex_string(text),
