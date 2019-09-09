@@ -2338,7 +2338,9 @@ class CorrelationsManager(analysis_manager.Manager):
                 else:
                     # Load from file.
                     logger.info(f"Loading RPF from {rpf_filename}")
-                    fit_obj.read_fit_results(filename = rpf_filename)
+                    fit_obj.read_fit_object(
+                        filename = rpf_filename, data = input_hists, user_arguments = user_arguments
+                    )
 
                 # Store the fit results in the manager.
                 # This main object has access to the entire result.
