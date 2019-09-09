@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alien>
+  <collection name="/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/merge/Stage_1.xml">
+    <event name="1">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-09 02:44:51" dir="571294005" entryId="571439044" expiretime="" gowner="alitrain" guid="95dd3cce-d2ff-11e9-9fcb-075b07c92bb4" guidtime="" jobid="1607468054" lfn="/alice/data/2015/LHC15o/000246087/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" md5="496dacc7e9d18bc1b7bcff6f76b34e88" owner="alitrain" perm="755" replicated="0" size="386668267" turl="alien:///alice/data/2015/LHC15o/000246087/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" type="f"/>
+    </event>
+    <event name="2">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-09 04:12:01" dir="585856588" entryId="585961472" expiretime="" gowner="alitrain" guid="9a7cfd44-d30b-11e9-90ab-83cb71f82982" guidtime="" jobid="1607474395" lfn="/alice/data/2015/LHC15o/000246271/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" md5="07b09cdfe2fcdb842f6639f84e195a46" owner="alitrain" perm="755" replicated="0" size="407679670" turl="alien:///alice/data/2015/LHC15o/000246271/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" type="f"/>
+    </event>
+    <event name="3">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-09 03:05:54" dir="562321541" entryId="562433912" expiretime="" gowner="alitrain" guid="72d0615e-d302-11e9-92a2-07526299f754" guidtime="" jobid="1607470434" lfn="/alice/data/2015/LHC15o/000246272/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" md5="cce98d27c2375b59ec3a9d2f2b931f12" owner="alitrain" perm="755" replicated="0" size="453590792" turl="alien:///alice/data/2015/LHC15o/000246272/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" type="f"/>
+    </event>
+    <event name="4">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-09 05:05:46" dir="568561999" entryId="568672690" expiretime="" gowner="alitrain" guid="30fb88ce-d313-11e9-8dd9-1fb4302a006a" guidtime="" jobid="1607507042" lfn="/alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" md5="d2bddb253191a5ad748397e136d9c8b3" owner="alitrain" perm="755" replicated="0" size="435018279" turl="alien:///alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" type="f"/>
+    </event>
+    <event name="5">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-09 04:06:06" dir="589153389" entryId="589232750" expiretime="" gowner="alitrain" guid="ecad41f6-d30a-11e9-8e6b-77ef5c918366" guidtime="" jobid="1607486612" lfn="/alice/data/2015/LHC15o/000246760/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" md5="c3e0abc041a3bdde1df3acc3a4271a9a" owner="alitrain" perm="755" replicated="0" size="361666812" turl="alien:///alice/data/2015/LHC15o/000246760/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" type="f"/>
+    </event>
+    <info command="find [/alice/data/2015/LHC15o/000246087/pass1/AOD194/;/alice/data/2015/LHC15o/000246271/pass1/AOD194/;/alice/data/2015/LHC15o/000246272/pass1/AOD194/;/alice/data/2015/LHC15o/000246434/pass1/AOD194/;/alice/data/2015/LHC15o/000246760/pass1/AOD194/ PWGJE/Jets_EMC_PbPb/4765_20190907-1737/root_archive.zip" creator="alitrain" date="Mon Sep 09 17:14:44 CEST 2019" timestamp="1568042084686"/>
+  </collection>
+</alien>

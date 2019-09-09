@@ -2,7 +2,8 @@
 train: "Jets_EMC_PbPb"
 trainNumber: 4765
 production: "LHC15o"
-alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4765"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4765_20190907-1737/merge"
 status: |
-    "Jet-hadron correlations at 5 TeV with a 5 GeV track bias. Includes z vertex dependence for mixed event"
-    "acceptance systematics."
+    "Calculate jet-hadron mixed event systematics at 5 TeV. Merging failed in the final stage due to "
+    "output size, so I had to do the final merge locally. I downloaded the files by hand (because there "
+    "were only 5 and it was easy), and then I merged using hadd."
