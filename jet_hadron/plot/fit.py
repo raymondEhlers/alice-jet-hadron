@@ -217,7 +217,7 @@ def _reference_v2_t_data(reference_data: ReferenceData,
     # can't control the text position well enough.
     label = "Jet $v_{2}$"
     ax.annotate(
-        label, xy = (x_max - (x_max - x_min) * 0.05, data["value"] * 1.05),
+        label, xy = (x_max - (x_max - x_min) * 0.05, data["value"] * 1.35),
         horizontalalignment="center",
         verticalalignment="center",
     )
