@@ -447,6 +447,13 @@ def _matrix_values(free_parameters: Sequence[str],
         "v3": "v_{3}^{2}", "v4_t": "v_{4}^{t}", "v4_a": "v_{4}^{a}",
         "B": r"\text{RPF Background}",
     }
+    # Add Signal fit parameters.
+    for ep in ["in_plane", "mid_plane", "out_of_plane"]:
+        short_name = ep[:ep.find("_plane")]
+        improved_labeling_map.update({
+            f"{ep}_ns_amplitude": fr"A_{{NS}}^{{\text{{{short_name}}}}}", f"{ep}_as_amplitude": fr"A_{{AS}}^{{\text{{{short_name}}}}}",
+            f"{ep}_ns_sigma": fr"\sigma_{{NS}}^{{\text{{{short_name}}}}}", f"{ep}_as_sigma": r"\sigma_{AS}^{{\text{{{short_name}}}}}",
+        })
     # Ensure that the strings are valid LaTeX
     improved_labeling_map = {k: labels.make_valid_latex_string(v) for k, v in improved_labeling_map.items()}
     # Fixed parameters aren't in the covariance matrix.
