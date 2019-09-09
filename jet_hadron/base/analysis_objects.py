@@ -362,6 +362,15 @@ class AnalysisBin(ABC):
         return re.sub("([a-z])([A-Z])", r"\1 \2", self.__class__.__name__)
 
 @dataclass(frozen = True)
+class ZVertexBin(AnalysisBin):
+    """ A z vertex bin, along with the associated eta range.
+
+    We don't need to implement anything else. We just needed to instantiate this with the name
+    of the class so that we can differentiate it from other bins.
+    """
+    ...
+
+@dataclass(frozen = True)
 class EtaBin(AnalysisBin):
     """ A eta bin, along with the associated eta range.
 
@@ -457,6 +466,13 @@ class AnalysisBins(ABC):
         for val, val_next in zip(values[:-1], values[1:]):
             bins.append(cls._class(range = params.SelectedRange(min = val, max = val_next)))
         return bins
+
+class ZVertexBins(AnalysisBins):
+    """ Define an array of z vertex bins.
+
+    It reads arrays registered under the tag ``!ZVertexBins``.
+    """
+    _class = ZVertexBin
 
 class EtaBins(AnalysisBins):
     """ Define an array of eta bins.
@@ -589,4 +605,3 @@ class PtHardBins:
                 )
             )
         return pt_bins
-
