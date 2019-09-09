@@ -951,7 +951,7 @@ def delta_eta_fit(analysis: "correlations.Correlations") -> None:
                 f"Correlation obj name: {attribute_name}, pedestal fit obj name: {fit_attribute_name}"
             )
         # Setup an individual hist
-        h = histogram.Histogram1D.from_existing_hist(correlation.hist)
+        h = correlation.hist
         label = correlation.type.display_str()
 
         # Determine the fit range so we can show it in the plot.

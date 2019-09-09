@@ -1710,8 +1710,27 @@ class Correlations(analysis_objects.JetHReactionPlane):
             offset_our_points = True,
         )
 
+    def convert_hists_post_RPF(self) -> None:
+        """ Convert the histograms and post RPF so that we don't have to worry about it later.
+
+        Here, we scale the signal and background delta phi correlations, the delta eta near side
+        and away side hists. We don't scale the RPF fit hist because it was scaled when it was created.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        # Convert the 1D correlations
+        hists: List[Union[CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta]] = \
+            [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]
+        for correlations_groups in hists:
+            for _, observable in correlations_groups:
+                # Convert to Histogram1D
+                observable.hist = histogram.Histogram1D.from_existing_hist(observable.hist)
+
     def scale_hists_post_RPF(self) -> None:
-        """ Scale the histograms and fits post RPF so that we don't have to worry about it later.
+        """ Scale the histograms post RPF so that we don't have to worry about it later.
 
         Here, we scale the signal and background delta phi correlations, the delta eta near side
         and away side hists. We don't scale the RPF fit hist because it was scaled when it was created.
@@ -1722,11 +1741,11 @@ class Correlations(analysis_objects.JetHReactionPlane):
             None.
         """
         # Scale the 1D correlations
-        for correlations_groups in [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]:
-            # Help out mypy...
-            assert isinstance(correlations_groups, (CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta))
+        hists: List[Union[CorrelationHistogramsDeltaPhi, CorrelationHistogramsDeltaEta]] = \
+            [self.correlation_hists_delta_phi, self.correlation_hists_delta_eta]
+        for correlations_groups in hists:
             for _, observable in correlations_groups:
-                observable.hist.Scale(self.correlation_scale_factor)
+                observable.hist *= self.correlation_scale_factor
 
         # We _don't_ scale the RP fit hist because it was scaled when it was created!
 
@@ -1741,7 +1760,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 )
             # Fit the pedestal
             fit_result = fit_object.fit(
-                h = histogram.Histogram1D.from_existing_hist(correlation.hist)
+                h = correlation.hist
             )
             # Store the result
             fit_object.fit_result = fit_result
@@ -1758,7 +1777,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # We want to do the same thing regardless of whether an object contributed to the signal
         # dominated or background dominated portion of the fit.
         signal_dominated = self.correlation_hists_delta_phi.signal_dominated
-        signal_dominated_hist = histogram.Histogram1D.from_existing_hist(signal_dominated.hist)
+        signal_dominated_hist = signal_dominated.hist
         # We copy the fit hist and set the errors to zero when we subtract the histogram because we will
         # plot the RP fit errors separately.
         fit_hist_no_errors = self.fit_hist.copy()
@@ -1819,7 +1838,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         fit_object = self.fit_objects_delta_eta.near_side
         for attribute_name, correlation in self.correlation_hists_delta_eta:
             # Retrieve the hist
-            correlation_hist = histogram.Histogram1D.from_existing_hist(correlation.hist)
+            correlation_hist = correlation.hist
 
             # Determine the pedestal representing the background.
             background_hist = histogram.Histogram1D(
@@ -2381,12 +2400,13 @@ class CorrelationsManager(analysis_manager.Manager):
                 for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
                     plot_fit.signal_dominated_with_background_function(analysis)
 
-    def _scale_hists_post_RPF(self) -> None:
+    def _scale_and_convert_hists_post_RPF(self) -> None:
         """ Scale the histograms and fits post RPF so that we don't have to worry about it later. """
         with self._progress_manager.counter(total = len(self.analyses),
                                             desc = "Scaling histograms:",
                                             unit = "analyses") as scaling:
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                analysis.convert_hists_post_RPF()
                 analysis.scale_hists_post_RPF()
 
                 scaling.update()
@@ -2398,7 +2418,7 @@ class CorrelationsManager(analysis_manager.Manager):
         # Now that we have done the reaction plane fit, we can scale all of the histograms down to be scaled
         # by the number of triggers. We really need this to be done _before_ fitting the delta eta correlations
         # to ensure that they are on the right background level.
-        self._scale_hists_post_RPF()
+        self._scale_and_convert_hists_post_RPF()
         # Fit the delta eta correlations
         self._fit_delta_eta_correlations()
         return True
