@@ -2151,7 +2151,7 @@ class CorrelationsManager(analysis_manager.Manager):
                                             desc = "Fitting:",
                                             unit = "delta eta correlations") as fitting:
             for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
-                if self.processing_options["fit_correlations"]:
+                if self.processing_options["fit_delta_eta_correlations"]:
                     # Fit a pedestal to the background dominated eta region
                     # The result is stored in the analysis object.
                     analysis.fit_delta_eta_correlations()

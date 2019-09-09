@@ -150,7 +150,8 @@ CorrelationsManager:
         plot_RPF_signal_background_comparison: false
         # Even if enabled, it will only make the comparison if in the correct collision system, energy, and fit type.
         plot_RPF_joel_comparison: false
-        plot_delta_eta_fit: true
+        fit_delta_eta_correlations: false
+        plot_delta_eta_fit: false
         subtract_correlations: true
         plot_subtracted_correlations: true
         # Yields
