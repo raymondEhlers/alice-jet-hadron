@@ -316,6 +316,15 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
             label = ep_orientation.display_str(), linestyle = "",
             fillstyle = ep_plot_properties[ep_orientation][2],
         )
+        # Plot the RP fit error if it's available.
+        if "RPFit_error" in values[analysis.track_pt].metadata:
+            logger.debug(f"Plotting RPFit errors for {output_name}")
+            plot_base.error_boxes(
+                ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
+                x_errors = np.array([0.025] * len(bin_centers)),
+                y_errors = np.array([v.metadata["RPFit_error"] for v in values.values()]),
+                label = "RP Background", color = plot_base.AnalysisColors.fit,
+            )
 
     # Help out mypy...
     assert inclusive_analysis is not None

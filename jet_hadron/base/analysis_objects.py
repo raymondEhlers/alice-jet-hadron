@@ -6,7 +6,7 @@
 """
 
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import enum
 import logging
 import numpy as np
@@ -120,6 +120,7 @@ class ExtractedObservable:
     """ For extracted observable such as widths or yields. """
     value: float
     error: float
+    metadata: Dict[str, Any] = field(default_factory = dict)
 
 @dataclass
 class Fit:

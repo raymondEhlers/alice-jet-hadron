@@ -1851,8 +1851,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             subtracted_hist = correlation_hist - background_hist
             utils.recursive_setattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist", subtracted_hist)
 
-    def _extract_yield_from_hist(self, hist: histogram.Histogram1D,
-                                 yield_range: params.SelectedRange) -> analysis_objects.ExtractedObservable:
+    def _extract_yield_from_correlation(self, hist: histogram.Histogram1D,
+                                        fit_hist: histogram.Histogram1D,
+                                        yield_range: params.SelectedRange) -> analysis_objects.ExtractedObservable:
         """ Helper function to actually extract a yield from a histogram.
 
         Yields are extracted within central_value +/- yield_limit.
@@ -1867,6 +1868,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         yield_value, yield_error = hist.integral(
             min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
         )
+        fit_yield_value, fit_yield_error = fit_hist.integral(
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+        )
+
+        # Determine the value by subtracting the background
+        yield_value = yield_value - fit_yield_value
 
         # Scale by track pt bin width
         track_pt_bin_width = self.track_pt.max - self.track_pt.min
@@ -1874,7 +1881,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         yield_error /= track_pt_bin_width
 
         # Store the yield in an observable
-        observable = analysis_objects.ExtractedObservable(value = yield_value, error = yield_error)
+        observable = analysis_objects.ExtractedObservable(
+            value = yield_value, error = yield_error,
+            metadata = {
+                "RPFit_error": fit_yield_error,
+            },
+        )
         return observable
 
     def extract_yields(self) -> None:
@@ -1882,27 +1894,35 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Delta phi yields
         logger.debug("Extracting delta phi yields.")
         for attribute_name, yield_obj in self.yields_delta_phi:
-            observable = self._extract_yield_from_hist(
-                hist = self.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            observable = self._extract_yield_from_correlation(
+                hist = self.correlation_hists_delta_phi.signal_dominated.hist,
+                fit_hist = self.fit_hist,
                 yield_range = yield_obj.extraction_range,
             )
             # Store the extract yield
-            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}")
+            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}, background: {observable.metadata['RPFit_error']}")
             yield_obj.value = observable
 
         # Delta eta yields
         logger.debug("Extracting delta eta yields.")
-        for (attribute_name, yield_obj), (correlation_attribute_name, correlation) in \
-                zip(self.yields_delta_eta, self.correlation_hists_delta_eta_subtracted):
+        for (attribute_name, yield_obj), (correlation_attribute_name, correlation), (fit_obj_attribute_name, fit_obj) in \
+                zip(self.yields_delta_eta, self.correlation_hists_delta_eta, self.fit_objects_delta_eta):
             # Sanity check
-            if attribute_name != correlation_attribute_name:
+            if not (attribute_name == correlation_attribute_name == fit_obj_attribute_name):
                 raise ValueError(
-                    "Issue extracting yield and hist together."
-                    f"Yield obj name: {attribute_name}, correlation obj name: {correlation_attribute_name}"
+                    "Issue extracting yield, hist, and fit together."
+                    f"Yield obj name: {attribute_name}, correlation obj name: {correlation_attribute_name} "
+                    f"fit object name: {fit_obj_attribute_name}."
                 )
 
-            observable = self._extract_yield_from_hist(
+            fit_hist = histogram.Histogram1D(
+                bin_edges = correlation.hist.bin_edges,
+                y = fit_obj(correlation.hist.x, **fit_obj.fit_result.values_at_minimum),
+                errors_squared = fit_obj.calculate_errors(x = correlation.hist.x),
+            )
+            observable = self._extract_yield_from_correlation(
                 hist = correlation.hist,
+                fit_hist = fit_hist,
                 yield_range = yield_obj.extraction_range,
             )
 
