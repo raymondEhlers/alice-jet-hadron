@@ -215,7 +215,7 @@ def error_boxes(ax: matplotlib.axes.Axes,
         # errors, we want to take * 2 of the error.
         xerr = np.atleast_1d(xerr)
         yerr = np.atleast_1d(yerr)
-        logger.debug(f"yerr: {yerr}")
+        #logger.debug(f"yerr: {yerr}")
         r = matplotlib.patches.Rectangle(
             (x - xerr[0], y - yerr[0]),
             xerr.sum() if len(xerr) == 2 else xerr * 2,

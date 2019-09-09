@@ -2472,6 +2472,10 @@ class CorrelationsManager(analysis_manager.Manager):
                         analysis.write_1d_subtracted_delta_phi_correlations()
                     else:
                         # Load from file.
+                        logger.info(
+                            f"Reading delta phi correlation information from file for {analysis.identifier}, "
+                            f"{analysis.reaction_plane_orientation}."
+                        )
                         analysis.init_1d_subtracted_delta_phi_corerlations_from_file()
 
                     # We will keep track of the inclusive analysis so we can easily access some analysis parameters.

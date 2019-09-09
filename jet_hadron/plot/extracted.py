@@ -241,6 +241,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Mapping[str, Sequence[Any]],
                       extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
                       plot_labels: plot_base.PlotLabels,
+                      logy: bool,
                       output_name: str,
                       fit_type: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
@@ -294,7 +295,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     ax.set_prop_cycle(combined_cyclers)
 
     # Used for labeling purposes. The values that are used are identical for all analyses.
-    inclusive_analysis: Optional["correlations.Correlations"] = None
+    inclusive_analysis: "correlations.Correlations"
     for displace_index, ep_orientation in enumerate(selected_iterables["reaction_plane_orientation"]):
         # Store the values to be plotted
         values: Dict[analysis_objects.PtBin, analysis_objects.ExtractedObservable] = {}
@@ -305,12 +306,12 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
             # Store each extracted value.
             values[analysis.track_pt] = extract_value_func(analysis)
             # These are both used for labeling purposes and are identical for all analyses that are iterated over.
-            if ep_orientation == params.ReactionPlaneOrientation.inclusive and inclusive_analysis is None:
+            if ep_orientation == params.ReactionPlaneOrientation.inclusive:
                 inclusive_analysis = analysis
 
         # Plot the values
         bin_centers = np.array([k.bin_center for k in values])
-        bin_centers = bin_centers + displace_index * 0.05
+        bin_centers = bin_centers + displace_index * 0.1
         ax.errorbar(
             bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
             label = ep_orientation.display_str(), linestyle = "",
@@ -318,16 +319,13 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         )
         # Plot the RP fit error if it's available.
         if "RPFit_error" in values[analysis.track_pt].metadata:
-            logger.debug(f"Plotting RPFit errors for {output_name}")
+            logger.debug(f"Plotting RPFit errors for {output_name}, {ep_orientation}")
             plot_base.error_boxes(
                 ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
-                x_errors = np.array([0.025] * len(bin_centers)),
+                x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
                 y_errors = np.array([v.metadata["RPFit_error"] for v in values.values()]),
                 label = "RP Background", color = plot_base.AnalysisColors.fit,
             )
-
-    # Help out mypy...
-    assert inclusive_analysis is not None
 
     # Labels.
     # General
@@ -362,6 +360,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}"
     plot_labels.apply_labels(ax)
     ax.legend(loc = "center right", frameon = False)
+    # Apply log if requested.
+    if logy:
+        ax.set_yscale("log")
 
     # Final adjustments
     fig.tight_layout()
@@ -395,6 +396,7 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             y_label = "Near-side width",
             title = "Near-side width",
         ),
+        logy = False,
         output_name = "widths_delta_phi_near_side",
         fit_type = fit_type,
         output_info = output_info,
@@ -420,6 +422,7 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
             y_label = "Away-side width",
             title = "Away-side width",
         ),
+        logy = False,
         output_name = "widths_delta_phi_away_side",
         fit_type = fit_type,
         output_info = output_info,
@@ -458,6 +461,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             ),
             title = "Near-side yield",
         ),
+        logy = True,
         output_name = "yields_delta_phi_near_side",
         fit_type = fit_type,
         output_info = output_info,
@@ -500,6 +504,7 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
             ),
             title = "Away-side yield",
         ),
+        logy = True,
         output_name = "yields_delta_phi_away_side",
         fit_type = fit_type,
         output_info = output_info,
@@ -535,6 +540,7 @@ def delta_eta_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             y_label = "Near-side width",
             title = "Near-side width",
         ),
+        logy = False,
         output_name = "widths_delta_eta_near_side",
         fit_type = fit_type,
         output_info = output_info,
@@ -576,6 +582,7 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
             title = "Near-side yield",
         ),
         output_name = "yields_delta_eta_near_side",
+        logy = True,
         fit_type = fit_type,
         output_info = output_info,
         projection_range_func = delta_eta_plot_projection_range_string,
