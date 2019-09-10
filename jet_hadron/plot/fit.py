@@ -1078,20 +1078,18 @@ def signal_dominated_with_background_function(analysis: "correlations.Correlatio
 
     # Plot signal and background dominated hists
     plot_correlations.plot_and_label_1d_signal_and_background_with_matplotlib_on_axis(
-        ax = ax, jet_hadron = analysis, apply_correlation_scale_factor = False
+        ax = ax, jet_hadron = analysis, apply_correlation_scale_factor = True,
     )
 
     # Plot background function
     # First we retrieve the signal dominated histogram to get reference x values and bin edges.
-    h = histogram.Histogram1D.from_existing_hist(analysis.correlation_hists_delta_phi.signal_dominated.hist)
-    background = histogram.Histogram1D(
-        bin_edges = h.bin_edges,
-        y = analysis.fit_object.evaluate_background(h.x),
-        errors_squared = analysis.fit_object.calculate_background_function_errors(h.x) ** 2,
+    fit_hist = analysis.fit_hist
+    background_plot = ax.plot(
+        fit_hist.x, fit_hist.y, label = "Background function",
+        color = plot_base.AnalysisColors.fit
     )
-    background_plot = ax.plot(background.x, background.y, label = "Background function")
     ax.fill_between(
-        background.x, background.y - background.errors, background.y + background.errors,
+        fit_hist.x, fit_hist.y - fit_hist.errors, fit_hist.y + fit_hist.errors,
         facecolor = background_plot[0].get_color(), alpha = 0.9,
     )
 
@@ -1118,11 +1116,11 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
         label = f"Subtracted {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "",
     )
     # Plot the background uncertainty separately.
-    background_error = analysis.fit_object.calculate_background_function_errors(h.x)
+    fit_hist = analysis.fit_hist
     ax.fill_between(
         h.x,
-        h.y - background_error,
-        h.y + background_error,
+        h.y - fit_hist.errors,
+        h.y + fit_hist.errors,
         label = "RP background uncertainty",
         color = plot_base.AnalysisColors.fit,
     )
