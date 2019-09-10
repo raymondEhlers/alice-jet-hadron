@@ -10,6 +10,7 @@ Includes quantities such as widths and yields.
 from cycler import cycler
 from fractions import Fraction
 import logging
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from pachyderm import histogram
@@ -339,6 +340,12 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     text += "\n" + labels.jet_finding()
     text += "\n" + labels.constituent_cuts()
     text += "\n" + labels.make_valid_latex_string(inclusive_analysis.leading_hadron_bias.display_str())
+    # Finally, add the text to the axis.
+    ax.text(
+        0.97, 0.97, text, horizontalalignment = "right",
+        verticalalignment = "top", multialignment = "right",
+        transform = ax.transAxes
+    )
     # Deal with projection range, extraction range string.
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = inclusive_analysis,
@@ -346,23 +353,27 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         extraction_range_func = extraction_range_func,
     )
     if additional_label:
-        text += "\n" + additional_label
-    # Finally, add the text to the axis.
-    ax.text(
-        0.97, 0.97, text, horizontalalignment = "right",
-        verticalalignment = "top", multialignment = "right",
-        transform = ax.transAxes
-    )
+        ax.text(
+            0.03, 0.03, additional_label, horizontalalignment = "left",
+            verticalalignment = "bottom", multialignment = "left",
+            transform = ax.transAxes
+        )
+
     # Axes and titles
-    ax.set_xlabel(labels.make_valid_latex_string(labels.track_pt_display_label()))
+    ax.set_xlabel(labels.make_valid_latex_string(fr"{labels.track_pt_display_label()}\:({labels.momentum_units_label_gev()})"))
     # Apply any specified labels
     if plot_labels.title is not None:
         plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}"
     plot_labels.apply_labels(ax)
-    ax.legend(loc = "center right", frameon = False)
+    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14)
     # Apply log if requested.
     if logy:
         ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
+    #ax.ticklabel_format(style='plain', axis='y', useOffset = False)
+    y_min, y_max = ax.get_ylim()
+    ax.set_ylim(y_min, y_max if y_max > 5 else 5)
 
     # Final adjustments
     fig.tight_layout()
@@ -457,7 +468,7 @@ def delta_phi_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extract_value_func = near_side_yields,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
+                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()}\:({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Near-side yield",
         ),
@@ -500,7 +511,7 @@ def delta_phi_away_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extract_value_func = away_side_yields,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
+                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()}\:({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Away-side yield",
         ),
@@ -577,7 +588,7 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extract_value_func = near_side_widths,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()} ({labels.momentum_units_label_gev()})^{{-1}}",
+                fr"\mathrm{{d}}N/\mathrm{{d}}{labels.pt_display_label()}\:({labels.momentum_units_label_gev()})^{{-1}}",
             ),
             title = "Near-side yield",
         ),

@@ -261,6 +261,29 @@ def modify_brightness(color: Union[str, Tuple[float, float, float]], amount: flo
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
+def log_minor_tick_formatter(y: int, pos: float) -> str:
+    """ Provide reasonable minor tick formatting for a log y axis.
+
+    Provides ticks on the 2, 3, and 5 for every decade.
+
+    Args:
+        y: Tick value.
+        pos: Tick position.
+    Returns:
+        Formatted label.
+    """
+    ret_val = ""
+    # The positions of major ticks appear to be skipped, so the numbering starts at 2
+    # Thus, to labe the 2, 3, and 5 ticks, we need to retun the label for the 0th, 1st, and
+    # 3rd labels.
+    values_to_plot = [0, 1, 3]
+    # The values 2 - 9 are availble for the minor ticks, so we take the position mod 8 to
+    # ensure that we are repeating the same labels over multiple decades.
+    if (pos % 8) in values_to_plot:
+        # "g" auto formats to a reasonable presentation for most numbers.
+        ret_val = f"{y:g}"
+    return ret_val
+
 # ROOT 6 default color scheme
 # Colors extracted from [TColor::SetPalette()](https://root.cern.ch/doc/master/TColor_8cxx_source.html#l02209):
 # Added to matplotlib as "ROOT_kBird"
