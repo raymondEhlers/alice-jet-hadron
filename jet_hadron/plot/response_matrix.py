@@ -554,6 +554,15 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
 def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMatrixBase",
                            alice_particle_level_spectra: Dict[params.CollisionEnergy, Hist],
                            output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Compare STAR and ALICE particle level spectra.
+
+    Args:
+        star_final_response_task: STAR response matrix.
+        alice_particle_level_spectra: The ALICE particle level spectra to plot.
+        output_info: Output information.
+    Returns:
+        None. The comparison is plotted.
+    """
     # Setup
     fig, ax = plt.subplots(figsize = (8, 6))
 
@@ -576,8 +585,10 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
 
     # Convert and plot hist
     # Markers are for 2.76, 5.02 TeV
-    markers = ["s", "o"]
-    for (collision_energy, part_level_hist), marker in zip(alice_particle_level_spectra.items(), markers):
+    markers = ["D", "o"]
+    fill_styles = ["none", "full"]
+    for (collision_energy, part_level_hist), marker, fill_style in zip(alice_particle_level_spectra.items(),
+                                                                       markers, fill_styles):
         alice_label = f"ALICE ${collision_energy.display_str()}$ biased jets"
         alice_label += "\n" + f"${params.CollisionSystem.embedPythia.display_str(embedded_additional_label = star_final_response_task.event_activity.display_str())}$"
         h = histogram.Histogram1D.from_existing_hist(part_level_hist)
@@ -587,7 +598,7 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
             yerr = h.errors,
             label = alice_label,
             color = "red",
-            marker = marker,
+            marker = marker, fillstyle = fill_style,
             linestyle = "",
         )
 
@@ -599,6 +610,8 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
         # Assumes that we'll never set an upper bound.
         values = star_final_response_task.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
         y_label = r"(1/N_{\text{jets}}^{p_{\text{T}} > " + fr"{values.min}\:{labels.momentum_units_label_gev()}" + r"})" + y_label
+    # Add y_label units
+    y_label += fr"\:({labels.momentum_units_label_gev()})^{{-1}}"
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",

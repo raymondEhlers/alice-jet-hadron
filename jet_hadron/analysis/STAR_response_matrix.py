@@ -236,17 +236,23 @@ class STARResponseManager(response_matrix.ResponseManager):
 
     def _plot_comparison_of_STAR_and_ALICE_particle_level_spectra(self) -> None:
         """ Compare STAR and ALICE particle level spectra. """
-        # Open ALICE 2.76 semi_central reference.
-        base_path = os.path.join(
-            "output", "embedPythia", "2.76", str(self.selected_analysis_options.event_activity),
-            "{leading_hadron_bias}", "ResponseFinal", "final_responses.root"
-        )
-        alice276Path = base_path.format(leading_hadron_bias = "clusterBias6")
+        # Retrieve ALICE references.
         particle_level_spectra: Dict[params.CollisionEnergy, Hist] = {}
-        with histogram.RootOpen(alice276Path) as f:
-            h = f.Get("particle_level_spectra_inclusive")
-            h.SetDirectory(0)
-            particle_level_spectra[params.CollisionEnergy.two_seven_six] = h
+        # NOTE: The leading hadron bias strings are hard coded here because it's a lot more
+        #       straightforward than trying to access them dynamically (even though that would
+        #       be preferred).
+        for collision_energy, leading_hadron_bias in [(params.CollisionEnergy.two_seven_six, "clusterBias6"),
+                                                      (params.CollisionEnergy.five_zero_two, "trackBias5")]:
+            base_path = os.path.join(
+                "output", str(params.CollisionSystem.embedPythia),
+                str(collision_energy), str(self.selected_analysis_options.event_activity),
+                "{leading_hadron_bias}", "ResponseFinal", "final_responses.root"
+            )
+            alice_path = base_path.format(leading_hadron_bias = leading_hadron_bias)
+            with histogram.RootOpen(alice_path) as f:
+                h = f.Get("particle_level_spectra_inclusive")
+                h.SetDirectory(0)
+                particle_level_spectra[collision_energy] = h
 
         plot_response_matrix.compare_STAR_and_ALICE(
             star_final_response_task = self.final_responses[
@@ -260,8 +266,7 @@ def run_from_terminal() -> STARResponseManager:
     """ Driver function for running the STAR response matrix analysis. """
     # Basic setup
     # Quiet down some pachyderm modules
-    logging.getLogger("pachyderm.generic_config").setLevel(logging.INFO)
-    logging.getLogger("pachyderm.histogram").setLevel(logging.INFO)
+    logging.getLogger("pachyderm").setLevel(logging.INFO)
     # Run in batch mode
     ROOT.gROOT.SetBatch(True)
     # Turn off stats box

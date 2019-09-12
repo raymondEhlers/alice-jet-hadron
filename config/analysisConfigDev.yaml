@@ -1030,7 +1030,7 @@ STARResponse:
 STARResponseFinal:
     particle_level_spectra:
         <<: *particleLevelSpectra
-        y_limits: [1e-6, 15]
+        y_limits: [1e-6, 105]
     override:
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
