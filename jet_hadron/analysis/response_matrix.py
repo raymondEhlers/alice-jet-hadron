@@ -1073,7 +1073,7 @@ class ResponseManager(analysis_manager.Manager):
             for pt_hard_key_index, pt_hard_bin in \
                     analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
                 # Argument validation
-                # We only want to check once because it won't very between pt hard bin analysis, so it's
+                # We only want to check once because it won't vary between pt hard bin analysis, so it's
                 # a waste to check multiple times.
                 if checked_additional_arguments is False:
                     mean_fractional_difference_limit = \
@@ -1188,8 +1188,8 @@ class ResponseManager(analysis_manager.Manager):
                     ep_analyses[analysis_key_index.reaction_plane_orientation] = analysis
                     analysis.project_hybrid_level_spectra()
 
-            # Update progress
-            projecting.update()
+                # Update progress
+                projecting.update()
 
         # Merge into the final response object. We have to do this by hand because we need to project
         # it after the pt hard bin processing is completed.
