@@ -764,7 +764,7 @@ _testPtHardBins: &TestPtHardBin
       bin: 4
       range: !SelectedRange [36, 57]
       train_number: 1234
-_ptHardBinsLHC15o: !PtHardBins: &PtHardBinsLHC15o
+_ptHardBinsLHC15o: !PtHardBins &PtHardBinsLHC15o
     # Disabled here due to a bug parsing the combination of the tag and the anchor
     # yamllint disable-line rule:indentation
     bins: [5, 7, 9, 12, 16, 21, 28, 36, 45, 57, 70, 85, 99, 115, 132, 150, 169, 190, 212, 235, -1]
@@ -800,7 +800,8 @@ PtHardBins:
         #inputFilename: "analysis/AnalysisResults.response.root"
         iterables:
             reaction_plane_orientation: false
-            pt_hard_bin: *PtHardBins10Bins
+            #pt_hard_bin: *PtHardBins10Bins
+            pt_hard_bin: *PtHardBinsLHC15o
             # Test values:
             #pt_hard_bin: *TestPtHardBin
 PtHardFinal:
@@ -873,19 +874,28 @@ Response:
             input_name: ["jetMatching", "hybridToDet"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
-        # ResponseMaker
         # yamllint disable-line rule:line-length
-        #inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
-        # JetHPerformance
-        inputListName: "AliAnalysisTaskEmcalJetHPerformance"
-        # yamllint disable-line rule:line-length
-        outputPrefix: "output/{collision_system}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        outputPrefix: "output/{collision_system}/{collision_energy}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
-        # Test values:
-        #inputFilename: "analysis/AnalysisResults.response.root"
+        2.76:
+            # ResponseMaker
+            # yamllint disable-line rule:line-length
+            #inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
+            # JetHPerformance
+            inputListName: "AliAnalysisTaskEmcalJetHPerformance"
+            # Test values:
+            #inputFilename: "analysis/AnalysisResults.response.root"
+        5.02:
+            central:
+                inputListName: "AliAnalysisTaskEmcalJetHPerformance_3GeVConstituent_0_10"
+                #inputListName: "AliAnalysisTaskEmcalJetHPerformance_MinConstituent_0_10"
+            semi_central:
+                inputListName: "AliAnalysisTaskEmcalJetHPerformance_3GeVConstituent_30_50"
+                #inputListName: "AliAnalysisTaskEmcalJetHPerformance_MinConstituent_30_50"
         iterables:
             reaction_plane_orientation: true
-            pt_hard_bin: *PtHardBins10Bins
+            #pt_hard_bin: *PtHardBins10Bins
+            pt_hard_bin: *PtHardBinsLHC15o
             # Test values:
             #pt_hard_bin: *TestPtHardBin
 # Final response histograms.
