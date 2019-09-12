@@ -809,7 +809,12 @@ PtHardFinal:
         # ResponseMaker
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}"
         # JetHPerformance
+        # Standard output
+        # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}"
+        # Min constituent
+        # yamllint disable-line rule:line-length
+        #outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}_MinConstituent"
         iterables:
             # Technically this is true, although not very helpful. However, we must have at least
             # one iterator, so this allows us to do so with minimal change.
@@ -874,8 +879,14 @@ Response:
             input_name: ["jetMatching", "hybridToDet"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
+        # Test values:
+        #inputFilename: "analysis/AnalysisResults.response.root"
+        # Standard output
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        # Min constituent
+        # yamllint disable-line rule:line-length
+        #outputPrefix: "output/{collision_system}/{collision_energy}/{pt_hard_bin_train_number}/{event_activity}/{leading_hadron_bias}/{task_name}_MinConstituent/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         2.76:
             # ResponseMaker
@@ -883,14 +894,16 @@ Response:
             #inputListName: "AliJetResponseMaker_hybridJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_truthJets_AKTFullR020_mcparticles_pT3000_pt_scheme_Bias0_BiasType1_EMCALfid_Cent{cent_min}_{cent_max}_histos"
             # JetHPerformance
             inputListName: "AliAnalysisTaskEmcalJetHPerformance"
-            # Test values:
-            #inputFilename: "analysis/AnalysisResults.response.root"
         5.02:
             central:
+                # Standard output
                 inputListName: "AliAnalysisTaskEmcalJetHPerformance_3GeVConstituent_0_10"
+                # Min constituent
                 #inputListName: "AliAnalysisTaskEmcalJetHPerformance_MinConstituent_0_10"
             semi_central:
+                # Standard output
                 inputListName: "AliAnalysisTaskEmcalJetHPerformance_3GeVConstituent_30_50"
+                # Min constituent
                 #inputListName: "AliAnalysisTaskEmcalJetHPerformance_MinConstituent_30_50"
         iterables:
             reaction_plane_orientation: true
@@ -926,8 +939,12 @@ ResponseFinal:
         # yamllint disable-line rule:line-length
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/{task_name}/RP{reaction_plane_orientation}"
         # JetHPerformance
+        # Standard output
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
+        # Min constituent
+        # yamllint disable-line rule:line-length
+        #outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}_MinConstituent/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
         aliceLabel: final
         iterables:
@@ -941,8 +958,12 @@ ResponseManager:
         # ResponseMaker
         #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
         # JetHPerformance
+        # Standard output
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal"
+        # Min constituent
+        # yamllint disable-line rule:line-length
+        #outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/ResponseFinal_MinConstituent"
 
 ############################################
 # STAR pythia and response matrix comparison
