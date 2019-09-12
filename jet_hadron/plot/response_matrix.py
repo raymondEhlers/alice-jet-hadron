@@ -90,6 +90,8 @@ def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_
         # Assumes that we'll never set an upper bound.
         values = inclusive.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
         y_label = r"(1/N_{\text{jets}}^{p_{\text{T}} > " + fr"{values.min}\:{labels.momentum_units_label_gev()}" + r"})" + y_label
+    # Add y_label units
+    y_label += fr"\:({labels.momentum_units_label_gev()})^{{-1}}"
     plot_labels = plot_base.PlotLabels(
         title = "",
         x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
@@ -511,7 +513,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
         ax.plot(
             fit_result.x, values,
             label = rf"Fit, {fit_result.values_at_minimum['const']:.2f} $\pm$ {fit_result.errors_on_parameters['const']:.2f} + "
-                    + rf"{fit_result.values_at_minimum['slope']:.2f} $\pm$ {fit_result.errors_on_parameters['slope']:.2f} "
+                    + rf"{fit_result.values_at_minimum['slope']:.1e} $\pm$ {fit_result.errors_on_parameters['slope']:.1e} "
                     + rf"* ${labels.jet_pt_display_label()}$",
             color = color,
         )
@@ -701,18 +703,15 @@ def _plot_response_matrix(hist: Hist,
     output_name = "response_matrix"
     if plot_errors_hist:
         output_name += "_errors"
-    x_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": labels.jet_pt_display_label(upper_label = r"\text{det}"),
-        "units_label": labels.momentum_units_label_gev(),
-    }
-    y_label = "$%(pt_label)s %(units_label)s$" % {
-        "pt_label": labels.jet_pt_display_label(upper_label = r"\text{part}"),
-        "units_label": labels.momentum_units_label_gev(),
-    }
+    x_label = fr"{labels.jet_pt_display_label(upper_label = 'hybrid')}\:({labels.momentum_units_label_gev()})"
+    y_label = fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
 
     # Determine args and call
     args = {
-        "name": name, "x_label": x_label, "y_label": y_label, "output_name": output_name,
+        "name": name,
+        "x_label": labels.make_valid_latex_string(x_label),
+        "y_label": labels.make_valid_latex_string(y_label),
+        "output_name": output_name,
         "hist": hist,
         "plot_errors_hist": plot_errors_hist,
         "output_info": output_info,

@@ -1389,7 +1389,7 @@ class ResponseManager(analysis_manager.Manager):
             plot_response_matrix.matched_jet_energy_scale(
                 plot_labels = plot_base.PlotLabels(
                     title = "Matched hybrid-detector jet energy scale",
-                    x_label = fr"${labels.jet_pt_display_label('det')}\:({labels.momentum_units_label_gev()}$",
+                    x_label = fr"${labels.jet_pt_display_label('det')}\:({labels.momentum_units_label_gev()})$",
                     y_label = fr"$({labels.jet_pt_display_label('hybrid')} - {labels.jet_pt_display_label('det')})/{labels.jet_pt_display_label('det')}",
                 ),
                 output_name = "matched_hybrid_detctor_level_jet_energy_scale",
