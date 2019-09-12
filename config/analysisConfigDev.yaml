@@ -864,6 +864,13 @@ Response:
         unmatched_det_level:
             sparse: false
             input_name: ["QA", "hybridLevelJets", "fHistJetPt"]
+        jet_energy_resolution:
+            sparse: false
+            # Use the output from the jet tagger. This occurs when the matching isn't performed in the
+            # performance task.
+            use_tagger: false
+            # NOTE; Final hist name is determiend in the task because it depends on the centrality bin.
+            input_name: ["jetMatching", "hybridToDet"]
     override:
         inputFilename: "trains/{collision_system}/{pt_hard_bin_train_number}/AnalysisResults.root"
         # ResponseMaker

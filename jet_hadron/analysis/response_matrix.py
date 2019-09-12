@@ -835,9 +835,24 @@ class ResponseMatrix(ResponseMatrixBase):
         ##########
         # QA hists
         ##########
-        hists = histogram.get_histograms_in_file(self.input_filename)
-        #logger.debug(f"hists: {hists}")
-        self.matched_jet_pt_difference = hists["JetTagger_hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_detLevelJets_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme_TC"]["fh2PtJet2VsRelPt_2"]
+        if not self.response_retrieval_info["jet_energy_resolution"]["sparse"]:
+            event_activity_to_label = {
+                params.EventActivity.central: 0,
+                params.EventActivity.semi_central: 2,
+            }
+            hist_name = f"fh2PtJet2VsRelPt_{event_activity_to_label[self.event_activity]}"
+            if self.response_retrieval_info["jet_energy_resolution"]["use_tagger"]:
+                hists = histogram.get_histograms_in_file(self.input_filename)
+                #logger.debug(f"hists: {hists}")
+                self.matched_jet_pt_difference = hists[
+                    "JetTagger_hybridLevelJets_AKTFullR020_tracks_pT3000_caloClustersCombined_E3000_pt_scheme_detLevelJets_AKTFullR020_tracks_pT3000_caloClusters_E3000_pt_scheme_TC"
+                ][hist_name]
+            else:
+                hist_path = self.response_retrieval_info["jet_energy_resolution"]["input_name"]
+                hist_path.append(hist_name)
+                self.matched_jet_pt_difference = utils.recursive_getitem(
+                    self.input_hists, hist_path
+                )
 
         return True
 
