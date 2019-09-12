@@ -1033,6 +1033,17 @@ class ResponseManager(analysis_manager.Manager):
                 # Update progress
                 setting_up.update()
 
+    def _retrieve_scale_factors_for_logging(self) -> str:
+        """ Log the scale factors that are stored in the pt hard bin analyses.
+
+        This is really just a trivial helper.
+        """
+        output = []
+        for pt_hard_key_index, pt_hard_bin in \
+                analysis_config.iterate_with_selected_objects(self.pt_hard_bins):
+            output.append(f"Pt hard bin: {pt_hard_key_index.pt_hard_bin}, scale factor: {pt_hard_bin.scale_factor}")
+        return "\n".join(output)
+
     def _run_pt_hard_bin_processing(self, histogram_info_for_processing:
                                     Mapping[str, pt_hard_analysis.PtHardHistogramInformation]) -> None:
         """ Run all pt hard bin related processing.
@@ -1045,6 +1056,12 @@ class ResponseManager(analysis_manager.Manager):
         # We have to determine the relative scale factors after the setup because they depend on the number of
         # events in all pt hard bins.
         average_number_of_events = pt_hard_analysis.calculate_average_n_events(self.pt_hard_bins)
+
+        # Print out the scale factors. These are before the rescaling for the number of events. We
+        # iterate over the bins separately from the loop above so # that the scale factors are all
+        # listed together (ie. for convenience).
+        logger.info("Pre rescaling of scale factors by average number of events")
+        logger.info(self._retrieve_scale_factors_for_logging())
 
         # Setup
         checked_additional_arguments = False
@@ -1110,6 +1127,12 @@ class ResponseManager(analysis_manager.Manager):
 
                 # Update progress
                 processing.update()
+
+        # Print out the scale factors. These are after the rescaling for the number of events. We
+        # iterate over the bins separately from the loop above so # that the scale factors are all
+        # listed together (ie. for convenience).
+        logger.info("Post rescaling of scale factors by average number of events")
+        logger.info(self._retrieve_scale_factors_for_logging())
 
         # Now merge the scaled histograms into the final response matrix results.
         # +1 for the final pt hard spectra.
