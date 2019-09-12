@@ -644,9 +644,8 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
     )
     # Limits
     ax.set_xlim(0, star_final_response_task.task_config["particle_level_spectra"]["particle_level_max_pt"])
-    # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
-    # we have to set the values by hand.
-    # We grab the value from the last analysis object - the value will be the same for all of them.
+    # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we we have to set the values by hand.
+    # We grab the value from the configuration
     y_limits = star_final_response_task.task_config["particle_level_spectra"]["y_limits"]
     ax.set_ylim(y_limits[0], y_limits[1])
     ax.set_yscale("log")
@@ -657,13 +656,13 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
         bbox_to_anchor = (0.99, 0.99),
         borderaxespad = 0,
         frameon = True,
-        fontsize = 15,
+        fontsize = 13.5,
     )
-    ax.text(0.99, 0.75, s = "Inclusive event plane orientation",
+    ax.text(0.99, 0.66, s = "Inclusive event plane orientation",
             horizontalalignment = "right",
             verticalalignment = "top",
             multialignment = "right",
-            fontsize = 15,
+            fontsize = 13.5,
             transform = ax.transAxes)
     fig.tight_layout()
 
