@@ -205,8 +205,8 @@ def constituent_cuts(min_track_pt: float = 3.0, min_cluster_pt: float = 3.0, add
         constituent_cuts = fr"${track_label}\mathit{{c}}\mathrm{{,}}\:{cluster_label} > {min_track_pt:g}\:\mathrm{{GeV}}$"
     else:
         constituent_cuts = (
-            fr"${track_label} > {min_track_pt:g}\:{momentum_units_label_gev}"
-            fr"\mathrm{{,}}\:{cluster_label} > {min_cluster_pt:g}\:\mathrm{{GeV}}$"
+            fr"${track_label} > {min_track_pt:g}\:{momentum_units_label_gev()}"
+            fr"\mathrm{{,}}\:{cluster_label} > {min_cluster_pt:g}\:\text{{GeV}}$"
         )
 
     return constituent_cuts
