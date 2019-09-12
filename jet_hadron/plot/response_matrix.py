@@ -672,6 +672,116 @@ def compare_STAR_and_ALICE(star_final_response_task: "response_matrix.ResponseMa
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
+def compare_min_constituent_cut(obj: "response_matrix.ResponseMatrixBase",
+                                min_constituent_hist: Hist,
+                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Compare the constituent cut against the minimum constituent cut.
+
+    Args:
+        obj: The response matrix analysis object.
+        min_constituent_hist: Particle level spectra generated with a minimum constituent cut.
+        output_info: Output information.
+    Returns:
+        None. The comparison is plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot the standard constituent cut.
+    particle_level_hist = histogram.Histogram1D.from_existing_hist(obj.particle_level_spectra)
+    label = f"Jets, {labels.constituent_cuts(additional_label = ' part,det')}"
+    ax.errorbar(
+        particle_level_hist.x, particle_level_hist.y,
+        xerr = particle_level_hist.bin_widths / 2,
+        yerr = particle_level_hist.errors,
+        label = label,
+        marker = "s",
+        linestyle = "",
+    )
+
+    # Plot the min constituent cut spectra
+    label = f"Jets, {labels.constituent_cuts(min_track_pt = 0.15, min_cluster_pt = 0.30, additional_label = ' part,det')}"
+    h = histogram.Histogram1D.from_existing_hist(min_constituent_hist)
+    ax.errorbar(
+        h.x, h.y,
+        xerr = h.bin_widths / 2,
+        yerr = h.errors,
+        label = label,
+        marker = "s",
+        linestyle = "",
+    )
+
+    # Label axes
+    y_label = r"\text{d}N/\text{d}p_{\text{T}}"
+    if obj.task_config["particle_level_spectra"]["normalize_by_n_jets"]:
+        y_label = r"(1/N_{\text{jets}})" + y_label
+    if obj.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_bin"]:
+        # Assumes that we'll never set an upper bound.
+        values = obj.task_config["particle_level_spectra"]["normalize_at_selected_jet_pt_values"]
+        y_label = r"(1/N_{\text{jets}}^{p_{\text{T}} > " + fr"{values.min}\:{labels.momentum_units_label_gev()}" + r"})" + y_label
+    # Add y_label units
+    y_label += fr"\:({labels.momentum_units_label_gev()})^{{-1}}"
+    plot_labels = plot_base.PlotLabels(
+        title = "",
+        x_label = fr"${labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})$",
+        y_label = labels.make_valid_latex_string(y_label),
+    )
+    # Apply labels individually so we can increase the font size...
+    ax.set_xlabel(plot_labels.x_label, fontsize = 16)
+    ax.set_ylabel(plot_labels.y_label, fontsize = 16)
+    ax.set_title("")
+    # Final presentation settings
+    # Axis ticks
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 10))
+    ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(base = 2))
+    tick_shared_args = {
+        "axis": "both",
+        "bottom": True,
+        "left": True,
+    }
+    ax.tick_params(
+        which = "major",
+        # Size of the axis mark labels
+        labelsize = 15,
+        length = 8,
+        **tick_shared_args,
+    )
+    ax.tick_params(
+        which = "minor",
+        length = 4,
+        **tick_shared_args,
+    )
+    # Limits
+    ax.set_xlim(0, obj.task_config["particle_level_spectra"]["particle_level_max_pt"])
+    # Unfortunately, MPL doesn't calculate restricted log limits very nicely, so we
+    # we have to set the values by hand.
+    # We grab the value from the last analysis object - the value will be the same for all of them.
+    y_limits = obj.task_config["particle_level_spectra"]["y_limits"]
+    ax.set_ylim(y_limits[0], y_limits[1])
+    ax.set_yscale("log")
+    # Legend
+    ax.legend(
+        loc = "lower left",
+        fontsize = 16,
+        frameon = False,
+    )
+    # General labels
+    label = f"${obj.alice_label.display_str()}$, ${obj.collision_energy.display_str()}$"
+    label += "\n" + f"${params.CollisionSystem.embedPythia.display_str(embedded_additional_label = obj.event_activity.display_str())}$"
+    label += "\n" + "Inclusive event plane orientation"
+    ax.text(0.99, 0.99, s = label,
+            horizontalalignment = "right",
+            verticalalignment = "top",
+            multialignment = "right",
+            fontsize = 16,
+            transform = ax.transAxes)
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name = "particle_level_comparison_constituent_cut"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
 def plot_response_matrix_and_errors(obj: "response_matrix.ResponseMatrixBase",
                                     plot_with_ROOT: bool = False) -> None:
     """ Plot the 2D response matrix and response matrix errors hists using ROOT.
@@ -679,6 +789,8 @@ def plot_response_matrix_and_errors(obj: "response_matrix.ResponseMatrixBase",
     Args:
         obj: The response matrix analysis object.
         plot_with_ROOT: True if the plot should be done via ROOT. Default: False
+    Returns:
+        None. The comparison is plotted.
     """
     for hist, plot_errors_hist in [(obj.response_matrix, False),
                                    (obj.response_matrix_errors, True)]:

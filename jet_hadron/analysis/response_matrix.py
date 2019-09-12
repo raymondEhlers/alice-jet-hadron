@@ -1326,6 +1326,45 @@ class ResponseManager(analysis_manager.Manager):
 
         return difference, absolute_value_of_difference
 
+    def _compare_min_constituent_cut_particle_spectra(self) -> None:
+        """ Plot comparison to min constituent cut particle level spectra.
+
+        Note:
+            This comparison will only be created if it's requested in the config and the min
+            constituent cut data is actually available.
+
+        Args:
+            None.
+        Returns:
+            None. The plot is created and saved.
+        """
+        if self.task_config["min_constituent_comparison"]:
+            inclusive_response = self.final_responses[
+                self.final_responses_key_index(params.ReactionPlaneOrientation.inclusive)
+            ]
+            # Open the min constituent cut results.
+            alice_path = os.path.join(
+                "output", str(self.selected_analysis_options.collision_system),
+                str(self.selected_analysis_options.collision_energy), str(self.selected_analysis_options.event_activity),
+                # Need to use the inclusive response to get the proper leading hadron bias value.
+                str(inclusive_response.leading_hadron_bias),
+                "ResponseFinal_MinConstituent", "final_responses.root"
+            )
+            try:
+                # First retrieve the actual histogram.
+                with histogram.RootOpen(alice_path) as f:
+                    min_constituent_hist = f.Get("particle_level_spectra_inclusive")
+                    min_constituent_hist.SetDirectory(0)
+                # Then plot the comparison
+                plot_response_matrix.compare_min_constituent_cut(
+                    obj = inclusive_response,
+                    min_constituent_hist = min_constituent_hist,
+                    output_info = self.output_info,
+                )
+            except OSError:
+                # The file doesn't exist. Skip the plot
+                logger.info("Min constituent comparison data is not available, so skipping the plot.")
+
     def _plot_results(self, histogram_info_for_processing:
                       Mapping[str, pt_hard_analysis.PtHardHistogramInformation]) -> None:
         """ Plot the results of the response matrix processing.
@@ -1337,9 +1376,10 @@ class ResponseManager(analysis_manager.Manager):
         """
         # Counting of plots:
         # +1 for the final pt hard spectra.
-        # +1 for particle level spectra
-        # *2 for response matrix, response spectra
-        with self._progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 2,
+        # +1 for particle level spectra.
+        # +1 for min constituent comparison.
+        # *2 for response matrix, response spectra.
+        with self._progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 3,
                                             desc = "Plotting:",
                                             unit = "responses") as plotting:
 
@@ -1369,7 +1409,6 @@ class ResponseManager(analysis_manager.Manager):
                     )
             else:
                 logger.info("Skip plotting of pt hard spectra because the hists aren't initialized.")
-
             plotting.update()
 
             # Plot the particle level spectra.
@@ -1400,6 +1439,10 @@ class ResponseManager(analysis_manager.Manager):
                     self.final_responses_key_index(params.ReactionPlaneOrientation.inclusive)
                 ],
             )
+            plotting.update()
+
+            # Compare to the min constituent cut.
+            self._compare_min_constituent_cut_particle_spectra()
             plotting.update()
 
             for reaction_plane_orientation in self.selected_iterables["reaction_plane_orientation"]:
