@@ -1044,9 +1044,6 @@ STARResponseManager:
     override:
         # NOTE: The final value is the task name of the ResponseFinal tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
-        # ResponseMaker
-        #outputPrefix: "output/{collision_system}/{event_activity}/{leading_hadron_bias}/ResponseMaker/ResponseFinal"
-        # JetHPerformance
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/STARResponseFinal"
 

@@ -1339,7 +1339,7 @@ class ResponseManager(analysis_manager.Manager):
         # +1 for the final pt hard spectra.
         # +1 for particle level spectra
         # *2 for response matrix, response spectra
-        with self._progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 1 + 1,
+        with self._progress_manager.counter(total = 2 * len(self.selected_iterables["reaction_plane_orientation"]) + 2,
                                             desc = "Plotting:",
                                             unit = "responses") as plotting:
 
@@ -1379,10 +1379,12 @@ class ResponseManager(analysis_manager.Manager):
                     output_info = self.output_info,
                     plot_with_ROOT = plot_with_ROOT,
                 )
-            plot_response_matrix.particle_level_spectra_ratios(
-                ep_analyses_iter = analysis_config.iterate_with_selected_objects(self.final_responses),
-                output_info = self.output_info,
-            )
+            # Only plot the ratios if there are actually enough RP orientations to calculate the ratio(s).
+            if len(self.selected_iterables["reaction_plane_orientation"]) > 1:
+                plot_response_matrix.particle_level_spectra_ratios(
+                    ep_analyses_iter = analysis_config.iterate_with_selected_objects(self.final_responses),
+                    output_info = self.output_info,
+                )
 
             # Jet energy scale QA. It's not meaningful for each orientation because the tagger
             # doesn't selecte on RP orientation. So we just do it once.
