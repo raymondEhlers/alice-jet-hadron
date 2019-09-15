@@ -369,11 +369,11 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     # Apply log if requested.
     if logy:
         ax.set_yscale("log")
-    ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
-    ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
-    #ax.ticklabel_format(style='plain', axis='y', useOffset = False)
-    y_min, y_max = ax.get_ylim()
-    ax.set_ylim(y_min, y_max if y_max > 5 else 5)
+        # Adjust the formatting if using log on the y axis.
+        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
+        y_min, y_max = ax.get_ylim()
+        ax.set_ylim(y_min, y_max if y_max > 5 else 5)
 
     # Final adjustments
     fig.tight_layout()
