@@ -51,7 +51,7 @@ etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
 #############################################
 # Correlations analysis related configuration
 #############################################
-Correlations:
+Correlations: &CorrelationsConfig
     # These define the regions for projecting, fitting
     deltaEtaRanges:
         # NOTE: They are assumed to be symmetric with respect to eta.
@@ -80,7 +80,7 @@ Correlations:
     # This value is just 0.6 (ie corresponding to the signal dominated region).
     delta_eta_yield_limit: 0.6
     processingOptions:
-    override:
+    override: &CorrelationsOverride
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{trainNumber}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
         2.76:
@@ -91,8 +91,12 @@ Correlations:
                 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2Central"
             semi_central:
                 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2SemiCentral"
-        iterables:
+        iterables: &CorrelationsIterables
             reaction_plane_orientation: true
+            #reaction_plane_orientation:
+            #    - "in_plane"
+            #    - "mid_plane"
+            #    - "out_of_plane"
             #track_pt_bin: *TrackPtBins11h
             # NOTE: The individual binning is numbered from the bin 0.15 - 0.5 as bin 1.
             track_pt_bin:
@@ -124,6 +128,20 @@ Correlations:
                 - !JetPtBin
                   bin: 2
                   range: !SelectedRange [20, 40]
+CorrelationsZVertex:
+    <<: *CorrelationsConfig
+    override:
+        <<: *CorrelationsOverride
+        5.02:
+            trainNumber: 4765
+            central:
+                inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2Central"
+            semi_central:
+                inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2SemiCentral"
+        iterables:
+            <<: *CorrelationsIterables
+            z_vertex: !ZVertexBins [-10.0, -8.0, -6.0, -4.0, -2.0, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0]
+
 # Parameters that we want to override. They can't be overridden if they
 # are stored in the task config, so we add dummy variables here to be overridden.
 # Default to 2.76 central resolution parmeters
@@ -131,7 +149,7 @@ resolution_parameters:
     null: null
 reaction_plane_fit_parameters:
     null: null
-CorrelationsManager:
+CorrelationsManager: &CorrelationsManagerConfig
     processing_options:
         # 2D
         generate_2D_correlations: false
@@ -168,7 +186,8 @@ CorrelationsManager:
         # Could be "InclusiveSignalFit" or "BackgroundFit"
         fit_type: "BackgroundFit"
         #fit_type: "InclusiveSignalFit"
-    override:
+        #fit_type: "SignalFit"
+    override: &CorrelationsManagerOverride
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
         # yamllint disable-line rule:line-length
@@ -946,7 +965,7 @@ ResponseFinal:
         # yamllint disable-line rule:line-length
         #outputPrefix: "output/{collision_system}/{collision_energy}/{event_activity}/{leading_hadron_bias}/{task_name}_MinConstituent/RP{reaction_plane_orientation}"
         outputFilename: "ResponseMatrixHists.root"
-        aliceLabel: final
+        #aliceLabel: final
         iterables:
             reaction_plane_orientation: true
 ResponseManager:

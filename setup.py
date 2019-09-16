@@ -68,6 +68,7 @@ setup(
             "plotEMCalCorrections = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_corrections_hists_from_terminal",
             "plotEMCalEmbedding = jet_hadron.analysis.EMCal_analysis_tasks:run_plot_EMCal_embedding_hists_from_terminal",
             "plotRPFRegions = jet_hadron.plot.highlight_RPF:run_from_terminal",
+            "mixedEventSystematics = jet_hadron.analysis.systematics.run_mixed_event_systematics_from_terminal",
         ],
     },
 

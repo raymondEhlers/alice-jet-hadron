@@ -420,6 +420,46 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
 
         # Relevant histograms
+        self._setup_observables()
+
+        # Fit object
+        self.fit_object: rpf.fit.FitComponent
+        # Stores the fit result as a histogram to make it easy to access the result.
+        # This way, we don't need to recalculate as frequently, and we won't have to worry about the right
+        # scaling as often.
+        self.fit_hist: histogram.Histogram1D
+        self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
+            near_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
+                fit_options = {"range": self.background_dominated_eta_region.range},
+                use_log_likelihood = False,
+            ),
+            away_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
+                fit_options = {"range": self.background_dominated_eta_region.range},
+                use_log_likelihood = False,
+            ),
+        )
+
+        # Other relevant analysis information
+        self.number_of_triggers: int = 0
+
+        # Projectors
+        self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
+        self.correlation_projectors: List[JetHCorrelationProjector] = []
+
+        # Setup YAML
+        self.yaml: yaml.ruamel.yaml.YAML
+        self._setup_yaml()
+
+    def _setup_observables(self) -> None:
+        """ Setup the analysis observables.
+
+        We delay setting up these objects so we can modify the identifier in derived classes.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
         # We need a field use with replace to successfully copy the dataclass. We just want a clean copy,
         # (and apparently using replace is strongly preferred for a dataclass compared to copying)
         # so we replace the hist (which is already None) with None and we get a copy of the dataclass.
@@ -580,34 +620,6 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_args = {},
             ),
         )
-
-        # Fit object
-        self.fit_object: rpf.fit.FitComponent
-        # Stores the fit result as a histogram to make it easy to access the result.
-        # This way, we don't need to recalculate as frequently, and we won't have to worry about the right
-        # scaling as often.
-        self.fit_hist: histogram.Histogram1D
-        self.fit_objects_delta_eta: DeltaEtaFitObjects = DeltaEtaFitObjects(
-            near_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
-                fit_options = {"range": self.background_dominated_eta_region.range},
-                use_log_likelihood = False,
-            ),
-            away_side = fitting.PedestalForDeltaEtaBackgroundDominatedRegion(
-                fit_options = {"range": self.background_dominated_eta_region.range},
-                use_log_likelihood = False,
-            ),
-        )
-
-        # Other relevant analysis information
-        self.number_of_triggers: int = 0
-
-        # Projectors
-        self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
-        self.correlation_projectors: List[JetHCorrelationProjector] = []
-
-        # Setup YAML
-        self.yaml: yaml.ruamel.yaml.YAML
-        self._setup_yaml()
 
     def _setup_yaml(self) -> yaml.ruamel.yaml.YAML:
         """ Setup YAML object to read and write. """
@@ -894,7 +906,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         Returns:
             None. The created projectors are added to the ``sparse_projectors`` list.
         """
-        # The sparse axis defintion changed after train 4703. Later trains included the z vertex dependence.
+        # The sparse axis definition changed after train 4703. Later trains included the z vertex dependence.
         sparse_axes: Union[Type[JetHCorrelationSparse], Type[JetHCorrelationSparseZVertex]] = \
             JetHCorrelationSparseZVertex if self.train_number > 4703 else JetHCorrelationSparse
 
@@ -1137,6 +1149,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def setup(self, input_hists: Optional[Dict[str, Any]] = None) -> bool:
         """ Setup the correlations object. """
+        # Setup the analysis observables
+        self._setup_observables()
         # Setup the input hists and projectors
         return super().setup(input_hists = input_hists)
 
