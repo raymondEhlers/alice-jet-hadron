@@ -337,7 +337,7 @@ def plot_tracking_efficiency_parametrization(efficiency: np.ndarray, centrality_
 
     # Labels
     ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-    ax.set_ylabel(r"$\varphi$")
+    ax.set_ylabel(r"$\eta$")
     title = f"{period} tracking efficiency parametrization"
     if system != params.CollisionSystem.pp:
         title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
@@ -530,7 +530,7 @@ def plot_residual(residual: np.ndarray, pts: List[float], etas: List[float],
 
     # Labels
     ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-    ax.set_ylabel(r"$\varphi$")
+    ax.set_ylabel(r"$\eta$")
     title = f"{period} tracking efficiency residuals"
     if system != params.CollisionSystem.pp:
         centrality_range = centrality_ranges[centrality_bin]
@@ -577,7 +577,7 @@ def plot_2D_efficiency_data(efficiency_hist: Hist, centrality_range: params.Sele
 
     # Labels
     ax.set_xlabel(fr"${labels.pt_display_label()}\:({labels.momentum_units_label_gev()})$")
-    ax.set_ylabel(r"$\varphi$")
+    ax.set_ylabel(r"$\eta$")
     title = f"{period} tracking efficiency data"
     if system != params.CollisionSystem.pp:
         title += rf", ${centrality_range.min} \textendash {centrality_range.max}\%$"
