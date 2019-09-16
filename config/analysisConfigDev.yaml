@@ -27,7 +27,7 @@ iterables:
 inputFilename: "trains/{collision_system}/{trainNumber}/AnalysisResults.root"
 inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_{leading_hadron_bias}R2"
 # yamllint disable-line rule:line-length
-outputPrefix: "output/{collision_system}/{trainNumber}/dev/test/{event_activity}/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qvector}/{task_name}"
+outputPrefix: "output/{collision_system}/{trainNumber}/dev/{event_activity}/{leading_hadron_bias}/RP{reaction_plane_orientation}/qVec{qvector}/{task_name}"
 outputFilename: "{collision_system}Correlations.root"
 printingExtensions: ["pdf", "eps"]
 aliceLabel: thesis
@@ -585,63 +585,64 @@ CorrelationsManager: &CorrelationsManagerConfig
 ##################################################
 # General histograms for the correlation analysis.
 ##################################################
+EventCutsPlots: &EventCutsPlots
+    CutStats: !HistPlotter
+        kwargs:
+            title: "Cut stats"
+            exact_name_match: true
+            text_label:
+                enabled: true
+                textLocation: [0.08, 0.08]
+            hist_names:
+                - "fCutStats": "Before cuts"
+                - "fCutStatsAfterTrigger": "After trigger selection"
+                - "fCutStatsAfterMultSelection": "After MultSelection"
+    NormalizationHist: !HistPlotter
+        kwargs:
+            title: "Event selection normalization"
+            text_label:
+                enabled: true
+            hist_names:
+                - "fNormalizationHist": ""
+    ZVertex: !HistPlotter
+        kwargs:
+            title: "Z vertex"
+            exact_name_match: true
+            x_limits: [-20, 20]
+            text_label:
+                enabled: true
+                textLocation: [0.5, 0.1]
+            hist_names:
+                - "Vtz_raw": "Before event cuts"
+                - "Vtz_selected": "After event cuts"
+    Centrality: !HistPlotter
+        kwargs:
+            title: "Centrality"
+            #y_limits: [3e5, 4.5e5]
+            text_label:
+                enabled: true
+                textLocation: [0.1, 0.1]
+            hist_names:
+                - "Centrality_raw": "Before event cuts"
+                - "Centrality_selected": "After event cuts"
+    MultiplicityVsCentralityBeforeCuts: !HistPlotter
+        kwargs:
+            logz: true
+            text_label:
+                enabled: true
+            hist_names:
+                - "MultCentCorrelation_raw": ""
+    MultiplicityVsCentralityAfterCuts: !HistPlotter
+        kwargs:
+            logz: true
+            text_label:
+                enabled: true
+            hist_names:
+                - "MultCentCorrelation_selected": ""
 GeneralHists:
     enabled: false
     componentsToPlot:
-        EventCuts: &EventCutsPlots
-            CutStats: !HistPlotter
-                kwargs:
-                    title: "Cut stats"
-                    exact_name_match: true
-                    text_label:
-                        enabled: true
-                        textLocation: [0.82, 0.08]
-                    hist_names:
-                        - "fCutStats": "Before cuts"
-                        - "fCutStatsAfterTrigger": "After trigger selection"
-                        - "fCutStatsAfterMultSelection": "After MultSelection"
-            NormalizationHist: !HistPlotter
-                kwargs:
-                    title: "Event selection normalization"
-                    text_label:
-                        enabled: true
-                    hist_names:
-                        - "fNormalizationHist": ""
-            ZVertex: !HistPlotter
-                kwargs:
-                    title: "Z vertex"
-                    exact_name_match: true
-                    x_limits: [-20, 20]
-                    text_label:
-                        enabled: true
-                        textLocation: [0.5, 0.1]
-                    hist_names:
-                        - "Vtz_raw": "Before event cuts"
-                        - "Vtz_selected": "After event cuts"
-            Centrality: !HistPlotter
-                kwargs:
-                    title: "Centrality"
-                    y_limits: [3e5, 4.5e5]
-                    text_label:
-                        enabled: true
-                        textLocation: [0.5, 0.1]
-                    hist_names:
-                        - "Centrality_raw": "Before event cuts"
-                        - "Centrality_selected": "After event cuts"
-            MultiplicityVsCentralityBeforeCuts: !HistPlotter
-                kwargs:
-                    logz: true
-                    text_label:
-                        enabled: true
-                    hist_names:
-                        - "MultCentCorrelation_raw": ""
-            MultiplicityVsCentralityAfterCuts: !HistPlotter
-                kwargs:
-                    logz: true
-                    text_label:
-                        enabled: true
-                    hist_names:
-                        - "MultCentCorrelation_selected": ""
+        <<: *EventCutsPlots
         ZVertex: !HistPlotter
             kwargs:
                 title: "Z vertex"
@@ -650,19 +651,13 @@ GeneralHists:
                 text_label:
                     enabled: true
                     textLocation: [0.5, 0.1]
-        Centrality: !HistPlotter
-            kwargs:
-                title: "Centrality"
-                scientific_notation_on_axis: "y"
-                text_label:
-                    enabled: true
         EventPlane: !HistPlotter
             kwargs:
                 title: "Event plane orientations"
                 x_limits: [-2.5, 2.5]
                 text_label:
                     enabled: true
-                    textLocation: [0.1, 0.9]
+                    textLocation: [0.5, 0.1]
         JetMatchingSameEventCuts: !HistPlotter
             kwargs:
                 text_label:
@@ -703,13 +698,13 @@ GeneralHists:
                     - "fHistJetPtBias_3": "50-90\\%"
         JetEtaPhi: !HistPlotter
             kwargs:
-                title: $\eta-\phi$ of jets in correlations
+                title: $\eta-\varphi$ of jets in correlations
                 text_label:
                     enabled: true
                     textLocation: [0.1, 0.9]
         JetHEtaPhi: !HistPlotter
             kwargs:
-                title: $\eta-\phi$ of charged hadrons in correlations
+                title: $\eta-\varphi$ of charged hadrons in correlations
                 logz: true
                 text_label:
                     enabled: true
@@ -717,7 +712,11 @@ GeneralHists:
         2.76:
             trainNumber: 3360
         5.02:
-            trainNumber: 4358
+            trainNumber: 4703
+            central:
+                inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2Central"
+            semi_central:
+                inputListName: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2SemiCentral"
         iterables:
             # Selected values explicitly so there are some iterables to create the object
             # (even though we don't need them).
