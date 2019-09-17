@@ -277,9 +277,15 @@ def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], 
             h.x, h.y,
             xerr = h.bin_widths / 2, yerr = h.errors,
             marker = "o", linestyle = "None",
-            label = analysis.reaction_plane_orientation.display_str()
+            label = fr"{analysis.reaction_plane_orientation.display_str()}: $N_{{\text{{trig}}}} = {analysis.number_of_triggers:g}$",
         )
         ax.set_xlim(0, 100)
+
+    ax.text(
+        0.025, 0.025, r"$N_{\text{trig}}$ restricted to " + labels.jet_pt_range_string(analysis.jet_pt),
+        transform = ax.transAxes, horizontalalignment = "left",
+        verticalalignment = "bottom", multialignment = "left",
+    )
 
     # Final presentation settings
     ax.set_xlabel(labels.make_valid_latex_string(fr"{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()})"))
