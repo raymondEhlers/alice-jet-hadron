@@ -152,7 +152,7 @@ class CorrelationsZVertexManager(analysis_manager.Manager):
             self._merge_z_vertex_signal_correlations()
             overall_progress.update()
 
-            raise RuntimeError("Stahp!")
+        return True
 
     def _merge_z_vertex_signal_correlations(self) -> None:
         """ Merge the Z vertex dependent correlations and then write them out. """
