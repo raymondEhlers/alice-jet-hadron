@@ -8,12 +8,17 @@ Contains brief plotting functions which don't belong elsewhere.
 """
 
 import logging
+import matplotlib
 import matplotlib.pyplot as plt
 from typing import Any, Dict, Iterator, Tuple, TYPE_CHECKING
 
+from jet_hadron.base.typing_helpers import Hist
+
 import numpy as np
 
-from jet_hadron.base import analysis_objects
+from pachyderm import histogram
+
+from jet_hadron.base import analysis_objects, labels, params
 from jet_hadron.plot import base as plot_base
 
 if TYPE_CHECKING:
@@ -140,3 +145,113 @@ def vn_harmonics(theta: np.ndarray, harmonics: Dict[int, float],
     # Finally, save and cleanup
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
+
+def rho_centrality(rho_hist: Hist, output_info: analysis_objects.PlottingOutputWrapper, includes_constituent_cut: bool = True) -> None:
+    """ Plot rho as a function of centrality vs jet pt.
+
+    Args:
+        rho_hist: Rho centrality dependent hist.
+        output_info: Output information.
+        includes_constituent_cut: True if the plot was produced using the constituent cut.
+    Returns:
+        None. The figure is plotted.
+    """
+    # Setup
+    import ROOT
+    canvas = ROOT.TCanvas("c", "c")
+    canvas.SetRightMargin(0.15)
+    # Set labels
+    rho_hist.SetTitle("")
+    rho_hist.Draw("colz")
+    # Keep the range more meaningful.
+    rho_hist.GetYaxis().SetRangeUser(0, 100)
+    # Draw a profile of the mean
+    rho_hist_profile = rho_hist.ProfileX(f"{rho_hist.GetName()}_profile")
+    rho_hist_profile.SetLineColor(ROOT.kRed)
+    rho_hist_profile.Draw("same")
+
+    # Finally, save and cleanup
+    output_name = "rho_background"
+    if includes_constituent_cut:
+        output_name += "_3GeVConstituents"
+    plot_base.save_plot(output_info, canvas, output_name)
+
+def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot track eta phi.
+
+    Also include an annotation of the EMCal eta, phi location.
+
+    Args:
+        rho_hist: Rho centrality dependent hist.
+        output_info: Output information.
+        includes_constituent_cut: True if the plot was produced using the constituent cut.
+    Returns:
+        None. The figure is plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    x, y, hist_array = histogram.get_array_from_hist2D(
+        hist,
+        set_zero_to_NaN = True,
+        return_bin_edges = True,
+    )
+
+    plot = ax.imshow(
+        hist_array.T,
+        extent = [np.amin(x), np.amax(x), np.amin(y), np.amax(y)],
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        norm = matplotlib.colors.Normalize(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array)),
+        cmap = "viridis",
+    )
+    # Draw the colorbar based on the drawn axis above.
+    # NOTE: This can cause the warning:
+    #       '''
+    #       matplotlib/colors.py:1031: RuntimeWarning: invalid value encountered in less_equal
+    #           mask |= resdat <= 0"
+    #       '''
+    #       The warning is due to the nan we introduced above. It can safely be ignored
+    #       See: https://stackoverflow.com/a/34955622
+    #       (Could suppress, but I don't feel it's necessary at the moment)
+    fig.colorbar(plot)
+
+    # Draw EMCal boundaries
+    r = matplotlib.patches.Rectangle(
+        xy = (-0.7, 80 * np.pi / 180),
+        width = 0.7 + 0.7, height = (187 - 80) * np.pi / 180,
+        facecolor = "none", edgecolor = "tab:red", linewidth = 1.5,
+        label = "EMCal",
+    )
+    ax.add_patch(r)
+
+    # Final presentation settings
+    ax.set_xlabel(labels.make_valid_latex_string(r"\eta"))
+    ax.set_ylabel(labels.make_valid_latex_string(r"\varphi"))
+    ax.legend(frameon = False, loc = "upper right")
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name = f"track_eta_phi_{str(event_activity)}"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
+    # Check the phi 1D projection
+    track_phi = hist.ProjectionY()
+    # Make it easier to view
+    track_phi.Rebin(8)
+    import ROOT
+    canvas = ROOT.TCanvas("c", "c")
+    # Labeling
+    track_phi.SetTitle("")
+    track_phi.GetXaxis().SetTitle(labels.use_label_with_root(labels.make_valid_latex_string(r"\varphi")))
+    track_phi.GetYaxis().SetTitle("Counts")
+    track_phi.Draw()
+    # Draw lines corresponding to the EMCal
+    line_min = ROOT.TLine(80 * np.pi / 180, track_phi.GetMinimum(), 80 * np.pi / 180, track_phi.GetMaximum())
+    line_max = ROOT.TLine(187 * np.pi / 180, track_phi.GetMinimum(), 187 * np.pi / 180, track_phi.GetMaximum())
+    for l in [line_min, line_max]:
+        l.SetLineColor(ROOT.kBlue)
+        l.Draw("same")
+
+    # Save the plot
+    plot_base.save_plot(output_info, canvas, f"track_phi_{str(event_activity)}")
+
