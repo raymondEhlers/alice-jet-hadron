@@ -565,6 +565,8 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
             label = f"Sub. {hists.signal_dominated.type.display_str()}", marker = "o", linestyle = "None",
+            # Make the marker smaller to ensure that we can see the other uncertainties.
+            markersize = 6,
         )
 
         # Plot the background uncertainty separately.
@@ -580,6 +582,15 @@ def _plot_rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlati
 
         # Add horizontal line at 0 for comparison
         ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
+
+        # Plot the scale uncertainty if available
+        if "mixed_event_scale_systematic" in h.metadata:
+            ax.fill_between(
+                h.x,
+                h.metadata["mixed_event_scale_systematic"][0],
+                h.metadata["mixed_event_scale_systematic"][1],
+                label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+            )
 
     # Increase the upper range by 10% to ensure that the labels don't overlap with the data.
     lower_limit, upper_limit = ax.get_ylim()
@@ -1124,6 +1135,13 @@ def fit_subtracted_signal_dominated(analysis: "correlations.Correlations") -> No
         label = "RP background uncertainty",
         color = plot_base.AnalysisColors.fit,
     )
+    if "mixed_event_scale_systematic" in h.metadata:
+        ax.fill_between(
+            h.x,
+            h.metadata["mixed_event_scale_systematic"][0],
+            h.metadata["mixed_event_scale_systematic"][1],
+            label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+        )
     # Line for comparison
     ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 

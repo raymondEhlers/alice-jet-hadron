@@ -1823,6 +1823,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Store the background errors explicitly in the hist metadata.
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist.metadata["RPF_background_errors"] = \
             self.fit_hist.errors
+        # Calculate the mixed event scale uncertainty
+        if self.mixed_event_scale_uncertainty != 0.0:
+            # Scale the fit histogram up or down.
+            fit_hist_scaled_down = self.fit_hist * (1 - self.mixed_event_scale_uncertainty)
+            fit_hist_scaled_up = self.fit_hist * (1 + self.mixed_event_scale_uncertainty)
+
+            # When the fit is scaled up and those values are subtracted, it will lead to the lower error
+            subtracted_high = signal_dominated_hist - fit_hist_scaled_down
+            subtracted_low = signal_dominated_hist - fit_hist_scaled_up
+            # We only care about the values, not the statistical errors on the systematics, so we're done.
+            # We will fill between the values, so we just store the values (not the differences).
+            self.correlation_hists_delta_phi_subtracted.signal_dominated.hist.metadata["mixed_event_scale_systematic"] = \
+                (subtracted_low.y, subtracted_high.y)
 
     def compare_subtracted_1d_signal_correlation_to_joel(self) -> None:
         """ Compare subtracted 1D signal correlation hists to Joel.
