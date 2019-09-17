@@ -274,10 +274,10 @@ def log_minor_tick_formatter(y: int, pos: float) -> str:
     """
     ret_val = ""
     # The positions of major ticks appear to be skipped, so the numbering starts at 2
-    # Thus, to labe the 2, 3, and 5 ticks, we need to retun the label for the 0th, 1st, and
+    # Thus, to label the 2, 3, and 5 ticks, we need to return the label for the 0th, 1st, and
     # 3rd labels.
     values_to_plot = [0, 1, 3]
-    # The values 2 - 9 are availble for the minor ticks, so we take the position mod 8 to
+    # The values 2 - 9 are available for the minor ticks, so we take the position mod 8 to
     # ensure that we are repeating the same labels over multiple decades.
     if (pos % 8) in values_to_plot:
         # "g" auto formats to a reasonable presentation for most numbers.
