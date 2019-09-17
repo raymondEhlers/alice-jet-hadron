@@ -651,9 +651,49 @@ CorrelationsManager: &CorrelationsManagerConfig
                                     limit_mid_plane_ns_sigma: [0.15, 0.7]
                                 use_log_likelihood: true
 
+CorrelationsZVertexManager:
+    <<: *CorrelationsManagerConfig
+    processing_options:
+        # Only set the options that are relevant here
+        # 2D
+        generate_2D_correlations: false
+        plot_2D_correlations: false
+        plot_RPF_highlights: false
+        # 1D
+        generate_1D_correlations: false
+        plot_1D_correlations: false
+        plot_1D_correlations_with_ROOT: false
+        # Even if enabled, it will only make the comparison if in the correct collision system and energy.
+        plot_1D_correlations_joel_comparison: false
+    override:
+        <<: *CorrelationsManagerOverride
+        outputPrefix: "output/{collision_system}/{trainNumber}/{event_activity}/{leading_hadron_bias}/Correlations"
+        5.02:
+            trainNumber: 4765
+
 ##################################################
 # General histograms for the correlation analysis.
 ##################################################
+GeneralAnalysisHists:
+    rho_task_name: "AliAnalysisTaskRho_histos"
+    jet_hadron_base_task_name: "AliAnalysisTaskJetH_tracks_caloClusters_trackBias5R2"
+    override:
+        outputPrefix: "output/{collision_system}/{trainNumber}/general_figures/GeneralAnalysisHists"
+        5.02:
+            trainNumber: 4813
+        iterables:
+            reaction_plane_orientation:
+                - "inclusive"
+GeneralAnalysisHistsManager:
+    override:
+        outputPrefix: "output/{collision_system}/{trainNumber}/general_figures/GeneralAnalysisHists"
+        iterables:
+            # Technically this is true, although not very helpful. However, we must have at least
+            # one iterator, so this allows us to do so with minimal change.
+            reaction_plane_orientation:
+                - "inclusive"
+
+# For working with the hist plotter
 EventCutsPlots: &EventCutsPlots
     CutStats: !HistPlotter
         kwargs:
