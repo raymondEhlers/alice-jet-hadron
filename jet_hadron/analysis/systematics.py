@@ -257,7 +257,7 @@ class CompareMixedEventZVertexDependenceManager(analysis_manager.Manager):
         ...
 
 def run_mixed_event_systematics_from_terminal() -> CorrelationsZVertexManager:
-    """ Driver function for running the correlations analysis. """
+    """ Driver function for running the mixed event systematics analysis. """
     # Basic setup
     # Quiet down pachyderm
     logging.getLogger("pachyderm").setLevel(logging.INFO)
