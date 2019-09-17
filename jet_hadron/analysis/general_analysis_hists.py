@@ -22,6 +22,24 @@ import ROOT
 
 logger = logging.getLogger(__name__)
 
+def _cross_check_raw_event_cuts(hists: Sequence[Hist]) -> bool:
+    """ Cross check that each raw distribution is the same.
+
+    Args:
+        hists: Raw distributions.
+    Returns:
+        True if they are all the same.
+    Raises:
+        ValueError: If they are not all the same.
+    """
+    converted = [histogram.Histogram1D.from_existing_hist(h) for h in hists]
+    comparison = converted[0]
+    for h in converted[1:]:
+        if h != comparison:
+            raise ValueError(f"Cross check failed for {h}. Comparison: {comparison}")
+
+    return True
+
 class GeneralAnalysisHists(analysis_objects.JetHBase):
     """ Plot general analysis histograms.
 
@@ -63,7 +81,46 @@ class GeneralAnalysisHists(analysis_objects.JetHBase):
         Returns:
             None.
         """
-        ...
+        event_activity_label_map = {
+            params.EventActivity.central: "Central",
+            params.EventActivity.semi_central: "SemiCentral",
+        }
+        # Centrality
+        raw_centrality = []
+        centrality = {}
+        # Z vertex
+        raw_z_vertex = []
+        z_vertex = {}
+        for event_activity in [params.EventActivity.central, params.EventActivity.semi_central]:
+            # Setup
+            task_name = self.task_config["jet_hadron_base_task_name"]
+            task_name += f"{event_activity_label_map[event_activity]}"
+
+            # Centrality
+            raw_centrality.append(self.input_hists[task_name]["Centrality_raw"])
+            centrality[event_activity] = self.input_hists[task_name]["Centrality_selected"]
+
+            # Z vertex
+            raw_z_vertex.append(self.input_hists[task_name]["Vtz_raw"])
+            z_vertex[event_activity] = self.input_hists[task_name]["Vtz_selected"]
+
+            # Cut stats
+            cut_stats = {}
+            cut_stats["No cuts"] = self.input_hists[task_name]["fCutStats"]
+            cut_stats["After trigger"] = self.input_hists[task_name]["fCutStatsAfterTrigger"]
+            cut_stats["After Mult. selection"] = self.input_hists[task_name]["fCutStatsAfterMultSelection"]
+
+            # Plot the cut stats
+            plot_general.event_cut_stats(cut_stats, event_activity = event_activity, output_info = self.output_info)
+
+        # Cross check
+        _cross_check_raw_event_cuts(raw_centrality)
+        _cross_check_raw_event_cuts(raw_z_vertex)
+
+        # Plot the centrality selection
+        plot_general.centrality(raw_centrality, centrality, output_info = self.output_info)
+        # Plot the z vertex
+        plot_general.z_vertex(raw_z_vertex, z_vertex, output_info = self.output_info)
 
     def _plot_rho(self) -> None:
         """ Plot the rho task background.

@@ -256,6 +256,103 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info:
     # Save the plot
     plot_base.save_plot(output_info, canvas, f"track_phi_{str(event_activity)}")
 
+def event_cut_stats(cut_stats: Dict[str, Hist], event_activity: params.EventActivity, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the event cut stats.
+
+    Args:
+        cut_stats: Collections of cut stats to plot.
+        event_activity: Event activity of the stats info.
+        output_info: Output information.
+    Returns:
+        None. The centralities are plotted.
+    """
+    # Setup
+    import ROOT
+    canvas = ROOT.TCanvas("canvas", "canvas")
+    # Legend
+    legend = ROOT.TLegend(0.1, 0.35, 0.3, 0.6)
+    # Increase text size
+    legend.SetTextSize(0.03)
+    # Remove the legend border
+    legend.SetBorderSize(0)
+    # Make the legend transparent
+    legend.SetFillStyle(0)
+
+    # Plot
+    colors = [ROOT.kBlack, ROOT.kRed, ROOT.kBlue]
+    for (name, hist), color in zip(cut_stats.items(), colors):
+        hist.SetLineColor(color)
+        hist.Draw("same")
+
+        legend.AddEntry(hist, name)
+
+    # Final presentation settings
+    legend.Draw("same")
+
+    # Finally, save and cleanup
+    plot_base.save_plot(output_info, canvas, f"event_cuts_{str(event_activity)}")
+
+def centrality(raw_centrality: List[Hist], centralities: Dict[params.EventActivity, Hist], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the centrality distribution for a list of centralities
+
+    Args:
+        raw_centrality: Raw centrality. Each entry should have the same content.
+        centralities: Centrality selected distributions.
+        output_info: Output information.
+    Returns:
+        None. The centralities are plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # First plot the first raw distribution (we don't need the others).
+    h = histogram.Histogram1D.from_existing_hist(raw_centrality[0])
+    ax.plot(h.x, h.y, label = "Raw centrality")
+
+    # Then plot the selected ones
+    for event_activity, hist in centralities.items():
+        h = histogram.Histogram1D.from_existing_hist(hist)
+        ax.plot(h.x, h.y, label = event_activity.display_str())
+
+    # Final presentation settings
+    ax.legend(frameon = False, loc = "upper right")
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    plot_base.save_plot(output_info, fig, "centrality")
+    plt.close(fig)
+
+def z_vertex(raw_z_vertex: List[Hist], z_vertices: Dict[params.EventActivity, Hist], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the z_vertex distribution for a list of centralities.
+
+    Args:
+        raw_z_vertex: Raw z_vertex. Each entry should have the same content.
+        z_vertices: Centrality selected z_vertex distributions.
+        output_info: Output information.
+    Returns:
+        None. The z_vertex are plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # First plot the first raw distribution (we don't need the others).
+    h = histogram.Histogram1D.from_existing_hist(raw_z_vertex[0])
+    ax.plot(h.x, h.y, label = r"Raw $z_{\text{vtx}}$")
+
+    # Then plot the selected ones
+    for event_activity, hist in z_vertices.items():
+        h = histogram.Histogram1D.from_existing_hist(hist)
+        ax.plot(h.x, h.y, label = event_activity.display_str())
+
+    # Final presentation settings
+    ax.set_yscale("log")
+    ax.legend(frameon = False, loc = "upper right")
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    plot_base.save_plot(output_info, fig, "z_vertex")
+    plt.close(fig)
+
 def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot jets triggers as a function of event plane orientation.
 
@@ -298,3 +395,4 @@ def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], 
     output_name = f"trigger_jet_spectra_EP"
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
+
