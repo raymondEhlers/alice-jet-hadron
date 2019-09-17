@@ -1818,7 +1818,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # We copy the fit hist and set the errors to zero when we subtract the histogram because we will
         # plot the RP fit errors separately.
         fit_hist_no_errors = self.fit_hist.copy()
-        fit_hist_no_errors.errors_squared = 0
+        fit_hist_no_errors.errors_squared = np.zeros(len(fit_hist_no_errors.x))
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist = signal_dominated_hist - fit_hist_no_errors
         # Store the background errors explicitly in the hist metadata.
         self.correlation_hists_delta_phi_subtracted.signal_dominated.hist.metadata["RPF_background_errors"] = \
