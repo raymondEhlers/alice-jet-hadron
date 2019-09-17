@@ -38,6 +38,7 @@ from jet_hadron.base import analysis_objects
 from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import generic_hist as plot_generic_hist
+from jet_hadron.plot import general as plot_general
 from jet_hadron.plot import correlations as plot_correlations
 from jet_hadron.plot import fit as plot_fit
 from jet_hadron.plot import extracted as plot_extracted
@@ -2198,6 +2199,31 @@ class CorrelationsManager(analysis_manager.Manager):
                 # Keep track of progress
                 setting_up.update()
 
+    def _plot_triggers(self) -> None:
+        """ Plot the EP dependent triggers.
+
+        Note:
+            They don't depend on a particular associated pt bin, so we can just take an
+            set of them.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        if self.processing_options["plot_triggers_EP"]:
+            for ep_analyses in \
+                    analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ):
+                plot_general.trigger_jets_EP(
+                    ep_analyses = ep_analyses, output_info = self.output_info
+                )
+                # We only need to plot it once since it doesn't depend on associated pt.
+                break
+
     def _fit_delta_eta_correlations(self) -> None:
         """ Fit the delta eta correlations. """
         with self._progress_manager.counter(total = len(self.analyses),
@@ -2662,11 +2688,12 @@ class CorrelationsManager(analysis_manager.Manager):
         # 1. Setup the correlations objects.
         # 2. Run the general histograms (if enabled.)
         # 3. Project, normalize, and plot the correlations down to 1D.
-        # 4. Fit and plot the correlations.
-        # 5. Subtract the fits from the correlations.
-        # 6. Extract and plot the yields.
-        # 7. Extract and plot the widths.
-        steps = 7
+        # 4. Plot triggers.
+        # 5. Fit and plot the correlations.
+        # 6. Subtract the fits from the correlations.
+        # 7. Extract and plot the yields.
+        # 8. Extract and plot the widths.
+        steps = 8
         with self._progress_manager.counter(total = steps,
                                             desc = "Overall processing progress:",
                                             unit = "") as overall_progress:
@@ -2686,6 +2713,10 @@ class CorrelationsManager(analysis_manager.Manager):
                     analysis.run_projections(processing_options = self.processing_options)
                     # Keep track of progress
                     projecting.update()
+            overall_progress.update()
+
+            # Plot the triggers.
+            self._plot_triggers()
             overall_progress.update()
 
             # Fitting

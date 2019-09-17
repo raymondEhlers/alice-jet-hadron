@@ -10,7 +10,7 @@ Contains brief plotting functions which don't belong elsewhere.
 import logging
 import matplotlib
 import matplotlib.pyplot as plt
-from typing import Any, Dict, Iterator, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Iterator, List, Tuple, TYPE_CHECKING
 
 from jet_hadron.base.typing_helpers import Hist
 
@@ -23,6 +23,7 @@ from jet_hadron.plot import base as plot_base
 
 if TYPE_CHECKING:
     from jet_hadron.analysis import event_plane_resolution  # noqa: F401
+    from jet_hadron.analysis import correlations  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -255,3 +256,39 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info:
     # Save the plot
     plot_base.save_plot(output_info, canvas, f"track_phi_{str(event_activity)}")
 
+def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot jets triggers as a function of event plane orientation.
+
+    Args:
+        ep_analyses: Event plane dependent analyses.
+        output_info: Output information.
+    Returns:
+        None. The triggers are plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Plot
+    for key_index, analysis in ep_analyses:
+        h = histogram.Histogram1D.from_existing_hist(analysis.number_of_triggers_observable.hist)
+        # Scale by the bin width
+        h *= 1.0 / h.bin_widths[0]
+        ax.errorbar(
+            h.x, h.y,
+            xerr = h.bin_widths / 2, yerr = h.errors,
+            marker = "o", linestyle = "None",
+            label = analysis.reaction_plane_orientation.display_str()
+        )
+        ax.set_xlim(0, 100)
+
+    # Final presentation settings
+    ax.set_xlabel(labels.make_valid_latex_string(fr"{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()})"))
+    ax.set_ylabel(labels.make_valid_latex_string(fr"d\text{{n}}/d{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()}^{{-1}})"))
+    ax.set_yscale("log")
+    ax.legend(frameon = False, loc = "upper right")
+    fig.tight_layout()
+
+    # Finally, save and cleanup
+    output_name = f"trigger_jet_spectra_EP"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)

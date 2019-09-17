@@ -161,6 +161,7 @@ CorrelationsManager: &CorrelationsManagerConfig
         plot_1D_correlations_with_ROOT: false
         # Even if enabled, it will only make the comparison if in the correct collision system and energy.
         plot_1D_correlations_joel_comparison: false
+        plot_triggers_EP: true
         # Fit options
         fit_correlations: true
         plot_RPF: true
