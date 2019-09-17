@@ -11,15 +11,15 @@ import os
 import scipy
 import scipy.signal
 import scipy.interpolate
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
+
+from jet_hadron.base.typing_helpers import Hist
 
 from pachyderm import histogram
 from pachyderm import utils
 from pachyderm.utils import epsilon
 
-from jet_hadron.base import analysis_objects
-from jet_hadron.base import labels
-from jet_hadron.base.typing_helpers import Hist
+from jet_hadron.base import analysis_objects, labels
 
 from jet_hadron.analysis import fit as fitting
 
@@ -390,3 +390,57 @@ def get_joels_comparison_hists(track_pt: analysis_objects.TrackPtBin, path: str)
     comparison_hists = histogram.get_histograms_in_file(filename = comparison_filename)
 
     return comparison_hists
+
+def calculate_systematic_2D(nominal: Hist, variation: Hist, signal_dominated: analysis_objects.AnalysisBin,
+                            background_dominated: analysis_objects.AnalysisBin) -> float:
+    """ Calculate a systematic in 2D.
+
+    Args:
+        nominal: Nominal hist.
+        variation: Systematically varied hist.
+        signal_dominated: Signal dominated region.
+        Background_dominated: Background dominated region.
+    Returns:
+        The systematic calculated over the specified ranges.
+    """
+    # Calculate the nominal integral in the signal region
+    nominal_signal = nominal.Integral(
+        1, nominal.GetXaxis().GetNbins(),
+        nominal.GetYaxis().FindBin(- 1.0 * signal_dominated.max + epsilon),
+        nominal.GetYaxis().FindBin(signal_dominated.max - epsilon),
+    )
+    # And in the background dominated region
+    nominal_background = nominal.Integral(
+        1, nominal.GetXaxis().GetNbins(),
+        nominal.GetYaxis().FindBin(- 1.0 * background_dominated.max + epsilon),
+        nominal.GetYaxis().FindBin(- 1.0 * background_dominated.min - epsilon),
+    ) + nominal.Integral(
+        1, nominal.GetXaxis().GetNbins(),
+        nominal.GetYaxis().FindBin(background_dominated.min + epsilon),
+        nominal.GetYaxis().FindBin(background_dominated.max - epsilon),
+    )
+
+    # Calculate the variation integral in the signal region
+    variation_signal = variation.Integral(
+        1, variation.GetXaxis().GetNbins(),
+        variation.GetYaxis().FindBin(- 1.0 * signal_dominated.max + epsilon),
+        variation.GetYaxis().FindBin(signal_dominated.max - epsilon),
+    )
+    # And in the background dominated region
+    variation_background = variation.Integral(
+        1, variation.GetXaxis().GetNbins(),
+        variation.GetYaxis().FindBin(- 1.0 * background_dominated.max + epsilon),
+        variation.GetYaxis().FindBin(- 1.0 * background_dominated.min - epsilon),
+    ) + variation.Integral(
+        1, variation.GetXaxis().GetNbins(),
+        variation.GetYaxis().FindBin(background_dominated.min + epsilon),
+        variation.GetYaxis().FindBin(background_dominated.max - epsilon),
+    )
+
+    # Basically, signal / variation
+    # NOTE: There is no need to apply the correlation scale factor because it will cancel
+    #       in the factor.
+    factor = (nominal_signal / nominal_background) / (variation_signal / variation_background)
+
+    # Help out mypy because it doesn't understand ROOT
+    return cast(float, factor)
