@@ -2604,7 +2604,7 @@ class CorrelationsManager(analysis_manager.Manager):
                     logger.debug("Loading 1D subtracted delta eta correlations from file.")
                     analysis.init_1d_subtracted_delta_eta_corerlations_from_file()
 
-                if self.processing_options["plot_subtracted_correlations"]:
+                if self.processing_options["plot_subtracted_delta_eta_correlations"]:
                     plot_fit.delta_eta_fit_subtracted(analysis)
 
                 # Update progress

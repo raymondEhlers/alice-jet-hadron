@@ -173,6 +173,7 @@ CorrelationsManager: &CorrelationsManagerConfig
         plot_delta_eta_fit: false
         subtract_correlations: true
         plot_subtracted_correlations: true
+        plot_subtracted_delta_eta_correlations: false
         # Yields
         extract_yields: true
         plot_yields: true
