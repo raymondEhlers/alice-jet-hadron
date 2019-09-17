@@ -250,7 +250,7 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info:
     line_min = ROOT.TLine(80 * np.pi / 180, track_phi.GetMinimum(), 80 * np.pi / 180, track_phi.GetMaximum())
     line_max = ROOT.TLine(187 * np.pi / 180, track_phi.GetMinimum(), 187 * np.pi / 180, track_phi.GetMaximum())
     for l in [line_min, line_max]:
-        l.SetLineColor(ROOT.kBlue)
+        l.SetLineColor(ROOT.kRed)
         l.Draw("same")
 
     # Save the plot
