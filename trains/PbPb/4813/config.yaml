@@ -1,0 +1,8 @@
+---
+train: "Jets_EMC_PbPb"
+trainNumber: 4813
+production: "LHC15o"
+alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4813_20190915-2246/merge"
+status: |
+    "Jet-hadron correlations at 5 TeV with a 5 GeV track bias. Uses correct 5 TeV tracking efficiency."
+    " Includes rho output with the 3 GeV constituent cut so the background can be characterized."
