@@ -442,6 +442,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Other relevant analysis information
         self.number_of_triggers: int = 0
+        self.mixed_event_scale_uncertainty: float = 0.0
 
         # Projectors
         self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
@@ -1725,6 +1726,27 @@ class Correlations(analysis_objects.JetHReactionPlane):
             offset_our_points = True,
         )
 
+    def calculate_mixed_event_scale_systematic(self) -> None:
+        """ Calculate the mixed event scale systematic uncertainty. """
+        if not self.ran_projections:
+            raise RuntimeError("Must run projections to calculate the mixed event scale uncertainty!")
+
+        filename = os.path.join(self.output_prefix, self.output_filename)
+        hists = histogram.get_histograms_in_file(filename = filename)
+        z_vertex_signal = hists[self.correlation_hists_2d.signal.name + "_mixed_event_systematic"]
+
+        #logger.debug(f"Calling systematic calculation for {self.identifier}, {self.reaction_plane_orientation}")
+        mixed_event_scale_uncertainty = correlations_helpers.calculate_systematic_2D(
+            nominal = self.correlation_hists_2d.signal.hist,
+            variation = z_vertex_signal,
+            signal_dominated = self.signal_dominated_eta_region,
+            background_dominated = self.background_dominated_eta_region,
+        )
+
+        # Store the values as a fractional difference from 1. We don't need to care about
+        # the sign.
+        self.mixed_event_scale_uncertainty = np.abs(1 - mixed_event_scale_uncertainty)
+
     def convert_hists_post_RPF(self) -> None:
         """ Convert the histograms and post RPF so that we don't have to worry about it later.
 
@@ -2224,6 +2246,21 @@ class CorrelationsManager(analysis_manager.Manager):
                 # We only need to plot it once since it doesn't depend on associated pt.
                 break
 
+    def _determine_systematics(self) -> None:
+        """ Determine systematics.
+
+        Args:
+            None.
+        Returns:
+            None.
+        """
+        with self._progress_manager.counter(total = len(self.analyses),
+                                            desc = "Calculating:",
+                                            unit = "systematics") as calculating:
+            for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
+                analysis.calculate_mixed_event_scale_systematic()
+                calculating.update()
+
     def _fit_delta_eta_correlations(self) -> None:
         """ Fit the delta eta correlations. """
         with self._progress_manager.counter(total = len(self.analyses),
@@ -2689,11 +2726,12 @@ class CorrelationsManager(analysis_manager.Manager):
         # 2. Run the general histograms (if enabled.)
         # 3. Project, normalize, and plot the correlations down to 1D.
         # 4. Plot triggers.
-        # 5. Fit and plot the correlations.
-        # 6. Subtract the fits from the correlations.
-        # 7. Extract and plot the yields.
-        # 8. Extract and plot the widths.
-        steps = 8
+        # 5. Determine systematics.
+        # 6. Fit and plot the correlations.
+        # 7. Subtract the fits from the correlations.
+        # 8. Extract and plot the yields.
+        # 9. Extract and plot the widths.
+        steps = 9
         with self._progress_manager.counter(total = steps,
                                             desc = "Overall processing progress:",
                                             unit = "") as overall_progress:
@@ -2717,6 +2755,10 @@ class CorrelationsManager(analysis_manager.Manager):
 
             # Plot the triggers.
             self._plot_triggers()
+            overall_progress.update()
+
+            # Determine mixed event systematics
+            self._determine_systematics()
             overall_progress.update()
 
             # Fitting
