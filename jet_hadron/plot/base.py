@@ -195,11 +195,11 @@ def error_boxes(ax: matplotlib.axes.Axes,
 
     # Validate input data.
     if len(x_data) != len(y_data):
-        raise ValueError("Length of x_data and y_data doesn't match! x_data: {len(x_data)}, y_data: {len(y_data)}")
+        raise ValueError(f"Length of x_data and y_data doesn't match! x_data: {len(x_data)}, y_data: {len(y_data)}")
     if len(x_errors.T) != len(x_data):
-        raise ValueError("Length of x_data and x_errors doesn't match! x_data: {len(x_data)}, x_errors: {len(x_errors)}")
+        raise ValueError(f"Length of x_data and x_errors doesn't match! x_data: {len(x_data)}, x_errors: {len(x_errors)}")
     if len(y_errors.T) != len(y_data):
-        raise ValueError("Length of y_data and y_errors doesn't match! y_data: {len(y_data)}, y_errors: {len(y_errors)}")
+        raise ValueError(f"Length of y_data and y_errors doesn't match! y_data: {y_data.shape}, y_errors: {y_errors.shape}")
 
     # Default arguments
     if "alpha" not in kwargs:
