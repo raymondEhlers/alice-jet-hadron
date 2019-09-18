@@ -295,6 +295,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     combined_cyclers = sum(cyclers[1:-1], cyclers[0])
     ax.set_prop_cycle(combined_cyclers)
 
+    # Store handles for adding to the legend later. Stored as dict so we don't have to
+    # de-duplicate later.
+    error_boxes = {}
     # Used for labeling purposes. The values that are used are identical for all analyses.
     inclusive_analysis: "correlations.Correlations"
     for displace_index, ep_orientation in enumerate(selected_iterables["reaction_plane_orientation"]):
@@ -321,23 +324,24 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         # Plot the RP fit error if it's available.
         if "fit_error" in values[analysis.track_pt].metadata:
             logger.debug(f"Plotting fit errors for {output_name}, {ep_orientation}")
-            plot_base.error_boxes(
+            boxes = plot_base.error_boxes(
                 ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
                 x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
                 y_errors = np.array([v.metadata["fit_error"] for v in values.values()]),
                 label = "Background", color = plot_base.AnalysisColors.fit,
             )
+            error_boxes["fit_error"] = boxes
         # Plot the scale uncertainty systematic if it's available.
         if "mixed_event_scale_systematic" in values[analysis.track_pt].metadata:
             logger.debug(f"Plotting the mixed event scale systematic for {output_name}, {ep_orientation}")
-            #import IPython; IPython.embed()
-            plot_base.error_boxes(
+            boxes = plot_base.error_boxes(
                 ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
                 x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
                 # Transposed so that it's in the right format for plotting
                 y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
                 label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
             )
+            error_boxes["systematic"] = boxes
 
     # Labels.
     # General
@@ -376,7 +380,13 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     if plot_labels.title is not None:
         plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}"
     plot_labels.apply_labels(ax)
-    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14)
+    # Add the error boxes to the handles
+    handles, _ = ax.get_legend_handles_labels()
+    # To add the PatchCollection to the legend, we have to jump through a number of hoops.
+    # We have to create a new set of patches which have the same label and then take the first facecolor.
+    # Despite the singular name, facecolor returns a collection of colors, so we have to take the first entry.
+    handles.extend([matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()])
+    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
     # Apply log if requested.
     if logy:
         ax.set_yscale("log")
