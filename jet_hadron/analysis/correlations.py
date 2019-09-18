@@ -1901,16 +1901,47 @@ class Correlations(analysis_objects.JetHReactionPlane):
             subtracted_hist = correlation_hist - background_hist
             utils.recursive_setattr(self.correlation_hists_delta_eta_subtracted, f"{attribute_name}.hist", subtracted_hist)
 
+    def _extract_mixed_event_systematic_for_yield(self, scale_uncertainty: float, fit_hist: histogram.Histogram1D,
+                                                  yield_range: params.SelectedRange) -> Tuple[float, float]:
+        """ Extract the mixed event scale uncertainty systematic for the yield.
+
+        We vary the fit up and down by the background scale factor. The yield of this gives the upper
+        and lower systematic values. We don't worry about the statistical errors.
+
+        Args:
+            scale_uncertainty: Mixed event scale uncertainty.
+            fit_hist: RP fit histogram.
+            yield_range: Range over which the yield will be extracted.
+        Returns:
+            The lower and upper yield systematics.
+        """
+        # Make a copy to ensure that we don't modify the original values.
+        hist_low = fit_hist * (1 - scale_uncertainty)
+        hist_high = fit_hist * (1 + scale_uncertainty)
+
+        low_yield, _ = hist_low.integral(
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+        )
+        high_yield, _ = hist_high.integral(
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+        )
+
+        return low_yield, high_yield
+
     def _extract_yield_from_correlation(self, hist: histogram.Histogram1D,
                                         fit_hist: histogram.Histogram1D,
-                                        yield_range: params.SelectedRange) -> analysis_objects.ExtractedObservable:
+                                        yield_range: params.SelectedRange,
+                                        use_mixed_event_scale_uncertainty: bool) -> analysis_objects.ExtractedObservable:
         """ Helper function to actually extract a yield from a histogram.
 
         Yields are extracted within central_value +/- yield_limit.
 
         Args:
             hist: Histogram from which the yield should be extracted.
+            fit_hist: RP fit histogram.
             yield_range: Range over which the yield will be extracted.
+            use_mixed_event_scale_uncertainty: True if the mixed event scale uncertainty is meaningful
+                and should be included.
         Returns:
             Extracted observable containing the yield and the error on the yield.
         """
@@ -1921,22 +1952,44 @@ class Correlations(analysis_objects.JetHReactionPlane):
         fit_yield_value, fit_yield_error = fit_hist.integral(
             min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
         )
+        # Calculate the mixed event systematic yield
+        if use_mixed_event_scale_uncertainty:
+            systematic_yield_low, systematic_yield_high = self._extract_mixed_event_systematic_for_yield(
+                scale_uncertainty = self.mixed_event_scale_uncertainty,
+                fit_hist = fit_hist, yield_range = yield_range,
+            )
+            logger.debug(
+                f"yield: {yield_value}, error: {yield_error}, RP fit: {fit_yield_value}, RP fit error: {fit_yield_error}, mixed event: {(systematic_yield_low, systematic_yield_high)}"
+            )
+            # Subtracting the higher yield will lead to the lower yield error value.
+            systematic_yields = [yield_value - systematic_yield_high, yield_value - systematic_yield_low]
 
-        # Determine the value by subtracting the background
-        yield_value = yield_value - fit_yield_value
+        # Determine the final yield value by subtracting the background
+        subtracted_yield_value = yield_value - fit_yield_value
+        if use_mixed_event_scale_uncertainty:
+            systematic_yields = [systematic_yields[1] - subtracted_yield_value, subtracted_yield_value - systematic_yields[0]]
 
         # Scale by track pt bin width
         track_pt_bin_width = self.track_pt.max - self.track_pt.min
-        yield_value /= track_pt_bin_width
+        subtracted_yield_value /= track_pt_bin_width
         yield_error /= track_pt_bin_width
+        fit_yield_error /= track_pt_bin_width
+        if use_mixed_event_scale_uncertainty:
+            systematic_yields[0] /= track_pt_bin_width
+            systematic_yields[1] /= track_pt_bin_width
+
+            logger.debug(f"yield: {yield_value}, subtracted yield: {subtracted_yield_value}, error: {yield_error}, RP fit error: {fit_yield_error}, mixed event: {systematic_yields}")
 
         # Store the yield in an observable
         observable = analysis_objects.ExtractedObservable(
-            value = yield_value, error = yield_error,
+            value = subtracted_yield_value, error = yield_error,
             metadata = {
-                "RPFit_error": fit_yield_error,
+                "fit_error": fit_yield_error,
             },
         )
+        if use_mixed_event_scale_uncertainty:
+            observable.metadata["mixed_event_scale_systematic"] = tuple(systematic_yields)
+
         return observable
 
     def extract_yields(self) -> None:
@@ -1948,9 +2001,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 hist = self.correlation_hists_delta_phi.signal_dominated.hist,
                 fit_hist = self.fit_hist,
                 yield_range = yield_obj.extraction_range,
+                use_mixed_event_scale_uncertainty = True,
             )
             # Store the extract yield
-            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}, background: {observable.metadata['RPFit_error']}")
+            logger.debug(f"Extracted {attribute_name} yield: {observable.value}, error: {observable.error}, background: {observable.metadata['fit_error']}")
             yield_obj.value = observable
 
         # Delta eta yields
@@ -1974,6 +2028,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 hist = correlation.hist,
                 fit_hist = fit_hist,
                 yield_range = yield_obj.extraction_range,
+                use_mixed_event_scale_uncertainty = False,
             )
 
             # Store the extract yield

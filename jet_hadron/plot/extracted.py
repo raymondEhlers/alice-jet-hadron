@@ -319,13 +319,24 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
             fillstyle = ep_plot_properties[ep_orientation][2],
         )
         # Plot the RP fit error if it's available.
-        if "RPFit_error" in values[analysis.track_pt].metadata:
-            logger.debug(f"Plotting RPFit errors for {output_name}, {ep_orientation}")
+        if "fit_error" in values[analysis.track_pt].metadata:
+            logger.debug(f"Plotting fit errors for {output_name}, {ep_orientation}")
             plot_base.error_boxes(
                 ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
                 x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
-                y_errors = np.array([v.metadata["RPFit_error"] for v in values.values()]),
-                label = "RP Background", color = plot_base.AnalysisColors.fit,
+                y_errors = np.array([v.metadata["fit_error"] for v in values.values()]),
+                label = "Background", color = plot_base.AnalysisColors.fit,
+            )
+        # Plot the scale uncertainty systematic if it's available.
+        if "mixed_event_scale_systematic" in values[analysis.track_pt].metadata:
+            logger.debug(f"Plotting the mixed event scale systematic for {output_name}, {ep_orientation}")
+            #import IPython; IPython.embed()
+            plot_base.error_boxes(
+                ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
+                x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
+                # Transposed so that it's in the right format for plotting
+                y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
+                label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
             )
 
     # Labels.
