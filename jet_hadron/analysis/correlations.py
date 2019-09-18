@@ -1954,6 +1954,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         )
         # Calculate the mixed event systematic yield
         if use_mixed_event_scale_uncertainty:
+            # First retrieve the systematic yields
             systematic_yield_low, systematic_yield_high = self._extract_mixed_event_systematic_for_yield(
                 scale_uncertainty = self.mixed_event_scale_uncertainty,
                 fit_hist = fit_hist, yield_range = yield_range,
@@ -1961,15 +1962,23 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(
                 f"yield: {yield_value}, error: {yield_error}, RP fit: {fit_yield_value}, RP fit error: {fit_yield_error}, mixed event: {(systematic_yield_low, systematic_yield_high)}"
             )
-            # Subtracting the higher yield will lead to the lower yield error value.
+            # Next, subtract the yield background variation from the signal yield.
+            # Subtracting the higher yield will lead to the lower yield error value, so we reverse the apparnet labels.
             systematic_yields = [yield_value - systematic_yield_high, yield_value - systematic_yield_low]
 
         # Determine the final yield value by subtracting the background
         subtracted_yield_value = yield_value - fit_yield_value
         if use_mixed_event_scale_uncertainty:
+            # We want the systematics to be absolute errors, so we subtract the nominal yield value.
+            # For the lower value, we expected the systematic yield to be greater than the nomial value, so
+            # we reverse the sign (alternatively, we could just take the absolute value.
             systematic_yields = [systematic_yields[1] - subtracted_yield_value, subtracted_yield_value - systematic_yields[0]]
 
+            # Cross check. We expect this systematic to be symmetric.
+            assert np.isclose(systematic_yields)
+
         # Scale by track pt bin width
+        # This includes the error values.
         track_pt_bin_width = self.track_pt.max - self.track_pt.min
         subtracted_yield_value /= track_pt_bin_width
         yield_error /= track_pt_bin_width
@@ -1987,6 +1996,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 "fit_error": fit_yield_error,
             },
         )
+        # Store it separately so we can control when to store it.
         if use_mixed_event_scale_uncertainty:
             observable.metadata["mixed_event_scale_systematic"] = tuple(systematic_yields)
 
