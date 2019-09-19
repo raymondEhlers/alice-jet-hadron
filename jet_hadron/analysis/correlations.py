@@ -2816,22 +2816,21 @@ class CorrelationsManager(analysis_manager.Manager):
                     min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
                 )
                 logger.debug(f"evaluated: {evaluated}, evaluated_value: {evaluated_value}")
+                logger.debug(f"systematic: {systematic}")
                 # ENDTEMP
             else:
-                # We take just the first systematic term. We already asserted that they're the same,
-                # so it doesn't particularly matter.
-                systematic = yield_ratio * np.sqrt(
-                    (numerator_yield_obj.value.metadata["mixed_event_scale_systematic"][0] / numerator_yield_obj.value.value) ** 2
-                    + (denominator_yield_obj.value.metadata["mixed_event_scale_systematic"][0] / denominator_yield_obj.value.value) ** 2
+                fit_error = yield_ratio * np.sqrt(
+                    (numerator_yield_obj.value.metadata["fit_error"] / numerator_yield_obj.value.value) ** 2
+                    + (denominator_yield_obj.value.metadata["fit_error"] / denominator_yield_obj.value.value) ** 2
                 )
-            logger.debug(f"yield_ratio: {yield_ratio}, yield_ratio_error: {yield_ratio_error}, systematic: {systematic}")
+            logger.debug(f"yield_ratio: {yield_ratio}, yield_ratio_error: {yield_ratio_error}, fit_error: {fit_error}")
 
             # Store the result.
             # name is either "near_side" or "away_side"
             yield_ratios[numerator_attribute_name] = extracted.ExtractedYieldRatio(
                 value = analysis_objects.ExtractedObservable(
                     value = yield_ratio, error = yield_ratio_error,
-                    metadata = {"mixed_event_scale_systematic": systematic},
+                    metadata = {"fit_error": fit_error},
                 ),
                 central_value = numerator_yield_obj.central_value,
                 extraction_limit = numerator_yield_obj.extraction_limit,

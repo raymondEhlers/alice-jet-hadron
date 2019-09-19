@@ -668,16 +668,15 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
         marker = "o", linestyle = "",
     )
     # Plot the scale uncertainty systematic if it's available.
-    if "mixed_event_scale_systematic" in values[key_index.track_pt_bin].metadata:
-        logger.debug(f"Plotting the mixed event scale systematic")
+    if "fit_error" in values[key_index.track_pt_bin].metadata:
+        logger.debug(f"Plotting the fit errors")
         boxes = plot_base.error_boxes(
             ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
             x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
-            # Transposed so that it's in the right format for plotting
-            y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
-            label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+            y_errors = np.array([v.metadata["fit_error"] for v in values.values()]),
+            label = "Background", color = plot_base.AnalysisColors.fit,
         )
-        error_boxes["systematic"] = boxes
+        error_boxes["fit_error"] = boxes
 
     # Labels.
     # General
