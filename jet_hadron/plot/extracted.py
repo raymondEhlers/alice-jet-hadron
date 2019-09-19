@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pachyderm import histogram
 from pachyderm.utils import epsilon
-from typing import Any, Callable, cast, Dict, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, TYPE_CHECKING, Union, cast
 
 from jet_hadron.base import analysis_config
 from jet_hadron.base import analysis_objects
@@ -622,6 +622,26 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extraction_range_func = near_side_extraction_range,
     )
 
+def _determine_contributors_label_names(yield_value: Union["extracted.ExtractedYieldRatio",
+                                                           "extracted.ExtractedYieldDifference"]) -> List[str]:
+    """ Determine contributor label names from a stored yield object.
+
+    For example, it converts "out_of_plane" -> "out".
+
+    Args:
+        yield_value: A single yield value.
+    Returns:
+        Tuple of the names of the contributors, ordered as they were stored.
+    """
+    names = []
+    for c in yield_value.contributors:
+        # Converts "out_of_plane" -> "out"
+        name = str(c)
+        name = name[:name.find("_")].capitalize()
+        names.append(name)
+
+    return names
+
 def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
                  extract_value_func: Callable[["correlations.CorrelationsYields"], analysis_objects.ExtractedObservable],
                  an_analysis: "correlations.Correlations",
@@ -733,7 +753,9 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
     # To add the PatchCollection to the legend, we have to jump through a number of hoops.
     # We have to create a new set of patches which have the same label and then take the first facecolor.
     # Despite the singular name, facecolor returns a collection of colors, so we have to take the first entry.
-    handles.extend([matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()])
+    handles.extend(
+        [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
+    )
     ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
 
     # Final adjustments
@@ -768,13 +790,16 @@ def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
             r"\text{Yield extraction range:}\:|\Delta\varphi| < " + f"{_find_pi_coefficient(max_value)}"
         )
 
+    # Determine the y axis label based on the contributors.
+    single_yield = next(iter(yield_ratios.values())).near_side
+    numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
     _yield_ratio(
         yield_ratios = yield_ratios, an_analysis = an_analysis,
         extract_value_func = near_side_yields,
         label = label,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                r"R = \text{Y}_{\text{Out}} / \text{Y}_{\text{In}}",
+                fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
             ),
             title = "Near-side yield ratio",
         ),
@@ -812,13 +837,16 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
             fr" {_find_pi_coefficient(max_value)}"
         )
 
+    # Determine the y axis label based on the contributors.
+    single_yield = next(iter(yield_ratios.values())).away_side
+    numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
     _yield_ratio(
         yield_ratios = yield_ratios, an_analysis = an_analysis,
         extract_value_func = away_side_yields,
         label = label,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                r"R = \text{Y}_{\text{Out}} / \text{Y}_{\text{In}}",
+                fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
             ),
             title = "Away-side yield ratio",
         ),
