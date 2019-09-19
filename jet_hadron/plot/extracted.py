@@ -25,6 +25,7 @@ from jet_hadron.plot import base as plot_base
 
 if TYPE_CHECKING:
     from jet_hadron.analysis import correlations
+    from jet_hadron.analysis import extracted  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -621,3 +622,210 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extraction_range_func = near_side_extraction_range,
     )
 
+def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
+                 extract_value_func: Callable[["correlations.CorrelationsYields"], analysis_objects.ExtractedObservable],
+                 an_analysis: "correlations.Correlations",
+                 label: str,
+                 plot_labels: plot_base.PlotLabels,
+                 output_name: str,
+                 fit_type: str,
+                 output_info: analysis_objects.PlottingOutputWrapper,
+                 projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
+                 extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
+    """ Plot yield ratios for out / in and mid / in.
+
+    Args:
+        yield_ratios: The yield ratios to be plotted.
+        extract_value_func: Function to retrieve the extracted value and error.
+        an_analysis: Any correlations analyiss. Just needed for generic labels.
+        labels: Output labels.
+        plot_labels: Titles and axis labels for the plot.
+        output_name: Base of name under which the plot will be stored.
+        fit_type: Name of the RP fit type used to get to this extracted value.
+        output_info: Information needed to determine where to store the plot.
+        projection_range_func: Function which will provide the projection range of the extracted value given
+            the inclusive object. Default: None.
+        extraction_range_func: Function which will provide the extraction range of the extracted value given
+            the inclusive object. Default: None.
+    Returns:
+        None. The plot is stored.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Store handles for adding to the legend later. Stored as dict so we don't have to
+    # de-duplicate later.
+    error_boxes = {}
+    values: Dict[analysis_objects.PtBin, analysis_objects.ExtractedObservable] = {}
+    for key_index, ratios in yield_ratios.items():
+        logger.debug(f"key_index: {key_index}")
+        values[key_index.track_pt_bin] = extract_value_func(ratios)
+
+    # Plot the values
+    bin_centers = np.array([k.bin_center for k in values])
+    ax.errorbar(
+        bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
+        marker = "o", linestyle = "",
+    )
+    # Plot the scale uncertainty systematic if it's available.
+    if "mixed_event_scale_systematic" in values[key_index.track_pt_bin].metadata:
+        logger.debug(f"Plotting the mixed event scale systematic")
+        boxes = plot_base.error_boxes(
+            ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
+            x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
+            # Transposed so that it's in the right format for plotting
+            y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
+            label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+        )
+        error_boxes["systematic"] = boxes
+
+    # Labels.
+    # General
+    text = labels.make_valid_latex_string(an_analysis.alice_label.display_str())
+    text += "\n" + labels.system_label(
+        energy = an_analysis.collision_energy,
+        system = an_analysis.collision_system,
+        activity = an_analysis.event_activity
+    )
+    text += "\n" + labels.jet_pt_range_string(an_analysis.jet_pt)
+    text += "\n" + labels.jet_finding()
+    text += "\n" + labels.constituent_cuts()
+    text += "\n" + labels.make_valid_latex_string(an_analysis.leading_hadron_bias.display_str())
+    # Finally, add the text to the axis.
+    ax.text(
+        0.97, 0.97, text, horizontalalignment = "right",
+        verticalalignment = "top", multialignment = "right",
+        transform = ax.transAxes
+    )
+    # Yield ratio label
+    ax.text(
+        0.03, 0.97, label, horizontalalignment = "left",
+        verticalalignment = "top", multialignment = "left",
+        transform = ax.transAxes
+    )
+    # Deal with projection range, extraction range string.
+    additional_label = _proj_and_extract_range_label(
+        inclusive_analysis = an_analysis,
+        projection_range_func = projection_range_func,
+        extraction_range_func = extraction_range_func,
+    )
+    if additional_label:
+        ax.text(
+            0.03, 0.03, additional_label, horizontalalignment = "left",
+            verticalalignment = "bottom", multialignment = "left",
+            transform = ax.transAxes
+        )
+
+    # Set a uniform range
+    ax.set_ylim(0.1, 1.9)
+    # Add a line at 1 for reference
+    ax.axhline(y = 1, color = "black", linestyle = "dashed", zorder = 1)
+
+    # Axes and titles
+    ax.set_xlabel(
+        labels.make_valid_latex_string(fr"{labels.track_pt_display_label()}\:({labels.momentum_units_label_gev()})")
+    )
+    # Apply any specified labels
+    if plot_labels.title is not None:
+        plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(an_analysis.jet_pt)}"
+    plot_labels.apply_labels(ax)
+    # Add the error boxes to the handles
+    handles, _ = ax.get_legend_handles_labels()
+    # To add the PatchCollection to the legend, we have to jump through a number of hoops.
+    # We have to create a new set of patches which have the same label and then take the first facecolor.
+    # Despite the singular name, facecolor returns a collection of colors, so we have to take the first entry.
+    handles.extend([matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()])
+    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
+
+    # Final adjustments
+    fig.tight_layout()
+    # Convert "Out / in" -> "out_vs_in"
+    file_label = label.lower().replace(" / ", "_vs_")
+    # Save plot and cleanup
+    plot_base.save_plot(output_info, fig,
+                        f"{fit_type}_{output_name}_{file_label}_{an_analysis.jet_pt_identifier}")
+    plt.close(fig)
+
+def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationsYields"],
+                                    an_analysis: "correlations.Correlations",
+                                    fit_type: str,
+                                    label: str,
+                                    output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    def near_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return cast(analysis_objects.ExtractedObservable, yields.near_side.value)
+
+    def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
+        """ Helper function to provide the yield extraction range.
+
+        We want to extract the value from the hist itself in case the binning is off (it shouldn't be).
+        """
+        # Setup
+        min_value, max_value = _find_extraction_range_min_and_max_in_hist(
+            h = analysis.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            extraction_range = analysis.yields_delta_phi.near_side.extraction_range,
+        )
+        return labels.make_valid_latex_string(
+            r"\text{Yield extraction range:}\:|\Delta\varphi| < " + f"{_find_pi_coefficient(max_value)}"
+        )
+
+    _yield_ratio(
+        yield_ratios = yield_ratios, an_analysis = an_analysis,
+        extract_value_func = near_side_yields,
+        label = label,
+        plot_labels = plot_base.PlotLabels(
+            y_label = labels.make_valid_latex_string(
+                r"R = \text{Y}_{\text{Out}} / \text{Y}_{\text{In}}",
+            ),
+            title = "Near-side yield ratio",
+        ),
+        output_name = "yield_ratio_delta_phi_near_side",
+        fit_type = fit_type,
+        output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
+        extraction_range_func = near_side_extraction_range,
+    )
+
+def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationsYields"],
+                                    an_analysis: "correlations.Correlations",
+                                    label: str,
+                                    fit_type: str,
+                                    output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Plot the delta phi away-side yields. """
+    def away_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+        """ Helper function to provide the ExtractedObservable. """
+        return cast(analysis_objects.ExtractedObservable, yields.away_side.value)
+
+    def away_side_extraction_range(analysis: "correlations.Correlations") -> str:
+        """ Helper function to provide the yield extraction range.
+
+        We want to extract the value from the hist itself in case the binning is off (it shouldn't be).
+        """
+        # Setup
+        min_value, max_value = _find_extraction_range_min_and_max_in_hist(
+            h = analysis.correlation_hists_delta_phi_subtracted.signal_dominated.hist,
+            extraction_range = analysis.yields_delta_phi.away_side.extraction_range,
+        )
+        return labels.make_valid_latex_string(
+            r"\text{Yield extraction range:}\:"
+            fr" {_find_pi_coefficient(min_value)}"
+            r" < |\Delta\varphi| <"
+            fr" {_find_pi_coefficient(max_value)}"
+        )
+
+    _yield_ratio(
+        yield_ratios = yield_ratios, an_analysis = an_analysis,
+        extract_value_func = away_side_yields,
+        label = label,
+        plot_labels = plot_base.PlotLabels(
+            y_label = labels.make_valid_latex_string(
+                r"R = \text{Y}_{\text{Out}} / \text{Y}_{\text{In}}",
+            ),
+            title = "Away-side yield ratio",
+        ),
+        output_name = "yield_ratio_delta_phi_away_side",
+        fit_type = fit_type,
+        output_info = output_info,
+        projection_range_func = delta_phi_plot_projection_range_string,
+        extraction_range_func = away_side_extraction_range,
+    )

@@ -21,6 +21,7 @@ from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional,
 #       line options
 from jet_hadron.base.typing_helpers import Hist
 
+import pachyderm.fit
 from pachyderm import histogram
 from pachyderm import projectors
 from pachyderm.projectors import HistAxisRange
@@ -1975,7 +1976,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             systematic_yields = [systematic_yields[1] - subtracted_yield_value, subtracted_yield_value - systematic_yields[0]]
 
             # Cross check. We expect this systematic to be symmetric.
-            assert np.isclose(systematic_yields)
+            assert np.isclose(*systematic_yields)
 
         # Scale by track pt bin width
         # This includes the error values.
@@ -2264,6 +2265,17 @@ class CorrelationsManager(analysis_manager.Manager):
         )
         self.fit_objects: Dict[Any, rp_fit.ReactionPlaneFit] = {}
         self.fit_type = self.task_config["reaction_plane_fit"]["fit_type"]
+
+        # Store the yield ratios, differences. Since they don't depend on particular EP orientations,
+        # they don't belong in any particular Correlations object.
+        self.derived_yield_key_index = analysis_config.create_key_index_object(
+            "DerivedYieldKeyIndex",
+            iterables = {k: v for k, v in self.selected_iterables.items() if k != "reaction_plane_orientation"},
+        )
+        self.yield_ratios_out_vs_in: Dict[Any, CorrelationYields] = {}
+        self.yield_ratios_mid_vs_in: Dict[Any, CorrelationYields] = {}
+        self.yield_differences_out_vs_in: Dict[Any, CorrelationYields] = {}
+        self.yield_differences_mid_vs_in: Dict[Any, CorrelationYields] = {}
 
         # General histograms
         self.general_histograms = GeneralHistogramsManager(
@@ -2735,6 +2747,223 @@ class CorrelationsManager(analysis_manager.Manager):
 
         return True
 
+    def _calculate_yield_ratio(self, numerator: Correlations, denominator: Correlations,
+                               contributors: List[params.ReactionPlaneOrientation]) -> CorrelationYields:
+        """ Calculate yield ratio from the given Correlations objects.
+
+        Args:
+            numerator: Numerator in the ratio.
+            denominator: Denominator in the ratio.
+            contributors: EP orientations which contribute to the ratio being measured.
+            yield_output_objects: Where the yield outputs should be stored.
+        Returns:
+            True if the yield ratios were successfully extracted.
+        """
+        # Store the objects until we're ready to create the full object
+        yield_ratios = {}
+        for (numerator_attribute_name, numerator_yield_obj), (denominator_attribute_name, denominator_yield_obj) in \
+                zip(numerator.yields_delta_phi, denominator.yields_delta_phi):
+            # Yield ratio value
+            yield_ratio = numerator_yield_obj.value.value / denominator_yield_obj.value.value
+
+            # Standard error prop to handle stat uncertainty
+            yield_ratio_error = yield_ratio * np.sqrt(
+                (numerator_yield_obj.value.error / numerator_yield_obj.value.value) ** 2
+                + (denominator_yield_obj.value.error / denominator_yield_obj.value.value) ** 2
+            )
+
+            # TODO: Background uncertainty
+            if False:
+                # Check if this is actually right...
+                # It's currently not because it treats the intergral point by point. You really
+                # have to integrate the numerator and the denominator separately.
+                def signal_yield_numerator(x: Union[float, np.ndarray]) -> np.ndarray:
+                    hist = numerator.correlation_hists_delta_phi.signal_dominated.hist
+                    return hist.y[hist.find_bin(x)]
+
+                def signal_yield_denominator(x: Union[float, np.ndarray]) -> np.ndarray:
+                    hist = denominator.correlation_hists_delta_phi.signal_dominated.hist
+                    return hist.y[hist.find_bin(x)]
+
+                ratio_numerator = pachyderm.fit.SubtractPDF(signal_yield_numerator, numerator.fit_object.fit_function)
+                ratio_denominator = pachyderm.fit.SubtractPDF(signal_yield_denominator, denominator.fit_object.fit_function)
+                ratio = pachyderm.fit.DividePDF(ratio_numerator, ratio_denominator)
+                # The numerator and denominator fit result should be identical here.
+                errors = pachyderm.fit.calculate_function_errors(
+                    func = ratio, fit_result = numerator.fit_object.fit_result,
+                    x = numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                )
+                error_hist = histogram.Histogram1D(
+                    bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                    y = errors,
+                    errors_squared = np.ones(len(errors)),
+                )
+                yield_range = numerator_yield_obj.extraction_range
+                #systematic, _ = error_hist.integral(
+                systematic = error_hist.integral(
+                    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                )
+                # TEMP
+                evaluated = ratio(numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                                  *numerator.fit_object.fit_result.values_at_minimum.values())
+                evaluated_hist = histogram.Histogram1D(
+                    bin_edges = error_hist.bin_edges,
+                    y = evaluated,
+                    # Should I just put the errors here?
+                    errors_squared = np.ones(len(errors))
+                )
+                evaluated_value = evaluated_hist.integral(
+                    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                )
+                logger.debug(f"evaluated: {evaluated}, evaluated_value: {evaluated_value}")
+                # ENDTEMP
+            else:
+                # We take just the first systematic term. We already asserted that they're the same,
+                # so it doesn't particularly matter.
+                systematic = yield_ratio * np.sqrt(
+                    (numerator_yield_obj.value.metadata["mixed_event_scale_systematic"][0] / numerator_yield_obj.value.value) ** 2
+                    + (denominator_yield_obj.value.metadata["mixed_event_scale_systematic"][0] / denominator_yield_obj.value.value) ** 2
+                )
+            logger.debug(f"yield_ratio: {yield_ratio}, yield_ratio_error: {yield_ratio_error}, systematic: {systematic}")
+
+            # Store the result.
+            # name is either "near_side" or "away_side"
+            yield_ratios[numerator_attribute_name] = extracted.ExtractedYieldRatio(
+                value = analysis_objects.ExtractedObservable(
+                    value = yield_ratio, error = yield_ratio_error,
+                    metadata = {"mixed_event_scale_systematic": systematic},
+                ),
+                central_value = numerator_yield_obj.central_value,
+                extraction_limit = numerator_yield_obj.extraction_limit,
+                contributors = list(contributors),
+            )
+
+        return CorrelationYields(
+            near_side = yield_ratios["near_side"],
+            away_side = yield_ratios["away_side"],
+        )
+
+    def yield_ratios(self) -> bool:
+        """ Calculate yield ratios. """
+        # 2 * the number because we extract both out/in and mid/in.
+        n_steps = 2 * int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
+        with self._progress_manager.counter(total = n_steps,
+                                            desc = "Extractin' yield ratios:",
+                                            unit = "associated pt bins") as extracting:
+            for ep_analyses in \
+                    analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ):
+                # Setup
+                analyses = {}
+                for key_index, analysis in ep_analyses:
+                    analyses[key_index.reaction_plane_orientation] = analysis
+                in_plane = analyses[params.ReactionPlaneOrientation.in_plane]
+                mid_plane = analyses[params.ReactionPlaneOrientation.mid_plane]
+                out_of_plane = analyses[params.ReactionPlaneOrientation.out_of_plane]
+
+                # Determine the key index for the yield ratio. Since it doesn't depend on the
+                # EP orientation, we can just take the last remaining key_index from the iteration above.
+                yield_key_index = self.derived_yield_key_index(
+                    **{k: v for k, v in key_index if k != "reaction_plane_orientation"}
+                )
+
+                # Out / in
+                self.yield_ratios_out_vs_in[yield_key_index] = self._calculate_yield_ratio(
+                    numerator = out_of_plane, denominator = in_plane,
+                    contributors = [params.ReactionPlaneOrientation.out_of_plane,
+                                    params.ReactionPlaneOrientation.in_plane],
+                )
+
+                # Update progress
+                extracting.update()
+
+                # Mid / in
+                self.yield_ratios_mid_vs_in[yield_key_index] = self._calculate_yield_ratio(
+                    numerator = mid_plane, denominator = in_plane,
+                    contributors = [params.ReactionPlaneOrientation.mid_plane,
+                                    params.ReactionPlaneOrientation.in_plane],
+                )
+
+                # Update progress
+                extracting.update()
+
+        # Plot
+        # Out vs in
+        plot_extracted.delta_phi_near_side_yield_ratio(
+            yield_ratios = self.yield_ratios_out_vs_in,
+            an_analysis = in_plane,
+            label = "Out / in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+        plot_extracted.delta_phi_away_side_yield_ratio(
+            yield_ratios = self.yield_ratios_out_vs_in,
+            an_analysis = in_plane,
+            label = "Out / in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+
+        # Mid vs in
+        plot_extracted.delta_phi_near_side_yield_ratio(
+            yield_ratios = self.yield_ratios_mid_vs_in,
+            an_analysis = in_plane,
+            label = "Mid / in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+        plot_extracted.delta_phi_away_side_yield_ratio(
+            yield_ratios = self.yield_ratios_mid_vs_in,
+            an_analysis = in_plane,
+            label = "Mid / in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+
+        return True
+
+    def yield_differences(self) -> bool:
+        """ Calculate yield differences. """
+        raise RuntimeError("Stahp")
+        # 2 * the number because we extract both out/in and mid/in.
+        n_steps = 2 * int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
+        with self._progress_manager.counter(total = n_steps,
+                                            desc = "Extractin' yield differences:",
+                                            unit = "associated pt bins") as extracting:
+            for ep_analyses in \
+                    analysis_config.iterate_with_selected_objects_in_order(
+                        analysis_objects = self.analyses,
+                        analysis_iterables = self.selected_iterables,
+                        selection = "reaction_plane_orientation",
+                    ):
+                # Setup
+                analyses = {}
+                for key_index, analysis in ep_analyses:
+                    analyses[key_index.reaction_plane_orientation] = analysis
+                in_plane = analyses[params.ReactionPlaneOrientation.in_plane]
+                mid_plane = analyses[params.ReactionPlaneOrientation.mid_plane]
+                out_of_plane = analyses[params.ReactionPlaneOrientation.out_of_plane]
+
+                # Out / in
+                self._calculate_yield_difference(
+                    numerator = out_of_plane, denominator = in_plane,
+                    yield_output_objects = self.yield_ratios_out_vs_in,
+                )
+
+                # Mid / in
+                self._calculate_yield_difference(
+                    numerator = mid_plane, denominator = in_plane,
+                    yield_output_objects = self.yield_ratios_mid_vs_in,
+                )
+
+            # Update progress
+            extracting.update()
+
+        return True
+
     def extract_widths(self) -> bool:
         """ Extract widths from analysis objects. """
         with self._progress_manager.counter(total = len(self.analyses),
@@ -2808,8 +3037,10 @@ class CorrelationsManager(analysis_manager.Manager):
         # 6. Fit and plot the correlations.
         # 7. Subtract the fits from the correlations.
         # 8. Extract and plot the yields.
-        # 9. Extract and plot the widths.
-        steps = 9
+        # 9. Extract and plot the yield ratios.
+        # 10. Extract and plot the yield differences.
+        # 11. Extract and plot the widths.
+        steps = 11
         with self._progress_manager.counter(total = steps,
                                             desc = "Overall processing progress:",
                                             unit = "") as overall_progress:
@@ -2849,6 +3080,14 @@ class CorrelationsManager(analysis_manager.Manager):
 
             # Extract yields
             self.extract_yields()
+            overall_progress.update()
+
+            # Yield ratios
+            self.yield_ratios()
+            overall_progress.update()
+
+            # Yield differences
+            self.yield_differences()
             overall_progress.update()
 
             # Extract widths

@@ -6,6 +6,7 @@
 """
 
 from dataclasses import dataclass
+from typing import List
 
 import pachyderm.fit
 
@@ -25,6 +26,14 @@ class ExtractedYield:
             min = self.central_value - self.extraction_limit,
             max = self.central_value + self.extraction_limit
         )
+
+@dataclass
+class ExtractedYieldRatio(ExtractedYield):
+    contributors: List[params.ReactionPlaneOrientation]
+
+@dataclass
+class ExtractedYieldDifference(ExtractedYield):
+    contributors: List[params.ReactionPlaneOrientation]
 
 @dataclass
 class ExtractedWidth:
