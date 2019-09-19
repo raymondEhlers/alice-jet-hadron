@@ -687,9 +687,9 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
         bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
         marker = "o", linestyle = "",
     )
-    # Plot the scale uncertainty systematic if it's available.
+    # Plot the fit uncertainty if it's available.
     if "fit_error" in values[key_index.track_pt_bin].metadata:
-        logger.debug(f"Plotting the fit errors")
+        logger.debug(f"Plotting the fit errors.")
         boxes = plot_base.error_boxes(
             ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
             x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
@@ -907,7 +907,7 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
         bin_centers, [v.value for v in values.values()], yerr = [v.error for v in values.values()],
         marker = "o", linestyle = "",
     )
-    # Plot the scale uncertainty systematic if it's available.
+    # Plot the fit uncertainty if it's available.
     if "fit_error" in values[key_index.track_pt_bin].metadata:
         logger.debug(f"Plotting the fit errors")
         boxes = plot_base.error_boxes(
@@ -917,6 +917,17 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
             label = "Background", color = plot_base.AnalysisColors.fit,
         )
         error_boxes["fit_error"] = boxes
+    # Plot the scale uncertainty systematic if it's available.
+    if "mixed_event_scale_systematic" in values[key_index.track_pt_bin].metadata:
+        logger.debug(f"Plotting the mixed event scale systematic.")
+        boxes = plot_base.error_boxes(
+            ax = ax, x_data = bin_centers, y_data = np.array([v.value for v in values.values()]),
+            x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
+            # Transposed so that it's in the right format for plotting
+            y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
+            label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+        )
+        error_boxes["systematic"] = boxes
 
     # Labels.
     # General
@@ -956,7 +967,7 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
         )
 
     # Set a uniform range
-    ax.set_ylim(-0.9, 0.9)
+    ax.set_ylim(-1.5, 1.5)
     # Add a line at 0 for reference
     ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 
@@ -1019,7 +1030,7 @@ def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlati
         label = label,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                fr"D_{{RP}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
+                fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
                 + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
             ),
             title = "Near-side yield difference",
@@ -1067,7 +1078,7 @@ def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlati
         label = label,
         plot_labels = plot_base.PlotLabels(
             y_label = labels.make_valid_latex_string(
-                fr"D_{{RP}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
+                fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
                 + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
             ),
             title = "Away-side yield difference",

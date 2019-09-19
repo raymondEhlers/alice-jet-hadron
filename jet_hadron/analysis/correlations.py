@@ -2944,14 +2944,25 @@ class CorrelationsManager(analysis_manager.Manager):
             yield_difference = first_term_yield_obj.value.value - second_term_yield_obj.value.value
 
             # Standard error prop to handle stat uncertainty
-            yield_difference_error = yield_difference * np.sqrt(
+            yield_difference_error = np.sqrt(
                 (first_term_yield_obj.value.error) ** 2 + (second_term_yield_obj.value.error) ** 2
             )
 
             # Background uncertainty
-            fit_error = yield_difference * np.sqrt(
+            fit_error = np.sqrt(
                 (first_term_yield_obj.value.metadata["fit_error"]) ** 2
                 + (second_term_yield_obj.value.metadata["fit_error"]) ** 2
+            )
+            logger.debug(
+                f"yield_difference: {yield_difference}, yield_difference_error: {yield_difference_error}, "
+                f"fit_error: {fit_error}"
+            )
+
+            # Scale uncertainty
+            # We've already asserted that the lower and upper systematics are the same, so we just take the lower
+            scale_uncertainty = np.sqrt(
+                first_term_yield_obj.value.metadata["mixed_event_scale_systematic"][0] ** 2
+                + second_term_yield_obj.value.metadata["mixed_event_scale_systematic"][0] ** 2
             )
             logger.debug(
                 f"yield_difference: {yield_difference}, yield_difference_error: {yield_difference_error}, "
@@ -2963,7 +2974,10 @@ class CorrelationsManager(analysis_manager.Manager):
             yield_differences[first_term_attribute_name] = extracted.ExtractedYieldDifference(
                 value = analysis_objects.ExtractedObservable(
                     value = yield_difference, error = yield_difference_error,
-                    metadata = {"fit_error": fit_error},
+                    metadata = {
+                        "fit_error": fit_error,
+                        "mixed_event_scale_systematic": scale_uncertainty,
+                    },
                 ),
                 central_value = first_term_yield_obj.central_value,
                 extraction_limit = first_term_yield_obj.extraction_limit,
