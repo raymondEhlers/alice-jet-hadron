@@ -2924,9 +2924,59 @@ class CorrelationsManager(analysis_manager.Manager):
 
         return True
 
+    def _calculate_yield_difference(self, first_term: Correlations, second_term: Correlations,
+                                    contributors: List[params.ReactionPlaneOrientation]) -> CorrelationYields:
+        """ Calculate yield difference from the given Correlations objects.
+
+        Args:
+            first_term: First term in the expression
+            second_term: Second term in the expression
+            contributors: EP orientations which contribute to the difference being measured.
+            yield_output_objects: Where the yield outputs should be stored.
+        Returns:
+            True if the yield differences were successfully extracted.
+        """
+        # Store the objects until we're ready to create the full object
+        yield_differences = {}
+        for (first_term_attribute_name, first_term_yield_obj), (second_term_attribute_name, second_term_yield_obj) in \
+                zip(first_term.yields_delta_phi, second_term.yields_delta_phi):
+            # Yield difference value
+            yield_difference = first_term_yield_obj.value.value - second_term_yield_obj.value.value
+
+            # Standard error prop to handle stat uncertainty
+            yield_difference_error = yield_difference * np.sqrt(
+                (first_term_yield_obj.value.error) ** 2 + (second_term_yield_obj.value.error) ** 2
+            )
+
+            # Background uncertainty
+            fit_error = yield_difference * np.sqrt(
+                (first_term_yield_obj.value.metadata["fit_error"]) ** 2
+                + (second_term_yield_obj.value.metadata["fit_error"]) ** 2
+            )
+            logger.debug(
+                f"yield_difference: {yield_difference}, yield_difference_error: {yield_difference_error}, "
+                f"fit_error: {fit_error}"
+            )
+
+            # Store the result.
+            # name is either "near_side" or "away_side"
+            yield_differences[first_term_attribute_name] = extracted.ExtractedYieldDifference(
+                value = analysis_objects.ExtractedObservable(
+                    value = yield_difference, error = yield_difference_error,
+                    metadata = {"fit_error": fit_error},
+                ),
+                central_value = first_term_yield_obj.central_value,
+                extraction_limit = first_term_yield_obj.extraction_limit,
+                contributors = list(contributors),
+            )
+
+        return CorrelationYields(
+            near_side = yield_differences["near_side"],
+            away_side = yield_differences["away_side"],
+        )
+
     def yield_differences(self) -> bool:
         """ Calculate yield differences. """
-        raise RuntimeError("Stahp")
         # 2 * the number because we extract both out/in and mid/in.
         n_steps = 2 * int(len(self.analyses) / len(self.selected_iterables["reaction_plane_orientation"]))
         with self._progress_manager.counter(total = n_steps,
@@ -2946,20 +2996,64 @@ class CorrelationsManager(analysis_manager.Manager):
                 mid_plane = analyses[params.ReactionPlaneOrientation.mid_plane]
                 out_of_plane = analyses[params.ReactionPlaneOrientation.out_of_plane]
 
-                # Out / in
-                self._calculate_yield_difference(
-                    numerator = out_of_plane, denominator = in_plane,
-                    yield_output_objects = self.yield_ratios_out_vs_in,
+                # Determine the key index for the yield difference. Since it doesn't depend on the
+                # EP orientation, we can just take the last remaining key_index from the iteration above.
+                yield_key_index = self.derived_yield_key_index(
+                    **{k: v for k, v in key_index if k != "reaction_plane_orientation"}
                 )
+
+                # Out - in
+                self.yield_differences_out_vs_in[yield_key_index] = self._calculate_yield_difference(
+                    first_term = out_of_plane, second_term = in_plane,
+                    contributors = [params.ReactionPlaneOrientation.out_of_plane,
+                                    params.ReactionPlaneOrientation.in_plane],
+                )
+
+                # Update progress
+                extracting.update()
 
                 # Mid / in
-                self._calculate_yield_difference(
-                    numerator = mid_plane, denominator = in_plane,
-                    yield_output_objects = self.yield_ratios_mid_vs_in,
+                self.yield_differences_mid_vs_in[yield_key_index] = self._calculate_yield_difference(
+                    first_term = mid_plane, second_term = in_plane,
+                    contributors = [params.ReactionPlaneOrientation.mid_plane,
+                                    params.ReactionPlaneOrientation.in_plane],
                 )
 
-            # Update progress
-            extracting.update()
+                # Update progress
+                extracting.update()
+
+        # Plot
+        # Out vs in
+        plot_extracted.delta_phi_near_side_yield_difference(
+            yield_differences = self.yield_differences_out_vs_in,
+            an_analysis = in_plane,
+            label = "Out - in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+        plot_extracted.delta_phi_away_side_yield_difference(
+            yield_differences = self.yield_differences_out_vs_in,
+            an_analysis = in_plane,
+            label = "Out - in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+
+        # Mid vs in
+        plot_extracted.delta_phi_near_side_yield_difference(
+            yield_differences = self.yield_differences_mid_vs_in,
+            an_analysis = in_plane,
+            label = "Mid - in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
+        plot_extracted.delta_phi_away_side_yield_difference(
+            yield_differences = self.yield_differences_mid_vs_in,
+            an_analysis = in_plane,
+            label = "Mid - in",
+            fit_type = self.fit_type,
+            output_info = self.output_info,
+        )
 
         return True
 
