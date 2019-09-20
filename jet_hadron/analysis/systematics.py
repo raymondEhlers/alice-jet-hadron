@@ -208,57 +208,6 @@ class CorrelationsZVertexManager(analysis_manager.Manager):
                         logger.debug(f"Writing hist {hist} with name {hist.GetName()}")
                         hist.Write()
 
-class CompareMixedEventZVertexDependence(analysis_objects.JetHReactionPlane):
-    def __init__(self, jet_pt_bin: analysis_objects.JetPtBin, track_pt_bin: analysis_objects.TrackPtBin,
-                 *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
-        # Basic information
-        # Analysis parameters
-        self.jet_pt = jet_pt_bin
-        self.track_pt = track_pt_bin
-        # Identifier information
-        self.jet_pt_identifier = "jetPtBiased" if self.config["constituent_cut_biased_jets"] else "jetPt"
-        self.jet_pt_identifier += f"_{self.jet_pt.min}_{self.jet_pt.max}"
-        self.track_pt_identifier = f"trackPt_{self.track_pt.min}_{self.track_pt.max}"
-        self.identifier = f"{self.jet_pt_identifier}_{self.track_pt_identifier}"
-
-        self.nominal_signal: Hist = None
-        self.z_vertex_signal: Hist = None
-
-    def _retrieve_nominal(self, input_hists: Dict[str, Any]) -> None:
-        """ Retrieve the nominal 2D signal correlations. """
-        self.nominal_signal = input_hists[
-            f"jetH_delta_eta_delta_phi_{self.identifier}_signal"
-        ]
-
-    def _retrieve_zvertex_dependent(self, input_hists: Dict[str, Any]) -> None:
-        """ Retrieve the Z vertex dependent 2D signal correlations. """
-        self.signal_systematic = input_hists[
-            f"jetH_delta_eta_delta_phi_{self.identifier}_signal_mixed_event_systematic"
-        ]
-
-    def _compare_nominal_to_variation(self) -> None:
-        ...
-
-class CompareMixedEventZVertexDependenceManager(analysis_manager.Manager):
-    def __init__(self, config_filename: str, selected_analysis_options: params.SelectedAnalysisOptions, **kwargs: str):
-        super().__init__(
-            config_filename = config_filename, selected_analysis_options = selected_analysis_options,
-            manager_task_name = "CorrelationsManager", **kwargs,
-        )
-
-        self.analyses: Mapping[Any, CompareMixedEventZVertexDependence]
-
-    def _setup(self) -> None:
-        # Retrieve input histograms (with caching).
-        #input_hists: Dict[str, Any] = {}
-        #with self._progress_manager.counter(total = len(self.analyses),
-        #                                    desc = "Setting up:",
-        #                                    unit = "analysis objects") as setting_up:
-        #    for key_index, analysis in analysis_config.iterate_with_selected_objects(self.analyses, reacti):
-        #        ...
-        ...
-
 def run_mixed_event_systematics_from_terminal() -> CorrelationsZVertexManager:
     """ Driver function for running the mixed event systematics analysis. """
     # Basic setup
