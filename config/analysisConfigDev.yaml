@@ -44,6 +44,12 @@ _fixed_v4: &fixed_v4
     fix_v4_t: true
     v4_a: 0
     fix_v4_a: true
+# For testing a free v1
+_v1_test: &free_v1
+    fix_v1: false
+    v1: 1e-3
+    error_v1: 1e-4
+    limit_v1: [-0.5, 0.5]
 
 # Helpful binning information
 etaBins: !EtaBins [-1.5, -1.2, -0.8, -0.6, -0.4, 0, 0.4, 0.6, 0.8, 1.2, 1.5]
@@ -233,11 +239,6 @@ CorrelationsManager: &CorrelationsManagerConfig
                                     <<: *fixed_v4
                             trackPt_2.0_3.0:
                                 args:
-                                    # Signal terms
-                                    #fix_BG: true
-                                    #BG: 0
-                                    #ns_amplitude: 1.0
-                                    #as_amplitude: 0.2
                                     # Background terms
                                     limit_B: [0, 1e5]
                                     #fix_v2_t: true
