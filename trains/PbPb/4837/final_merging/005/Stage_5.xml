@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alien>
+  <collection name="/alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_5.xml">
+    <event name="1">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-20 04:52:14" dir="568781526" entryId="568781527" expiretime="" gowner="alitrain" guid="055792ee-db51-11e9-990e-e7f455cbf5d7" guidtime="" jobid="1621166130" lfn="/alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_3/001/root_archive.zip" md5="cc074e7e51dc4a3bcded440b42668179" owner="alitrain" perm="755" replicated="0" size="389694995" turl="alien:///alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_3/001/root_archive.zip" type="f"/>
+    </event>
+    <event name="2">
+      <file name="root_archive.zip" aclId="" broken="0" ctime="2019-09-20 04:58:41" dir="568781530" entryId="568781546" expiretime="" gowner="alitrain" guid="0f1eb162-db52-11e9-ab8b-5739a20ebec0" guidtime="" jobid="1621166131" lfn="/alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_3/002/root_archive.zip" md5="9208150f37a81deb2b0b99f7058dd9ac" owner="alitrain" perm="755" replicated="0" size="366802724" turl="alien:///alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_3/002/root_archive.zip" type="f"/>
+    </event>
+    <info command="find /alice/data/2015/LHC15o/000246434/pass1/AOD194/PWGJE/Jets_EMC_PbPb/4837_20190917-1835/Stage_3/ */root_archive.zip" creator="alitrain" date="Fri Sep 20 05:00:56 CEST 2019" timestamp="1568948456513"/>
+  </collection>
+</alien>
