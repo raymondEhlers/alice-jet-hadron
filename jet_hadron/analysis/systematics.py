@@ -198,6 +198,9 @@ class CorrelationsZVertexManager(analysis_manager.Manager):
         for ep_orientation in self.selected_iterables["reaction_plane_orientation"]:
             filename = Path(self.output_info.output_prefix) / ("RP" + str(ep_orientation)) / output_filename
             logger.debug(f"filename: {filename}")
+            # Create the directory if necessary
+            filename.parent.mkdir(parents = True, exist_ok = True)
+            # Write out the histograms.
             with histogram.RootOpen(filename = str(filename), mode = "UPDATE"):
                 for name, hist in merged_correlations.items():
                     # Only write the histogram if it's valid.
