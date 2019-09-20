@@ -462,7 +462,10 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
             restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
             restricted_hist = histogram.Histogram1D(
                 # We need the bin edges to be inclusive.
-                bin_edges = h.bin_edges[(h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max)],
+                # Need the +/- epsilons here to be extra safe, because apparently some of the <= and >= can fail
+                # (as might be guessed with floats, but I hadn't observed until now). We don't do this above
+                # because we don't want to be inclusive on the edges.
+                bin_edges = h.bin_edges[(h.bin_edges >= (fit_range.min - utils.epsilon)) & (h.bin_edges <= (fit_range.max + utils.epsilon))],
                 y = h.y[restricted_range],
                 errors_squared = h.errors_squared[restricted_range]
             )

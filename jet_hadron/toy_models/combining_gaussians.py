@@ -90,7 +90,10 @@ def restrict_hist_range(hist: histogram.Histogram1D, min_x: float, max_x: float)
         Restricted histogram.
     """
     selected_range = slice(hist.find_bin(min_x + epsilon), hist.find_bin(max_x - epsilon) + 1)
-    bin_edges_selected_range = ((hist.bin_edges >= min_x) & (hist.bin_edges <= max_x))
+    # Need the +/- epsilons here to be extra safe, because apparently some of the <= and >= can fail
+    # (as might be guessed with floats, but I hadn't observed until now). We don't do this above
+    # because we don't want to be inclusive on the edges.
+    bin_edges_selected_range = ((hist.bin_edges >= min_x - epsilon) & (hist.bin_edges <= max_x + epsilon))
     return histogram.Histogram1D(
         bin_edges = hist.bin_edges[bin_edges_selected_range], y = hist.y[selected_range],
         errors_squared = hist.errors_squared[selected_range]

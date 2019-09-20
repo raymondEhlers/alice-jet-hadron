@@ -14,6 +14,7 @@ import numpy as np
 import pachyderm.fit
 from pachyderm import histogram
 from pachyderm.fit import T_FitArguments
+from pachyderm.utils import epsilon
 
 from jet_hadron.base import params
 from jet_hadron.base.typing_helpers import Hist
@@ -225,9 +226,19 @@ class PedestalForDeltaEtaBackgroundDominatedRegion(pachyderm.fit.Fit):
             | ((h.x > fit_range.min) & (h.x < fit_range.max))
         )
         # Same conditions as above, but we need the bin edges to be inclusive.
+        # Need the +/- epsilons here to be extra safe, because apparently some of the <= and >= can fail
+        # (as might be guessed with floats, but I hadn't observed until now). We don't do this above
+        # because we don't want to be inclusive on the edges.
+        # NOTE: The histogram object doesn't really deal with discontinuous data well. To get around this,
+        #       we define a bin was [-0.8, 0.9] instead of the proper value of [0.8, 0.9). To do so, the positive
+        #       range is intentionally shorter by epsilon (ie. + epsilon) and not inclusive on the edge (ie. ">"
+        #       rather than ">=") because otherwise our binning won't match up. This isn't really ideal, but
+        #       because we're fitting to a pedestal here, x the position doesn't matter and this is much preferred
+        #       to adding a fake point.
+        #       Concretely, this means that the bin edges are: [-1.2, -1.1, -1. , -0.9, -0.8,  0.9,  1. ,  1.1,  1.2]
         bin_edges_restricted_range = (
-            ((h.bin_edges <= -1 * fit_range.min) & (h.bin_edges >= -1 * fit_range.max))
-            | ((h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max))
+            ((h.bin_edges <= -1 * (fit_range.min - epsilon)) & (h.bin_edges >= -1 * (fit_range.max + epsilon)))
+            | ((h.bin_edges > (fit_range.min + epsilon)) & (h.bin_edges <= (fit_range.max + epsilon)))
         )
         restricted_hist = histogram.Histogram1D(
             bin_edges = h.bin_edges[bin_edges_restricted_range],
@@ -308,7 +319,10 @@ class FitPedestalWithExtendedGaussian(pachyderm.fit.Fit):
         restricted_range = (h.x > fit_range.min) & (h.x < fit_range.max)
         restricted_hist = histogram.Histogram1D(
             # We need the bin edges to be inclusive.
-            bin_edges = h.bin_edges[(h.bin_edges >= fit_range.min) & (h.bin_edges <= fit_range.max)],
+            # Need the +/- epsilons here to be extra safe, because apparently some of the <= and >= can fail
+            # (as might be guessed with floats, but I hadn't observed until now). We don't do this above
+            # because we don't want to be inclusive on the edges.
+            bin_edges = h.bin_edges[(h.bin_edges >= (fit_range.min - epsilon)) & (h.bin_edges <= (fit_range.max + epsilon))],
             y = h.y[restricted_range],
             errors_squared = h.errors_squared[restricted_range]
         )
