@@ -4,4 +4,5 @@ trainNumber: 4703
 production: "LHC15o"
 alienOutputDir: "/alice/cern.ch/user/a/alitrain/PWGJE/Jets_EMC_PbPb/4703_20190723-0352/merge"
 status: |
-    "Jet-hadron correlations at 5 TeV with a 5 GeV track bias. Uses correct 5 TeV tracking efficiency."
+    "Jet-hadron correlations at 5 TeV with a 5 GeV track bias. Uses correct 5 TeV tracking efficiency. "
+    "Contains a bug in the jet pt binning, so this train shouldn't be used!"
