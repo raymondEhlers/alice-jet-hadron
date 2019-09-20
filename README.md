@@ -67,6 +67,19 @@ $ jetHCorrelations -c config/analysisConfigDev.yaml -e 5.02 -s PbPb -a semi_cent
 This would analyze semi-central Pb--Pb collisions at 5.02 TeV with a leading track bias as defined in the
 configuration file. Note that the location of input and output files are specified in the YAML configuration.
 
+In general, modules in the analysis, toy_models, and event_gen packages are executable with `python -m ...` if
+they don't have a dedicated executable installed by the package.
+
+### Running the correlations analysis
+
+When using the command above, the following steps are necessary:
+
+1. Run the mixed event scale uncertainty with `mixedEventSystematics -m jet_hadron.analysis.systematics`. This
+   requires Z vertex binning to be available in the THnSparse outputs (as it should be for any analyses going
+   forward).
+2. Run correlations analysis. If the mixed event scale uncertainty hasn't been run yet, it will stop when it's
+   needed.
+
 ### Pre-commit checks
 
 It is strongly recommended to install `pre-commit` (from pip or elsewhere) and then run

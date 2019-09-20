@@ -1734,7 +1734,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         filename = os.path.join(self.output_prefix, self.output_filename)
         hists = histogram.get_histograms_in_file(filename = filename)
-        z_vertex_signal = hists[self.correlation_hists_2d.signal.name + "_mixed_event_systematic"]
+        try:
+            z_vertex_signal = hists[self.correlation_hists_2d.signal.name + "_mixed_event_systematic"]
+        except KeyError as e:
+            raise RuntimeError("Need to run mixed event scale uncertainty task.") from e
 
         #logger.debug(f"Calling systematic calculation for {self.identifier}, {self.reaction_plane_orientation}")
         mixed_event_scale_uncertainty = correlations_helpers.calculate_systematic_2D(
