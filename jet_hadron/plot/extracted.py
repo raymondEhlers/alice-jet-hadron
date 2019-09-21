@@ -23,9 +23,12 @@ from jet_hadron.base import labels
 from jet_hadron.base import params
 from jet_hadron.plot import base as plot_base
 
+# Careful here! We're taking the unusual step of import a module in the analysis package.
+# However, it's extremely convenient, so we break convention here.
+from jet_hadron.analysis import extracted
+
 if TYPE_CHECKING:
     from jet_hadron.analysis import correlations
-    from jet_hadron.analysis import extracted  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -634,8 +637,8 @@ def delta_eta_near_side_yields(analyses: Mapping[Any, "correlations.Correlations
         extraction_range_func = near_side_extraction_range,
     )
 
-def _determine_contributors_label_names(yield_value: Union["extracted.ExtractedYieldRatio",
-                                                           "extracted.ExtractedYieldDifference"]) -> List[str]:
+def _determine_contributors_label_names(yield_value: Union[extracted.ExtractedYieldRatio,
+                                                           extracted.ExtractedYieldDifference]) -> List[str]:
     """ Determine contributor label names from a stored yield object.
 
     For example, it converts "out_of_plane" -> "out".
@@ -654,7 +657,26 @@ def _determine_contributors_label_names(yield_value: Union["extracted.ExtractedY
 
     return names
 
-def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
+def _determine_JEWEL_prediction_observable(yield_value: Union[extracted.ExtractedYieldRatio,
+                                                              extracted.ExtractedYieldDifference]) -> str:
+    """ Determine JEWEL prediction filename from a stored yield object.
+
+    For example, it converts "out_of_plane" -> "out".
+
+    Args:
+        yield_value: A single yield value.
+    Returns:
+        Tuple of the names of the contributors, ordered as they were stored.
+    """
+    names = _determine_contributors_label_names(yield_value)
+    if isinstance(yield_value, extracted.ExtractedYieldRatio):
+        middle_term = "Over"
+    else:
+        middle_term = "Minus"
+    names = [n.capitalize() for n in names]
+    return f"{names[0]}{middle_term}{names[1]}"
+
+def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
                  extract_value_func: Callable[["correlations.CorrelationsYields"], analysis_objects.ExtractedObservable],
                  an_analysis: "correlations.Correlations",
                  label: str,
@@ -662,6 +684,7 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
                  output_name: str,
                  fit_type: str,
                  output_info: analysis_objects.PlottingOutputWrapper,
+                 JEWEL_predictions: Optional[extracted.JEWELPredictions] = None,
                  projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                  extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
     """ Plot yield ratios for out / in and mid / in.
@@ -675,6 +698,7 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
+        JEWEL_predictions: JEWEL predictions to plot. Default: None.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
         extraction_range_func: Function which will provide the extraction range of the extracted value given
@@ -709,6 +733,22 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
             label = "Background", color = plot_base.AnalysisColors.fit,
         )
         error_boxes["fit_error"] = boxes
+
+    # Add JEWEL predictions if available
+    if JEWEL_predictions:
+        for prediction_type, prediction in JEWEL_predictions:
+            # Plot the JEWEL predictions as a line with bands.
+            ax.plot(
+                prediction.x, prediction.y,
+                label = f"JEWEL {JEWEL_predictions.display_name(prediction_type)}",
+                color = plot_base.AnalysisColors.prediction,
+                # Use a solid line for keeping recoils, and a dashed line for no recoils.
+                linestyle = "-" if prediction_type == "keep_recoils" else "--"
+            )
+            ax.fill_between(
+                prediction.x, prediction.y - prediction.errors, prediction.y + prediction.errors,
+                color = plot_base.AnalysisColors.prediction, alpha = 0.3,
+            )
 
     # Labels.
     # General
@@ -768,7 +808,8 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
     handles.extend(
         [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
     )
-    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
+    # The handles are reversed so the background will show up first with the JEWEL labels below.
+    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = list(reversed(handles)))
 
     # Final adjustments
     fig.tight_layout()
@@ -805,22 +846,32 @@ def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_ratios.values())).near_side
     numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
-    _yield_ratio(
-        yield_ratios = yield_ratios, an_analysis = an_analysis,
-        extract_value_func = near_side_yields,
-        label = label,
-        plot_labels = plot_base.PlotLabels(
-            y_label = labels.make_valid_latex_string(
-                fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
-            ),
-            title = "Near-side yield ratio",
-        ),
-        output_name = "yield_ratio_delta_phi_near_side",
-        fit_type = fit_type,
-        output_info = output_info,
-        projection_range_func = delta_phi_plot_projection_range_string,
-        extraction_range_func = near_side_extraction_range,
+
+    # Determine the JEWEL predictions.
+    JEWEL_predictions = extracted.load_JEWEL_predictions(
+        an_analysis.collision_system, an_analysis.collision_energy,
+        an_analysis.event_activity, _determine_JEWEL_prediction_observable(single_yield), side = "NS",
     )
+
+    # Plot both with and without JEWEL
+    for plot_JEWEL_predictions in [False, True]:
+        _yield_ratio(
+            yield_ratios = yield_ratios, an_analysis = an_analysis,
+            extract_value_func = near_side_yields,
+            label = label,
+            plot_labels = plot_base.PlotLabels(
+                y_label = labels.make_valid_latex_string(
+                    fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
+                ),
+                title = "Near-side yield ratio",
+            ),
+            output_name = "yield_ratio_delta_phi_near_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
+            fit_type = fit_type,
+            output_info = output_info,
+            JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
+            projection_range_func = delta_phi_plot_projection_range_string,
+            extraction_range_func = near_side_extraction_range,
+        )
 
 def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationsYields"],
                                     an_analysis: "correlations.Correlations",
@@ -852,28 +903,38 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_ratios.values())).away_side
     numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
-    _yield_ratio(
-        yield_ratios = yield_ratios, an_analysis = an_analysis,
-        extract_value_func = away_side_yields,
-        label = label,
-        plot_labels = plot_base.PlotLabels(
-            y_label = labels.make_valid_latex_string(
-                fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
-            ),
-            title = "Away-side yield ratio",
-        ),
-        output_name = "yield_ratio_delta_phi_away_side",
-        fit_type = fit_type,
-        output_info = output_info,
-        projection_range_func = delta_phi_plot_projection_range_string,
-        extraction_range_func = away_side_extraction_range,
+
+    # Determine the JEWEL predictions.
+    JEWEL_predictions = extracted.load_JEWEL_predictions(
+        an_analysis.collision_system, an_analysis.collision_energy,
+        an_analysis.event_activity, _determine_JEWEL_prediction_observable(single_yield), side = "AS",
     )
+
+    # Plot both with and without JEWEL
+    for plot_JEWEL_predictions in [False, True]:
+        _yield_ratio(
+            yield_ratios = yield_ratios, an_analysis = an_analysis,
+            extract_value_func = away_side_yields,
+            label = label,
+            plot_labels = plot_base.PlotLabels(
+                y_label = labels.make_valid_latex_string(
+                    fr"R = \text{{Y}}_{{\text{{{numerator_name}}}}} / \text{{Y}}_{{\text{{{denominator_name}}}}}",
+                ),
+                title = "Away-side yield ratio",
+            ),
+            output_name = "yield_ratio_delta_phi_away_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
+            fit_type = fit_type,
+            output_info = output_info,
+            JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
+            projection_range_func = delta_phi_plot_projection_range_string,
+            extraction_range_func = away_side_extraction_range,
+        )
 
 ###################
 # Yield differences
 ###################
 
-def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDifference"],
+def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDifference],
                       extract_value_func: Callable[["correlations.CorrelationsYields"],
                                                    analysis_objects.ExtractedObservable],
                       an_analysis: "correlations.Correlations",
@@ -882,6 +943,7 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
                       output_name: str,
                       fit_type: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
+                      JEWEL_predictions: Optional[extracted.JEWELPredictions] = None,
                       projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                       extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
     """ Plot yield differences for out / in and mid / in.
@@ -895,6 +957,7 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
+        JEWEL_predictions: JEWEL predictions to plot. Default: None.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
         extraction_range_func: Function which will provide the extraction range of the extracted value given
@@ -940,6 +1003,22 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
             label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
         )
         error_boxes["systematic"] = boxes
+
+    # Add JEWEL predictions if available
+    if JEWEL_predictions:
+        for prediction_type, prediction in JEWEL_predictions:
+            # Plot the JEWEL predictions as a line with bands.
+            ax.plot(
+                prediction.x, prediction.y,
+                label = f"JEWEL {JEWEL_predictions.display_name(prediction_type)}",
+                color = plot_base.AnalysisColors.prediction,
+                # Use a solid line for keeping recoils, and a dashed line for no recoils.
+                linestyle = "-" if prediction_type == "keep_recoils" else "--"
+            )
+            ax.fill_between(
+                prediction.x, prediction.y - prediction.errors, prediction.y + prediction.errors,
+                color = plot_base.AnalysisColors.prediction, alpha = 0.3,
+            )
 
     # Labels.
     # General
@@ -1002,7 +1081,9 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
     handles.extend(
         [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
     )
-    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
+    # TODO: Update the loc with the scale uncertainty label.
+    # The handles are reversed so the background will show up first with the JEWEL labels below.
+    ax.legend(loc = (0.03, 0.12), frameon = False, fontsize = 14, handles = list(reversed(handles)))
 
     # Final adjustments
     fig.tight_layout()
@@ -1039,23 +1120,33 @@ def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlati
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_differences.values())).near_side
     first_term_name, second_term_name = _determine_contributors_label_names(single_yield)
-    _yield_difference(
-        yield_differences = yield_differences, an_analysis = an_analysis,
-        extract_value_func = near_side_yields,
-        label = label,
-        plot_labels = plot_base.PlotLabels(
-            y_label = labels.make_valid_latex_string(
-                fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
-                + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
-            ),
-            title = "Near-side yield difference",
-        ),
-        output_name = "yield_difference_delta_phi_near_side",
-        fit_type = fit_type,
-        output_info = output_info,
-        projection_range_func = delta_phi_plot_projection_range_string,
-        extraction_range_func = near_side_extraction_range,
+
+    # Determine the JEWEL predictions.
+    JEWEL_predictions = extracted.load_JEWEL_predictions(
+        an_analysis.collision_system, an_analysis.collision_energy,
+        an_analysis.event_activity, _determine_JEWEL_prediction_observable(single_yield), side = "NS",
     )
+
+    # Plot both with and without JEWEL
+    for plot_JEWEL_predictions in [False, True]:
+        _yield_difference(
+            yield_differences = yield_differences, an_analysis = an_analysis,
+            extract_value_func = near_side_yields,
+            label = label,
+            plot_labels = plot_base.PlotLabels(
+                y_label = labels.make_valid_latex_string(
+                    fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
+                    + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
+                ),
+                title = "Near-side yield difference",
+            ),
+            output_name = "yield_difference_delta_phi_near_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
+            fit_type = fit_type,
+            output_info = output_info,
+            JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
+            projection_range_func = delta_phi_plot_projection_range_string,
+            extraction_range_func = near_side_extraction_range,
+        )
 
 def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlations.CorrelationsYields"],
                                          an_analysis: "correlations.Correlations",
@@ -1087,20 +1178,30 @@ def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlati
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_differences.values())).away_side
     first_term_name, second_term_name = _determine_contributors_label_names(single_yield)
-    _yield_difference(
-        yield_differences = yield_differences, an_analysis = an_analysis,
-        extract_value_func = away_side_yields,
-        label = label,
-        plot_labels = plot_base.PlotLabels(
-            y_label = labels.make_valid_latex_string(
-                fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
-                + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
-            ),
-            title = "Away-side yield difference",
-        ),
-        output_name = "yield_difference_delta_phi_away_side",
-        fit_type = fit_type,
-        output_info = output_info,
-        projection_range_func = delta_phi_plot_projection_range_string,
-        extraction_range_func = away_side_extraction_range,
+
+    # Determine the JEWEL predictions.
+    JEWEL_predictions = extracted.load_JEWEL_predictions(
+        an_analysis.collision_system, an_analysis.collision_energy,
+        an_analysis.event_activity, _determine_JEWEL_prediction_observable(single_yield), side = "AS",
     )
+
+    # Plot both with and without JEWEL
+    for plot_JEWEL_predictions in [False, True]:
+        _yield_difference(
+            yield_differences = yield_differences, an_analysis = an_analysis,
+            extract_value_func = away_side_yields,
+            label = label,
+            plot_labels = plot_base.PlotLabels(
+                y_label = labels.make_valid_latex_string(
+                    fr"\text{{D}}_{{\text{{RP}}}} = \text{{Y}}_{{\text{{{first_term_name}}}}} - \text{{Y}}_{{\text{{{second_term_name}}}}}"
+                    + fr"\:({labels.momentum_units_label_gev()}^{{-1}})",
+                ),
+                title = "Away-side yield difference",
+            ),
+            output_name = "yield_difference_delta_phi_away_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
+            fit_type = fit_type,
+            output_info = output_info,
+            JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
+            projection_range_func = delta_phi_plot_projection_range_string,
+            extraction_range_func = away_side_extraction_range,
+        )

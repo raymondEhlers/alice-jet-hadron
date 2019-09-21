@@ -33,6 +33,7 @@ class AnalysisColors:
     background = "tab:orange"  # "C1" in the default MPL color cycle
     fit = "tab:purple"  # "C4" in the default MPL color cycle
     systematic = "tab:gray"  # "C7" in the default MPL color cycle
+    prediction = "tab:red"  # "C3" in the default MPL color cycle
 
 @dataclass
 class PlotLabels:
