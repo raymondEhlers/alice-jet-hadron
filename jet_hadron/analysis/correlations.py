@@ -2778,48 +2778,144 @@ class CorrelationsManager(analysis_manager.Manager):
             # TODO: Background uncertainty
             if False:
                 # Check if this is actually right...
-                # It's currently not because it treats the intergral point by point. You really
+                # Defining the ratio directly is not correct because it treats the intergral point by point. You really
                 # have to integrate the numerator and the denominator separately.
-                def signal_yield_numerator(x: Union[float, np.ndarray]) -> np.ndarray:
-                    hist = numerator.correlation_hists_delta_phi.signal_dominated.hist
-                    return hist.y[hist.find_bin(x)]
+                #def signal_yield_numerator(x: Union[float, np.ndarray]) -> np.ndarray:
+                #    hist = numerator.correlation_hists_delta_phi.signal_dominated.hist
+                #    return hist.y[hist.find_bin(x)]
 
-                def signal_yield_denominator(x: Union[float, np.ndarray]) -> np.ndarray:
-                    hist = denominator.correlation_hists_delta_phi.signal_dominated.hist
-                    return hist.y[hist.find_bin(x)]
+                #def signal_yield_denominator(x: Union[float, np.ndarray]) -> np.ndarray:
+                #    hist = denominator.correlation_hists_delta_phi.signal_dominated.hist
+                #    return hist.y[hist.find_bin(x)]
 
-                ratio_numerator = pachyderm.fit.SubtractPDF(signal_yield_numerator, numerator.fit_object.fit_function)
-                ratio_denominator = pachyderm.fit.SubtractPDF(signal_yield_denominator, denominator.fit_object.fit_function)
-                ratio = pachyderm.fit.DividePDF(ratio_numerator, ratio_denominator)
-                # The numerator and denominator fit result should be identical here.
-                errors = pachyderm.fit.calculate_function_errors(
-                    func = ratio, fit_result = numerator.fit_object.fit_result,
+                #ratio_numerator = pachyderm.fit.SubtractPDF(signal_yield_numerator, numerator.fit_object.fit_function)
+                #ratio_denominator = pachyderm.fit.SubtractPDF(signal_yield_denominator, denominator.fit_object.fit_function)
+                #numerator_errors = pachyderm.fit.calculate_function_errors(
+                #    func = ratio_numerator, fit_result = numerator.fit_object.fit_result,
+                #    x = numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                #)
+                #denominator_errors = pachyderm.fit.calculate_function_errors(
+                #    func = ratio_denominator, fit_result = numerator.fit_object.fit_result,
+                #    x = numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                #)
+                #yield_range = numerator_yield_obj.extraction_range
+                #numerator_error_hist = histogram.Histogram1D(
+                #    bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                #    y = numerator_errors,
+                #    errors_squared = np.ones(len(numerator_errors)),
+                #)
+                #numerator_error_yield = numerator_error_hist.integral(
+                #    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                #)
+                #denominator_error_hist = histogram.Histogram1D(
+                #    bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                #    y = denominator_errors,
+                #    errors_squared = np.ones(len(denominator_errors)),
+                #)
+                #denominator_error_yield = denominator_error_hist.integral(
+                #    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                #)
+
+                # Calculate covariance term
+                fit_result = numerator.fit_object.fit_result
+                name_to_index = {
+                    name: list(fit_result.values_at_minimum).index(name) for name in fit_result.free_parameters
+                }
+                #covariance_term = np.zeros(len(numerator.correlation_hists_delta_phi.signal_dominated.hist.x))
+                covariance_term = 0
+                yield_range = numerator_yield_obj.extraction_range
+                # Determine x range (which we will then integrate over.
+                partial_derivative_numerator = pachyderm.fit.evaluate_gradient(
+                    func = numerator.fit_object.fit_function, fit_result = numerator.fit_object.fit_result,
                     x = numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
                 )
-                error_hist = histogram.Histogram1D(
-                    bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
-                    y = errors,
-                    errors_squared = np.ones(len(errors)),
+                # [1] is the number of free parameters
+                partial_derivative_numerator_yield = np.ones(partial_derivative_numerator.shape[1])
+                for i, x_yields in enumerate(partial_derivative_numerator.T):
+                    # This is super inefficient, but it's also a convenience way to take advantage of
+                    # the integral functionality.
+                    h = histogram.Histogram1D(
+                        bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                        y = x_yields,
+                        errors_squared = np.ones_like(numerator.correlation_hists_delta_phi.signal_dominated.hist.x),
+                    )
+                    partial_derivative_numerator_yield[i], _ = h.integral(
+                        min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                    )
+
+                partial_derivative_denominator = pachyderm.fit.evaluate_gradient(
+                    func = denominator.fit_object.fit_function, fit_result = denominator.fit_object.fit_result,
+                    x = denominator.correlation_hists_delta_phi.signal_dominated.hist.x,
                 )
-                yield_range = numerator_yield_obj.extraction_range
-                #systematic, _ = error_hist.integral(
-                systematic = error_hist.integral(
-                    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                partial_derivative_denominator_yield = np.ones(partial_derivative_denominator.shape[1])
+                for i, x_yields in enumerate(partial_derivative_denominator.T):
+                    # This is super inefficient, but it's also a convenience way to take advantage of
+                    # the integral functionality.
+                    h = histogram.Histogram1D(
+                        bin_edges = denominator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                        y = x_yields,
+                        errors_squared = np.ones_like(denominator.correlation_hists_delta_phi.signal_dominated.hist.x),
+                    )
+                    partial_derivative_denominator_yield[i], _ = h.integral(
+                        min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                    )
+
+                for i_name in fit_result.free_parameters:
+                    for j_name in fit_result.free_parameters:
+                        # Determine the covariance term
+                        # Add yield to the overall covariance term
+                        covariance_term += (
+                            partial_derivative_numerator_yield[name_to_index[i_name]]
+                            * partial_derivative_denominator_yield[name_to_index[j_name]]
+                            * fit_result.covariance_matrix[(i_name, j_name)]
+                        )
+                        #logger.debug(f"Calculating covariance term for i_name: {i_name}, j_name: {j_name}, covariance: {covariance_term}")
+                #covariance_term = np.sqrt(covariance_term)
+
+                # Calculate the error
+                IPython.embed()
+                fit_error = yield_ratio * np.sqrt(
+                    (numerator_yield_obj.value.metadata["fit_error"] / numerator_yield_obj.value.value) ** 2
+                    + (denominator_yield_obj.value.metadata["fit_error"] / denominator_yield_obj.value.value) ** 2
+                    - 2 / (numerator_yield_obj.value.value * denominator_yield_obj.value.value) * covariance_term
                 )
+
+                larger_estimation = yield_ratio * np.sqrt(
+                    (numerator_yield_obj.value.metadata["fit_error"] / numerator_yield_obj.value.value) ** 2
+                    + (denominator_yield_obj.value.metadata["fit_error"] / denominator_yield_obj.value.value) ** 2
+                )
+
+                logger.debug(f"fit_error: {fit_error}, larger_estimation: {larger_estimation}")
+
+                #ratio = pachyderm.fit.DividePDF(ratio_numerator, ratio_denominator)
+                # The numerator and denominator fit result should be identical here.
+                #errors = pachyderm.fit.calculate_function_errors(
+                #    func = ratio, fit_result = numerator.fit_object.fit_result,
+                #    x = numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                #)
+                #error_hist = histogram.Histogram1D(
+                #    bin_edges = numerator.correlation_hists_delta_phi.signal_dominated.hist.bin_edges,
+                #    y = errors,
+                #    errors_squared = np.ones(len(errors)),
+                #)
+                ##systematic, _ = error_hist.integral(
+                #systematic = error_hist.integral(
+                #    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                #)
                 # TEMP
-                evaluated = ratio(numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
-                                  *numerator.fit_object.fit_result.values_at_minimum.values())
-                evaluated_hist = histogram.Histogram1D(
-                    bin_edges = error_hist.bin_edges,
-                    y = evaluated,
-                    # Should I just put the errors here?
-                    errors_squared = np.ones(len(errors))
-                )
-                evaluated_value = evaluated_hist.integral(
-                    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
-                )
-                logger.debug(f"evaluated: {evaluated}, evaluated_value: {evaluated_value}")
-                logger.debug(f"systematic: {systematic}")
+                #evaluated = ratio(numerator.correlation_hists_delta_phi.signal_dominated.hist.x,
+                #                  *numerator.fit_object.fit_result.values_at_minimum.values())
+                #evaluated_hist = histogram.Histogram1D(
+                #    bin_edges = error_hist.bin_edges,
+                #    y = evaluated,
+                #    # Should I just put the errors here?
+                #    errors_squared = np.ones(len(errors))
+                #)
+                #evaluated_value = evaluated_hist.integral(
+                #    min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+                #)
+                #logger.debug(f"evaluated: {evaluated}, evaluated_value: {evaluated_value}")
+                #logger.debug(f"systematic: {systematic}")
                 # ENDTEMP
             else:
                 fit_error = yield_ratio * np.sqrt(
