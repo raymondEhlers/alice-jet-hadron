@@ -263,6 +263,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
             over some iterators in a particular order (particularly the reaction plane orientation).
         extract_value_func: Function to retrieve the extracted value and error.
         plot_labels: Titles and axis labels for the plot.
+        logy: True if we should plot with log y.
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
@@ -363,16 +364,25 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         transform = ax.transAxes
     )
     # Deal with projection range, extraction range string.
+    # We always want to include the global scale uncertainty.
+    lower_left_label = r"Scale uncertainty: 5\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = inclusive_analysis,
         projection_range_func = projection_range_func,
         extraction_range_func = extraction_range_func,
     )
     if additional_label:
+        # Left here in case we decide to make it optional.
+        #if lower_left_label == "":
+        #    lower_left_label = additional_label
+        #else:
+        #    lower_left_label += "\n" + additional_label
+        lower_left_label += "\n" + additional_label
+    if lower_left_label:
         ax.text(
-            0.03, 0.03, additional_label, horizontalalignment = "left",
+            0.03, 0.03, lower_left_label, horizontalalignment = "left",
             verticalalignment = "bottom", multialignment = "left",
-            transform = ax.transAxes
+            transform = ax.transAxes, fontsize = 14,
         )
 
     # Axes and titles
@@ -419,7 +429,8 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
         """ Simple helper function to extract the delta phi near-side widths """
         return analysis_objects.ExtractedObservable(
             value = analysis.widths_delta_phi.near_side.width,
-            error = analysis.widths_delta_phi.near_side.fit_result.errors_on_parameters["width"]
+            error = analysis.widths_delta_phi.near_side.fit_result.errors_on_parameters["width"],
+            metadata = analysis.widths_delta_phi.near_side.metadata,
         )
 
     _extracted_values(
@@ -445,7 +456,8 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
         """ Simple helper function to extract the delta phi away-side widths """
         return analysis_objects.ExtractedObservable(
             value = analysis.widths_delta_phi.away_side.width,
-            error = analysis.widths_delta_phi.away_side.fit_result.errors_on_parameters["width"]
+            error = analysis.widths_delta_phi.away_side.fit_result.errors_on_parameters["width"],
+            metadata = analysis.widths_delta_phi.away_side.metadata,
         )
 
     _extracted_values(
@@ -732,7 +744,7 @@ def _yield_ratio(yield_ratios: Dict[Any, "extracted.ExtractedYieldRatio"],
         ax.text(
             0.03, 0.03, additional_label, horizontalalignment = "left",
             verticalalignment = "bottom", multialignment = "left",
-            transform = ax.transAxes
+            transform = ax.transAxes, fontsize = 14,
         )
 
     # Set a uniform range
@@ -954,16 +966,19 @@ def _yield_difference(yield_differences: Dict[Any, "extracted.ExtractedYieldDiff
         transform = ax.transAxes
     )
     # Deal with projection range, extraction range string.
+    lower_left_label = r"Scale uncertainty: 5\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = an_analysis,
         projection_range_func = projection_range_func,
         extraction_range_func = extraction_range_func,
     )
     if additional_label:
+        lower_left_label += "\n" + additional_label
+    if lower_left_label:
         ax.text(
             0.03, 0.03, additional_label, horizontalalignment = "left",
             verticalalignment = "bottom", multialignment = "left",
-            transform = ax.transAxes
+            transform = ax.transAxes, fontsize = 14,
         )
 
     # Set a uniform range

@@ -645,6 +645,7 @@ def rp_fit_subtracted(ep_analyses: List[Tuple[Any, "correlations.Correlations"]]
                     fr"{inclusive_analysis.background_dominated_eta_region.max:.1f}$")
     text += "\n" + (r"Signal + Background: $|\Delta\eta|<"
                     fr"{inclusive_analysis.signal_dominated_eta_region.max:.1f}$")
+    text += "\n" + r"Scale uncertainty: 5\%"
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
     # Out-of-plane orientation
     flat_axes[3].legend(
@@ -874,6 +875,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
                     fr"{inclusive_analysis.background_dominated_eta_region.max:.1f}$")
     text += "\n" + (r"Signal + Background: $|\Delta\eta|<"
                     fr"{inclusive_analysis.signal_dominated_eta_region.max:.1f}$")
+    text += "\n" + r"Scale uncertainty: 5\%"
     _add_label_to_rpf_plot_axis(ax = flat_axes[2], label = text, size = 12.5)
     # Out-of-plane orientation
     flat_axes[3].legend(
