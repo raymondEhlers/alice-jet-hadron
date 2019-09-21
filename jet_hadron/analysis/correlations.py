@@ -2080,6 +2080,33 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         return True
 
+    def _evaluate_delta_phi_width_scale_uncertainty(self, scale_uncertainty: float,
+                                                    subtracted_hist: histogram.Histogram1D,
+                                                    width_obj: extracted.ExtractedWidth) -> Tuple[float, float]:
+        """ Extract the the scale uncertainty associated with the widths.
+
+        Args:
+            scale_uncertainty: Mixed event scale uncertainty.
+            subtracted_hist: RP subtracted hist.
+            width_obj: Contains the width information, including the fit object.
+        Returns:
+            The lower and upper width systematics.
+        """
+        # Make a copy to ensure that we don't modify the original values.
+        hist_low = subtracted_hist * (1 - scale_uncertainty)
+        hist_high = subtracted_hist * (1 + scale_uncertainty)
+
+        fit_result = width_obj.fit_object.fit(
+            h = hist_low,
+        )
+        width_low = fit_result.values_at_minimum["width"]
+        fit_result = width_obj.fit_object.fit(
+            h = hist_high,
+        )
+        width_high = fit_result.values_at_minimum["width"]
+
+        return (width_low, width_high)
+
     def _fit_and_extract_delta_phi_widths(self) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
@@ -2093,11 +2120,31 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(
                 f"Extracting delta phi {attribute_name} width for {self.identifier}, {self.reaction_plane_orientation}"
             )
+            # First, evaluate the systematics. We use ths same object for the fits, so it's best to have
+            # the last evaluation by the actual fit incase we need the fit object itself later.
+            width_low, width_high = self._evaluate_delta_phi_width_scale_uncertainty(
+                scale_uncertainty = self.mixed_event_scale_uncertainty,
+                subtracted_hist = subtracted.hist,
+                width_obj = width_obj,
+            )
+
+            # Now, evaluate the nominal value.
             fit_result = width_obj.fit_object.fit(
                 h = subtracted.hist,
             )
-            # Store the result
+            # Store the fit result
             width_obj.fit_result = fit_result
+
+            # We want the systematics to be absolute errors, so we subtract the nominal width value.
+            nominal_width = width_obj.width
+            systematic_widths = [np.abs(nominal_width - width_low), np.abs(width_high - nominal_width)]
+
+            # Cross check. We expect this systematic to be symmetric.
+            logger.debug(f"systematic_widths_ {systematic_widths}")
+            assert np.isclose(*systematic_widths, atol = 1e-2)
+
+            # Store the systematics.
+            width_obj.metadata["mixed_event_scale_systematic"] = systematic_widths
 
     def _fit_and_extract_delta_eta_widths(self) -> None:
         """ Extract delta eta near-side and away-side widths via a gaussian fit.
