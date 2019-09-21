@@ -5,8 +5,8 @@
 .. codeauthor:: Raymond Ehlers <raymond.ehlers@cern.ch>, Yale University
 """
 
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 import pachyderm.fit
 
@@ -39,6 +39,7 @@ class ExtractedYieldDifference(ExtractedYield):
 class ExtractedWidth:
     fit_object: pachyderm.fit.Fit
     fit_args: pachyderm.fit.T_FitArguments
+    metadata: Dict[str, Any] = field(default_factory = dict)
 
     @property
     def fit_result(self) -> pachyderm.fit.FitResult:
