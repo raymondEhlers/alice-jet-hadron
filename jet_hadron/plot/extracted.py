@@ -381,15 +381,16 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         #else:
         #    lower_left_label += "\n" + additional_label
         lower_left_label += "\n" + additional_label
-    if lower_left_label:
-        ax.text(
-            0.03, 0.03, lower_left_label, horizontalalignment = "left",
-            verticalalignment = "bottom", multialignment = "left",
-            transform = ax.transAxes, fontsize = 14,
-        )
+    ax.text(
+        0.03, 0.03, lower_left_label, horizontalalignment = "left",
+        verticalalignment = "bottom", multialignment = "left",
+        transform = ax.transAxes, fontsize = 14,
+    )
 
     # Axes and titles
-    ax.set_xlabel(labels.make_valid_latex_string(fr"{labels.track_pt_display_label()}\:({labels.momentum_units_label_gev()})"))
+    ax.set_xlabel(labels.make_valid_latex_string(
+        fr"{labels.track_pt_display_label()}\:({labels.momentum_units_label_gev()})"
+    ))
     # Apply any specified labels
     if plot_labels.title is not None:
         plot_labels.title = plot_labels.title + f" for {labels.jet_pt_range_string(inclusive_analysis.jet_pt)}"
