@@ -449,10 +449,10 @@ def _matrix_values(free_parameters: Sequence[str],
     }
     # Add Signal fit parameters.
     for ep in ["in_plane", "mid_plane", "out_of_plane"]:
-        short_name = ep[:ep.find("_plane")]
+        short_name = ep[:ep.find("_")]
         improved_labeling_map.update({
-            f"{ep}_ns_amplitude": fr"A_{{NS}}^{{\text{{{short_name}}}}}", f"{ep}_as_amplitude": fr"A_{{AS}}^{{\text{{{short_name}}}}}",
-            f"{ep}_ns_sigma": fr"\sigma_{{NS}}^{{\text{{{short_name}}}}}", f"{ep}_as_sigma": r"\sigma_{AS}^{{\text{{{short_name}}}}}",
+            f"{ep}_ns_amplitude": fr"A_{{NS}}^{{\text{{ {short_name} }}}}", f"{ep}_as_amplitude": fr"A_{{AS}}^{{\text{{ {short_name} }}}}",
+            f"{ep}_ns_sigma": fr"\sigma_{{NS}}^{{\text{{ {short_name} }}}}", f"{ep}_as_sigma": fr"\sigma_{{AS}}^{{\text{{ {short_name} }}}}",
         })
     # Ensure that the strings are valid LaTeX
     improved_labeling_map = {k: labels.make_valid_latex_string(v) for k, v in improved_labeling_map.items()}
