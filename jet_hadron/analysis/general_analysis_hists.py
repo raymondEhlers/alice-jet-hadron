@@ -168,10 +168,8 @@ class GeneralAnalysisHists(analysis_objects.JetHBase):
                 hists.append(self.input_hists[task_name][f"fHistTrackEtaPhi_{track_pt_bin.bin}"])
 
             # Merge the hists together. We don't really need the track pt dependence.
-            # Skip the lowest pt hist because of some weird structure which will distract from the
-            # message. Plus, the lowest pt bin isn't even used for the correlations.
-            output_hist = hists[1]
-            for h in hists[2:]:
+            output_hist = hists[0]
+            for h in hists[1:]:
                 output_hist.Add(h)
 
             # Lastly, plot

@@ -147,7 +147,8 @@ def vn_harmonics(theta: np.ndarray, harmonics: Dict[int, float],
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def rho_centrality(rho_hist: Hist, output_info: analysis_objects.PlottingOutputWrapper, includes_constituent_cut: bool = True) -> None:
+def rho_centrality(rho_hist: Hist,
+                   output_info: analysis_objects.PlottingOutputWrapper, includes_constituent_cut: bool = True) -> None:
     """ Plot rho as a function of centrality vs jet pt.
 
     Args:
@@ -165,10 +166,12 @@ def rho_centrality(rho_hist: Hist, output_info: analysis_objects.PlottingOutputW
     rho_hist.SetTitle("")
     rho_hist.Draw("colz")
     # Keep the range more meaningful.
-    rho_hist.GetYaxis().SetRangeUser(0, 100)
+    rho_hist.GetYaxis().SetRangeUser(0, 50)
     # Draw a profile of the mean
     rho_hist_profile = rho_hist.ProfileX(f"{rho_hist.GetName()}_profile")
-    rho_hist_profile.SetLineColor(ROOT.kRed)
+    rho_hist_profile.SetMarkerStyle(ROOT.kFullCircle)
+    rho_hist_profile.SetMarkerColor(ROOT.kRed)
+    rho_hist_profile.SetMarkerSize(1.4)
     rho_hist_profile.Draw("same")
 
     # Finally, save and cleanup
@@ -177,7 +180,8 @@ def rho_centrality(rho_hist: Hist, output_info: analysis_objects.PlottingOutputW
         output_name += "_3GeVConstituents"
     plot_base.save_plot(output_info, canvas, output_name)
 
-def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def track_eta_phi(hist: Hist, event_activity: params.EventActivity,
+                  output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot track eta phi.
 
     Also include an annotation of the EMCal eta, phi location.
@@ -201,7 +205,8 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info:
         hist_array.T,
         extent = [np.amin(x), np.amax(x), np.amin(y), np.amax(y)],
         interpolation = "nearest", aspect = "auto", origin = "lower",
-        norm = matplotlib.colors.Normalize(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array)),
+        # Intentionally stretch the scale near the top of the range to emphasise the inefficiency.
+        norm = matplotlib.colors.Normalize(vmin = np.nanmax(hist_array) * 0.8, vmax = np.nanmax(hist_array) * 0.9),
         cmap = "viridis",
     )
     # Draw the colorbar based on the drawn axis above.
@@ -256,7 +261,8 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity, output_info:
     # Save the plot
     plot_base.save_plot(output_info, canvas, f"track_phi_{str(event_activity)}")
 
-def event_cut_stats(cut_stats: Dict[str, Hist], event_activity: params.EventActivity, output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def event_cut_stats(cut_stats: Dict[str, Hist], event_activity: params.EventActivity,
+                    output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the event cut stats.
 
     Args:
@@ -292,7 +298,8 @@ def event_cut_stats(cut_stats: Dict[str, Hist], event_activity: params.EventActi
     # Finally, save and cleanup
     plot_base.save_plot(output_info, canvas, f"event_cuts_{str(event_activity)}")
 
-def centrality(raw_centrality: List[Hist], centralities: Dict[params.EventActivity, Hist], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def centrality(raw_centrality: List[Hist], centralities: Dict[params.EventActivity, Hist],
+               output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the centrality distribution for a list of centralities
 
     Args:
@@ -322,7 +329,8 @@ def centrality(raw_centrality: List[Hist], centralities: Dict[params.EventActivi
     plot_base.save_plot(output_info, fig, "centrality")
     plt.close(fig)
 
-def z_vertex(raw_z_vertex: List[Hist], z_vertices: Dict[params.EventActivity, Hist], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def z_vertex(raw_z_vertex: List[Hist], z_vertices: Dict[params.EventActivity, Hist],
+             output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the z_vertex distribution for a list of centralities.
 
     Args:
@@ -353,7 +361,8 @@ def z_vertex(raw_z_vertex: List[Hist], z_vertices: Dict[params.EventActivity, Hi
     plot_base.save_plot(output_info, fig, "z_vertex")
     plt.close(fig)
 
-def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], output_info: analysis_objects.PlottingOutputWrapper) -> None:
+def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]],
+                    output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot jets triggers as a function of event plane orientation.
 
     Args:
@@ -385,8 +394,12 @@ def trigger_jets_EP(ep_analyses: List[Tuple[Any, "correlations.Correlations"]], 
     )
 
     # Final presentation settings
-    ax.set_xlabel(labels.make_valid_latex_string(fr"{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()})"))
-    ax.set_ylabel(labels.make_valid_latex_string(fr"d\text{{n}}/d{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()}^{{-1}})"))
+    ax.set_xlabel(
+        labels.make_valid_latex_string(fr"{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()})")
+    )
+    ax.set_ylabel(labels.make_valid_latex_string(
+        fr"d\text{{n}}/d{labels.jet_pt_display_label()}\:({labels.momentum_units_label_gev()}^{{-1}})"
+    ))
     ax.set_yscale("log")
     ax.legend(frameon = False, loc = "upper right")
     fig.tight_layout()
