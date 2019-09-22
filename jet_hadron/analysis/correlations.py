@@ -837,6 +837,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Load the mixed event info from file.
             self.mixed_event_normalization = stored_data[f"{self.identifier}_mixed_event_normalization"]
 
+        #logger.debug(
+        #    f"{self.identifier}, {self.reaction_plane_orientation}: mixed event norm: {self.mixed_event_normalization}"
+        #)
+
     def _init_1d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 1D correlation hists. """
         self._init_hists_from_root_file(hists = self.correlation_hists_delta_phi)
@@ -1975,6 +1979,33 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         return low_yield, high_yield
 
+    def _extract_mixed_event_normalization_systematic_for_yield(self, scale_uncertainty: float,
+                                                                hist: histogram.Histogram1D,
+                                                                yield_range: params.SelectedRange) -> Tuple[float, float]:
+        """ Extract the mixed event normalization uncertainty systematic for the yield.
+
+        We scale the hist up and down and calculate the new yield. We don't worry about the statistical errors.
+
+        Args:
+            scale_uncertainty: Mixed event normalization scale uncertainty.
+            hist: Histogram containing the yield of interest.
+            yield_range: Range over which the yield will be extracted.
+        Returns:
+            The lower and upper yield systematics.
+        """
+        # Make a copy to ensure that we don't modify the original values.
+        hist_low = hist * (1 - scale_uncertainty)
+        hist_high = hist * (1 + scale_uncertainty)
+
+        low_yield, _ = hist_low.integral(
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+        )
+        high_yield, _ = hist_high.integral(
+            min_value = yield_range.min + epsilon, max_value = yield_range.max - epsilon,
+        )
+
+        return low_yield, high_yield
+
     def _extract_yield_from_correlation(self, hist: histogram.Histogram1D,
                                         fit_hist: histogram.Histogram1D,
                                         yield_range: params.SelectedRange,
@@ -2012,6 +2043,25 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Next, subtract the yield background variation from the signal yield.
             # Subtracting the higher yield will lead to the lower yield error value, so we reverse the apparnet labels.
             systematic_yields = [yield_value - systematic_yield_high, yield_value - systematic_yield_low]
+
+        # Check the mixed event normalization uncertainty
+        # This difference is so small that we don't store it - just print it.
+        normalization_yield_low, normalization_yield_high = self._extract_mixed_event_normalization_systematic_for_yield(
+            # We want to pass the fractional change because that's the value that we want to scale with.
+            scale_uncertainty = self.mixed_event_normalization.error / self.mixed_event_normalization.value,
+            hist = hist, yield_range = yield_range,
+        )
+        # Next, subtract the yield background variation from the signal yield.
+        # Subtracting the higher yield will lead to the lower yield error value, so we reverse the apparnet labels.
+        normalization_yields_differences = [yield_value - normalization_yield_high, yield_value - normalization_yield_low]
+        # Print out the difference. It is so small that it's not worth adding the error bars. We just fold it
+        # into the overall scale uncertainty.
+        logger.info(
+            f"Mixed event normalization systematic for yield: {self.identifier}, {self.reaction_plane_orientation}:\n"
+            f"Scale factor: {self.mixed_event_normalization.error / self.mixed_event_normalization.value}\n"
+            f"Lower: {normalization_yields_differences[0]}, fraction: {normalization_yields_differences[0] / yield_value}\n"
+            f"Upper: {normalization_yields_differences[1]}, fraction: {normalization_yields_differences[1] / yield_value}"
+        )
 
         # Determine the final yield value by subtracting the background
         subtracted_yield_value = yield_value - fit_yield_value
