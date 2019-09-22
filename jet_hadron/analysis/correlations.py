@@ -444,6 +444,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # Other relevant analysis information
         self.number_of_triggers: int = 0
         self.mixed_event_scale_uncertainty: float = 0.0
+        # Store the normalization and the systematic uncertainty
+        self.mixed_event_normalization: analysis_objects.ExtractedObservable
 
         # Projectors
         self.sparse_projectors: List[JetHCorrelationSparseProjector] = []
@@ -665,6 +667,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
         self._write_hists_to_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
 
+    def _write_mixed_event_normalization(self) -> None:
+        """ Write the mixed event normalization information to file. """
+        self._write_extracted_values_to_YAML(values = {
+            f"{self.identifier}_mixed_event_normalization": self.mixed_event_normalization,
+        })
+
     def _write_1d_correlations(self) -> None:
         """ Write 1D correlations to file. """
         logger.debug("Writing 1D delta phi correlations")
@@ -728,7 +736,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             f"{self.identifier}_widths_delta_eta": self.widths_delta_eta,
         })
 
-    def _write_extracted_values_to_YAML(self, values: Dict[str, Union[CorrelationWidths, CorrelationYields]]) -> None:
+    def _write_extracted_values_to_YAML(self, values: Dict[str, Union[CorrelationWidths, CorrelationYields,
+                                                                      analysis_objects.ExtractedObservable]]) -> None:
         """ Write extracted values (widths, yields) to YAML. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
@@ -812,11 +821,21 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._init_hists_from_root_file(hists = self.correlation_hists_2d)
 
     def _init_number_of_triggers_hist_from_root_file(self) -> None:
-        """ Write number of triggers hists. """
+        """ Initialize number of triggers hists. """
         # This dict construction is a hack, but it's convenient since it mirrors the structure of the other objects.
         self._init_hists_from_root_file(hists = {"ignore_key": self.number_of_triggers_observable}.items())
         # Then retrieve the number of triggers from the observable.
         self.number_of_triggers = self._determine_number_of_triggers()
+
+    def _init_mixed_event_normalization_from_yaml_file(self) -> None:
+        """ Initialize the mixed event normalization from file. """
+        y = self._setup_yaml()
+        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
+        with open(filename, "r") as f:
+            stored_data = y.load(f)
+
+            # Load the mixed event info from file.
+            self.mixed_event_normalization = stored_data[f"{self.identifier}_mixed_event_normalization"]
 
     def _init_1d_correlations_hists_from_root_file(self) -> None:
         """ Initialize 1D correlation hists. """
@@ -1208,7 +1227,22 @@ class Correlations(analysis_objects.JetHReactionPlane):
             max_linear_fit_2d = max_linear_fit_2d, max_linear_fit_2d_rebin = max_linear_fit_2d_rebin,
         )
 
-    def _measure_mixed_event_normalization(self, mixed_event: Hist, delta_phi_rebin_factor: int = 1) -> float:
+        # Simplified comparison for presentation purposes.
+        plot_correlations.simplified_mixed_event_comparison(
+            self.output_info,
+            # For labeling purposes
+            output_name = f"simplified_mixed_event_normalization_{self.identifier}", eta_limits = eta_limits,
+            jet_pt_title = labels.jet_pt_range_string(self.jet_pt),
+            track_pt_title = labels.track_pt_range_string(self.track_pt),
+            mixed_event_1D = peak_finding_hist,
+            # Moving Average
+            max_moving_avg = max_moving_avg,
+            # Linear fits for systematics
+            fit_1D = max_linear_fit_1d, fit_2D = max_linear_fit_2d,
+        )
+
+    def _measure_mixed_event_normalization(self, mixed_event: Hist,
+                                           delta_phi_rebin_factor: int = 1) -> Tuple[float, float, histogram.Histogram1D]:
         """ Measure the mixed event normalization. """
         # See the note on the selecting the eta_limits in `correlations_helpers.measure_mixed_event_normalization(...)`
         eta_limits = self.task_config["mixedEventNormalizationOptions"].get("etaLimits", [-0.3, 0.3])
@@ -1245,13 +1279,19 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
 
         # Normalize and post process the mixed event observable
-        mixed_event_normalization_factor = self._measure_mixed_event_normalization(
+        mixed_event_norm, mixed_event_normalization_uncertainty, normalization_hist = self._measure_mixed_event_normalization(
             mixed_event = self.correlation_hists_2d.mixed_event.hist,
             delta_phi_rebin_factor = rebin_factors[0] if rebin_factors else 1,
         )
+        # Store the systematic for later.
+        self.mixed_event_normalization = analysis_objects.ExtractedObservable(
+            value = mixed_event_norm,
+            error = mixed_event_normalization_uncertainty
+        )
+
         self._post_creation_processing_for_2d_correlation(
             hist = self.correlation_hists_2d.mixed_event.hist,
-            normalization_factor = mixed_event_normalization_factor,
+            normalization_factor = mixed_event_norm,
             title_label = "Mixed event",
             rebin_factors = rebin_factors,
         )
@@ -1301,6 +1341,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             self._write_2d_correlations()
             # Write triggers
             self._write_number_of_triggers_hist()
+            # Write mixed event normalization because it's not easy to recalculate.
+            self._write_mixed_event_normalization()
 
             # Ensure we execute the next step
             self.generate_1D_correlations = True
@@ -1309,6 +1351,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.info(f"Loading 2D correlations and trigger jet spectra from file for {self.identifier}, {self.reaction_plane_orientation}")
             self._init_2d_correlations_hists_from_root_file()
             self._init_number_of_triggers_hist_from_root_file()
+            self._init_mixed_event_normalization_from_yaml_file()
 
         # At this point, we have the 2D correlations (whether via projection or initializing them from a file),
         # so we need to store the delta eta and delta phi bin widths

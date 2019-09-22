@@ -161,7 +161,7 @@ def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[
     ]
     # This is basically just a sanity check that the selected values align with the binning
     projection_length = mixed_event.GetYaxis().GetBinUpEdge(eta_limit_bins[1]) - mixed_event.GetYaxis().GetBinLowEdge(eta_limit_bins[0])
-    logger.info(f"Scale factor from 1D to 2D: {mixed_event.GetYaxis().GetBinWidth(1) / projection_length}")
+    logger.debug(f"Mixed event scale factor from 1D to 2D: {mixed_event.GetYaxis().GetBinWidth(1) / projection_length}")
     peak_finding_hist = mixed_event.ProjectionX(
         f"{mixed_event.GetName()}_peak_finding_hist",
         eta_limit_bins[0], eta_limit_bins[1]
@@ -172,7 +172,8 @@ def _peak_finding_objects_from_mixed_event(mixed_event: Hist, eta_limits: Tuple[
 
     return peak_finding_hist, peak_finding_hist_array
 
-def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float, float], delta_phi_rebin_factor: int = 1) -> float:
+def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float, float],
+                                      delta_phi_rebin_factor: int = 1) -> Tuple[float, float, histogram.Histogram1D]:
     """ Determine normalization of the mixed event.
 
     The normalization is determined by using the moving average of half of the histogram.
@@ -191,7 +192,7 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
         delta_phi_rebin_factor: Factor by which we will rebin the mixed event, and therefore by which we
             must scaled the mixed event normalization.
     Returns:
-        Mixed event normalization value.
+        Mixed event normalization value, max systematic, histogram used for determining the normalization
     """
     # Project to 1D delta phi so it can be used with the signal finder
     peak_finding_hist, peak_finding_hist_array = _peak_finding_objects_from_mixed_event(
@@ -215,7 +216,22 @@ def measure_mixed_event_normalization(mixed_event: Hist, eta_limits: Tuple[float
     # the normalization factor by 2.
     mixed_event_normalization *= delta_phi_rebin_factor
 
-    return mixed_event_normalization
+    # Measure the systematic. Compare the moving average to the 1D and 2D fit. Take the max difference
+    fit1D = fitting.fit_1d_mixed_event_normalization(peak_finding_hist, [1. / 2. * np.pi, 3. / 2. * np.pi])
+    max_linear_fit_1D = fit1D.GetParameter(0)
+    fit2D = fitting.fit_2d_mixed_event_normalization(mixed_event, [1. / 2. * np.pi, 3. / 2. * np.pi], eta_limits)
+    max_linear_fit_2D = fit2D.GetParameter(0)
+
+    # For the systematic, we'll just evaluate the moving average vs the fits.
+    fit_systematic_1D = np.abs(max_moving_avg - max_linear_fit_1D)
+    fit_systematic_2D = np.abs(max_moving_avg - max_linear_fit_2D)
+    max_systematic = np.max([fit_systematic_1D, fit_systematic_2D])
+
+    logger.debug(f"mixed_event_normalization_uncertainty: {max_systematic}")
+    logger.debug("mixed_event_normalization_uncertainty fractional: "
+                 f" {max_systematic / mixed_event_normalization}")
+
+    return mixed_event_normalization, max_systematic, histogram.Histogram1D.from_existing_hist(peak_finding_hist)
 
 def compare_mixed_event_normalization_options(mixed_event: Hist,
                                               eta_limits: Tuple[float, float]) -> Tuple[Hist,

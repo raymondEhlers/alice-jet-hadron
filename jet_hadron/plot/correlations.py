@@ -392,7 +392,7 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
     # Make the actual plot
     fig, ax = plt.subplots(figsize = (8, 6))
     # Add additional y margin at the bottom so the legend will fit a bit better
-    # Cannot do asyemmtric padding via `ax.set_ymargin()`, so we'll do it by hand
+    # Cannot do asymmetric padding via `ax.set_ymargin()`, so we'll do it by hand
     # See: https://stackoverflow.com/a/42804403
     data_min = min(peak_finding_hist_array.min(), peak_finding_hist_array_rebin.min())
     data_max = max(peak_finding_hist_array.max(), peak_finding_hist_array_rebin.max())
@@ -449,6 +449,62 @@ def mixed_event_normalization(output_info: analysis_objects.PlottingOutputWrappe
     ax.legend(loc = "lower left", ncol = 3, frameon = False)
     #ax.legend(bbox_to_anchor=(0,1.02,1,0.2), loc="lower left",
     #          ncol=3, mode="expand", borderaxespad=0)
+    ax.set_title(f"ME norm. for {jet_pt_title}, {track_pt_title}")
+    ax.set_ylabel(labels.delta_phi_axis_label())
+    ax.set_xlabel(r"$\Delta\varphi$")
+
+    # Final adjustments
+    plt.tight_layout()
+    # Cleanup and save
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
+
+def simplified_mixed_event_comparison(output_info: analysis_objects.PlottingOutputWrapper,
+                                      # For labeling purposes
+                                      output_name: str, eta_limits: Sequence[float],
+                                      jet_pt_title: str, track_pt_title: str,
+                                      # Mixed event 1D hist
+                                      mixed_event_1D: histogram.Histogram1D,
+                                      max_moving_avg: float,
+                                      fit_1D: float, fit_2D: float) -> None:
+    """ Simplified mixed event comparison.
+
+    Args:
+        output_info: Standard information needed to store the output.
+        output_name: Output name.
+        eta_limits: Eta limits.
+        jet_pt_title: Jet pt title for labeling.
+        track_pt_title: Track pt title for labeling.
+        mixed_event_1D: 1D mixed event.
+        max_moving_avg: Maximum of the moving average (nominal value).
+        fit_1D: Max value from a 1D fit.
+        fit_2D: Max value from a 2D fit.
+    Returns:
+        None. The comparison is plotted.
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+    hist = histogram.Histogram1D.from_existing_hist(mixed_event_1D)
+
+    # Plot the data
+    ax.errorbar(
+        hist.x, hist.y, yerr = hist.errors, linestyle = "", marker = "o",
+        label = "Mixed event",
+    )
+    # Plot the lines
+    ax.axhline(max_moving_avg, label = r"Moving avg. (size $\pi$)", color = "tab:orange")
+    ax.axhline(fit_1D, label = r"1D fit ($\pi/2-3\pi/2$)", color = "tab:purple")
+    ax.axhline(fit_2D, label = r"2D fit ($\pi/2-3\pi/2$)", linestyle = "--", color = "tab:purple")
+
+    # Label delta eta range.
+    ax.text(
+        0.05, 0.95, fr"$|\Delta\eta| < {eta_limits[1]}$", horizontalalignment = "left",
+        verticalalignment = "top", multialignment = "left",
+        transform = ax.transAxes
+    )
+
+    # Legend and Labels for the plot
+    ax.legend(loc = "lower right", frameon = False)
     ax.set_title(f"ME norm. for {jet_pt_title}, {track_pt_title}")
     ax.set_ylabel(labels.delta_phi_axis_label())
     ax.set_xlabel(r"$\Delta\varphi$")
