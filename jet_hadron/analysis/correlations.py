@@ -2675,6 +2675,10 @@ class CorrelationsManager(analysis_manager.Manager):
                     fit_success, fit_data, _ = fit_obj.fit(
                         data = input_hists,
                         user_arguments = user_arguments,
+                        # For some unknown reason, HESSE won't work for the signal fit.
+                        # It's probably because the fit is somewhat marginal. But as long as we check
+                        # that the Minos errors match up, we should be fine.
+                        skip_hesse = True if self.fit_type == "SignalFit" else False,
                     )
 
                     # This should already be caught, but we handle it for good measure
