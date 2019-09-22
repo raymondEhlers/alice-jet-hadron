@@ -3128,6 +3128,22 @@ class CorrelationsManager(analysis_manager.Manager):
                 # Update progress
                 extracting.update()
 
+        # Cross check: Sigma estimate from 1:
+        for name, ratios in [("out/in", self.yield_ratios_out_vs_in), ("mid/in", self.yield_ratios_mid_vs_in)]:
+            for key_index, r in ratios.items():
+                for side, extracted_ratio in r:
+                    for method, error_estimate in [
+                            ("quadrature",
+                             np.sqrt(extracted_ratio.value.error ** 2 + extracted_ratio.value.metadata["fit_error"] ** 2)),
+                            ("sum",
+                             np.abs(extracted_ratio.value.error) + np.abs(extracted_ratio.value.metadata["fit_error"]))
+                    ]:
+                        sigma_estimate = (1 - extracted_ratio.value.value) / error_estimate
+                        logger.debug(
+                            f"type: {name}, track pt bin: {key_index.track_pt_bin.range}, {side}, method: {method}, "
+                            f"yield: {extracted_ratio.value.value}, sigma_estimate from unity: {sigma_estimate}"
+                        )
+
         # Plot
         # Out vs in
         plot_extracted.delta_phi_near_side_yield_ratio(
