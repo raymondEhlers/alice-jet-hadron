@@ -591,7 +591,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                                     # Background terms
                                     <<: *_5TeVSemiCentral_0_5__1
                                     # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
+                                    limit_in_plane_ns_sigma: [0.15, 0.7]
                                     limit_out_of_plane_ns_sigma: [0.15, 0.7]
                                     limit_mid_plane_ns_sigma: [0.15, 0.7]
                             trackPt_1.0_1.5:
@@ -599,7 +599,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                                     # Background terms
                                     <<: *_5TeVSemiCentral_1__1_5
                                     # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
+                                    limit_in_plane_ns_sigma: [0.15, 0.7]
                                     limit_out_of_plane_ns_sigma: [0.15, 0.7]
                                     limit_mid_plane_ns_sigma: [0.15, 0.7]
                             trackPt_1.5_2.0:
@@ -607,50 +607,118 @@ CorrelationsManager: &CorrelationsManagerConfig
                                     # Background terms
                                     <<: *_5TeVSemiCentral_1_5__2
                                     # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.5
+                                    limit_in_plane_ns_sigma: [0.15, 0.7]
+                                    in_plane_as_sigma: 0.5
+                                    limit_in_plane_as_sigma: [0.01, 1.0]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.5
                                     limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    mid_plane_as_sigma: 0.5
+                                    limit_mid_plane_as_sigma: [0.01, 1.0]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
+                                    out_of_plane_as_sigma: 0.5
+                                    limit_out_of_plane_as_sigma: [0.01, 1.0]
                             trackPt_2.0_3.0:
                                 args:
                                     # Background terms
                                     <<: *_5TeVSemiCentral_2__3
                                     # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.5
+                                    limit_in_plane_ns_sigma: [0.15, 0.7]
+                                    in_plane_as_sigma: 0.5
+                                    limit_in_plane_as_sigma: [0.01, 1.0]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.5
                                     limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    mid_plane_as_sigma: 0.5
+                                    limit_mid_plane_as_sigma: [0.01, 1.0]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
+                                    out_of_plane_as_sigma: 0.5
+                                    limit_out_of_plane_as_sigma: [0.01, 1.0]
                             trackPt_3.0_4.0:
                                 args:
                                     # Background terms
                                     <<: *_5TeVSemiCentral_3__4
-                                    # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.5
+                                    limit_in_plane_ns_sigma: [0.05, 0.7]
+                                    in_plane_as_sigma: 0.5
+                                    limit_in_plane_as_sigma: [0.01, 1.0]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.5
+                                    limit_mid_plane_ns_sigma: [0.05, 0.7]
+                                    mid_plane_as_sigma: 0.5
+                                    limit_mid_plane_as_sigma: [0.01, 1.0]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.05, 0.7]
+                                    out_of_plane_as_sigma: 0.5
+                                    limit_out_of_plane_as_sigma: [0.01, 1.0]
                             trackPt_4.0_5.0:
                                 args:
                                     # Background terms
                                     <<: *_5TeVSemiCentral_4__5
-                                    # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.5
+                                    limit_in_plane_ns_sigma: [0.01, 0.7]
+                                    in_plane_as_sigma: 0.5
+                                    limit_in_plane_as_sigma: [0.01, 1.0]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.5
+                                    limit_mid_plane_ns_sigma: [0.1, 0.7]
+                                    mid_plane_as_sigma: 0.8
+                                    limit_mid_plane_as_sigma: [0.2, 1.5]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.01, 0.7]
+                                    out_of_plane_as_sigma: 0.8
+                                    limit_out_of_plane_as_sigma: [0.2, 1.5]
                             trackPt_5.0_6.0:
                                 args:
                                     # Background terms
                                     <<: *_5TeVSemiCentral_4__5
-                                    # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.3
+                                    limit_in_plane_ns_sigma: [0.01, 0.7]
+                                    in_plane_as_sigma: 0.3
+                                    limit_in_plane_as_sigma: [0.01, 0.5]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.3
+                                    limit_mid_plane_ns_sigma: [0.01, 0.7]
+                                    mid_plane_as_sigma: 0.3
+                                    limit_mid_plane_as_sigma: [0.01, 1.5]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.01, 0.7]
+                                    out_of_plane_as_sigma: 0.3
+                                    limit_out_of_plane_as_sigma: [0.01, 1.5]
                                 use_log_likelihood: true
                             trackPt_6.0_10.0:
                                 args:
                                     # Background terms
                                     <<: *_5TeVSemiCentral_6__10
-                                    # Signal terms
-                                    limit_in_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_out_of_plane_ns_sigma: [0.15, 0.7]
-                                    limit_mid_plane_ns_sigma: [0.15, 0.7]
+                                    # In plane
+                                    in_plane_ns_sigma: 0.5
+                                    limit_in_plane_ns_sigma: [0.01, 0.7]
+                                    in_plane_as_sigma: 0.5
+                                    limit_in_plane_as_sigma: [0.01, 1.0]
+                                    # Mid plane
+                                    mid_plane_ns_sigma: 0.5
+                                    limit_mid_plane_ns_sigma: [0.01, 0.7]
+                                    mid_plane_as_sigma: 0.8
+                                    limit_mid_plane_as_sigma: [0.2, 1.5]
+                                    # Out of plane
+                                    out_of_plane_ns_sigma: 0.5
+                                    limit_out_of_plane_ns_sigma: [0.01, 0.7]
+                                    out_of_plane_as_sigma: 0.8
+                                    limit_out_of_plane_as_sigma: [0.2, 1.5]
                                 use_log_likelihood: true
 
 CorrelationsZVertexManager:
