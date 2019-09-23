@@ -232,7 +232,7 @@ def track_eta_phi(hist: Hist, event_activity: params.EventActivity,
     # Final presentation settings
     ax.set_xlabel(labels.make_valid_latex_string(r"\eta"))
     ax.set_ylabel(labels.make_valid_latex_string(r"\varphi"))
-    ax.legend(frameon = False, loc = "upper right")
+    ax.legend(loc = "upper right")
     fig.tight_layout()
 
     # Finally, save and cleanup

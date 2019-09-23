@@ -311,7 +311,7 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
         pass
 
     pt_assoc_label = labels.make_valid_latex_string(
-        f"{labels.track_pt_display_label()} ({labels.momentum_units_label_gev()})"
+        fr"{labels.track_pt_display_label()}\:({labels.momentum_units_label_gev()})"
     )
     prefix = f"{fit_type}_fit_parameter"
     parameters = [
@@ -330,7 +330,10 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
         ParameterInfo(
             name = "v3",
             output_name = f"{prefix}_v3",
-            labels = plot_base.PlotLabels(title = r"$v_{3}$", x_label = pt_assoc_label),
+            labels = plot_base.PlotLabels(
+                title = r"$\tilde{v}_{3}^{a}\tilde{v}_{3}^{\text{jet}}$",
+                x_label = pt_assoc_label
+            ),
             # Don't plot the reference v3 data - it's not a meaningful comparison. See why the transform function
             # is also disabled below.
             #plot_reference_data_func = _reference_v3_data,
