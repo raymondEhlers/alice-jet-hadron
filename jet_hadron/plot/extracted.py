@@ -370,7 +370,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     )
     # Deal with projection range, extraction range string.
     # We always want to include the global scale uncertainty.
-    lower_left_label = r"Scale uncertainty: 5\%"
+    lower_left_label = r"Scale uncertainty: 4\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = inclusive_analysis,
         separator = ", ",
@@ -1064,7 +1064,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
         transform = ax.transAxes
     )
     # Deal with projection range, extraction range string.
-    lower_left_label = r"Scale uncertainty: 5\%"
+    lower_left_label = r"Scale uncertainty: 4\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = an_analysis,
         separator = "\n",
