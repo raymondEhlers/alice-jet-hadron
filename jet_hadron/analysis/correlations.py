@@ -591,7 +591,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     fit_options = {"range": self.away_side_phi_region.range},
                     user_arguments = {
                         "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
-                        "width": 0.3, "limit_width": (0.05, 1.5),
+                        "width": 1.0, "limit_width": (0.05, 1.5),
                     },
                     use_log_likelihood = False,
                 ),
@@ -2069,7 +2069,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # We want the systematics to be absolute errors, so we subtract the nominal yield value.
             # For the lower value, we expected the systematic yield to be greater than the nomial value, so
             # we reverse the sign (alternatively, we could just take the absolute value.
-            systematic_yields = [systematic_yields[1] - subtracted_yield_value, subtracted_yield_value - systematic_yields[0]]
+            systematic_yields = [
+                systematic_yields[1] - subtracted_yield_value, subtracted_yield_value - systematic_yields[0]
+            ]
 
             # Cross check. We expect this systematic to be symmetric.
             assert np.isclose(*systematic_yields)
@@ -2085,6 +2087,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
             systematic_yields[1] /= track_pt_bin_width
 
             logger.debug(f"yield: {yield_value}, subtracted yield: {subtracted_yield_value}, error: {yield_error}, RP fit error: {fit_yield_error}, mixed event: {systematic_yields}")
+
+        logger.info(f"subtracted_yield_value / fit_yield_value: {subtracted_yield_value / fit_yield_value}. If this is small, the errors will be inflated (but it's correct).")
 
         # Store the yield in an observable
         observable = analysis_objects.ExtractedObservable(
