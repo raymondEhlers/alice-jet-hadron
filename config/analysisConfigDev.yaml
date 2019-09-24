@@ -308,7 +308,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                                 args: &_5TeVCentral_0_5__1
                                     limit_B: [0, 1e7]
                                     v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                    limit_v2_t: [-0.15, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     v3: 0.00015
@@ -321,7 +321,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                                 args: &_5TeVCentral_1__1_5
                                     limit_B: [0, 1e7]
                                     v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                    limit_v2_t: [-0.15, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     v3: 0.00015
@@ -333,7 +333,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                             trackPt_1.5_2.0:
                                 args: &_5TeVCentral_1_5__2
                                     v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                    limit_v2_t: [-0.15, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     v3: 0.00015
@@ -345,7 +345,7 @@ CorrelationsManager: &CorrelationsManagerConfig
                             trackPt_2.0_3.0:
                                 args: &_5TeVCentral_2__3
                                     v2_t: 0.04
-                                    limit_v2_t: [0.001, 0.15]
+                                    limit_v2_t: [-0.15, 0.15]
                                     v2_a: 0.15
                                     limit_v2_a: [0.03, 0.5]
                                     v3: 0.00015
