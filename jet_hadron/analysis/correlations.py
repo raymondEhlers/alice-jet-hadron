@@ -3383,7 +3383,7 @@ class CorrelationsManager(analysis_manager.Manager):
                 extracting.update()
 
         # Plot
-        if self.processing_options["plot_delta_phi_widths"]:
+        if self.processing_options["plot_delta_phi_widths_summary"]:
             plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 fit_type = self.fit_type, output_info = self.output_info,

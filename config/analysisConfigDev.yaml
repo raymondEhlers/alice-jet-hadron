@@ -186,6 +186,7 @@ CorrelationsManager: &CorrelationsManagerConfig
         # Widths
         extract_delta_phi_widths: false
         plot_delta_phi_widths: false
+        plot_delta_phi_widths_summary: true
         extract_delta_eta_widths: false
         use_stored_delta_eta_widths: false
         plot_delta_eta_widths: false
