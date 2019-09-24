@@ -416,6 +416,8 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
         y_min, y_max = ax.get_ylim()
         ax.set_ylim(y_min, y_max if y_max > 5 else 5)
+    # Ensure that there are major labeld ticks at every integer value on the x axis
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
 
     # Final adjustments
     fig.tight_layout()
@@ -825,6 +827,8 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
         bbox_to_anchor = (0.99, 0.01), loc = "lower right",
         frameon = False, fontsize = 14, handles = list(reversed(handles))
     )
+    # Ensure that there are major labeld ticks at every integer value on the x axis
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
 
     # Final adjustments
     fig.tight_layout()
@@ -1108,6 +1112,8 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
         bbox_to_anchor = (0.99, 0.01), loc = "lower right",
         frameon = False, fontsize = 14, handles = list(reversed(handles))
     )
+    # Ensure that there are major labeld ticks at every integer value on the x axis
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
 
     # Final adjustments
     fig.tight_layout()
