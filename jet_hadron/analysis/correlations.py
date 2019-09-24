@@ -3166,6 +3166,7 @@ class CorrelationsManager(analysis_manager.Manager):
             an_analysis = in_plane,
             label = "Out / in",
             fit_type = self.fit_type,
+            y_axis_limits = (-0.5, 2.5),
             output_info = self.output_info,
         )
 
@@ -3182,6 +3183,7 @@ class CorrelationsManager(analysis_manager.Manager):
             an_analysis = in_plane,
             label = "Mid / in",
             fit_type = self.fit_type,
+            y_axis_limits = (-0.5, 2.5),
             output_info = self.output_info,
         )
 
@@ -3313,6 +3315,7 @@ class CorrelationsManager(analysis_manager.Manager):
             an_analysis = in_plane,
             label = "Out - in",
             fit_type = self.fit_type,
+            y_axis_limits = (-2.5, 2.5),
             output_info = self.output_info,
         )
 
@@ -3329,6 +3332,7 @@ class CorrelationsManager(analysis_manager.Manager):
             an_analysis = in_plane,
             label = "Mid - in",
             fit_type = self.fit_type,
+            y_axis_limits = (-1.5, 1.5),
             output_info = self.output_info,
         )
 

@@ -217,6 +217,7 @@ def delta_phi_with_gaussians(analysis: "correlations.Correlations") -> None:
     plt.close(fig)
 
 def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations",
+                                  separator: str,
                                   projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                                   extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                                   ) -> str:
@@ -226,6 +227,7 @@ def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations
 
     Args:
         inclusive_analysis: Inclusive correlations analysis object for labeling purposes.
+        separator: Separator between the strings.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object.
         extraction_range_func: Function which will provide the extraction range of the extracted value given
@@ -240,7 +242,7 @@ def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations
             if res:
                 labels.append(res)
 
-    return ", ".join(labels)
+    return separator.join(labels)
 
 def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Mapping[str, Sequence[Any]],
@@ -344,7 +346,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                 x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
                 # Transposed so that it's in the right format for plotting
                 y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
-                label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+                label = "Correlated unc.", color = plot_base.AnalysisColors.systematic,
             )
             error_boxes["systematic"] = boxes
 
@@ -371,6 +373,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     lower_left_label = r"Scale uncertainty: 5\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = inclusive_analysis,
+        separator = ", ",
         projection_range_func = projection_range_func,
         extraction_range_func = extraction_range_func,
     )
@@ -401,7 +404,10 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     # We have to create a new set of patches which have the same label and then take the first facecolor.
     # Despite the singular name, facecolor returns a collection of colors, so we have to take the first entry.
     handles.extend([matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()])
-    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = handles)
+    ax.legend(
+        loc = "upper right", bbox_to_anchor = (0.99, 0.6),
+        frameon = False, fontsize = 14, handles = handles
+    )
     # Apply log if requested.
     if logy:
         ax.set_yscale("log")
@@ -685,6 +691,7 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
                  output_name: str,
                  fit_type: str,
                  output_info: analysis_objects.PlottingOutputWrapper,
+                 y_axis_limits: Optional[Tuple[float, float]] = None,
                  JEWEL_predictions: Optional[extracted.JEWELPredictions] = None,
                  projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                  extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
@@ -699,6 +706,7 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
+        y_axis_limits: Set the y-axis limits by hand.
         JEWEL_predictions: JEWEL predictions to plot. Default: None.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
@@ -778,6 +786,7 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
     # Deal with projection range, extraction range string.
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = an_analysis,
+        separator = "\n",
         projection_range_func = projection_range_func,
         extraction_range_func = extraction_range_func,
     )
@@ -788,8 +797,10 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
             transform = ax.transAxes, fontsize = 14,
         )
 
-    # Set a uniform range
-    ax.set_ylim(0.1, 1.9)
+    # Set a uniform range by default
+    if not y_axis_limits:
+        y_axis_limits = (0.1, 1.9)
+    ax.set_ylim(*y_axis_limits)
     # Add a line at 1 for reference
     ax.axhline(y = 1, color = "black", linestyle = "dashed", zorder = 1)
 
@@ -810,7 +821,10 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
         [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
     )
     # The handles are reversed so the background will show up first with the JEWEL labels below.
-    ax.legend(loc = (0.03, 0.08), frameon = False, fontsize = 14, handles = list(reversed(handles)))
+    ax.legend(
+        bbox_to_anchor = (0.99, 0.01), loc = "lower right",
+        frameon = False, fontsize = 14, handles = list(reversed(handles))
+    )
 
     # Final adjustments
     fig.tight_layout()
@@ -878,6 +892,7 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
                                     an_analysis: "correlations.Correlations",
                                     label: str,
                                     fit_type: str,
+                                    y_axis_limits: Tuple[float, float],
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
     def away_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
@@ -926,6 +941,7 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
             output_name = "yield_ratio_delta_phi_away_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
             fit_type = fit_type,
             output_info = output_info,
+            y_axis_limits = y_axis_limits if y_axis_limits else None,
             JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
             projection_range_func = delta_phi_plot_projection_range_string,
             extraction_range_func = away_side_extraction_range,
@@ -944,6 +960,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
                       output_name: str,
                       fit_type: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
+                      y_axis_limits: Optional[Tuple[float, float]] = None,
                       JEWEL_predictions: Optional[extracted.JEWELPredictions] = None,
                       projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                       extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
@@ -958,6 +975,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
+        y_axis_limits: Set the y-axis limits by hand.
         JEWEL_predictions: JEWEL predictions to plot. Default: None.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
@@ -1001,7 +1019,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
             x_errors = np.array([0.1 / 2.0] * len(bin_centers)),
             # Transposed so that it's in the right format for plotting
             y_errors = np.array([v.metadata["mixed_event_scale_systematic"] for v in values.values()]).T,
-            label = "Correlated uncertainty", color = plot_base.AnalysisColors.systematic,
+            label = "Correlated unc.", color = plot_base.AnalysisColors.systematic,
         )
         error_boxes["systematic"] = boxes
 
@@ -1049,6 +1067,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
     lower_left_label = r"Scale uncertainty: 5\%"
     additional_label = _proj_and_extract_range_label(
         inclusive_analysis = an_analysis,
+        separator = "\n",
         projection_range_func = projection_range_func,
         extraction_range_func = extraction_range_func,
     )
@@ -1061,8 +1080,10 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
             transform = ax.transAxes, fontsize = 14,
         )
 
-    # Set a uniform range
-    ax.set_ylim(-1.5, 1.5)
+    # Set a uniform range by default
+    if not y_axis_limits:
+        y_axis_limits = (-1.5, 1.5)
+    ax.set_ylim(*y_axis_limits)
     # Add a line at 0 for reference
     ax.axhline(y = 0, color = "black", linestyle = "dashed", zorder = 1)
 
@@ -1082,9 +1103,11 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
     handles.extend(
         [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
     )
-    # TODO: Update the loc with the scale uncertainty label.
     # The handles are reversed so the background will show up first with the JEWEL labels below.
-    ax.legend(loc = (0.03, 0.12), frameon = False, fontsize = 14, handles = list(reversed(handles)))
+    ax.legend(
+        bbox_to_anchor = (0.99, 0.01), loc = "lower right",
+        frameon = False, fontsize = 14, handles = list(reversed(handles))
+    )
 
     # Final adjustments
     fig.tight_layout()
@@ -1153,6 +1176,7 @@ def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlati
                                          an_analysis: "correlations.Correlations",
                                          label: str,
                                          fit_type: str,
+                                         y_axis_limits: Optional[Tuple[float, float]],
                                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields differences. """
     def away_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
@@ -1202,6 +1226,7 @@ def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlati
             output_name = "yield_difference_delta_phi_away_side" + ("_JEWEL" if plot_JEWEL_predictions else ""),
             fit_type = fit_type,
             output_info = output_info,
+            y_axis_limits = y_axis_limits if y_axis_limits else None,
             JEWEL_predictions = JEWEL_predictions if plot_JEWEL_predictions else None,
             projection_range_func = delta_phi_plot_projection_range_string,
             extraction_range_func = away_side_extraction_range,
