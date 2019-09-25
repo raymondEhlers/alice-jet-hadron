@@ -3225,10 +3225,12 @@ class CorrelationsManager(analysis_manager.Manager):
 
             # Scale uncertainty
             # We've already asserted that the lower and upper systematics are the same, so we just take the lower
-            scale_uncertainty = np.sqrt(
+            # These are completely correlated, so we can subtract their square.
+            # See: https://www.phenix.bnl.gov/WWW/publish/elke/EIC/Files-for-Wiki/lara.02-008.errors.pdf
+            scale_uncertainty = np.sqrt(np.abs(
                 first_term_yield_obj.value.metadata["mixed_event_scale_systematic"][0] ** 2
-                + second_term_yield_obj.value.metadata["mixed_event_scale_systematic"][0] ** 2
-            )
+                - second_term_yield_obj.value.metadata["mixed_event_scale_systematic"][0] ** 2
+            ))
             logger.debug(
                 f"yield_difference: {yield_difference}, yield_difference_error: {yield_difference_error}, "
                 f"fit_error: {fit_error}"
