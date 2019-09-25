@@ -680,10 +680,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         logger.debug("Writing 1D delta eta correlations")
         self._write_hists_to_root_file(hists = self.correlation_hists_delta_eta)
 
-    def write_1d_subtracted_delta_phi_correlations(self) -> None:
+    def write_1d_subtracted_delta_phi_correlations(self, prefix: str) -> None:
         """ Write 1D subtracted correlations to file. """
         logger.debug("Writing 1D subtracted delta phi correlations.")
-        self._write_hists_to_yaml(hists = self.correlation_hists_delta_phi_subtracted)
+        self._write_hists_to_yaml(hists = self.correlation_hists_delta_phi_subtracted, prefix = prefix)
 
     def write_1d_subtracted_delta_eta_correlations(self) -> None:
         """ Write 1D subtracted delta eta correlations to file. """
@@ -717,17 +717,17 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Finally, write the output
             y.dump(output, f)
 
-    def write_yields_to_YAML(self) -> None:
+    def write_yields_to_YAML(self, prefix: str) -> None:
         """ Write yields to YAML. """
         self._write_extracted_values_to_YAML(values = {
-            f"{self.identifier}_yields_delta_phi": self.yields_delta_phi,
+            f"{prefix}_{self.identifier}_yields_delta_phi": self.yields_delta_phi,
             f"{self.identifier}_yields_delta_eta": self.yields_delta_eta,
         })
 
-    def write_delta_phi_widths_to_YAML(self) -> None:
+    def write_delta_phi_widths_to_YAML(self, prefix: str) -> None:
         """ Write delta phi widths to YAML. """
         self._write_extracted_values_to_YAML(values = {
-            f"{self.identifier}_widths_delta_phi": self.widths_delta_phi,
+            f"{prefix}_{self.identifier}_widths_delta_phi": self.widths_delta_phi,
         })
 
     def write_delta_eta_widths_to_YAML(self) -> None:
@@ -783,7 +783,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                     logger.debug(f"Writing hist {hist} with name {observable.name}")
                     hist.Write(observable.name)
 
-    def _write_hists_to_yaml(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
+    def _write_hists_to_yaml(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
+                             prefix: str = "") -> None:
         """ Write hists to YAML. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
@@ -811,6 +812,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Only write the histogram if it's valid. It's possible that it's still ``None``.
                 if hist:
                     #logger.debug(f"Writing hist named {observable.name}: {hist}")
+                    name = observable.name
+                    if prefix:
+                        name = f"{prefix}_{name}"
                     output[observable.name] = hist
 
             # Finally, write the output
@@ -846,9 +850,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
         self._init_hists_from_root_file(hists = self.correlation_hists_delta_phi)
         self._init_hists_from_root_file(hists = self.correlation_hists_delta_eta)
 
-    def init_1d_subtracted_delta_phi_corerlations_from_file(self) -> None:
+    def init_1d_subtracted_delta_phi_corerlations_from_file(self, prefix: str) -> None:
         """ Initialize 1D subtracted delta eta correlation hists. """
-        self._init_hists_from_yaml_file(hists = self.correlation_hists_delta_phi_subtracted)
+        self._init_hists_from_yaml_file(hists = self.correlation_hists_delta_phi_subtracted, prefix = prefix)
 
     def init_1d_subtracted_delta_eta_corerlations_from_file(self) -> None:
         """ Initialize 1D subtracted delta eta correlation hists. """
@@ -864,7 +868,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Load the fit from file.
             self.fit_objects_delta_eta = fit_information[f"{self.identifier}_fit_objects_delta_eta"]
 
-    def init_yields_from_file(self) -> None:
+    def init_yields_from_file(self, prefix: str) -> None:
         """ Initialize yields from a YAML file. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
@@ -872,10 +876,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
             stored_data = y.load(f)
 
             # Load the fit from file.
-            self.yields_delta_phi = stored_data[f"{self.identifier}_yields_delta_phi"]
+            self.yields_delta_phi = stored_data[f"{prefix}_{self.identifier}_yields_delta_phi"]
             self.yields_delta_eta = stored_data[f"{self.identifier}_yields_delta_eta"]
 
-    def init_delta_phi_widths_from_file(self) -> None:
+    def init_delta_phi_widths_from_file(self, prefix: str) -> None:
         """ Initialize delta phi widths from a YAML file. """
         y = self._setup_yaml()
         filename = os.path.join(self.output_prefix, self.output_filename_yaml)
@@ -883,7 +887,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             stored_data = y.load(f)
 
             # Load the widths from file.
-            self.widths_delta_phi = stored_data[f"{self.identifier}_widths_delta_phi"]
+            self.widths_delta_phi = stored_data[f"{prefix}_{self.identifier}_widths_delta_phi"]
 
     def init_delta_eta_widths_from_file(self) -> None:
         """ Initialize delta eta widths from a YAML file. """
@@ -911,7 +915,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 #logger.debug(f"Initializing hist {h} to be stored in {observable}")
                 observable.hist = h
 
-    def _init_hists_from_yaml_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
+    def _init_hists_from_yaml_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
+                                   prefix: str = "") -> None:
         """ Initialize histograms from a YAML file. """
         # We want to initialize from our saved hists - they will be at the output_prefix.
         y = self._setup_yaml()
@@ -920,6 +925,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
             hists_in_file = y.load(f)
             for _, observable in hists:
                 #logger.debug(f"Looking for hist {observable.name}")
+                name = observable.name
+                if prefix:
+                    name = f"{prefix}_{name}"
                 h = hists_in_file.get(observable.name, None)
                 #logger.debug(f"Initializing hist {h} to be stored in {observable}")
                 observable.hist = h
@@ -2786,15 +2794,16 @@ class CorrelationsManager(analysis_manager.Manager):
                         # First subtract
                         analysis.subtract_background_fit_function_from_signal_dominated()
 
-                        # Then save the result for later
-                        analysis.write_1d_subtracted_delta_phi_correlations()
+                        # Then save the result for later. Write the prefix because it matters
+                        # what type of fit was used.
+                        analysis.write_1d_subtracted_delta_phi_correlations(prefix = self.fit_type)
                     else:
                         # Load from file.
                         logger.info(
                             f"Reading delta phi correlation information from file for {analysis.identifier}, "
                             f"{analysis.reaction_plane_orientation}."
                         )
-                        analysis.init_1d_subtracted_delta_phi_corerlations_from_file()
+                        analysis.init_1d_subtracted_delta_phi_corerlations_from_file(prefix = self.fit_type)
 
                     # We will keep track of the inclusive analysis so we can easily access some analysis parameters.
                     if analysis.reaction_plane_orientation == params.ReactionPlaneOrientation.inclusive:
@@ -2873,10 +2882,10 @@ class CorrelationsManager(analysis_manager.Manager):
                     analysis.extract_yields()
 
                     # Save the extracted values
-                    analysis.write_yields_to_YAML()
+                    analysis.write_yields_to_YAML(prefix = self.fit_type)
                 else:
                     # Load from file.
-                    analysis.init_yields_from_file()
+                    analysis.init_yields_from_file(prefix = self.fit_type)
 
                 # Update progress
                 extracting.update()
@@ -3355,10 +3364,10 @@ class CorrelationsManager(analysis_manager.Manager):
                     analysis.extract_delta_phi_widths()
 
                     # Save the extracted values
-                    analysis.write_delta_phi_widths_to_YAML()
+                    analysis.write_delta_phi_widths_to_YAML(prefix = self.fit_type)
                 else:
                     # Load from file.
-                    analysis.init_delta_phi_widths_from_file()
+                    analysis.init_delta_phi_widths_from_file(prefix = self.fit_type)
 
                 if self.processing_options["extract_delta_eta_widths"]:
                     if self.processing_options["use_stored_delta_eta_widths"]:
