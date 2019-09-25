@@ -2153,8 +2153,8 @@ class Correlations(analysis_objects.JetHReactionPlane):
         for attribute_name, width_obj in self.widths_delta_phi:
             # Need to convert "near_side" -> "ns" to retrieve the parameters
             short_name = "".join([s[0] for s in attribute_name.split("_")])
-            width_value = self.fit_object.fit_result.values_at_minimum.get(f"{short_name}_sigma", None)
-            width_error = self.fit_object.fit_result.errors_on_parameters.get(f"{short_name}_sigma", None)
+            width_value = self.fit_object.fit_result.values_at_minimum.get(f"{self.reaction_plane_orientation}_{short_name}_sigma", None)
+            width_error = self.fit_object.fit_result.errors_on_parameters.get(f"{self.reaction_plane_orientation}_{short_name}_sigma", None)
             # Only attempt to store the width if we were able to extract it.
             if width_value is None or width_error is None:
                 logger.debug(
@@ -2171,9 +2171,9 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
             # If the widths are there, then the amplitudes are too. We can also take advantage of them to seed the fit.
             width_obj.fit_args["amplitude"] = \
-                self.fit_object.fit_result.values_at_minimum[f"{short_name}_amplitude"]
+                self.fit_object.fit_result.values_at_minimum[f"{self.reaction_plane_orientation}_{short_name}_amplitude"]
             width_obj.fit_args["error_amplitude"] = \
-                self.fit_object.fit_result.errors_on_parameters[f"{short_name}_amplitude"]
+                self.fit_object.fit_result.errors_on_parameters[f"{self.reaction_plane_orientation}_{short_name}_amplitude"]
 
         return True
 
@@ -3389,10 +3389,12 @@ class CorrelationsManager(analysis_manager.Manager):
             plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 fit_type = self.fit_type, output_info = self.output_info,
+                rpf_widths = True if self.fit_type == "SignalFit" else False,
             )
             plot_extracted.delta_phi_away_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 fit_type = self.fit_type, output_info = self.output_info,
+                rpf_widths = True if self.fit_type == "SignalFit" else False,
             )
         if self.processing_options["plot_delta_eta_widths"]:
             plot_extracted.delta_eta_near_side_widths(

@@ -435,7 +435,8 @@ def delta_phi_plot_projection_range_string(inclusive_analysis: "correlations.Cor
 def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
                                fit_type: str,
-                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
+                               output_info: analysis_objects.PlottingOutputWrapper,
+                               rpf_widths: bool = False) -> None:
     """ Plot the delta phi near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
         """ Simple helper function to extract the delta phi near-side widths """
@@ -445,12 +446,30 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
             metadata = analysis.widths_delta_phi.near_side.metadata,
         )
 
+    def near_side_widths_signal_fit(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Simple helper function to extract the delta phi near-side widths """
+        value = analysis.widths_delta_phi.near_side.fit_args.get("width", None)
+        # The value is available. It just be one of the EP selected orientations
+        if value is not None:
+            return analysis_objects.ExtractedObservable(  # type: ignore
+                value = analysis.widths_delta_phi.near_side.fit_args["width"],
+                error = analysis.widths_delta_phi.near_side.fit_args["error_width"],
+                # The error prop for the RPF signal fits systematic isn't so straightforward
+                metadata = {},
+            )
+        # No widths - must be the inclusive case.
+        return analysis_objects.ExtractedObservable(
+            value = analysis.widths_delta_phi.near_side.width,
+            error = analysis.widths_delta_phi.near_side.fit_result.errors_on_parameters["width"],
+            metadata = analysis.widths_delta_phi.near_side.metadata,
+        )
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        extract_value_func = near_side_widths,
+        extract_value_func = near_side_widths_signal_fit if rpf_widths is True else near_side_widths,
         plot_labels = plot_base.PlotLabels(
-            y_label = "Near-side width",
-            title = "Near-side width",
+            y_label = "Near-side width" + (" (Signal RPF)" if rpf_widths else ""),
+            title = "Near-side width" + (" (Signal RPF)" if rpf_widths else ""),
         ),
         logy = False,
         output_name = "widths_delta_phi_near_side",
@@ -462,7 +481,8 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
 def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations"],
                                selected_iterables: Mapping[str, Sequence[Any]],
                                fit_type: str,
-                               output_info: analysis_objects.PlottingOutputWrapper) -> None:
+                               output_info: analysis_objects.PlottingOutputWrapper,
+                               rpf_widths: bool = False) -> None:
     """ Plot the delta phi away-side widths. """
     def away_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
         """ Simple helper function to extract the delta phi away-side widths """
@@ -472,12 +492,30 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
             metadata = analysis.widths_delta_phi.away_side.metadata,
         )
 
+    def away_side_widths_signal_fit(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
+        """ Simple helper function to extract the delta phi away-side widths """
+        value = analysis.widths_delta_phi.away_side.fit_args.get("width", None)
+        # The value is available. It just be one of the EP selected orientations
+        if value is not None:
+            return analysis_objects.ExtractedObservable(  # type: ignore
+                value = analysis.widths_delta_phi.away_side.fit_args["width"],
+                error = analysis.widths_delta_phi.away_side.fit_args["error_width"],
+                # The error prop for the RPF signal fits systematic isn't so straightforward
+                metadata = {},
+            )
+        # No widths - must be the inclusive case.
+        return analysis_objects.ExtractedObservable(
+            value = analysis.widths_delta_phi.away_side.width,
+            error = analysis.widths_delta_phi.away_side.fit_result.errors_on_parameters["width"],
+            metadata = analysis.widths_delta_phi.away_side.metadata,
+        )
+
     _extracted_values(
         analyses = analyses, selected_iterables = selected_iterables,
-        extract_value_func = away_side_widths,
+        extract_value_func = away_side_widths_signal_fit if rpf_widths is True else away_side_widths,
         plot_labels = plot_base.PlotLabels(
-            y_label = "Away-side width",
-            title = "Away-side width",
+            y_label = "Away-side width" + (" (Signal RPF)" if rpf_widths else ""),
+            title = "Away-side width" + (" (Signal RPF)" if rpf_widths else ""),
         ),
         logy = False,
         output_name = "widths_delta_phi_away_side",
