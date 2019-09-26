@@ -492,9 +492,18 @@ def simplified_mixed_event_comparison(output_info: analysis_objects.PlottingOutp
         label = "Mixed event",
     )
     # Plot the lines
-    ax.axhline(max_moving_avg, label = r"Moving avg. (size $\pi$)", color = "tab:orange")
-    ax.axhline(fit_1D, label = r"1D fit ($\pi/2-3\pi/2$)", color = "tab:purple")
-    ax.axhline(fit_2D, label = r"2D fit ($\pi/2-3\pi/2$)", linestyle = "--", color = "tab:purple")
+    ax.axhline(
+        max_moving_avg, xmin = 0.4, xmax = 1,
+        label = r"Moving avg. (size $\pi$)", color = "tab:orange"
+    )
+    ax.axhline(
+        fit_1D, xmin = 0.5, xmax = 1,
+        label = r"1D fit ($\pi/2-3\pi/2$)", color = "tab:purple"
+    )
+    ax.axhline(
+        fit_2D, xmin = 0.5, xmax = 1,
+        label = r"2D fit ($\pi/2-3\pi/2$)", linestyle = "--", color = "tab:purple"
+    )
 
     # Label delta eta range.
     ax.text(
