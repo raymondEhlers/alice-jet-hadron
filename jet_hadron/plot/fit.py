@@ -251,8 +251,14 @@ def _reference_v3_data(reference_data: ReferenceData,
     Returns:
         None. The data is plotted on the given axis.
     """
-    _plot_reference_vn_data(variable_name = "v3", harmonic = 3, reference_data = reference_data,
-                            ax = ax, selected_analysis_options = selected_analysis_options)
+    # Don't plot the reference v3 data - it's not a meaningful comparison. It's difficult to interpret
+    # the v_3 data as v_3^2, as it's really the product of v_3^{t} and v_3^{a}. The actual value is
+    # expected to be 0, and certainly could be negative.
+    #_plot_reference_vn_data(variable_name = "v3", harmonic = 3, reference_data = reference_data,
+    #                        ax = ax, selected_analysis_options = selected_analysis_options)
+
+    # However, we can draw a reference line at 0
+    ax.axhline(y = 0, color = "black", linestyle = "dashed")
 
 def _square_root_v3_2(data: histogram.Histogram1D) -> histogram.Histogram1D:
     """ Transform the v3^2 data into v3 data.
@@ -336,7 +342,9 @@ def fit_parameters_vs_assoc_pt(fit_objects: FitObjects,
             ),
             # Don't plot the reference v3 data - it's not a meaningful comparison. See why the transform function
             # is also disabled below.
-            #plot_reference_data_func = _reference_v3_data,
+            # NOTE: This function is enabled because we want to plot a reference line at 0. It doesn't plot
+            #       the actual measured v3 reference data.
+            plot_reference_data_func = _reference_v3_data,
             # Don't transform the v3 data! It's difficult to interpret the v_3 data as v_3^2, as it's really the
             # product of v_3^{t} and v_3^{a}. The actual value is expected to be 0, and certainly could be negative.
             #transform_fit_data = _square_root_v3_2,
