@@ -269,7 +269,7 @@ class GlauberPathLengthAnalysis:
         ax.errorbar(
             h.x, h.y, yerr = h.errors,
             marker = "o", linestyle = "",
-            label = "out-of-plane/in-plane",
+            label = "in-plane/out-of-plane",
         )
 
         # Label and final adjustments
