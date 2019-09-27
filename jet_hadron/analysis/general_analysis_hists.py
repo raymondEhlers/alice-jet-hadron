@@ -131,7 +131,7 @@ class GeneralAnalysisHists(analysis_objects.JetHBase):
             None.
         """
         rho_hists = self.input_hists[self.task_config["rho_task_name"]]
-        rho_vs_centrality = rho_hists["fHistRhovsCent"]
+        rho_vs_centrality = rho_hists["fHistRhoScaledvsCent"]
         plot_general.rho_centrality(
             rho_hist = rho_vs_centrality,
             output_info = self.output_info,
