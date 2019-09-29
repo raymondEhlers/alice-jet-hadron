@@ -157,6 +157,8 @@ reaction_plane_fit_parameters:
     null: null
 CorrelationsManager: &CorrelationsManagerConfig
     processing_options:
+        # General options
+        write_thesis_output: true
         # 2D
         generate_2D_correlations: false
         plot_2D_correlations: false
