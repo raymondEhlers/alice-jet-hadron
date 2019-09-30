@@ -124,6 +124,7 @@ Correlations: &CorrelationsConfig
                 - !TrackPtBin
                   bin: 7
                   range: !SelectedRange [4.0, 5.0]
+                # Below here won't converge for the semi-central SignalFit
                 - !TrackPtBin
                   bin: 8
                   range: !SelectedRange [5.0, 6.0]
@@ -154,6 +155,8 @@ CorrelationsZVertex:
 resolution_parameters:
     null: null
 reaction_plane_fit_parameters:
+    null: null
+widths:
     null: null
 CorrelationsManager: &CorrelationsManagerConfig
     processing_options:
@@ -447,6 +450,91 @@ CorrelationsManager: &CorrelationsManagerConfig
                     R42: 0.5046126852106662
                     R62: 0.3020062445564112
                     R82: 0
+                widths:
+                    BackgroundFit:
+                        jetPtBiased_20_40:
+                            trackPt_3.0_4.0:
+                                away_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                            trackPt_4.0_5.0:
+                                away_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                            trackPt_5.0_6.0:
+                                near_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.05, 0.5]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.05, 0.5]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.05, 0.5]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.001, 0.5]
+                                away_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                            trackPt_6.0_10.0:
+                                near_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.001, 0.5]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.001, 0.5]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.001, 0.5]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.001, 0.5]
+                                away_side:
+                                    inclusive:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    in_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    mid_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
+                                    out_of_plane:
+                                        args:
+                                            limit_width: [0.15, 1.0]
                 reaction_plane_fit_parameters:
                     BackgroundFit:
                         jetPtBiased_20_40:
