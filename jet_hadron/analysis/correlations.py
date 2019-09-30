@@ -2242,6 +2242,41 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         return (width_low, width_high)
 
+    def _evaluate_delta_phi_width_background_uncertainty(self, hist: histogram.Histogram1D,
+                                                         fit: rpf.fit.FitComponent,
+                                                         width_obj: extracted.ExtractedWidth,
+                                                         nominal_width: float) -> float:
+        values = []
+        for p in fit.fit_result.free_parameters:
+            v = 0
+            for vary_up in [False, True]:
+                logger.debug(f"Varying parameter: {p}")
+                values_at_minimum = dict(fit.fit_result.values_at_minimum)
+                values_at_minimum[p] += (fit.fit_result.errors_on_parameters[p] * (-1 if vary_up else 1))
+                variation = fit.background_function(
+                    hist.x, *values_at_minimum.values()
+                )
+                fit_hist = histogram.Histogram1D(
+                    bin_edges = hist.bin_edges,
+                    y = variation,
+                    errors_squared = np.zeros(len(hist.x)),
+                )
+                fit_hist *= self.correlation_scale_factor
+                sub = hist - fit_hist
+
+                # Fit the variation
+                variation_fit_result = width_obj.fit_object.fit(
+                    h = sub,
+                )
+                width_difference = np.abs(variation_fit_result.values_at_minimum["width"] - nominal_width)
+                if width_difference > v:
+                    v = width_difference
+
+            values.append(v)
+
+        error = cast(float, np.sqrt(np.sum(np.array(values) ** 2)))
+        return error
+
     def _fit_and_extract_delta_phi_widths(self) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
@@ -2257,6 +2292,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
             )
             # First, evaluate the systematics. We use ths same object for the fits, so it's best to have
             # the last evaluation by the actual fit incase we need the fit object itself later.
+            # This is the scale uncertainty
             width_low, width_high = self._evaluate_delta_phi_width_scale_uncertainty(
                 scale_uncertainty = self.mixed_event_scale_uncertainty,
                 subtracted_hist = subtracted.hist,
@@ -2270,16 +2306,29 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Store the fit result
             width_obj.fit_result = fit_result
 
+            # Next, the background uncertainty. We wait until later because we need the nominal value for convenience.
+            background_error = self._evaluate_delta_phi_width_background_uncertainty(
+                hist = self.correlation_hists_delta_phi.signal_dominated.hist,
+                fit = self.fit_object,
+                width_obj = width_obj,
+                nominal_width = width_obj.width,
+            )
+            logger.debug(f"nominal: {width_obj.width}, background_error: {background_error}")
+
+            # Store the fit result (be certain that it's the final object)
+            width_obj.fit_result = fit_result
+
             # We want the systematics to be absolute errors, so we subtract the nominal width value.
             nominal_width = width_obj.width
             systematic_widths = [np.abs(nominal_width - width_low), np.abs(width_high - nominal_width)]
 
-            # Cross check. We expect this systematic to be symmetric.
-            logger.debug(f"systematic_widths_ {systematic_widths}")
-            assert np.isclose(*systematic_widths, atol = 1e-2)
+            # TODO: Cross check. We expect this systematic to be symmetric. Do we really?
+            logger.debug(f"systematic_widths: {systematic_widths}")
+            #assert np.isclose(*systematic_widths, atol = 1e-2)
 
             # Store the systematics.
             width_obj.metadata["mixed_event_scale_systematic"] = systematic_widths
+            width_obj.metadata["fit_error"] = background_error
 
     def _fit_and_extract_delta_eta_widths(self) -> None:
         """ Extract delta eta near-side and away-side widths via a gaussian fit.
