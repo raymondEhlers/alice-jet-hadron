@@ -604,6 +604,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_options = {"range": self.near_side_phi_region.range},
                     user_arguments = {
+                        "pedestal": 0, "fix_pedestal": True,
                         "mean": 0, "fix_mean": True,
                         "width": 0.15, "limit_width": (0.05, 1.0),
                     },
@@ -616,8 +617,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit_object = fitting.FitPedestalWithExtendedGaussian(
                     fit_options = {"range": self.away_side_phi_region.range},
                     user_arguments = {
+                        "pedestal": 0, "fix_pedestal": True,
                         "mean": np.pi, "limit_mean": (np.pi / 2, 3 * np.pi / 2), "fix_mean": True,
-                        "width": 1.0, "limit_width": (0.05, 1.5),
+                        "width": 0.3, "limit_width": (0.05, 1.0),
+                        # This setting works for all of central (more or less)
+                        #"width": 0.3, "limit_width": (0.05, 1.5),
+                        #"width": 0.6 if self.track_pt.min <= 5.0 else 1.0, "limit_width": (0.2, 1.5),
                     },
                     use_log_likelihood = False,
                 ),
@@ -2217,13 +2222,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _evaluate_delta_phi_width_scale_uncertainty(self, scale_uncertainty: float,
                                                     subtracted_hist: histogram.Histogram1D,
-                                                    width_obj: extracted.ExtractedWidth) -> Tuple[float, float]:
+                                                    width_obj: extracted.ExtractedWidth,
+                                                    user_arguments: Dict[str, Any]) -> Tuple[float, float]:
         """ Extract the the scale uncertainty associated with the widths.
 
         Args:
             scale_uncertainty: Mixed event scale uncertainty.
             subtracted_hist: RP subtracted hist.
             width_obj: Contains the width information, including the fit object.
+            user_arguments: User arguments for the fit.
         Returns:
             The lower and upper width systematics.
         """
@@ -2233,10 +2240,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         fit_result = width_obj.fit_object.fit(
             h = hist_low,
+            user_arguments = user_arguments,
         )
         width_low = fit_result.values_at_minimum["width"]
         fit_result = width_obj.fit_object.fit(
             h = hist_high,
+            user_arguments = user_arguments,
         )
         width_high = fit_result.values_at_minimum["width"]
 
@@ -2245,14 +2254,15 @@ class Correlations(analysis_objects.JetHReactionPlane):
     def _evaluate_delta_phi_width_background_uncertainty(self, hist: histogram.Histogram1D,
                                                          fit: rpf.fit.FitComponent,
                                                          width_obj: extracted.ExtractedWidth,
-                                                         nominal_width: float) -> float:
+                                                         nominal_width: float,
+                                                         user_arguments: Dict[str, Any]) -> float:
         values = []
         for p in fit.fit_result.free_parameters:
             v = 0
             for vary_up in [False, True]:
                 logger.debug(f"Varying parameter: {p}")
                 values_at_minimum = dict(fit.fit_result.values_at_minimum)
-                values_at_minimum[p] += (fit.fit_result.errors_on_parameters[p] * (-1 if vary_up else 1))
+                values_at_minimum[p] += (fit.fit_result.errors_on_parameters[p] * (1 if vary_up else -1))
                 variation = fit.background_function(
                     hist.x, *values_at_minimum.values()
                 )
@@ -2267,6 +2277,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 # Fit the variation
                 variation_fit_result = width_obj.fit_object.fit(
                     h = sub,
+                    user_arguments = user_arguments
                 )
                 width_difference = np.abs(variation_fit_result.values_at_minimum["width"] - nominal_width)
                 if width_difference > v:
@@ -2277,7 +2288,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         error = cast(float, np.sqrt(np.sum(np.array(values) ** 2)))
         return error
 
-    def _fit_and_extract_delta_phi_widths(self) -> None:
+    def _fit_and_extract_delta_phi_widths(self, width_parameters: Dict[str, Any]) -> None:
         """ Extract delta phi near-side and away-side widths via a gaussian fit.
 
         The widths are extracted by fitting the subtracted delta phi correlations to gaussians.
@@ -2290,6 +2301,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
             logger.debug(
                 f"Extracting delta phi {attribute_name} width for {self.identifier}, {self.reaction_plane_orientation}"
             )
+            # Grab any parameter specific args
+            user_arguments = width_parameters.get(self.jet_pt_identifier, {}) \
+                .get(self.track_pt_identifier, {}) \
+                .get(attribute_name, {}) \
+                .get(str(self.reaction_plane_orientation), {}) \
+                .get("args", {})
+            logger.debug(f"user_arguments: {user_arguments}")
+
             # First, evaluate the systematics. We use ths same object for the fits, so it's best to have
             # the last evaluation by the actual fit incase we need the fit object itself later.
             # This is the scale uncertainty
@@ -2297,11 +2316,13 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 scale_uncertainty = self.mixed_event_scale_uncertainty,
                 subtracted_hist = subtracted.hist,
                 width_obj = width_obj,
+                user_arguments = user_arguments,
             )
 
             # Now, evaluate the nominal value.
             fit_result = width_obj.fit_object.fit(
                 h = subtracted.hist,
+                user_arguments = user_arguments,
             )
             # Store the fit result
             width_obj.fit_result = fit_result
@@ -2312,6 +2333,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
                 fit = self.fit_object,
                 width_obj = width_obj,
                 nominal_width = width_obj.width,
+                user_arguments = user_arguments,
             )
             logger.debug(f"nominal: {width_obj.width}, background_error: {background_error}")
 
@@ -2351,14 +2373,14 @@ class Correlations(analysis_objects.JetHReactionPlane):
             # Store the result
             width_obj.fit_result = fit_result
 
-    def extract_delta_phi_widths(self) -> None:
+    def extract_delta_phi_widths(self, width_parameters: Dict[str, Any]) -> None:
         """ Extract and store delta phi near-side and away-side widths. """
         # Delta phi
         # Attempt to retrieve the widths from the RPF. These will be used to determine the initial
         # value for the new fits.
         self._retrieve_widths_from_RPF()
         logger.debug("Extracting widths via Gaussian fits")
-        self._fit_and_extract_delta_phi_widths()
+        self._fit_and_extract_delta_phi_widths(width_parameters = width_parameters)
         self._compare_extracted_widths_to_RPF()
 
     def extract_delta_eta_widths(self) -> None:
@@ -3593,7 +3615,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 if self.processing_options["extract_delta_phi_widths"]:
                     # Extract and store the yields.
-                    analysis.extract_delta_phi_widths()
+                    analysis.extract_delta_phi_widths(width_parameters = self.config["widths"].get(self.fit_type, {}))
 
                     # Save the extracted values
                     analysis.write_delta_phi_widths_to_YAML(prefix = self.fit_type)
