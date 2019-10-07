@@ -3652,11 +3652,13 @@ class CorrelationsManager(analysis_manager.Manager):
             plot_extracted.delta_phi_near_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 fit_type = self.fit_type, output_info = self.output_info,
+                y_axis_limits = (-0.2, 1.2),
                 rpf_widths = True if self.fit_type == "SignalFit" else False,
             )
             plot_extracted.delta_phi_away_side_widths(
                 analyses = self.analyses, selected_iterables = self.selected_iterables,
                 fit_type = self.fit_type, output_info = self.output_info,
+                y_axis_limits = (-0.8, 6),
                 rpf_widths = True if self.fit_type == "SignalFit" else False,
             )
         if self.processing_options["plot_delta_eta_widths"]:

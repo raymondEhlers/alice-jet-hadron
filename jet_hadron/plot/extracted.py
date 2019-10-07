@@ -252,6 +252,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       output_name: str,
                       fit_type: str,
                       output_info: analysis_objects.PlottingOutputWrapper,
+                      y_axis_limits: Optional[Tuple[float, float]] = None,
                       projection_range_func: Optional[Callable[["correlations.Correlations"], str]] = None,
                       extraction_range_func: Optional[Callable[["correlations.Correlations"], str]] = None) -> None:
     """ Plot extracted values.
@@ -418,6 +419,9 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         ax.set_ylim(y_min, y_max if y_max > 5 else 5)
     # Ensure that there are major labeld ticks at every integer value on the x axis
     ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
+    # Apply custom limits if requested
+    if y_axis_limits:
+        ax.set_ylim(*y_axis_limits)
 
     # Final adjustments
     fig.tight_layout()
@@ -436,6 +440,7 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Mapping[str, Sequence[Any]],
                                fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper,
+                               y_axis_limits: Optional[Tuple[float, float]] = None,
                                rpf_widths: bool = False) -> None:
     """ Plot the delta phi near-side widths. """
     def near_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -475,6 +480,7 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
         output_name = "widths_delta_phi_near_side",
         fit_type = fit_type,
         output_info = output_info,
+        y_axis_limits = y_axis_limits,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
 
@@ -482,6 +488,7 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
                                selected_iterables: Mapping[str, Sequence[Any]],
                                fit_type: str,
                                output_info: analysis_objects.PlottingOutputWrapper,
+                               y_axis_limits: Optional[Tuple[float, float]] = None,
                                rpf_widths: bool = False) -> None:
     """ Plot the delta phi away-side widths. """
     def away_side_widths(analysis: "correlations.Correlations") -> analysis_objects.ExtractedObservable:
@@ -521,6 +528,7 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
         output_name = "widths_delta_phi_away_side",
         fit_type = fit_type,
         output_info = output_info,
+        y_axis_limits = y_axis_limits,
         projection_range_func = delta_phi_plot_projection_range_string,
     )
 
