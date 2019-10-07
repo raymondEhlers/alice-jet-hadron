@@ -948,7 +948,7 @@ def plot_RP_fit(rp_fit: reaction_plane_fit.fit.ReactionPlaneFit,
 
     # Final adjustments
     fig.tight_layout()
-    # We need to do some additional axis adjustment  after the tight layout, so we
+    # We need to do some additional axis adjustment after the tight layout, so we
     # perform that here.
     fig.subplots_adjust(
         # Reduce spacing between subplots
