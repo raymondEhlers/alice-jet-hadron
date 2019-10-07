@@ -1512,6 +1512,7 @@ class ResponseManager(analysis_manager.Manager):
 
     def _package_and_write_final_hists(self) -> None:
         """ Package up and write the final repsonse matrices and particle level spectra. """
+        # Write out the final histograms.
         output_filename = os.path.join(self.output_info.output_prefix, "final_responses.root")
         with histogram.RootOpen(output_filename, mode = "RECREATE"):
             for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
@@ -1532,6 +1533,39 @@ class ResponseManager(analysis_manager.Manager):
                         "matched_jet_pt_residual"
                     )
                     matched_jet_pt_difference.Write()
+
+        # Handle HEP data.
+        try:
+            import hepdata_lib as hepdata
+            logger.debug("Writing the responses to the HEPdata format.")
+            submission = hepdata.Submission()
+            for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
+                temp_hist = analysis.response_matrix.Clone(
+                    f"{analysis.response_matrix.GetName()}_{analysis.reaction_plane_orientation}_hepdata"
+                )
+                # We want to write it out with 5 GeV bins
+                temp_hist.Rebin2D(5, 5)
+                response = hepdata.root_utils.get_hist_2d_points(temp_hist)
+                pt_hybrid = hepdata.Variable("Hybrid level pT", is_binned = False, units = "GeV/c")
+                pt_hybrid.values = response["x"]
+                pt_part = hepdata.Variable("Particle level pT", is_binned = False, is_independent = False, units = "GeV/c")
+                pt_part.values = response["y"]
+                resp = hepdata.Variable("Response matrix", is_binned = False, is_independent = False)
+                resp.values = response["z"]
+
+                table = hepdata.Table(f"response_matrix_{analysis.reaction_plane_orientation}_hepdata")
+                table.add_variable(pt_hybrid)
+                table.add_variable(pt_part)
+                table.add_variable(resp)
+                # NOTE: Additional labeling should usually be performed here, but I'm omitting for the sake of time
+                submission.add_table(table)
+
+            hepdata_output = os.path.join(self.output_info.output_prefix, "hepdata_responses")
+            # Create the YAML files
+            submission.create_files(hepdata_output)
+        except ImportError:
+            # It's not available here - skip it.
+            ...
 
     def run(self) -> bool:
         """ Run the response matrix analyses. """
