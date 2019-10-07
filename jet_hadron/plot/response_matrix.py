@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns
-from typing import Any, cast, Dict, Iterator, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, cast, Dict, Iterator, Mapping, Sequence, Tuple, TYPE_CHECKING, Union
 
 import pachyderm.fit
 from pachyderm import histogram
@@ -28,13 +28,15 @@ from jet_hadron.plot import base as plot_base
 import ROOT
 
 if TYPE_CHECKING:
+    from jet_hadron.analysis import pt_hard_analysis  # noqa: F401
     from jet_hadron.analysis import response_matrix
 
 logger = logging.getLogger(__name__)
 
 Analyses = Dict[Any, "response_matrix.ResponseMatrix"]
+AnalysesBase = Dict[Any, "response_matrix.ResponseMatrixBase"]
 
-def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
+def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrixBase"]],
                                 output_info: analysis_objects.PlottingOutputWrapper,
                                 plot_with_ROOT: bool = False) -> None:
     """ Plot the particle level spectra associated with the response.
@@ -112,7 +114,7 @@ def plot_particle_level_spectra(ep_analyses_iter: Iterator[Tuple[Any, "response_
     else:
         _plot_particle_level_spectra_with_matplotlib(**kwargs)
 
-def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
+def _plot_particle_level_spectra_with_matplotlib(ep_analyses: AnalysesBase,
                                                  output_name: str,
                                                  output_info: analysis_objects.PlottingOutputWrapper,
                                                  general_labels: Dict[str, str],
@@ -214,7 +216,7 @@ def _plot_particle_level_spectra_with_matplotlib(ep_analyses: Analyses,
     plot_base.save_plot(output_info, fig, output_name)
     plt.close(fig)
 
-def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
+def _plot_particle_level_spectra_with_ROOT(ep_analyses: AnalysesBase,
                                            output_name: str,
                                            output_info: analysis_objects.PlottingOutputWrapper,
                                            general_labels: Dict[str, str],
@@ -376,7 +378,7 @@ def _plot_particle_level_spectra_with_ROOT(ep_analyses: Analyses,
     # Also save the plot as a c macro
     canvas.SaveAs(os.path.join(output_info.output_prefix, output_name + ".C"))
 
-def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrix"]],
+def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "response_matrix.ResponseMatrixBase"]],
                                   output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Create ratios relative to the particle level spectra and plot them.
 
@@ -958,7 +960,7 @@ def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, outpu
 def plot_response_spectra(plot_labels: plot_base.PlotLabels,
                           output_name: str,
                           merged_analysis: analysis_objects.JetHBase,
-                          pt_hard_analyses: Analyses,
+                          pt_hard_analyses: Mapping[Any, Union["pt_hard_analysis.PtHardAnalysis", "response_matrix.ResponseMatrixBase"]],
                           hist_attribute_name: str,
                           plot_with_ROOT: bool = False) -> None:
     """ Plot 1D response spectra.
@@ -1003,7 +1005,7 @@ def plot_response_spectra(plot_labels: plot_base.PlotLabels,
 def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
                                            output_name: str,
                                            merged_analysis: analysis_objects.JetHBase,
-                                           pt_hard_analyses: Analyses,
+                                           pt_hard_analyses: Mapping[Any, Union["pt_hard_analysis.PtHardAnalysis", "response_matrix.ResponseMatrixBase"]],
                                            hist_attribute_name: str,
                                            colors: Sequence[Tuple[float, float, float]]) -> None:
     """ Plot 1D response spectra with matplotlib.
@@ -1072,7 +1074,7 @@ def _plot_response_spectra_with_matplotlib(plot_labels: plot_base.PlotLabels,
 def _plot_response_spectra_with_ROOT(plot_labels: plot_base.PlotLabels,
                                      output_name: str,
                                      merged_analysis: analysis_objects.JetHBase,
-                                     pt_hard_analyses: Analyses,
+                                     pt_hard_analyses: Mapping[Any, Union["pt_hard_analysis.PtHardAnalysis", "response_matrix.ResponseMatrixBase"]],
                                      hist_attribute_name: str,
                                      colors: Sequence[Tuple[float, float, float]]) -> None:
     """ Plot 1D response spectra with ROOT.

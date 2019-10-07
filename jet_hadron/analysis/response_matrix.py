@@ -1216,8 +1216,8 @@ class ResponseManager(analysis_manager.Manager):
         for _, analysis in analysis_config.iterate_with_selected_objects(self.analyses):
             func(analysis)
         logger.info(f"{label} final response matrix histograms.")
-        for _, analysis in analysis_config.iterate_with_selected_objects(self.final_responses):
-            func(analysis)
+        for _, analysis_base in analysis_config.iterate_with_selected_objects(self.final_responses):
+            func(analysis_base)
 
     def write_response_matrix_histograms(self) -> None:
         """ Write response matrix histograms.
