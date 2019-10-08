@@ -1125,7 +1125,7 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
         lower_left_label += "\n" + additional_label
     if lower_left_label:
         ax.text(
-            0.03, 0.03, additional_label, horizontalalignment = "left",
+            0.03, 0.03, lower_left_label, horizontalalignment = "left",
             verticalalignment = "bottom", multialignment = "left",
             transform = ax.transAxes, fontsize = 14,
         )
