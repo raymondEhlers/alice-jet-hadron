@@ -2850,7 +2850,7 @@ class CorrelationsManager(analysis_manager.Manager):
                     use_log_likelihood = use_log_likelihood,
                     signal_region = inclusive_analysis.signal_dominated_eta_region,
                     background_region = inclusive_analysis.background_dominated_eta_region,
-                    #use_minos = True,
+                    use_minos = self.task_config["reaction_plane_fit"]["use_minos"],
                 )
 
                 # Now, perform the fit (or load in the fit result).

@@ -201,6 +201,9 @@ CorrelationsManager: &CorrelationsManagerConfig
         fit_type: "BackgroundFit"
         #fit_type: "InclusiveSignalFit"
         #fit_type: "SignalFit"
+        # Whether to calculate MINOS errors when fitting. It is slower, but the errors
+        # are more reliable and they are a useful crosscheck. Default: True.
+        use_minos: true
     override: &CorrelationsManagerOverride
         # NOTE: The final value is the task name of the Correlations tasks. This is intentionally selected
         #       so that the output is stored in the same directory.
