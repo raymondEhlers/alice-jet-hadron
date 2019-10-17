@@ -808,6 +808,13 @@ def plot_response_matrix_and_errors(obj: "response_matrix.ResponseMatrixBase",
             reaction_plane_orientation = obj.reaction_plane_orientation,
         )
 
+    # We also want to plot a final response matrix, with final labeling and rebinning.
+    _plot_final_response_matrix_with_matplotlib(
+        obj = obj,
+        hist = obj.response_matrix,
+        output_info = obj.output_info,
+    )
+
 def _plot_response_matrix(hist: Hist,
                           plot_errors_hist: bool,
                           output_info: analysis_objects.PlottingOutputWrapper,
@@ -956,6 +963,107 @@ def _plot_response_matrix_with_ROOT(name: str, x_label: str, y_label: str, outpu
     # Save
     output_name += "_ROOT"
     plot_base.save_plot(output_info, canvas, output_name)
+
+def _plot_final_response_matrix_with_matplotlib(obj: "response_matrix.ResponseMatrixBase",
+                                                hist: Hist,
+                                                output_info: analysis_objects.PlottingOutputWrapper) -> None:
+    """ Underlying function to actually plot the final response matrix with matplotlib.
+
+    It also rebins a clone of the histogram so it's presentable.
+
+    Args:
+        obj: Response matrix object.
+        hist: The response matrix related 2D hist.
+        output_info: Output information.
+    Returns:
+        None
+    """
+    # Setup
+    fig, ax = plt.subplots(figsize = (8, 6))
+
+    # Convert the histogram
+    # First, we clone and rebin for presentation purposes
+    response = hist.Clone(f"{hist.GetName()}_rebin_temp")
+    response.Rebin2D(5, 5)
+    X, Y, hist_array = histogram.get_array_from_hist2D(
+        hist = response,
+        set_zero_to_NaN = True,
+        return_bin_edges = True,
+    )
+
+    # Determine and fill args
+    kwargs = {}
+    # Create a log z axis heat map.
+    kwargs["norm"] = matplotlib.colors.LogNorm(vmin = np.nanmin(hist_array), vmax = np.nanmax(hist_array))
+    logger.debug(f"min: {np.nanmin(hist_array)}, max: {np.nanmax(hist_array)}")
+    # The colormap that we use is the default from sns.heatmap
+    kwargs["cmap"] = "viridis"
+    # Label is included so we could use a legend if we want
+    kwargs["label"] = "response"
+
+    logger.debug("kwargs: {}".format(kwargs))
+
+    # Determine the edges
+    extent = [
+        np.amin(X), np.amax(X),
+        np.amin(Y), np.amax(Y)
+    ]
+    # Finally, create the plot
+    ax_from_imshow = ax.imshow(
+        hist_array.T, extent = extent,
+        interpolation = "nearest", aspect = "auto", origin = "lower",
+        **kwargs
+    )
+
+    # Add colorbar
+    # It needs to be defined on the figure because it is stored in a separate axis.
+    fig.colorbar(ax_from_imshow, ax = ax)
+
+    # Add labeling
+    embedded_additional_label = obj.event_activity.display_str()
+    general_labels = {
+        "alice_and_collision_energy":
+            rf"{obj.alice_label.display_str()}\:{obj.collision_energy.display_str()}",
+        "collision_system_and_event_activity":
+            rf"{obj.collision_system.display_str(embedded_additional_label = embedded_additional_label)}",
+        "constituent_cuts": labels.constituent_cuts(additional_label = "det"),
+        "leading_hadron_bias": obj.leading_hadron_bias.display_str(additional_label = "det"),
+        "jet_finding": labels.jet_finding(),
+    }
+    # Ensure that each line is a valid latex line.
+    # The heuristic is roughly that full statements (such as jet_finding) are already wrapped in "$",
+    # while partial statements, such as the leading hadron bias, event activity, etc are not wrapped in "$".
+    # This is due to the potential for such "$" to interfere with including those partial statements in other
+    # statements. As an example, it would be impossible to use the ``embedded_additional_label`` above if the
+    # ``event_activity`` included "$".
+    for k, v in general_labels.items():
+        general_labels[k] = labels.make_valid_latex_string(v)
+    label = "\n".join(reversed(list(general_labels.values())))
+    ax.text(0.99, 0.01, s = label,
+            horizontalalignment = "right",
+            verticalalignment = "bottom",
+            multialignment = "right",
+            transform = ax.transAxes,
+            # We need a slightly smaller font size to fit everything...
+            fontsize = 15)
+    # Axis labels
+    x_label = labels.make_valid_latex_string(
+        fr"{labels.jet_pt_display_label(upper_label = 'hybrid')}\:({labels.momentum_units_label_gev()})"
+    )
+    y_label = labels.make_valid_latex_string(
+        fr"{labels.jet_pt_display_label(upper_label = 'part')}\:({labels.momentum_units_label_gev()})"
+    )
+    ax.set_title("")
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+
+    # Final styling
+    fig.tight_layout()
+
+    # Save and cleanup
+    output_name = "response_matrix_final_mpl"
+    plot_base.save_plot(output_info, fig, output_name)
+    plt.close(fig)
 
 def plot_response_spectra(plot_labels: plot_base.PlotLabels,
                           output_name: str,
