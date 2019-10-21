@@ -70,6 +70,8 @@ configuration file. Note that the location of input and output files are specifi
 In general, modules in the analysis, toy_models, and event_gen packages are executable with `python -m ...` if
 they don't have a dedicated executable installed by the package.
 
+The package versions used for my thesis are stored in `requirements-thesis.txt`.
+
 ### Running the correlations analysis
 
 When using the command above, the following steps are necessary:
