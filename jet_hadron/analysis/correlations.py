@@ -2428,10 +2428,12 @@ class Correlations(analysis_objects.JetHReactionPlane):
         """ Generate appendix for thesis.
 
         Contains:
+
         - 2D raw correlation
         - 2D mixed event
         - 2D signal correlation
         - Mixed event normalization.
+
         """
         # Validation
         # We want to replace the "output" at the beginning

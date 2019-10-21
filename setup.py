@@ -85,7 +85,7 @@ setup(
         "seaborn",
         "numdifftools",
         "pachyderm",
-        "reaction_plane_fit",
+        "reaction_plane_fit>3.1",
         "coloredlogs",
         "enlighten",
         "numpythia",
