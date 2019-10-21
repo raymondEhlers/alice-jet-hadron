@@ -244,8 +244,7 @@ def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations
 
     return separator.join(labels)
 
-
-def _determine_extracted_values_ticks_and_limits(ax: matplotlib.axis.Axes, logy: bool,
+def _determine_extracted_values_ticks_and_limits(ax: matplotlib.axes.Axes, logy: bool,
                                                  y_axis_limits: Optional[Tuple[float, float]] = None) -> None:
     """ Determine and set the extracted values y axis ticks and limits.
 
