@@ -40,7 +40,7 @@ def determine_leading_hadron_bias(config: generic_config.DictLike, selected_anal
     override_options = generic_config.determine_override_options(
         selected_options = selected_analysis_options.astuple(),
         override_opts = config["leadingHadronBiasValues"],
-        set_of_possible_options = params.SetOfPossibleOptions.astuple(),
+        set_of_possible_options = params.set_of_possible_options,
     )
     leading_hadron_bias_type = selected_analysis_options.leading_hadron_bias
     leading_hadron_bias_value = override_options["value"]
@@ -71,7 +71,7 @@ def override_options(config: generic_config.DictLike, selected_options: params.S
     """
     config = generic_config.override_options(
         config, selected_options.astuple(),
-        set_of_possible_options = params.SetOfPossibleOptions.astuple(),
+        set_of_possible_options = params.set_of_possible_options,
         config_containing_override = config_containing_override,
     )
     config = generic_config.simplify_data_representations(config)
@@ -165,22 +165,30 @@ def validate_arguments(selected_args: params.SelectedAnalysisOptions, validate_e
     energy = selected_args.collision_energy if selected_args.collision_energy else 2.76
     # Retrieves the enum by value
     energy = energy if type(energy) is params.CollisionEnergy else params.CollisionEnergy(energy)
+    # Help out mypy...
+    assert isinstance(energy, params.CollisionEnergy)
     # Collision system. Default: PbPb
     collision_system = selected_args.collision_system if selected_args.collision_system else "PbPb"
     collision_system = collision_system if type(collision_system) is params.CollisionSystem else params.CollisionSystem[collision_system]  # type: ignore
+    # Help out mypy...
+    assert isinstance(collision_system, params.CollisionSystem)
     # Event activity. Default: central
     event_activity = selected_args.event_activity if selected_args.event_activity else "central"
     event_activity = event_activity if type(event_activity) is params.EventActivity else params.EventActivity[event_activity]  # type: ignore
+    # Help out mypy...
+    assert isinstance(event_activity, params.EventActivity)
     # Leading hadron bias type. Default: track
     leading_hadron_bias_type = selected_args.leading_hadron_bias if selected_args.leading_hadron_bias else "track"
     leading_hadron_bias_type = leading_hadron_bias_type if type(leading_hadron_bias_type) is params.LeadingHadronBiasType else params.LeadingHadronBiasType[leading_hadron_bias_type]  # type: ignore
+    # Help out mypy...
+    assert isinstance(leading_hadron_bias_type, (params.LeadingHadronBias, params.LeadingHadronBiasType))
 
     # Handle additional arguments
     additional_validated_args: Dict[str, Any] = {}
     if validate_extra_args_func:
         additional_validated_args.update(validate_extra_args_func())
 
-    selected_analysis_options = params.SelectedAnalysisOptions(  # type: ignore
+    selected_analysis_options = params.SelectedAnalysisOptions(
         collision_energy = energy,
         collision_system = collision_system,
         event_activity = event_activity,

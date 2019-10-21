@@ -406,10 +406,10 @@ class SelectedAnalysisOptions:
             yield k, v
 
 # For use with overriding configuration values
-SetOfPossibleOptions = SelectedAnalysisOptions(CollisionEnergy,  # type: ignore
-                                               CollisionSystem,
-                                               EventActivity,
-                                               LeadingHadronBiasType)
+set_of_possible_options = (CollisionEnergy,
+                           CollisionSystem,
+                           EventActivity,
+                           LeadingHadronBiasType)
 
 ##############################
 # Additional selection options

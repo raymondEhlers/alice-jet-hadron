@@ -244,6 +244,31 @@ def _proj_and_extract_range_label(inclusive_analysis: "correlations.Correlations
 
     return separator.join(labels)
 
+
+def _determine_extracted_values_ticks_and_limits(ax: matplotlib.axis.Axes, logy: bool,
+                                                 y_axis_limits: Optional[Tuple[float, float]] = None) -> None:
+    """ Determine and set the extracted values y axis ticks and limits.
+
+    Args:
+        ax: Axis upon which these properties will be applied.
+        logy: True if y-axis should be set to log. It also specifies a proper ticks and axis range.
+        y_axis_limits: y axis limits.
+    Returns:
+        None. The properties and values are applied to the given axis.
+    """
+    if logy:
+        ax.set_yscale("log")
+        # Adjust the formatting if using log on the y axis.
+        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
+        y_min, y_max = ax.get_ylim()
+        ax.set_ylim(y_min, y_max if y_max > 5 else 5)
+    # Ensure that there are major labeld ticks at every integer value on the x axis
+    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
+    # Apply custom limits if requested
+    if y_axis_limits:
+        ax.set_ylim(*y_axis_limits)
+
 def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
                       selected_iterables: Mapping[str, Sequence[Any]],
                       extract_value_func: Callable[["correlations.Correlations"], analysis_objects.ExtractedObservable],
@@ -273,6 +298,7 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
         output_name: Base of name under which the plot will be stored.
         fit_type: Name of the RP fit type used to get to this extracted value.
         output_info: Information needed to determine where to store the plot.
+        y_axis_limits: y axis limits.
         projection_range_func: Function which will provide the projection range of the extracted value given
             the inclusive object. Default: None.
         extraction_range_func: Function which will provide the extraction range of the extracted value given
@@ -404,24 +430,15 @@ def _extracted_values(analyses: Mapping[Any, "correlations.Correlations"],
     # To add the PatchCollection to the legend, we have to jump through a number of hoops.
     # We have to create a new set of patches which have the same label and then take the first facecolor.
     # Despite the singular name, facecolor returns a collection of colors, so we have to take the first entry.
-    handles.extend([matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()])
+    handles.extend(
+        [matplotlib.patches.Patch(label = v.get_label(), color = v.get_facecolor()[0]) for v in error_boxes.values()]
+    )
     ax.legend(
         loc = "upper right", bbox_to_anchor = (0.99, 0.6),
         frameon = False, fontsize = 14, handles = handles
     )
     # Apply log if requested.
-    if logy:
-        ax.set_yscale("log")
-        # Adjust the formatting if using log on the y axis.
-        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
-        ax.yaxis.set_minor_formatter(matplotlib.ticker.FuncFormatter(plot_base.log_minor_tick_formatter))
-        y_min, y_max = ax.get_ylim()
-        ax.set_ylim(y_min, y_max if y_max > 5 else 5)
-    # Ensure that there are major labeld ticks at every integer value on the x axis
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(base = 1.0))
-    # Apply custom limits if requested
-    if y_axis_limits:
-        ax.set_ylim(*y_axis_limits)
+    _determine_extracted_values_ticks_and_limits(logy, ax, y_axis_limits)
 
     # Final adjustments
     fig.tight_layout()
@@ -456,9 +473,9 @@ def delta_phi_near_side_widths(analyses: Mapping[Any, "correlations.Correlations
         value = analysis.widths_delta_phi.near_side.fit_args.get("width", None)
         # The value is available. It just be one of the EP selected orientations
         if value is not None:
-            return analysis_objects.ExtractedObservable(  # type: ignore
-                value = analysis.widths_delta_phi.near_side.fit_args["width"],
-                error = analysis.widths_delta_phi.near_side.fit_args["error_width"],
+            return analysis_objects.ExtractedObservable(
+                value = cast(float, analysis.widths_delta_phi.near_side.fit_args["width"]),
+                error = cast(float, analysis.widths_delta_phi.near_side.fit_args["error_width"]),
                 # The error prop for the RPF signal fits systematic isn't so straightforward
                 metadata = {},
             )
@@ -504,9 +521,9 @@ def delta_phi_away_side_widths(analyses: Mapping[Any, "correlations.Correlations
         value = analysis.widths_delta_phi.away_side.fit_args.get("width", None)
         # The value is available. It just be one of the EP selected orientations
         if value is not None:
-            return analysis_objects.ExtractedObservable(  # type: ignore
-                value = analysis.widths_delta_phi.away_side.fit_args["width"],
-                error = analysis.widths_delta_phi.away_side.fit_args["error_width"],
+            return analysis_objects.ExtractedObservable(
+                value = cast(float, analysis.widths_delta_phi.away_side.fit_args["width"]),
+                error = cast(float, analysis.widths_delta_phi.away_side.fit_args["error_width"]),
                 # The error prop for the RPF signal fits systematic isn't so straightforward
                 metadata = {},
             )
@@ -731,8 +748,8 @@ def _determine_JEWEL_prediction_observable(yield_value: Union[extracted.Extracte
     names = [n.capitalize() for n in names]
     return f"{names[0]}{middle_term}{names[1]}"
 
-def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
-                 extract_value_func: Callable[["correlations.CorrelationsYields"], analysis_objects.ExtractedObservable],
+def _yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationYields"],
+                 extract_value_func: Callable[["correlations.CorrelationYields"], analysis_objects.ExtractedObservable],
                  an_analysis: "correlations.Correlations",
                  label: str,
                  plot_labels: plot_base.PlotLabels,
@@ -885,14 +902,14 @@ def _yield_ratio(yield_ratios: Dict[Any, extracted.ExtractedYieldRatio],
                         f"{fit_type}_{output_name}_{file_label}_{an_analysis.jet_pt_identifier}")
     plt.close(fig)
 
-def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationsYields"],
+def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationYields"],
                                     an_analysis: "correlations.Correlations",
                                     fit_type: str,
                                     label: str,
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
-    def near_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+    def near_side_yields(yields: "correlations.CorrelationYields") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return cast(analysis_objects.ExtractedObservable, yields.near_side.value)
+        return yields.near_side.value
 
     def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
         """ Helper function to provide the yield extraction range.
@@ -910,6 +927,8 @@ def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
 
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_ratios.values())).near_side
+    # Help out mypy...
+    assert isinstance(single_yield, extracted.ExtractedYieldRatio)
     numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
 
     # Determine the JEWEL predictions.
@@ -938,16 +957,16 @@ def delta_phi_near_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
             extraction_range_func = near_side_extraction_range,
         )
 
-def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationsYields"],
+def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.CorrelationYields"],
                                     an_analysis: "correlations.Correlations",
                                     label: str,
                                     fit_type: str,
                                     y_axis_limits: Tuple[float, float],
                                     output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields. """
-    def away_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+    def away_side_yields(yields: "correlations.CorrelationYields") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return cast(analysis_objects.ExtractedObservable, yields.away_side.value)
+        return yields.away_side.value
 
     def away_side_extraction_range(analysis: "correlations.Correlations") -> str:
         """ Helper function to provide the yield extraction range.
@@ -968,6 +987,8 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
 
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_ratios.values())).away_side
+    # Help out mypy...
+    assert isinstance(single_yield, extracted.ExtractedYieldRatio)
     numerator_name, denominator_name = _determine_contributors_label_names(single_yield)
 
     # Determine the JEWEL predictions.
@@ -1001,8 +1022,8 @@ def delta_phi_away_side_yield_ratio(yield_ratios: Dict[Any, "correlations.Correl
 # Yield differences
 ###################
 
-def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDifference],
-                      extract_value_func: Callable[["correlations.CorrelationsYields"],
+def _yield_difference(yield_differences: Dict[Any, "correlations.CorrelationYields"],
+                      extract_value_func: Callable[["correlations.CorrelationYields"],
                                                    analysis_objects.ExtractedObservable],
                       an_analysis: "correlations.Correlations",
                       label: str,
@@ -1170,14 +1191,14 @@ def _yield_difference(yield_differences: Dict[Any, extracted.ExtractedYieldDiffe
                         f"{fit_type}_{output_name}_{file_label}_{an_analysis.jet_pt_identifier}")
     plt.close(fig)
 
-def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlations.CorrelationsYields"],
+def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlations.CorrelationYields"],
                                          an_analysis: "correlations.Correlations",
                                          fit_type: str,
                                          label: str,
                                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
-    def near_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+    def near_side_yields(yields: "correlations.CorrelationYields") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return cast(analysis_objects.ExtractedObservable, yields.near_side.value)
+        return yields.near_side.value
 
     def near_side_extraction_range(analysis: "correlations.Correlations") -> str:
         """ Helper function to provide the yield extraction range.
@@ -1195,6 +1216,8 @@ def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlati
 
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_differences.values())).near_side
+    # Help out mypy...
+    assert isinstance(single_yield, extracted.ExtractedYieldDifference)
     first_term_name, second_term_name = _determine_contributors_label_names(single_yield)
 
     # Determine the JEWEL predictions.
@@ -1224,16 +1247,16 @@ def delta_phi_near_side_yield_difference(yield_differences: Dict[Any, "correlati
             extraction_range_func = near_side_extraction_range,
         )
 
-def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlations.CorrelationsYields"],
+def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlations.CorrelationYields"],
                                          an_analysis: "correlations.Correlations",
                                          label: str,
                                          fit_type: str,
                                          y_axis_limits: Optional[Tuple[float, float]],
                                          output_info: analysis_objects.PlottingOutputWrapper) -> None:
     """ Plot the delta phi away-side yields differences. """
-    def away_side_yields(yields: "correlations.CorrelationsYields") -> analysis_objects.ExtractedObservable:
+    def away_side_yields(yields: "correlations.CorrelationYields") -> analysis_objects.ExtractedObservable:
         """ Helper function to provide the ExtractedObservable. """
-        return cast(analysis_objects.ExtractedObservable, yields.away_side.value)
+        return yields.away_side.value
 
     def away_side_extraction_range(analysis: "correlations.Correlations") -> str:
         """ Helper function to provide the yield extraction range.
@@ -1254,6 +1277,8 @@ def delta_phi_away_side_yield_difference(yield_differences: Dict[Any, "correlati
 
     # Determine the y axis label based on the contributors.
     single_yield = next(iter(yield_differences.values())).away_side
+    # Help out mypy...
+    assert isinstance(single_yield, extracted.ExtractedYieldDifference)
     first_term_name, second_term_name = _determine_contributors_label_names(single_yield)
 
     # Determine the JEWEL predictions.

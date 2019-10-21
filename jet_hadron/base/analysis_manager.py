@@ -103,7 +103,7 @@ class Manager(generic_class.EqualityMixin, abc.ABC):
 
 _T = TypeVar("_T", bound = Manager)
 
-def run_helper(manager_class: Type[_T], **kwargs: str) -> _T:
+def run_helper(manager_class: Type[_T], **kwargs: Any) -> _T:
     """ Helper function to execute most analysis managers.
 
     It sets up the passed analysis manager object and then calls ``run()``. It also enables logging
@@ -131,7 +131,7 @@ def run_helper(manager_class: Type[_T], **kwargs: str) -> _T:
 
     # Setup the analysis
     # mypy doesn't know that we won't ever pass the `args` argument.
-    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(  # type: ignore
+    (config_filename, terminal_args, additional_args) = analysis_config.determine_selected_options_from_kwargs(
         **kwargs,
     )
     # Validate the given terminal arguments

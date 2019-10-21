@@ -474,7 +474,7 @@ def particle_level_spectra_ratios(ep_analyses_iter: Iterator[Tuple[Any, "respons
 
             # Default arguments
             # Use the minimum of the histogram as the starting value.
-            arguments: pachyderm.fit.FitArguments = {
+            arguments: pachyderm.fit.T_FitArguments = {
                 "slope": 0, "error_slope": 0.005,
                 "const": 1, "error_const": 0.005,
                 "limit_slope": (-100, 100),
