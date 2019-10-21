@@ -2443,7 +2443,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         jet_pt_label = labels.jet_pt_range_string(self.jet_pt)
         track_pt_label = labels.track_pt_range_string(self.track_pt)
         event_plane_label = self.reaction_plane_orientation.display_str() + " orientation"
-        system_label = f"${self.event_activity.display_str()}$ ${self.collision_system.display_str()}$ collisions at ${self.collision_energy.display_str()}$"
+        system_label = fr"{self.event_activity.value_range.min}--{self.event_activity.value_range.max}\% {self.collision_system.value} collisions at ${self.collision_energy.display_str()}$"
+        # Fix display in the LaTeX. `\textendash` doesn't seem to render well for whatever reason.
+        # textendash is only needed for ROOT plots anyway, so it's not a problem to replace it here.
+        system_label = system_label.replace(r" \textendash ", "--")
         raw_correlation = MarkdownFigure(
             figure_name = self.correlation_hists_2d.raw.name,
             caption = r"The measured correlation function with the the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied, but before acceptance correction via the mixed events. The correlation is measured for " + f"{event_plane_label.lower()} for {jet_pt_label} jets with {track_pt_label} in {system_label}",
@@ -3074,32 +3077,38 @@ class CorrelationsManager(analysis_manager.Manager):
                 first_analysis = analysis
                 break
 
+            # Helpful variables
             jet_pt_label = labels.jet_pt_range_string(first_analysis.jet_pt)
             track_pt_label = labels.track_pt_range_string(first_analysis.track_pt)
-            #system_label = f"${first_analysis.event_activity.display_str()}$ ${first_analysis.collision_system.display_str()}$ collisions at ${first_analysis.collision_energy.display_str()}$"
+            track_pt_identifier = f"trackPt_{first_analysis.track_pt.min}_{first_analysis.track_pt.max}"
+            system_label = fr"{first_analysis.event_activity.value_range.min}--{first_analysis.event_activity.value_range.max}\%"
+            # Fix display in the LaTeX. `\textendash` doesn't seem to render well for whatever reason.
+            # textendash is only needed for ROOT plots anyway, so it's not a problem to replace it here.
+            system_label = system_label.replace(r" \textendash ", "--")
+
             # RPF correlation
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}",
-                caption = fr"The Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {first_analysis.event_activity.display_str()} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
-                label = f"rpf_{first_analysis.event_activity}",
+                caption = fr"The Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                label = f"rpf_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
             # RPF correlation matrix
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}_correlation_matrix",
-                caption = fr"Correlation matrix for the Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {first_analysis.event_activity.display_str()} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
-                label = f"rpf_correlation_matrix_{first_analysis.event_activity}",
+                caption = fr"Correlation matrix for the Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                label = f"rpf_correlation_matrix_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
             # RPF correlation subtracted
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}_rp_subtracted",
-                caption = fr"The Reaction Plane Fit subtracted jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {first_analysis.event_activity.display_str()} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
-                label = f"rpf_subtracted_{first_analysis.event_activity}",
+                caption = fr"The Reaction Plane Fit subtracted jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                label = f"rpf_subtracted_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
 
-        output = r"""## Reaction Plane Fit"""
+        output = r"""### Reaction Plane Fit"""
 
         # Write the output
         output_file = Path(self.output_info.output_prefix) / "appendix.md"
@@ -3112,7 +3121,7 @@ class CorrelationsManager(analysis_manager.Manager):
                 f.write(fig.generate_from_template(path))
                 f.write("\n")
 
-                if i % 3 == 0:
+                if i % 3 == 0 and i != 0:
                     # Ensure that it doesn't fail due to too many floats
                     f.write(r"\clearpage{}")
                     f.write("\n")
