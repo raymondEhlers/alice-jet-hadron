@@ -110,7 +110,7 @@ pbr==5.4.2
 pdbpp==0.10.0
 pexpect==4.7.0
 pickleshare==0.7.5
-Pillow==6.1.0
+Pillow==6.2.0
 pkgconfig==1.4.0
 plotly==4.1.0
 pluggy==0.12.0
