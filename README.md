@@ -1,5 +1,7 @@
 # Jet-hadron analysis
 
+[![Build Status](https://travis-ci.com/raymondEhlers/alice-jet-hadron.svg?branch=master)](https://travis-ci.com/raymondEhlers/alice-jet-hadron)
+
 This repository contains jet-hadron analysis code, run macros, tools, etc. Most are predominately documented
 through the docstrings in the code itself.
 

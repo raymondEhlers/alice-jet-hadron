@@ -85,7 +85,6 @@ Correlations: &CorrelationsConfig
     delta_phi_yield_limit: 0.33333
     # This value is just 0.6 (ie corresponding to the signal dominated region).
     delta_eta_yield_limit: 0.6
-    processingOptions:
     override: &CorrelationsOverride
         # yamllint disable-line rule:line-length
         outputPrefix: "output/{collision_system}/{trainNumber}/{event_activity}/{leading_hadron_bias}/{task_name}/RP{reaction_plane_orientation}"
