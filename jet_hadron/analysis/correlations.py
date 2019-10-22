@@ -2434,6 +2434,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
         - 2D signal correlation
         - Mixed event normalization.
 
+        Args:
+            base_path: Base path to the images. This is the path from _the thesis_, not from the executable.
+        Returns:
+            True if the appendix was generated successfully. The output will be written to a file.
         """
         # Validation
         # We want to replace the "output" at the beginning
@@ -2451,30 +2455,30 @@ class Correlations(analysis_objects.JetHReactionPlane):
         system_label = system_label.replace(r" \textendash ", "--")
         raw_correlation = MarkdownFigure(
             figure_name = self.correlation_hists_2d.raw.name,
-            caption = r"The measured correlation function with the the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied, but before acceptance correction via the mixed events. The correlation is measured for " + f"{event_plane_label.lower()} for {jet_pt_label} jets with {track_pt_label} in {system_label}",
+            caption = r"The measured correlation function with the the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied, but before acceptance correction via the mixed events. The correlation is measured for " + f"{event_plane_label.lower()} for {jet_pt_label} jets with {track_pt_label} in {system_label}.",
             label = f"raw_correlation_{self.identifier}_{self.reaction_plane_orientation}",
-            width = 70,
+            width = 75,
             extension = "eps",
         )
         mixed_event = MarkdownFigure(
             figure_name = self.correlation_hists_2d.mixed_event.name,
             caption = r"The mixed event pair acceptance correction with the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied. The correlations are measured inclusive in " + f"{event_plane_label} for {jet_pt_label} jets with {track_pt_label} in {system_label}" + r". They have already been normalized such that it they are unity at maximum efficiency. Above 2 \GeVc{}, the mixed events are merged together to increase statistics, so it is the same for all for correlations within $2.0 <= p_{\text{T}}^{\text{assoc}} 10$ \GeVc{}.",
             label = f"mixed_event_{self.identifier}_{self.reaction_plane_orientation}",
-            width = 70,
+            width = 75,
             extension = "eps",
         )
         corrected = MarkdownFigure(
             figure_name = self.correlation_hists_2d.signal.name,
-            caption = "The signal correlation corrected by pair acceptance. The correlations are measured inclusive in " + f"{event_plane_label} for {jet_pt_label} jets with {track_pt_label} in {system_label}",
+            caption = "The signal correlation corrected by pair acceptance. The correlations are measured inclusive in " + f"{event_plane_label} for {jet_pt_label} jets with {track_pt_label} in {system_label}.",
             label = f"signal_{self.identifier}_{self.reaction_plane_orientation}",
-            width = 70,
+            width = 75,
             extension = "eps",
         )
         normalization = MarkdownFigure(
             figure_name = fr"simplified_mixed_event_normalization_{self.identifier}",
             caption = "Determination of the normalization of the mixed event for the for inclusive event plane orientation in " + system_label + r" Here the mixed event is projected over the plateau range in $\Delta\eta$ onto to the $\Delta\varphi$ axis. The moving average is evaluated over the entire $\Delta\varphi$ range using a window of $\pi$, while the fit range is fixed from $\pi/2 < \Delta\varphi < 3\pi/2$. Since the mixed events are merged above 2 $\text{GeV}/c$, the normalization factor is also the same for all correlations within " + track_pt_label + ". A variety of normalization methods were evaluated, with further details described in the text.",
             label = f"mixed_event_normalization_{self.identifier}_{self.reaction_plane_orientation}",
-            width = 60,
+            width = 80,
         )
 
         figures = [
@@ -2488,7 +2492,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
         # Write the output
         output_file = Path(self.output_info.output_prefix).parent / "appendix.md"
-        logger.debug(f"Correlations output file: {output_file}")
+        #logger.debug(f"Correlations output file: {output_file}")
         with open(output_file, "a+") as f:
             f.write(output)
             f.write("\n")
@@ -3056,6 +3060,11 @@ class CorrelationsManager(analysis_manager.Manager):
                 - Subtracted correlation
                 - Correlation matrix
         - RPF Background
+
+        Args:
+            base_path: Base path to the images. This is the path from _the thesis_, not from the executable.
+        Returns:
+            True if the appendix was generated successfully. The output will be written to a file.
         """
         # Skip if not enabled
         if not self.processing_options["write_thesis_output"]:
@@ -3091,21 +3100,21 @@ class CorrelationsManager(analysis_manager.Manager):
             # RPF correlation
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}",
-                caption = fr"The Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                caption = fr"The Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.",
                 label = f"rpf_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
             # RPF correlation matrix
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}_correlation_matrix",
-                caption = fr"Correlation matrix for the Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                caption = fr"Correlation matrix for the Reaction Plane Fit of jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.",
                 label = f"rpf_correlation_matrix_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
             # RPF correlation subtracted
             figures.append(MarkdownFigure(
                 figure_name = f"{self.fit_type}_{first_analysis.identifier}_rp_subtracted",
-                caption = fr"The Reaction Plane Fit subtracted jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.  ",
+                caption = fr"The Reaction Plane Fit subtracted jet-hadron correlations measured for {jet_pt_label} and {track_pt_label} in {system_label} collisions. The signal dominated data are shown in blue, the background dominated in orange, and the fit in purple. The upper panels show the signal and background dominated correlations measured in each event plane orientation. The lower panels show the fit residuals.",
                 label = f"rpf_subtracted_{first_analysis.event_activity}_{track_pt_identifier}",
                 width = 100,
             ))
@@ -3125,6 +3134,7 @@ class CorrelationsManager(analysis_manager.Manager):
 
                 if i % 3 == 0 and i != 0:
                     # Ensure that it doesn't fail due to too many floats
+                    f.write("\n")
                     f.write(r"\clearpage{}")
                     f.write("\n")
 
@@ -3708,6 +3718,12 @@ class CorrelationsManager(analysis_manager.Manager):
             overall_progress.update()
 
             # First analysis step
+            if self.processing_options["write_thesis_output"]:
+                # If we are writing the thesis appendix, delete the previous one (we append to
+                # the file, so if it's not deleted, then it will repeat the information...)
+                output_file = Path(self.output_info.output_prefix) / "appendix.md"
+                if output_file.exists():
+                    output_file.unlink()
             with self._progress_manager.counter(total = len(self.analyses),
                                                 desc = "Projecting:",
                                                 unit = "analysis objects") as projecting:
