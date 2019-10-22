@@ -2456,28 +2456,28 @@ class Correlations(analysis_objects.JetHReactionPlane):
         raw_correlation = MarkdownFigure(
             figure_name = self.correlation_hists_2d.raw.name,
             caption = r"The measured correlation function with the the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied, but before acceptance correction via the mixed events. The correlation is measured for " + f"{event_plane_label.lower()} for {jet_pt_label} jets with {track_pt_label} in {system_label}.",
-            label = f"raw_correlation_{self.identifier}_{self.reaction_plane_orientation}",
+            label = f"raw_correlation_{self.event_activity}_{self.identifier}_{self.reaction_plane_orientation}",
             width = 75,
             extension = "eps",
         )
         mixed_event = MarkdownFigure(
             figure_name = self.correlation_hists_2d.mixed_event.name,
             caption = r"The mixed event pair acceptance correction with the efficiency correction $\epsilon(p_{\text{T}},\eta)$ applied. The correlations are measured inclusive in " + f"{event_plane_label} for {jet_pt_label} jets with {track_pt_label} in {system_label}" + r". They have already been normalized such that it they are unity at maximum efficiency. Above 2 \GeVc{}, the mixed events are merged together to increase statistics, so it is the same for all for correlations within $2.0 <= p_{\text{T}}^{\text{assoc}} 10$ \GeVc{}.",
-            label = f"mixed_event_{self.identifier}_{self.reaction_plane_orientation}",
+            label = f"mixed_event_{self.event_activity}_{self.identifier}_{self.reaction_plane_orientation}",
             width = 75,
             extension = "eps",
         )
         corrected = MarkdownFigure(
             figure_name = self.correlation_hists_2d.signal.name,
             caption = "The signal correlation corrected by pair acceptance. The correlations are measured inclusive in " + f"{event_plane_label} for {jet_pt_label} jets with {track_pt_label} in {system_label}.",
-            label = f"signal_{self.identifier}_{self.reaction_plane_orientation}",
+            label = f"signal_{self.event_activity}_{self.identifier}_{self.reaction_plane_orientation}",
             width = 75,
             extension = "eps",
         )
         normalization = MarkdownFigure(
             figure_name = fr"simplified_mixed_event_normalization_{self.identifier}",
             caption = "Determination of the normalization of the mixed event for the for inclusive event plane orientation in " + system_label + r" Here the mixed event is projected over the plateau range in $\Delta\eta$ onto to the $\Delta\varphi$ axis. The moving average is evaluated over the entire $\Delta\varphi$ range using a window of $\pi$, while the fit range is fixed from $\pi/2 < \Delta\varphi < 3\pi/2$. Since the mixed events are merged above 2 $\text{GeV}/c$, the normalization factor is also the same for all correlations within " + track_pt_label + ". A variety of normalization methods were evaluated, with further details described in the text.",
-            label = f"mixed_event_normalization_{self.identifier}_{self.reaction_plane_orientation}",
+            label = f"mixed_event_normalization_{self.event_activity}_{self.identifier}_{self.reaction_plane_orientation}",
             width = 80,
         )
 
