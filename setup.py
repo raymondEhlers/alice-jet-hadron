@@ -90,6 +90,7 @@ setup(
         "enlighten",
         "numpythia",
         "pyjet",
+        "joblib",
     ],
 
     # Include additional files

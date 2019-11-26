@@ -15,6 +15,7 @@ import logging
 import os
 import numpy as np
 import sys
+from joblib import Memory
 from pathlib import Path
 from typing import Any, cast, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
@@ -61,6 +62,9 @@ this_module = sys.modules[__name__]
 
 # Typing helpers
 ProcessingOptions = Dict[str, bool]
+
+# Setup memory cache
+memory = Memory("mem_cache", verbose = 0)
 
 class JetHCorrelationSparse(enum.Enum):
     """ Defines the axes in the Jet-Hadron THn Sparses. """
@@ -368,6 +372,82 @@ class CorrelationWidths:
         for k, v in vars(self).items():
             yield k, v
 
+def _setup_yaml() -> yaml.ruamel.yaml.YAML:
+    """ Setup YAML object with the registration of the required classes.
+
+    Args:
+        None.
+    Returns:
+        The configured YAML object.
+    """
+    return yaml.yaml(
+        classes_to_register = [],
+        modules_to_register = [
+            histogram,
+            analysis_objects,
+            this_module,
+            extracted,
+            fitting,
+        ]
+    )
+
+@memory.cache  # type: ignore
+def extract_stored_data_in_yaml(filename: Union[str, Path],
+                                require_file_to_exist: bool = False) -> analysis_config.DictLike:
+    """ Extract data stored in a given YAML file.
+
+    Args:
+        filename: Path to the file.
+        require_file_to_exist: True if the file must exist (i.e. we will raise an exception if it doesn't exist.
+    Returns:
+        Contents of the YAML file. If it doesn't exist, but is not required to do so, it returns an empty dict.
+    """
+    # Validation
+    # Convert to a Path if it's not already. If it is already, nothing will happen.
+    filename = Path(filename)
+    # Setup
+    y = _setup_yaml()
+    logger.debug(f"Reading data from YAML file at {filename}.")
+
+    # Attempt to read the file contents.
+    try:
+        with open(filename, "r") as f:
+            stored_data = y.load(f)
+    except IOError as e:
+        if require_file_to_exist:
+            raise e
+        else:
+            # We don't re-raise this exception because it may not have been created yet.
+            logger.debug(f"The YAML file at {filename} was not found! Returning an empty dict.")
+            stored_data = {}
+
+    return stored_data
+
+@memory.cache  # type: ignore
+def extract_hists_from_root_file(filename: Union[str, Path], require_file_to_exist: bool = False) -> Dict[str, Any]:
+    """ Extract hists from a ROOT file.
+
+    Args:
+        filename: Path to the file.
+        require_file_to_exist: True if the file must exist (i.e. we will raise an exception if it doesn't exist.
+    Returns:
+        Hists stored in the ROOT file. If it doesn't exist, but is not required to do so, it returns an empty dict.
+    """
+    # Validation
+    # Convert to a Path if it's not already. If it is already, nothing will happen.
+    filename = Path(filename)
+    try:
+        input_hists = histogram.get_histograms_in_file(filename = str(filename))
+    except IOError as e:
+        if require_file_to_exist:
+            raise e
+        else:
+            # We don't re-raise this exception because it may not have been created yet.
+            logger.debug(f"The ROOT file at {filename} was not found! Returning an empty dict.")
+            input_hists = {}
+
+    return input_hists
+
 class Correlations(analysis_objects.JetHReactionPlane):
     """ Main correlations analysis object.
 
@@ -662,16 +742,7 @@ class Correlations(analysis_objects.JetHReactionPlane):
         try:
             return self.yaml
         except AttributeError:
-            self.yaml = yaml.yaml(
-                classes_to_register = [],
-                modules_to_register = [
-                    histogram,
-                    analysis_objects,
-                    this_module,
-                    extracted,
-                    fitting,
-                ]
-            )
+            self.yaml = _setup_yaml()
 
         return self.yaml
 
@@ -864,13 +935,10 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def _init_mixed_event_normalization_from_yaml_file(self) -> None:
         """ Initialize the mixed event normalization from file. """
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            stored_data = y.load(f)
-
-            # Load the mixed event info from file.
-            self.mixed_event_normalization = stored_data[f"{self.identifier}_mixed_event_normalization"]
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        stored_data = extract_stored_data_in_yaml(filename = filename)
+        # Load the mixed event info from file.
+        self.mixed_event_normalization = stored_data[f"{self.identifier}_mixed_event_normalization"]
 
         #logger.debug(
         #    f"{self.identifier}, {self.reaction_plane_orientation}: mixed event norm: {self.mixed_event_normalization}"
@@ -891,77 +959,78 @@ class Correlations(analysis_objects.JetHReactionPlane):
 
     def init_delta_eta_fit_information(self) -> None:
         """ Initialize delta eta fit information from a YAML file. """
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            fit_information = y.load(f)
-
-            # Load the fit from file.
-            self.fit_objects_delta_eta = fit_information[f"{self.identifier}_fit_objects_delta_eta"]
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        stored_data = extract_stored_data_in_yaml(filename = filename)
+        # Load the fit from file.
+        self.fit_objects_delta_eta = stored_data[f"{self.identifier}_fit_objects_delta_eta"]
 
     def init_yields_from_file(self, prefix: str) -> None:
         """ Initialize yields from a YAML file. """
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            stored_data = y.load(f)
-
-            # Load the fit from file.
-            self.yields_delta_phi = stored_data[f"{prefix}_{self.identifier}_yields_delta_phi"]
-            self.yields_delta_eta = stored_data[f"{self.identifier}_yields_delta_eta"]
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        stored_data = extract_stored_data_in_yaml(filename = filename)
+        # Load the fit from file.
+        self.yields_delta_phi = stored_data[f"{prefix}_{self.identifier}_yields_delta_phi"]
+        self.yields_delta_eta = stored_data[f"{self.identifier}_yields_delta_eta"]
 
     def init_delta_phi_widths_from_file(self, prefix: str) -> None:
         """ Initialize delta phi widths from a YAML file. """
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            stored_data = y.load(f)
-
-            # Load the widths from file.
-            self.widths_delta_phi = stored_data[f"{prefix}_{self.identifier}_widths_delta_phi"]
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        stored_data = extract_stored_data_in_yaml(filename = filename)
+        # Load the widths from file.
+        self.widths_delta_phi = stored_data[f"{prefix}_{self.identifier}_widths_delta_phi"]
 
     def init_delta_eta_widths_from_file(self) -> None:
         """ Initialize delta eta widths from a YAML file. """
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            stored_data = y.load(f)
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        stored_data = extract_stored_data_in_yaml(filename = filename)
+        # Load the widths from file.
+        self.widths_delta_eta = stored_data[f"{self.identifier}_widths_delta_eta"]
 
-            # Load the widths from file.
-            self.widths_delta_eta = stored_data[f"{self.identifier}_widths_delta_eta"]
+    def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
+                                   require_file_to_exist: bool = True) -> None:
+        """ Initialize processed histograms from a ROOT file.
 
-    def _init_hists_from_root_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]]) -> None:
-        """ Initialize processed histograms from a ROOT file. """
+        Args:
+            hists: Histograms to be initialized.
+            require_file_to_exist: True if the file must exist. Default: True because if we should only be
+                initilizing if we've already run, so the file should exist.
+        Returns:
+            None. The histograms are stored in the passed observables.
+        """
         # We want to initialize from our saved hists - they will be at the output_prefix.
-        filename = os.path.join(self.output_prefix, self.output_filename)
-        with histogram.RootOpen(filename = filename, mode = "READ") as f:
-            for _, observable in hists:
-                #logger.debug(f"Looking for hist {observable.name}")
-                h = f.Get(observable.name)
-                if not h:
-                    h = None
-                else:
-                    # Detach it from the file so we can store it for later use.
-                    h.SetDirectory(0)
-                #logger.debug(f"Initializing hist {h} to be stored in {observable}")
-                observable.hist = h
+        filename = Path(self.output_prefix) / self.output_filename
+        input_hists = extract_hists_from_root_file(filename = filename, require_file_to_exist = require_file_to_exist)
+        for _, observable in hists:
+            #logger.debug(f"Looking for hist {observable.name}")
+            h = input_hists.get(observable.name, None)
+            # No need to SetDirectory(0) here because it's already handled by get_histograms_in_file(...)
+            # in extract_hists_from_root_file(...)
+            #logger.debug(f"Initializing hist {h} to be stored in {observable}")
+            observable.hist = h
 
     def _init_hists_from_yaml_file(self, hists: Iterable[Tuple[str, analysis_objects.Observable]],
-                                   prefix: str = "") -> None:
-        """ Initialize histograms from a YAML file. """
+                                   prefix: str = "", require_file_to_exist: bool = True) -> None:
+        """ Initialize histograms from a YAML file.
+
+        Args:
+            hists: Histograms to be initialized.
+            prefix: Prefix that must be included to access the histograms. Will be combined as "{prefix}_{name}".
+            require_file_to_exist: True if the file must exist. Default: True because if we should only be
+                initilizing if we've already run, so the file should exist.
+        Returns:
+            None. The histograms are stored in the passed observables.
+        """
         # We want to initialize from our saved hists - they will be at the output_prefix.
-        y = self._setup_yaml()
-        filename = os.path.join(self.output_prefix, self.output_filename_yaml)
-        with open(filename, "r") as f:
-            hists_in_file = y.load(f)
-            for _, observable in hists:
-                #logger.debug(f"Looking for hist {observable.name}")
-                name = observable.name
-                if prefix:
-                    name = f"{prefix}_{name}"
-                h = hists_in_file.get(observable.name, None)
-                #logger.debug(f"Initializing hist {h} to be stored in {observable}")
-                observable.hist = h
+        filename = Path(self.output_prefix) / self.output_filename_yaml
+        hists_in_file = extract_stored_data_in_yaml(filename = filename, require_file_to_exist = require_file_to_exist)
+        for _, observable in hists:
+            #logger.debug(f"Looking for hist {observable.name}")
+            name = observable.name
+            if prefix:
+                name = f"{prefix}_{name}"
+            h = hists_in_file.get(observable.name, None)
+            #logger.debug(f"Initializing hist {h} to be stored in {observable}")
+            observable.hist = h
 
     def _setup_sparse_projectors(self) -> None:
         """ Setup the THnSparse projectors.

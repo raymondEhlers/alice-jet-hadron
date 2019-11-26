@@ -22,6 +22,9 @@ htmlcov/
 .py*/
 .jet_hadron/
 
+# Joblib memory cache
+mem_cache/
+
 # Ignore filetypes
 *.root
 *.pdf
