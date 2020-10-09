@@ -78,9 +78,8 @@ The package versions used for my thesis are stored in `requirements-thesis.txt`.
 
 When using the command above, the following steps are necessary:
 
-1. Run the mixed event scale uncertainty with `mixedEventSystematics -m jet_hadron.analysis.systematics`. This
-   requires Z vertex binning to be available in the THnSparse outputs (as it should be for any analyses going
-   forward).
+1. Run the mixed event scale uncertainty with `mixedEventSystematics -c ...`. This requires Z vertex binning
+   to be available in the THnSparse outputs (as it should be for any analyses going forward).
 2. Run correlations analysis. If the mixed event scale uncertainty hasn't been run yet, it will stop when it's
    needed.
 
