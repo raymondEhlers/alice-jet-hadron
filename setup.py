@@ -84,7 +84,7 @@ setup(
         "matplotlib",
         "seaborn",
         "numdifftools",
-        "pachyderm",
+        "pachyderm<3.0",
         "reaction_plane_fit>3.1",
         "coloredlogs",
         "enlighten",
